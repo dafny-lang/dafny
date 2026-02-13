@@ -2,12 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text.Json;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -37,126 +35,116 @@ public class CsharpBackend : ExecutableBackend {
   public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText,
     string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter) {
+    bool runAfterCompile, IDafnyOutputWriter outputWriter) {
 
-    // .NET Core does not allow C# compilation on all platforms using System.CodeDom. You need to use Roslyn libraries. Context: https://github.com/dotnet/runtime/issues/18768
-    var compilation = CSharpCompilation.Create(Path.GetFileNameWithoutExtension(dafnyProgramName))
-      .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
-      .AddReferences(
-        MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
-        MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
+    var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
+    var fileNames = Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName));
+    var sourcePath = Path.Join(outputDir, fileNames + ".cs");
+    var csprojPath = Path.Join(outputDir, fileNames + ".csproj");
+    Directory.CreateDirectory(outputDir);
 
-    compilation = compilation.WithOptions(compilation.Options.WithOutputKind(callToMain != null ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
+    var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
+    await File.WriteAllTextAsync(sourcePath, source);
 
-    var tempCompilationResult = new CSharpCompilationResult();
+    var outputType = callToMain == null ? "Library" : "Exe";
+
+    var itemGroupExtra = @"";
     if (!Options.IncludeRuntime) {
       var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(libPath, "DafnyRuntime.dll")));
-      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("netstandard").Location));
+      var runtimePath = Path.Join(libPath, "DafnyRuntime.dll");
+      itemGroupExtra = @$"
+    <Reference Include=""DafnyRuntime"">
+      <HintPath>{runtimePath}</HintPath>
+    </Reference>";
     }
 
-    var standardLibraries = new List<string>() {
-      "System.Runtime",
-      "System.Runtime.Numerics",
-      "System.Collections",
-      "System.Collections.Immutable",
-      "System.Collections.Concurrent",
-      "System.Console"
-    };
-    compilation = compilation.AddReferences(standardLibraries.Select(fileName => MetadataReference.CreateFromFile(Assembly.Load((string)fileName).Location)));
+    var sourceFiles = new StringBuilder();
+    sourceFiles.AppendLine(@$"<Compile Include=""{sourcePath}"" />");
 
-    if (Options.Optimize) {
-      compilation = compilation.WithOptions(compilation.Options.WithOptimizationLevel(
-        Options.Optimize ? OptimizationLevel.Release : OptimizationLevel.Debug));
-    }
-
-    var otherSourceFiles = new List<string>();
     foreach (var file in otherFileNames) {
       string extension = Path.GetExtension(file);
       if (extension != null) { extension = extension.ToLower(); }
       if (extension == ".cs") {
         var normalizedPath = Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file));
         if (File.Exists(normalizedPath)) {
-          otherSourceFiles.Add(normalizedPath);
+          sourceFiles.AppendLine(@$"<Compile Include=""{normalizedPath}"" />");
         } else {
-          await outputWriter.WriteLineAsync($"Errors compiling program: Could not find {file}");
+          await outputWriter.Status($"Errors compiling program: Could not find {file}");
           return (false, null);
         }
       } else if (extension == ".dll") {
-        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.GetFullPath(file)));
+        sourceFiles.Append(@$"
+    <Reference Include=""{Path.GetFileNameWithoutExtension(file)}"">
+      <HintPath>{Path.GetFullPath(file)}</HintPath>
+    </Reference>");
       }
     }
 
-    var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
-    compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, null, "source"));
-    foreach (var sourceFile in otherSourceFiles) {
-      compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), null, sourceFile));
-    }
-    var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
-    Directory.CreateDirectory(outputDir);
-    var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".dll");
-    var outputJson = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".runtimeconfig.json");
-    var emitResult = compilation.Emit(outputPath);
+    var itemGroup = @$"
+  <ItemGroup>
+      {sourceFiles}
+      <PackageReference Include=""System.Runtime.Numerics"" Version=""4.3.0"" />
+      <PackageReference Include=""System.Collections.Immutable"" Version=""1.7.1"" />
+      {itemGroupExtra}
+  </ItemGroup>";
 
-    if (emitResult.Success) {
-      tempCompilationResult.CompiledAssembly = Assembly.LoadFile(outputPath);
-      if (Options.Verbose) {
-        await outputWriter.WriteLineAsync($"Compiled assembly into {compilation.AssemblyName}.dll");
-      }
+    var projectFile = @$"<Project Sdk=""Microsoft.NET.Sdk"">
 
-      try {
-        var configuration = JsonSerializer.Serialize(
-          new {
-            runtimeOptions = new {
-              tfm = "net6.0",
-              framework = new {
-                name = "Microsoft.NETCore.App",
-                version = "6.0.0",
-                rollForward = "LatestMinor"
-              }
-            }
-          }, new JsonSerializerOptions() { WriteIndented = true });
-        await File.WriteAllTextAsync(outputJson, configuration + Environment.NewLine);
-      } catch (Exception e) {
-        await outputWriter.WriteLineAsync($"Error trying to write '{outputJson}': {e.Message}");
-        return (false, null);
-      }
+  <PropertyGroup>
+    <OutputType>{outputType}</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>CS8600;CS8603;CS8604;CS8605;CS8625;CS8629;CS8714;CS8765;CS8769;CS8981</NoWarn>
+    <Nullable>enable</Nullable>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+
+  {itemGroup}
+</Project>
+";
+
+    await File.WriteAllTextAsync(csprojPath, projectFile);
+
+    var arguments = new[] { "build", csprojPath, "-o", outputDir };
+    var psi = PrepareProcessStartInfo("dotnet", arguments);
+    var dotnetOutputWriter = new StringWriter();
+    var dotnetErrorWriter = new StringWriter();
+    var exitCode = await RunProcess(psi, dotnetOutputWriter, dotnetErrorWriter);
+    var dllPath = Path.Combine(outputDir, fileNames + ".dll");
+    if (exitCode != 0 || !File.Exists(dllPath)) {
+      await outputWriter.Status($@"Failed to compile C# source code using 'dotnet {string.Join(" ", arguments)}'. Command output was:" +
+                                dotnetOutputWriter.ToString() + dotnetErrorWriter.ToString());
     } else {
-      await outputWriter.WriteLineAsync($"Errors compiling program into {compilation.AssemblyName}");
-      var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-      foreach (var ce in errors) {
-        await outputWriter.WriteLineAsync(ce.ToString());
-        await outputWriter.WriteLineAsync();
+      if (Options.Verbose) {
+        await outputWriter.Status($"Compiled assembly into {Path.GetFileName(dllPath)}");
       }
-
-      return (false, null);
     }
-
-    return (true, tempCompilationResult);
+    return (exitCode == 0, dllPath);
   }
 
-  private class CSharpCompilationResult {
-    public Assembly CompiledAssembly;
-  }
-
-  public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+  public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
+    string callToMain,
     string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+    object compilationResult, IDafnyOutputWriter outputWriter) {
 
-    var crx = (CSharpCompilationResult)compilationResult;
+    var dllPath = (string)compilationResult;
+    var dllFolder = Path.GetDirectoryName(dllPath)!;
 
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) == ".dll") {
-        var targetDirectory = Path.GetDirectoryName(crx.CompiledAssembly.Location);
-        File.Copy(otherFileName, Path.Combine(targetDirectory!, Path.GetFileName(otherFileName)), true);
+        var destination = Path.Combine(dllFolder, Path.GetFileName(otherFileName));
+        if (Path.GetFullPath(otherFileName) != Path.GetFullPath(destination)) {
+          File.Copy(otherFileName, destination, true);
+        }
       }
     }
 
-    if (crx.CompiledAssembly == null) {
-      throw new Exception("Cannot call run target program on a compilation that failed");
-    }
-    var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
-    return await RunProcess(psi, outputWriter, errorWriter) == 0;
+    var psi = PrepareProcessStartInfo("dotnet", new[] { dllPath }.Concat(Options.MainArgs));
+
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return await RunProcess(psi, sw, ew) == 0;
   }
 
   public override void PopulateCoverageReport(CoverageReport coverageReport) {

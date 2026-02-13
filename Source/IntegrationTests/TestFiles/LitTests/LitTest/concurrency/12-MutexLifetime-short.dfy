@@ -5,7 +5,7 @@
 // To speed up the verification: /vcsLoad:0.5 /proverOpt:O:smt.qi.eager_threshold=30
 
 // A universe of objects playing under LCI rules
-trait Universe {
+trait Universe extends object {
   // The set of objects in the universe
   ghost var content: set<Object>
 
@@ -291,7 +291,7 @@ method InterferenceWithFraming(ghost universe: Universe, ghost preempting: Threa
 datatype ObjectClassKind = Thread | OwnedObject | Lifetime
 
 // A generic object trait
-trait Object {
+trait Object extends object {
   // Universe of which the Object is a member.
   // This should really be a constant, but I don't know how to do that while factoring out join below,
   // because traits can't have constructors.
@@ -886,7 +886,7 @@ class MutexGuardU32 extends OwnedObject {
   }
 
   // MutexGuardU32
-  constructor {:isolate_assertions} (ghost universe: Universe, ghost running: Thread, ghost scope: Lifetime, mutex: Mutex, ghost mutexScope: Lifetime)
+  constructor {:isolate_assertions} {:resource_limit "1e9"} (ghost universe: Universe, ghost running: Thread, ghost scope: Lifetime, mutex: Mutex, ghost mutexScope: Lifetime)
     requires universe.globalInv() && { running, scope, mutex, mutexScope } <= universe.content
     requires scope.owner == running && mutexScope.owner == running && scope != mutexScope
     requires universe.outlives(mutex.lifetime, mutexScope) && universe.outlives(mutexScope, scope) && scope.unused()
@@ -921,32 +921,52 @@ class MutexGuardU32 extends OwnedObject {
     this.mutex := mutex;
     this.data := mutex.data;
     new;
-    join();
+    hide *;
+    join() by {
+      assert baseFieldsInv() by {
+        reveal baseFieldsInv();
+        assert objectFields() <= universe.content by {
+          reveal objectFields();
+          assert objectUserFields() <= universe.content by {
+            reveal *;
+          }
+        }
+      }
+    }
     lifetime.elements := lifetime.elements + { this };
     // Acquire the lock
     this.mutex.locked := true;
     this.mutex.guards := { this };
     // Transfer ownership of `this.mutex.data` from `this.mutex` to `this`.
-    this.mutex.data.owner := this;
+    this.mutex.data.owner := this by {
+      reveal *;
+    }
     this.mutex.data.nonvolatileVersion := Bump(this.mutex.data.nonvolatileVersion);
     // We don't need to bump this.mutex.nonvolatileVersion, because it uses volatileOwns.
-    universe.FrameOutlives@lci_l2();
-    assert universe.outlives(mutex.lifetime, mutexScope) && universe.outlives(mutexScope, this.lifetime); // needed
-    assert universe.outlives(mutex.lifetime, this.lifetime); // needed
-    assert lifetime.alive(); // helps dafny
-    assert mutex.owner != null; // helps dafny
-    assert this.localUserInv();
-    assert this.userInv();
-    assert this.inv();
-    assert this.mutex.inv();
-    assert this.mutex.data.inv();
-    universe.lci@lci_l2(running);
-    assert {:split_here} true;
+    universe.FrameOutlives@lci_l2() by {
+      reveal *;
+    }
+
+    universe.lci@lci_l2(running) by {
+      reveal *;
+      assert universe.outlives(mutex.lifetime, mutexScope) && universe.outlives(mutexScope, this.lifetime); // needed
+      assert universe.outlives(mutex.lifetime, this.lifetime); // needed
+      assert lifetime.alive(); // helps dafny
+      assert mutex.owner != null; // helps dafny
+      assert this.localUserInv();
+      assert this.userInv();
+      assert this.inv();
+      assert this.mutex.inv();
+      assert this.mutex.data.inv();
+    }
 
     label lci_l3:
     scope.owner := null;
     universe.FrameOutlives@lci_l3();
-    universe.lci@lci_l3(running);
-    assert {:split_here} true;
+    universe.lci@lci_l3(running) by {
+      reveal *;
+    }
+
+    reveal *;
   }
 }

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -5,46 +6,78 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class Formal : NonglobalVariable {
-  public Attributes Attributes { get; set; }
+  public Attributes? Attributes { get; set; }
 
-  public readonly bool InParam;  // true to in-parameter, false for out-parameter
+  public bool InParam; // true to in-parameter, false for out-parameter
   public override bool IsMutable => !InParam;
-  public readonly bool IsOld;
-  public Expression DefaultValue;
-  public readonly bool IsNameOnly;
-  public readonly bool IsOlder;
-  public readonly string NameForCompilation;
+  public bool IsOld;
+  public Expression? DefaultValue;
+  public bool IsNameOnly;
+  public bool IsOlder;
+  public string NameForCompilation;
 
-  public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
-    Attributes attributes = null,
-    bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
-    : base(tok, name, type, isGhost) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);
+  public Formal(IOrigin origin, string name, Type? type, bool inParam, bool isGhost, Expression? defaultValue,
+    Attributes? attributes = null,
+    bool isOld = false, bool isNameOnly = false, bool isOlder = false, string? nameForCompilation = null)
+    : this(origin, new Name(origin.ReportingRange.StartToken, name), type, inParam, isGhost, defaultValue, attributes,
+      isOld, isNameOnly, isOlder, nameForCompilation) {
+  }
+
+  [SyntaxConstructor]
+  public Formal(IOrigin origin, Name nameNode, Type? syntacticType, bool inParam, bool isGhost,
+    Expression? defaultValue,
+    Attributes? attributes = null,
+    bool isOld = false, bool isNameOnly = false, bool isOlder = false, string? nameForCompilation = null)
+    : base(origin, nameNode, syntacticType, isGhost) {
     Contract.Requires(inParam || defaultValue == null);
-    Contract.Requires(!isNameOnly || (inParam && !name.StartsWith("#")));
+    Contract.Requires(!isNameOnly || (inParam && !nameNode.Value.StartsWith("#")));
     InParam = inParam;
     IsOld = isOld;
     DefaultValue = defaultValue;
     Attributes = attributes;
     IsNameOnly = isNameOnly;
     IsOlder = isOlder;
-    NameForCompilation = nameForCompilation ?? name;
+    NameForCompilation = nameForCompilation ?? nameNode.Value;
+  }
+
+  public Formal(Cloner cloner, Formal original) : base(cloner, original) {
+    InParam = original.InParam;
+    IsOld = original.IsOld;
+    DefaultValue = cloner.CloneExpr(original.DefaultValue);
+    Attributes = cloner.CloneAttributes(original.Attributes);
+    IsNameOnly = original.IsNameOnly;
+    IsOlder = original.IsOlder;
+    NameForCompilation = original.NameForCompilation;
+    localField = localField != null ? cloner.CloneField(localField) : null;
   }
 
   public bool HasName => !Name.StartsWith("#");
 
-  private string sanitizedName;
-  public override string SanitizedName =>
-    sanitizedName ??= SanitizeName(Name); // No unique-ification
-  public override string CompileName =>
-    compileName ??= SanitizeName(NameForCompilation);
+  public override string GetOrCreateCompileName(CodeGenIdGenerator generator) {
+    return CompileName;
+  }
+
+  public string CompileName => compileName ??= SanitizeName(NameForCompilation);
 
   public override IEnumerable<INode> Children =>
     (DefaultValue != null ? new List<Node> { DefaultValue } : Enumerable.Empty<Node>()).Concat(base.Children);
 
   public override IEnumerable<INode> PreResolveChildren => Children;
+
+  private Field? localField;
+
+  public Field GetLocalField(MethodOrConstructor methodOrConstructor) {
+    if (localField == null) {
+      localField = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, (object)Name, true,
+        false, false, Type, null) {
+        EnclosingClass = methodOrConstructor.EnclosingClass,
+        EnclosingMethod = methodOrConstructor
+      };
+      localField.InheritVisibility(methodOrConstructor);
+    }
+
+    return localField;
+  }
 }
 
 /// <summary>
@@ -52,11 +85,8 @@ public class Formal : NonglobalVariable {
 /// of each extreme lemma (for use in the extreme-method body only, not the specification).
 /// </summary>
 public class ImplicitFormal : Formal {
-  public ImplicitFormal(IToken tok, string name, Type type, bool inParam, bool isGhost)
-    : base(tok, name, type, inParam, isGhost, null, null) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);
+  public ImplicitFormal(IOrigin origin, string name, Type type, bool inParam, bool isGhost)
+    : base(origin, name, type, inParam, isGhost, null, null) {
   }
 }
 
@@ -67,9 +97,7 @@ public class ImplicitFormal : Formal {
 /// implementation.
 /// </summary>
 public class ThisSurrogate : ImplicitFormal {
-  public ThisSurrogate(IToken tok, Type type)
-    : base(tok, "this", type, true, false) {
-    Contract.Requires(tok != null);
-    Contract.Requires(type != null);
+  public ThisSurrogate(IOrigin origin, Type type)
+    : base(origin, "this", type, true, false) {
   }
 }

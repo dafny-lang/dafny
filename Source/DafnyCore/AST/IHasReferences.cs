@@ -9,11 +9,12 @@ namespace Microsoft.Dafny;
 /// Node that has a token that is used to navigate to this node
 /// </summary>
 public interface IHasNavigationToken : INode {
-  IToken NavigationToken { get; }
+  TokenRange NavigationRange { get; }
 }
 
-public interface IHasReferences : IHasNavigationToken {
-  public IEnumerable<IHasNavigationToken> GetReferences();
+public record Reference(TokenRange Referer, IHasNavigationToken Referred);
+public interface IHasReferences : INode {
+  public IEnumerable<Reference> GetReferences();
 }
 
 /// <summary>

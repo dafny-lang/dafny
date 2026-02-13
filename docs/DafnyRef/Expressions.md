@@ -323,7 +323,7 @@ with the result being of the given type. The following combinations
 of conversions are permitted:
 
 * Any type to itself
-* Any int or real based numeric type or bit-vector type to another int or real based numeric type or bit-vector type
+* Any int-based or real-based numeric type or bit-vector type to another int-based or real-based numeric type or bit-vector type
 * Any base type to a subset or newtype with that base
 * Any subset or newtype to its base type or a subset or newtype of the same base
 * Any type to a subset or newtype that has the type as its base
@@ -392,9 +392,9 @@ Examples:
 A unary expression applies 
 
 - logical complement (`!` -- [Section 5.2.1](#sec-booleans)),
-- bit-wise complement (`!` -- [Section 5.2.3](#sec-bit-vector-types)),
+- bit-wise complement (`!` -- [Section 5.2.4](#sec-bit-vector-types)),
 - numeric negation (`-` -- [Section 5.2.2](#sec-numeric-types)), or
-- bit-vector negation (`-` -- [Section 5.2.3](#sec-bit-vector-types))
+- bit-vector negation (`-` -- [Section 5.2.4](#sec-bit-vector-types))
 
 to its operand.
 
@@ -1878,11 +1878,12 @@ internal. However, it can be written as a Dafny expression using the
 `decreases to` operator.
 
 The Boolean expression `(a, ..., b decreases to a', ..., b')` encodes
-this ordering. For example, the following assertions are valid:
+this ordering. (The parentheses can be omitted if there is exactly 1 left-hand side
+and exactly 1 right-hand side.) For example, the following assertions are valid:
 <!-- %check-verify -->
 ```dafny
 method M(x: int, y: int) {
-  assert (1 decreases to 0);
+  assert 1 decreases to 0;
   assert (true, false decreases to false, true);
   assert (x, y decreases to x - 1, y);
 }
@@ -1892,12 +1893,12 @@ Conversely, the following assertion is invalid:
 <!-- %check-verify Expressions.5.expect -->
 ```dafny
 method M(x: int, y: int) {
-  assert (x decreases to x + 1);
+  assert x decreases to x + 1;
 }
 ```
 
-Currently, `decreases to` expressions must be written in parentheses to
-avoid parsing ambiguities.
+The `decreases to` operator is strict, that is, it means "strictly greater than".
+The `nonincreases to` operator is the non-strict ("greater than or equal") version of it.
 
 ## 9.39. Compile-Time Constants {#sec-compile-time-constants}
 

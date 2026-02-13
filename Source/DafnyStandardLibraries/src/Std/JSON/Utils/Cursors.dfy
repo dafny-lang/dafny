@@ -238,7 +238,8 @@ module Std.JSON.Utils.Cursors {
       else Failure(ExpectingByte(b, nxt))
     }
 
-    function {:tailrecursion} AssertBytes<R>(bs: bytes, offset: uint32 := 0): (pr: CursorResult<R>)
+    @TailRecursion
+    function AssertBytes<R>(bs: bytes, offset: uint32 := 0): (pr: CursorResult<R>)
       requires Valid?
       requires |bs| < TWO_TO_THE_32
       requires offset <= |bs| as uint32

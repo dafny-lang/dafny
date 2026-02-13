@@ -6,21 +6,24 @@ namespace Microsoft.Dafny;
 public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
   public override string WhatKind { get { return "abstract type"; } }
   public override bool CanBeRevealed() { return true; }
-  public readonly TypeParameter.TypeParameterCharacteristics Characteristics;
+  public TypeParameterCharacteristics Characteristics;
   public bool SupportsEquality {
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
 
-  public AbstractTypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics,
+  public AbstractTypeDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule, TypeParameterCharacteristics characteristics,
     List<TypeParameter> typeArgs, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    : base(origin, nameNode, enclosingModule, typeArgs, members, attributes, parentTraits) {
+    Contract.Requires(origin != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(typeArgs != null);
+    IsRefining = isRefining;
     Characteristics = characteristics;
     this.NewSelfSynonym();
   }
+
+  public override bool IsRefining { get; }
 
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
@@ -30,6 +33,7 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
     var typeArgumentIndent = indent2;
     var commaIndent = indent2;
     var rightIndent = indent2;
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
     foreach (var token in OwnedTokens) {
       switch (token.val) {
         case "type": {
@@ -87,21 +91,29 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
   }
 
   public string GetTriviaContainingDocstring() {
-    IToken openingBlock = null;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
+    Token openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
         openingBlock = token;
       }
     }
 
-    if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
-      return openingBlock.Prev.TrailingTrivia;
+    var tentativeTrivia = "";
+    if (openingBlock != null) {
+      tentativeTrivia = (openingBlock.Prev.TrailingTrivia + openingBlock.LeadingTrivia).Trim();
+      if (tentativeTrivia != "") {
+        return tentativeTrivia;
+      }
     }
 
-    if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    tentativeTrivia = EndToken.TrailingTrivia.Trim();
+    if (tentativeTrivia != "") {
+      return tentativeTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 }

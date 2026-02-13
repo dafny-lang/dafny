@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogDebug("received open notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        await projects.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
+        await projects.OpenDocument(notification.TextDocument);
       } catch (InvalidOperationException e) {
         if (!e.Message.Contains("because it is already open")) {
           telemetryPublisher.PublishUnhandledException(e);

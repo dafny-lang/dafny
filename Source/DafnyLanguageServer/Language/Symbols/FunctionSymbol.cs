@@ -14,10 +14,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     public ScopeSymbol? Body { get; set; }
     public ScopeSymbol? ByMethodBody { get; set; }
-    public List<ScopeSymbol> Ensures { get; } = new();
-    public List<ScopeSymbol> Requires { get; } = new();
-    public List<ScopeSymbol> Reads { get; } = new();
-    public List<ScopeSymbol> Decreases { get; } = new();
+    public List<ScopeSymbol> Ensures { get; } = [];
+    public List<ScopeSymbol> Requires { get; } = [];
+    public List<ScopeSymbol> Reads { get; } = [];
+    public List<ScopeSymbol> Decreases { get; } = [];
     public override IEnumerable<ILegacySymbol> Children =>
       Body.AsEnumerable<ILegacySymbol>()
         .Concat(ByMethodBody.AsEnumerable())

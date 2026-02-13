@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.Compilers {
           case SimplifyTypeExpandMode.ExpandSynonymsAndSubsetTypesAndNewtypesExceptNativeTypes: return typ.GetRuntimeType();
           default:
             Contract.Assert(false); // unexpected case
-            throw new cce.UnreachableException();
+            throw new Cce.UnreachableException();
         }
       }
 
@@ -79,7 +79,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           Contract.Assert(typeArgsForNonGhostTuple.Count == nonGhostTupleTypeDecl.Dims);
           Contract.Assert(nonGhostTupleTypeDecl.NonGhostDims == nonGhostTupleTypeDecl.Dims);
-          return new UserDefinedType(udt.tok, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
+          return new UserDefinedType(udt.Origin, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
 
         } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && GetInnerTypeOfErasableDatatypeWrapper(options, datatypeDecl, out var innerType)) {
           var typeSubst = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
@@ -168,7 +168,7 @@ namespace Microsoft.Dafny.Compilers {
       if (datatypeDecl is IndDatatypeDecl &&
           !datatypeDecl.IsExtern(options, out _, out _) &&
           !datatypeDecl.Members.Any(member => member is Field { IsGhost: false }) &&
-          datatypeDecl.ParentTraits.Count == 0) {
+          datatypeDecl.Traits.Count == 0) {
         var nonGhostConstructors = datatypeDecl.Ctors.Where(ctor => !ctor.IsGhost).ToList();
         if (nonGhostConstructors.Count == 1) {
           // there is exactly one non-ghost constructor

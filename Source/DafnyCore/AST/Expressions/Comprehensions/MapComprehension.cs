@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -6,10 +8,11 @@ namespace Microsoft.Dafny;
 public class MapComprehension : ComprehensionExpr, ICloneable<MapComprehension> {
   public override string WhatKind => "map comprehension";
 
-  public readonly bool Finite;
-  public readonly Expression TermLeft;
+  public bool Finite;
+  public Expression? TermLeft;
 
-  public List<Boogie.Function> ProjectionFunctions;  // filled in during translation (and only for general map comprehensions where "TermLeft != null")
+  [FilledInDuringTranslation]
+  public List<Boogie.Function>? ProjectionFunctions;  // filled in during translation (and only for general map comprehensions where "TermLeft != null")
 
   public MapComprehension Clone(Cloner cloner) {
     return new MapComprehension(cloner, this);
@@ -20,14 +23,11 @@ public class MapComprehension : ComprehensionExpr, ICloneable<MapComprehension> 
     Finite = original.Finite;
   }
 
-  public MapComprehension(IToken tok, RangeToken rangeToken, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ termLeft, Expression termRight, Attributes attrs)
-    : base(tok, rangeToken, bvars, range, termRight, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(bvars));
-    Contract.Requires(1 <= bvars.Count);
-    Contract.Requires(range != null);
-    Contract.Requires(termRight != null);
-    Contract.Requires(termLeft != null || bvars.Count == 1);
+  [SyntaxConstructor]
+  public MapComprehension(IOrigin origin, bool finite, List<BoundVar> boundVars, Expression range, Expression? termLeft, Expression term, Attributes? attributes = null)
+    : base(origin, boundVars, range, term, attributes) {
+    Contract.Requires(1 <= boundVars.Count);
+    Contract.Requires(termLeft != null || boundVars.Count == 1);
 
     Finite = finite;
     TermLeft = termLeft;

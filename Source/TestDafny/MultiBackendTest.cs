@@ -22,6 +22,9 @@ public class ForEachCompilerOptions {
   [Value(1, MetaName = "Dafny CLI arguments", HelpText = "Any arguments following '--' will be passed to the dafny CLI unaltered.")]
   public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 
+  [Option("run-fails", HelpText = "Whether the running program should return a non-zero exit code")]
+  public bool RunShouldFail { get; set; } = false;
+
   [Option("refresh-exit-code", HelpText = "If present, also run with --type-system-refresh and expect the given exit code.")]
   public int? RefreshExitCode { get; set; } = null;
 
@@ -106,12 +109,12 @@ public class MultiBackendTest {
   private async Task<int> ForEachCompiler(ForEachCompilerOptions options) {
     var pluginParseResult = CommonOptionBag.PluginOption.Parse(options.OtherArgs.ToArray());
     var pluginArguments = pluginParseResult.GetValueForOption(CommonOptionBag.PluginOption);
-    var plugins = DafnyOptions.ComputePlugins(new List<Plugin>(), pluginArguments ?? new List<string>());
+    var plugins = DafnyOptions.ComputePlugins([], pluginArguments ?? new List<string>());
 
     string rawCompilerFilter = options.Compilers ??
                                Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS")
                                ?? "";
-    string[] CompilerFilter = rawCompilerFilter
+    string[] compilerFilter = rawCompilerFilter
       .Split(",")
       .Where(name => name.Trim() != "").ToArray();
 
@@ -135,22 +138,21 @@ public class MultiBackendTest {
       $"--print:{tmpDPrint}",
       options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
       $"--bprint:{tmpPrint}"
-    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).
-      Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).ToArray();
 
     var resolutionOptions = new List<ResolutionSetting>() {
       new ResolutionSetting(
         "legacy",
-        new string[] { },
-        new string[] { ".verifier.expect" },
+        ["--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false"],
+        [".verifier.expect"],
         0)
     };
     if (options.RefreshExitCode != null) {
       resolutionOptions.Add(
         new ResolutionSetting(
           "refresh",
-          new string[] { "--type-system-refresh" },
-          new string[] { ".refresh.expect", ".verifier.expect" },
+          ["--type-system-refresh", "--general-traits=datatype", "--general-newtypes"],
+          [".refresh.expect", ".verifier.expect"],
           (int)options.RefreshExitCode)
       );
     }
@@ -158,7 +160,11 @@ public class MultiBackendTest {
     foreach (var resolutionOption in resolutionOptions) {
       await output.WriteLineAsync($"Using {resolutionOption.ReadableName} resolver and verifying...");
 
-      var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
+      var arguments = dafnyArgs
+        .Concat(resolutionOption.AdditionalOptions)
+        .Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand))
+        .ToArray();
+      var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, arguments);
 
       // If there is a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes, then we expect the output to match the contents of that file. Otherwise, we expect the output to be empty.
@@ -199,7 +205,7 @@ public class MultiBackendTest {
     var success = true;
     foreach (var plugin in plugins) {
       foreach (var compiler in plugin.GetCompilers(DafnyOptions.Default)) {
-        if (!compiler.IsStable || CompilerFilter.Any() && !CompilerFilter.Contains(compiler.TargetId)) {
+        if (!compiler.IsStable || (compilerFilter.Any() && !compilerFilter.Contains(compiler.TargetId))) {
           continue;
         }
 
@@ -278,19 +284,25 @@ public class MultiBackendTest {
       $"--print:{tmpDPrint}",
       options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
       $"--bprint:{tmpPrint}"
-    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).ToArray();
 
     var resolutionOptions = new List<ResolutionSetting>() {
-      new("legacy", new string[] { }, new string[] { ".expect" },
+      new("legacy", ["--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false"],
+        [".expect"],
         options.ExpectExitCode ?? 0),
-      new("refresh", new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
+      new("refresh", ["--type-system-refresh", "--general-traits=datatype", "--general-newtypes"],
+        [".refresh.expect", ".expect"],
         options.RefreshExitCode ?? options.ExpectExitCode ?? 0)
     };
 
     foreach (var resolutionOption in resolutionOptions) {
       await output.WriteLineAsync($"Using {resolutionOption.ReadableName} resolver and verifying...");
 
-      var (exitCode, actualOutput, error) = await RunDafny(options.DafnyCliPath, dafnyArgs.Concat(resolutionOption.AdditionalOptions));
+      var arguments = dafnyArgs
+        .Concat(resolutionOption.AdditionalOptions)
+        .Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand))
+        .ToArray();
+      var (exitCode, actualOutput, error) = await RunDafny(options.DafnyCliPath, arguments);
 
       // The expected output is indicated by a file with extension "suffix", where the alternatives for "suffix" are supplied in order in
       // ExpectFileSuffixes.
@@ -341,6 +353,7 @@ public class MultiBackendTest {
 
   private async Task<int> RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput,
     string? checkFile, bool includeRuntime = true) {
+    var expectFailure = options.RunShouldFail;
     await output.WriteAsync($"Executing on {backend.TargetName}");
     if (!includeRuntime) {
       await output.WriteAsync(" (with --include-runtime:false)");
@@ -351,9 +364,10 @@ public class MultiBackendTest {
     // The path will be something like "<user temp directory>/<random name>/<random name>"
     // to ensure that all artifacts are put in a dedicated directory,
     // which just "<user temp directory>/<random name>" would not.
-    var randomName = Path.ChangeExtension(Path.GetRandomFileName(), null);
+    var randomDirectory = Path.ChangeExtension(Path.GetRandomFileName(), null);
+    var randomFilename = Path.ChangeExtension(Path.GetRandomFileName(), null);
     // Attempts at making this path longer will likely crash javac on Windows with issues like "path too long"
-    var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
+    var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomDirectory);
     Directory.CreateDirectory(tempOutputDirectory);
 
     IEnumerable<string> dafnyArgs = new List<string> {
@@ -361,7 +375,7 @@ public class MultiBackendTest {
       "--no-verify",
       "--emit-uncompilable-code",
       $"--target:{backend.TargetId}",
-      $"--build:{tempOutputDirectory}",
+      $"--build:{Path.Combine(tempOutputDirectory, randomFilename)}",
       options.TestFile!,
     }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs);
     if (!includeRuntime) {
@@ -392,8 +406,9 @@ public class MultiBackendTest {
       outputString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
     }
 
-    var diffMessage = exitCode == 0 ? AssertWithDiff.GetDiffMessage(expectedOutput, outputString) : null;
-    if (checkFile == null && exitCode != 0) {
+    var exitCodeAsExpected = expectFailure == (exitCode != 0);
+    var diffMessage = exitCodeAsExpected ? AssertWithDiff.GetDiffMessage(expectedOutput, outputString) : null;
+    if (checkFile == null && !exitCodeAsExpected) {
       if (UpdateTargetExpectFile && backend.TargetName != "dfy") {
         if (string.IsNullOrEmpty(IntegrationTestsRootDir)) {
           await output.WriteLineAsync(
@@ -404,32 +419,41 @@ public class MultiBackendTest {
       }
     }
 
-    if (exitCode == 0) {
-      if (diffMessage == null) {
-        if (checkFile != null) {
-          // The test now works, we delete the check file
-          if (UpdateTargetExpectFile) {
-            if ((IntegrationTestsRootDir ?? "") == "") {
-              await output.WriteLineAsync(
-                "DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE is true but DAFNY_INTEGRATION_TESTS_ROOT_DIR is not set");
-            } else {
-              var sourcePath = Path.Join(IntegrationTestsRootDir,
-                CheckFileForBackend(options, backend));
-              File.Delete(sourcePath);
-            }
+    if (exitCodeAsExpected) {
+      if (diffMessage != null) {
+        await output.WriteLineAsync(diffMessage);
+        if (backend.IsInternal) {
+          await output.WriteLineAsync(
+            $"(non-blocking) The {backend.TargetName} code generator is internal. Not having a '*.{backend.TargetId}.check' file is acceptable for now.");
+          return 0;
+        }
+
+        // If we hit errors, check for known unsupported features or bugs for this compilation target
+        if (error == "" && OnlyAllowedOutputLines(backend, outputString)) {
+          return 0;
+        }
+        // If we hit errors, check for known unsupported features or bugs for this compilation target
+        if (outputString == "" && OnlyAllowedOutputLines(backend, error)) {
+          return 0;
+        }
+
+        return 1;
+      }
+
+      if (checkFile != null) {
+        // The test now works, we delete the check file
+        if (UpdateTargetExpectFile) {
+          if ((IntegrationTestsRootDir ?? "") == "") {
+            await output.WriteLineAsync(
+              "DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE is true but DAFNY_INTEGRATION_TESTS_ROOT_DIR is not set");
+          } else {
+            var sourcePath = Path.Join(IntegrationTestsRootDir,
+              CheckFileForBackend(options, backend));
+            File.Delete(sourcePath);
           }
         }
-        return 0;
       }
-
-      await output.WriteLineAsync(diffMessage);
-      if (backend.IsInternal) {
-        await output.WriteLineAsync(
-          $"(non-blocking) The {backend.TargetName} code generator is internal. Not having a '*.{backend.TargetId}.check' file is acceptable for now.");
-        return 0;
-      }
-
-      return 1;
+      return 0;
     }
 
     // If we hit errors, check for known unsupported features or bugs for this compilation target
@@ -483,7 +507,7 @@ public class MultiBackendTest {
     }
     await output.WriteLineAsync("Execution failed, for reasons other than known unsupported features. Output:");
     await output.WriteLineAsync(outputString);
-    await output.WriteLineAsync("Error:");
+    await output.WriteLineAsync($"Error (code={exitCode}):");
     await output.WriteLineAsync(error);
     return exitCode;
   }

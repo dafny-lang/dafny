@@ -10,7 +10,7 @@ namespace Microsoft.Dafny {
     public ExprSubstituter(List<Tuple<Expression, IdentifierExpr>> exprSubstMap)
       : base(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>()) {
       this.exprSubstMap = exprSubstMap;
-      this.usedSubstMap = new List<Tuple<Expression, IdentifierExpr>>();
+      this.usedSubstMap = [];
     }
 
     public bool TryGetExprSubst(Expression expr, out IdentifierExpr ie) {
@@ -46,26 +46,26 @@ namespace Microsoft.Dafny {
 
         var newBoundVars = new List<BoundVar>(e.BoundVars);
         if (newBounds == null) {
-          newBounds = new List<BoundedPool>();
+          newBounds = [];
         } else if (newBounds == e.Bounds) {
           // create a new list with the same elements, since the .Add operations below would otherwise add elements to the original e.Bounds
-          newBounds = new List<BoundedPool>(newBounds);
+          newBounds = [.. newBounds];
         }
 
         // conjoin all the new equalities to the range of the quantifier
         foreach (var entry in usedSubstMap) {
-          var eq = new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
-          newRange = newRange == null ? eq : new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.And, eq, newRange);
+          var eq = new BinaryExpr(e.Origin, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
+          newRange = newRange == null ? eq : new BinaryExpr(e.Origin, BinaryExpr.ResolvedOpcode.And, eq, newRange);
           newBoundVars.Add((BoundVar)entry.Item2.Var);
           newBounds.Add(new ExactBoundedPool(entry.Item1));
         }
 
         QuantifierExpr newExpr;
         if (expr is ForallExpr) {
-          newExpr = new ForallExpr(e.tok, e.RangeToken, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          newExpr = new ForallExpr(e.Origin, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
         } else {
           Contract.Assert(expr is ExistsExpr);
-          newExpr = new ExistsExpr(e.tok, e.RangeToken, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          newExpr = new ExistsExpr(e.Origin, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
         }
         usedSubstMap.Clear();
 

@@ -1,0 +1,5 @@
+AsIs-UnusedTypeParameters.dfy(38,24): Error: a type test to 'C<F<X, int>>' must be from a compatible type (got 'C<F<X, X>>')
+AsIs-UnusedTypeParameters.dfy(43,15): Error: a type cast to a reference type (C<F<X, int>>) must be from a compatible type (got C<F<X, X>>); this cast could never succeed
+AsIs-UnusedTypeParameters.dfy(56,24): Error: a type test to 'C<F<X, X>>' must be from a compatible type (got 'C<F<X, int>>')
+AsIs-UnusedTypeParameters.dfy(61,15): Error: a type cast to a reference type (C<F<X, X>>) must be from a compatible type (got C<F<X, int>>); this cast could never succeed
+4 resolution/type errors detected in AsIs-UnusedTypeParameters.dfy

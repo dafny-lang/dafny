@@ -11,6 +11,6 @@
     /// <summary>
     /// Gets or sets which plugins to use in Dafny (e.g. for resolution or compilation)
     /// </summary>
-    public string[] Plugins { get; set; } = System.Array.Empty<string>();
+    public string[] Plugins { get; set; } = [];
   }
 }

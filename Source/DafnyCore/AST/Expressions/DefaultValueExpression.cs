@@ -24,24 +24,23 @@ namespace Microsoft.Dafny;
 /// attention to DefaultValueExpression's in some places.
 /// </summary>
 public abstract class DefaultValueExpression : ConcreteSyntaxExpression {
-  private readonly Formal formal;
-  private readonly Expression receiver;
-  private readonly Dictionary<IVariable, Expression> substMap;
+  private Formal formal;
+  private Expression receiver;
+  private Dictionary<IVariable, Expression> substMap;
 
   protected abstract Dictionary<TypeParameter, Type> GetTypeMap();
 
   public enum WorkProgress { BeingVisited, Done }
 
-  protected DefaultValueExpression(IToken tok, Formal formal, Expression/*?*/ receiver, Dictionary<IVariable, Expression> substMap)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  protected DefaultValueExpression(IOrigin origin, Formal formal, Expression/*?*/ receiver, Dictionary<IVariable, Expression> substMap)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(formal != null);
     Contract.Requires(formal.DefaultValue != null);
     Contract.Requires(substMap != null);
     this.formal = formal;
     this.receiver = receiver;
     this.substMap = substMap;
-    RangeToken = new RangeToken(tok, tok);
   }
 
   protected DefaultValueExpression(Cloner cloner, DefaultValueExpression original) : base(cloner, original) {
@@ -62,7 +61,7 @@ public abstract class DefaultValueExpression : ConcreteSyntaxExpression {
         resolver.reporter.Error(MessageSource.Resolver, this,
           "default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion");
         // nevertheless, to avoid any issues in the resolver, fill in the .ResolvedExpression field with something
-        this.ResolvedExpression = Expression.CreateBoolLiteral(this.tok, false);
+        this.ResolvedExpression = Expression.CreateBoolLiteral(this.Origin, false);
       }
       return;
     }
@@ -76,8 +75,8 @@ public abstract class DefaultValueExpression : ConcreteSyntaxExpression {
   }
 
   class DefaultValueSubstituter : Substituter {
-    private readonly ModuleResolver resolver;
-    private readonly Dictionary<DefaultValueExpression, DefaultValueExpression.WorkProgress> visited;
+    private ModuleResolver resolver;
+    private Dictionary<DefaultValueExpression, DefaultValueExpression.WorkProgress> visited;
     public DefaultValueSubstituter(ModuleResolver resolver, Dictionary<DefaultValueExpression, DefaultValueExpression.WorkProgress> visited,
       Expression /*?*/ receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
       : base(receiverReplacement, substMap, typeMap) {
@@ -98,11 +97,11 @@ public abstract class DefaultValueExpression : ConcreteSyntaxExpression {
 }
 
 public class DefaultValueExpressionType : DefaultValueExpression, ICloneable<DefaultValueExpressionType> {
-  private readonly Dictionary<TypeParameter, Type> typeMap;
+  private Dictionary<TypeParameter, Type> typeMap;
 
-  public DefaultValueExpressionType(IToken tok, Formal formal,
+  public DefaultValueExpressionType(IOrigin origin, Formal formal,
     Expression/*?*/ receiver, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
-    : base(tok, formal, receiver, substMap) {
+    : base(origin, formal, receiver, substMap) {
     this.typeMap = typeMap;
   }
 
@@ -120,11 +119,11 @@ public class DefaultValueExpressionType : DefaultValueExpression, ICloneable<Def
 }
 
 public class DefaultValueExpressionPreType : DefaultValueExpression, ICloneable<DefaultValueExpressionPreType> {
-  private readonly Dictionary<TypeParameter, PreType> preTypeMap;
+  private Dictionary<TypeParameter, PreType> preTypeMap;
 
-  public DefaultValueExpressionPreType(IToken tok, Formal formal,
+  public DefaultValueExpressionPreType(IOrigin origin, Formal formal,
     Expression/*?*/ receiver, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, PreType> preTypeMap)
-    : base(tok, formal, receiver, substMap) {
+    : base(origin, formal, receiver, substMap) {
     this.preTypeMap = preTypeMap;
   }
 

@@ -2,7 +2,7 @@ IteratorResolution.dfy(22,9): Error: LHS of assignment must denote a mutable fie
 IteratorResolution.dfy(24,9): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(64,9): Error: LHS of assignment must denote a mutable field
 IteratorResolution.dfy(69,18): Error: arguments must have comparable types (got _T0 and int)
-IteratorResolution.dfy(84,16): Error: incorrect argument type for constructor in-parameter 't' (expected bool, found int)
+IteratorResolution.dfy(84,36): Error: incorrect argument type for constructor parameter 't' (expected bool, found int)
 IteratorResolution.dfy(81,19): Error: RHS (of type bool) not assignable to LHS (of type int)
 IteratorResolution.dfy(129,11): Error: unresolved identifier: _decreases3
 IteratorResolution.dfy(131,4): Error: LHS of assignment must denote a mutable field
@@ -21,8 +21,8 @@ IteratorResolution.dfy(173,40): Error: type parameter 0 (A) passed to constructo
 IteratorResolution.dfy(174,40): Error: type parameter 1 (B) passed to constructor Init must support auto-initialization (got Six)
 IteratorResolution.dfy(179,24): Error: type parameter 0 (A) passed to method MyMethod must support equality (got Stream)
 IteratorResolution.dfy(180,22): Error: type parameter 1 (B) passed to method MyMethod must support auto-initialization (got Six)
-IteratorResolution.dfy(185,13): Error: type parameter 0 (A) passed to function MyFunction must support equality (got Stream)
-IteratorResolution.dfy(186,13): Error: type parameter 1 (B) passed to function MyFunction must support auto-initialization (got Six)
+IteratorResolution.dfy(185,35): Error: type parameter 0 (A) passed to function MyFunction must support equality (got Stream)
+IteratorResolution.dfy(186,33): Error: type parameter 1 (B) passed to function MyFunction must support auto-initialization (got Six)
 IteratorResolution.dfy(213,22): Error: type parameter 0 (A) passed to type MyIter must support equality (got Stream)
 IteratorResolution.dfy(213,22): Error: type parameter 0 (A) passed to type MyIter must support equality (got Stream)
 IteratorResolution.dfy(216,22): Error: type parameter 0 (A) passed to type MyIter must support equality (got Stream)

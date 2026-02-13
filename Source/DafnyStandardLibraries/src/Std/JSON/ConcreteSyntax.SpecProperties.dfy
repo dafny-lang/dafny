@@ -36,7 +36,8 @@ module Std.JSON.ConcreteSyntax.SpecProperties {
     ensures Spec.ConcatBytes(ts, pt0) == Spec.ConcatBytes(ts, pt1)
   {}
 
-  lemma {:induction ts0} {:resource_limit 10000000} ConcatBytes_Linear<T>(ts0: seq<T>, ts1: seq<T>, pt: T --> bytes)
+  @ResourceLimit("10e6")
+  lemma {:induction ts0} ConcatBytes_Linear<T>(ts0: seq<T>, ts1: seq<T>, pt: T --> bytes)
     requires forall d | d in ts0 :: pt.requires(d)
     requires forall d | d in ts1 :: pt.requires(d)
     ensures Spec.ConcatBytes(ts0 + ts1, pt) == Spec.ConcatBytes(ts0, pt) + Spec.ConcatBytes(ts1, pt)

@@ -185,7 +185,7 @@ class A {
       Assert.NotNull(state);
       Assert.True(TryFindSymbolDeclarationByName(state, "GetX", out var location));
       Assert.Equal(new Range((3, 11), (3, 15)), location.Name);
-      Assert.Equal(new Range((3, 2), (5, 2)), location.Declaration);
+      Assert.Equal(new Range((3, 2), (5, 3)), location.Declaration);
     }
 
     [Fact]
@@ -286,7 +286,7 @@ class A {
       Assert.Equal(new Range((4, 0), (7, 0)), bLocation.Declaration);
       Assert.True(TryFindSymbolDeclarationByName(document, "y", out var yLocation));
       Assert.Equal(new Range((6, 6), (6, 7)), yLocation.Name);
-      Assert.Equal(new Range((6, 6), (6, 7)), yLocation.Declaration);
+      Assert.Equal(new Range((6, 2), (6, 12)), yLocation.Declaration);
     }
 
     [Fact]

@@ -64,7 +64,9 @@ module Std.JSON.Serializer {
       Failure(o.error)
   }
 
-  function {:isolate_assertions} {:resource_limit 1000000} Number(dec: Values.Decimal): Result<jnumber> {
+  @IsolateAssertions
+  @ResourceLimit("1e6")
+  function Number(dec: Values.Decimal): Result<jnumber> {
     var minus: jminus := Sign(dec.n);
     var num: jnum :- Int(Math.Abs(dec.n));
     var frac: Maybe<jfrac> := Empty();

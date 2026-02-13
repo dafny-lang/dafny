@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       var node = state.SymbolTable.GetDeclarationNode(requestUri, request.Position);
-      if (node == null || node.NavigationToken.val == request.NewName) {
+      if (node == null || node.NavigationRange.StartToken.val == request.NewName) {
         return null;
       }
 
@@ -56,6 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (declaration == null) {
         return null;
       }
+
       var usages = state.SymbolTable.GetReferences(declaration.Uri.ToUri(), declaration.Range.Start);
       var changes = usages
         .Append(declaration)

@@ -399,12 +399,12 @@ module References {
 
   method M2() returns (c: C, r: R, o: object)
   {
-    c := o;
+    c := o as C;
   }
 
   method M3() returns (c: C, r: R, o: object)
   {
-    r := o;
+    r := o as R;
   }
 
   class C extends K, M { }
@@ -412,17 +412,17 @@ module References {
   type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 
-  trait R { }
+  trait R extends object { }
   /*-- non-null type
   type {:axiom} R(==) = c: R? | c != null /*special witness*/
   */
 
-  trait K { }
+  trait K extends object { }
   /*-- non-null type
   type {:axiom} K(==) = c: K? | c != null /*special witness*/
   */
 
-  trait M { }
+  trait M extends object { }
   /*-- non-null type
   type {:axiom} M(==) = c: M? | c != null /*special witness*/
   */
@@ -484,7 +484,7 @@ module SimpleClassesAndTraits {
   type {:axiom} R(==) = c: R? | c != null /*special witness*/
   */
 
-  trait K {
+  trait K extends object {
     var h: int
   }
   /*-- non-null type
@@ -572,10 +572,10 @@ module Datatypes {
 
 module TraitStuff {
   /* CALL GRAPH for module TraitStuff:
-   * SCC at height 1:
-   *   Aggregate._ctor
    * SCC at height 0:
    *   Aggregate
+   * SCC at height 0:
+   *   Aggregate._ctor
    * SCC at height 0:
    *   Motorized
    * SCC at height 0:
@@ -587,7 +587,7 @@ module TraitStuff {
    * SCC at height 0:
    *   PartZ
    */
-  trait Part {
+  trait Part extends object {
     var id: int
   }
   /*-- non-null type
@@ -627,7 +627,7 @@ module TraitStuff {
       z := new PartZ;
       Repr := {this, x, y, z};
       new;
-      var parts: set<Part> := {x, y};
+      var parts: set<object> := {x, y};
       var ooo: set<object> := {y, z};
     }
   }
@@ -853,7 +853,7 @@ module TypeArgumentPrintTests {
    * SCC at height 0:
    *   Tr
    */
-  trait Tr<X> { }
+  trait Tr<X> extends object { }
   /*-- non-null type
   type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
   */

@@ -12,9 +12,9 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
   public AssumeStmt(Cloner cloner, AssumeStmt original) : base(cloner, original) {
   }
 
-  public AssumeStmt(RangeToken rangeToken, Expression expr, Attributes attrs)
-    : base(rangeToken, expr, attrs) {
-    Contract.Requires(rangeToken != null);
+  public AssumeStmt(IOrigin origin, Expression expr, Attributes attributes)
+    : base(origin, expr, attributes) {
+    Contract.Requires(origin != null);
     Contract.Requires(expr != null);
   }
   public override IEnumerable<Expression> SpecificationSubExpressions {
@@ -25,7 +25,7 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
   }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
-    yield return new Assumption(decl, tok, AssumptionDescription.AssumeStatement(
+    yield return new Assumption(decl, Origin, AssumptionDescription.AssumeStatement(
       Attributes.Contains(Attributes, Attributes.AxiomAttributeName)));
   }
 
@@ -37,7 +37,14 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
     base.GenResolve(resolver, context);
 
     if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !this.IsExplicitAxiom()) {
-      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assume_statement_without_axiom, Tok, "assume statement has no {:axiom} annotation");
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assume_statement_without_axiom, Origin,
+        "program contains an assume statement (to suppress this warning, annotate the statement with {:axiom})");
     }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = true;
   }
 }

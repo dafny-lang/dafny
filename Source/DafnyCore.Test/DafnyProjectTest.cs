@@ -6,7 +6,7 @@ public class DafnyProjectTest {
   [Fact]
   public void Equality() {
     var randomFileName = Path.GetTempFileName();
-    var first = new DafnyProject(new Uri(randomFileName, UriKind.Absolute), null,
+    var first = new DafnyProject(null, new Uri(randomFileName, UriKind.Absolute), null,
       new[] { "a", "a2" }.ToHashSet(),
       new[] { "b", "b2" }.ToHashSet(), new Dictionary<string, object>() {
         { "c", "d" },
@@ -14,7 +14,7 @@ public class DafnyProjectTest {
       }
     );
 
-    var second = new DafnyProject(new Uri(randomFileName, UriKind.Absolute), null,
+    var second = new DafnyProject(null, new Uri(randomFileName, UriKind.Absolute), null,
       new[] { "a2", "a" }.ToHashSet(),
       new[] { "b2", "b" }.ToHashSet(),
       new Dictionary<string, object>() {

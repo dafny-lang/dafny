@@ -3,13 +3,13 @@
   "isRoot": true,
   "tools": {
     "cocor": {
-      "version": "2014.12.24",
+      "version": "2014.12.25",
       "commands": [
         "coco"
       ]
     },
     "boogie": {
-      "version": "3.1.3",
+      "version": "3.5.5",
       "commands": [
         "boogie"
       ]

@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -7,9 +9,8 @@ public class MultiSetDisplayExpr : DisplayExpression, ICloneable<MultiSetDisplay
   public MultiSetDisplayExpr(Cloner cloner, MultiSetDisplayExpr original) : base(cloner, original) {
   }
 
-  public MultiSetDisplayExpr(IToken tok, List<Expression> elements) : base(tok, elements) {
-    Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(elements));
+  [SyntaxConstructor]
+  public MultiSetDisplayExpr(IOrigin origin, List<Expression> elements) : base(origin, elements) {
   }
 
   public MultiSetDisplayExpr Clone(Cloner cloner) {

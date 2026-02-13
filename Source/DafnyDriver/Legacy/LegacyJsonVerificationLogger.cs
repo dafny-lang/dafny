@@ -3,25 +3,25 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 using DafnyCore.Verifier;
-using DafnyServer;
 using Microsoft.Boogie;
 using VC;
 
 namespace Microsoft.Dafny;
 
-public class LegacyJsonVerificationLogger {
+public class LegacyJsonVerificationLogger : IDisposable, IAsyncDisposable {
   private TextWriter tw;
-  private readonly TextWriter outWriter;
+  private readonly IDafnyOutputWriter outWriter;
   private readonly ProofDependencyManager depManager;
 
-  public LegacyJsonVerificationLogger(ProofDependencyManager depManager, TextWriter outWriter) {
+  public LegacyJsonVerificationLogger(ProofDependencyManager depManager, IDafnyOutputWriter outWriter) {
     this.depManager = depManager;
     this.outWriter = outWriter;
   }
 
   public void Initialize(Dictionary<string, string> parameters) {
-    tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter;
+    tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter.StatusWriter();
   }
 
   class DummyProofObligationDescription : Boogie.ProofObligationDescription {
@@ -35,16 +35,16 @@ public class LegacyJsonVerificationLogger {
   }
 
 
-  private JsonNode SerializeVcResult(IEnumerable<ProofDependency> potentialDependencies, DafnyConsolePrinter.VCResultLogEntry vcResult) {
-    var runResult = VCResultLogEntryToPartialVerificationRunResult(vcResult);
+  private JsonNode SerializeVcResult(IEnumerable<ProofDependency> potentialDependencies, VerificationRunResultPartialCopy verificationRunResult) {
+    var runResult = VCResultLogEntryToPartialVerificationRunResult(verificationRunResult);
     return JsonVerificationLogger.SerializeVcResult(depManager, potentialDependencies?.ToList(), runResult);
   }
 
-  public static VerificationTaskResult VCResultLogEntryToPartialVerificationRunResult(DafnyConsolePrinter.VCResultLogEntry vcResult) {
+  public static VerificationTaskResult VCResultLogEntryToPartialVerificationRunResult(VerificationRunResultPartialCopy verificationRunResult) {
     var mockNumber = 42;
-    var mockAsserts = vcResult.Asserts.Select(t => new AssertCmd(t.Tok, null, new DummyProofObligationDescription(t.Description)));
-    var runResult = new VerificationRunResult(vcResult.VCNum, mockNumber, vcResult.StartTime, vcResult.Outcome, vcResult.RunTime, mockNumber, null!,
-      mockAsserts.ToList(), vcResult.CoveredElements, vcResult.ResourceCount, null);
+    var mockAsserts = verificationRunResult.Asserts.Select(t => new AssertCmd(t.Tok, null, new DummyProofObligationDescription(t.Description)));
+    var runResult = new VerificationRunResult(verificationRunResult.VCNum, mockNumber, verificationRunResult.StartTime, verificationRunResult.Outcome, verificationRunResult.RunTime, mockNumber, null!,
+      mockAsserts.ToList(), verificationRunResult.CoveredElements, verificationRunResult.ResourceCount, null, new List<Boogie.Declaration>());
     return new VerificationTaskResult(null, runResult);
   }
 
@@ -87,5 +87,15 @@ public class LegacyJsonVerificationLogger {
 
   public void LogResults(IEnumerable<DafnyConsolePrinter.ConsoleLogEntry> verificationResults) {
     tw.Write(SerializeVerificationResults(verificationResults).ToJsonString());
+  }
+
+  public void Dispose() {
+    tw?.Dispose();
+  }
+
+  public async ValueTask DisposeAsync() {
+    if (tw != null) {
+      await tw.DisposeAsync();
+    }
   }
 }

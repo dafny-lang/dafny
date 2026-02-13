@@ -88,13 +88,19 @@ on the command-line or referenced, recursively, by `include` directives
 within those files. It does not matter if files are repeated either as
 includes or on the command-line.[^fn-duplicate-files]
 
-All files recursively included are always parsed and type-checked.
-However, which files are verified, built, run, or processed by other
-dafny commands depends on the individual command. 
-These commands are described in [Section 13.6.1](#sec-dafny-commands).
+Note however that although the complete set of files, command-line plus
+included files, make up the program, by default, only those files listed on
+the command-line are verified. To do a complete verification, each file
+must be verified; it may well happen that a verification failure in one
+file (which is not on the command-line and thus not checked) may hide a
+verification failure in a file that is being checked.
+Thus it is important to eventually check all files, preferably in an order
+in which the files without dependencies are checked first, then those that
+depend on them, etc., until all files are checked.
+The `--verify-included-files` option (`-verifyAllModules` in legacy mode) will cause all modules, whether the result of include directives or not,
+to be verified.
 
-[^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
-For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
+[^fn-duplicate-files]: File names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
 ### 13.3.1. Dafny Verification Artifacts: the Library Backend and .doo Files {#sec-doo-files}
 
@@ -135,7 +141,7 @@ Note that the library backend only supports the [newer command-style CLI interfa
 
 Some options, such as `--outer-module` or `--optimize-erasable-datatype-wrapper`,
 affect what target language code the same Dafny code is translated to.
-In order to translate Dafny libaries separately from their consuming codebases,
+In order to translate Dafny libraries separately from their consuming codebases,
 the translation process for consuming code needs to be aware
 of what options were used when translating the library.
 
@@ -158,7 +164,7 @@ A later version of Dafny will also require `.dtr` files that cover all modules
 that are defined in `--library` options,
 to support checking that all relevant options are compatible.
 
-## 13.4. Dafny Standard Libraries
+## 13.4. Dafny Standard Libraries {#sec-dafny-standard-libraries}
 
 As of Dafny 4.4, the `dafny` tool includes standard libraries that any Dafny code base can depend on.
 For now they are only available when the `--standard-libraries` option is provided,
@@ -221,7 +227,7 @@ the language that the Dafny files are being compiled to. The kind of file is det
 - Boolean options can take the values `true` and `false` (or any case-insensitive version of those words). For example, the value of `--no-verify` is by default `false` (that is, do verification). 
 It can be explicitly set to true (no verification) using `--no-verify`, `--no-verify:true`, `--no-verify=true`, `--noverify true`; 
 it can be explicitly set false (do verification) using `--no-verify:false` or `--no-verify=false` or `--no-verify false`.
-- There is a potential ambiguity when the form `--option value` is used if the value is optional (such as for boolean values). In such a case an argument afer an option (that does not have an argument given with `:` or `=`) is interpreted as the value if it is indeed a valid value for that option. However, better style advises always using a ':' or '=' to set option values.
+- There is a potential ambiguity when the form `--option value` is used if the value is optional (such as for boolean values). In such a case an argument after an option (that does not have an argument given with `:` or `=`) is interpreted as the value if it is indeed a valid value for that option. However, better style advises always using a ':' or '=' to set option values.
 No valid option values in dafny look like filenames or begin with `--`.
 
 #### 13.6.1.1. Options that are not associated with a command
@@ -270,8 +276,8 @@ The options relevant to this command are
 - those that affect the syntax of Dafny, such as
    - `--prelude`
    - `--unicode-char`
-   - `--function-syntax` <version>
-   - `--quantifier-syntax` <version>
+   - `--function-syntax`
+   - `--quantifier-syntax`
    - `--track-print-effects`
    - `--warn-shadowing`
    - `--warn-missing-constructor-parentheses`
@@ -279,7 +285,8 @@ The options relevant to this command are
 
 #### 13.6.1.3. `dafny verify` {#sec-dafny-verify}
 
-The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each declaration in the program.
+The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each method in the files listed on the command line. Although the Dafny program being considered
+consists of the listed files and any included files (recursively), by default only listed files are verified.
 
 A guide to controlling and aiding the verification process is given in [a later section](#sec-verification).
 
@@ -310,10 +317,8 @@ Various options control the verification process, in addition to all those descr
    - `--filter-symbol`
 
 - Control of the proof engine
-   - `--manual-lemma-induction`
    - `--verification-time-limit`
    - `--boogie`
-   - `--solver-path`
 
 
 #### 13.6.1.4. `dafny translate <language>` {#sec-dafny-translate}
@@ -418,7 +423,7 @@ _This command is under development._
 
 The command executes the `dafny resolve` phase (accepting its options) and has the following additional options:
 
-- `--report-file:<report-file>` --- spcifies the path where the audit
+- `--report-file:<report-file>` --- specifies the path where the audit
    report file will be stored. Without this option, the report
     will be issued as standard warnings, written to standard-out.
 - `--report-format:<format>` --- specifies the file format to use for
@@ -683,7 +688,7 @@ module UnitTests {
 ```
 
 Without the use of the `{:testInline}` attribute in the example above, Dafny will only generate a single test 
-because there is only one basic-block within the `Max` method itself -- all the branching occurs withing the `Min` function.
+because there is only one basic-block within the `Max` method itself -- all the branching occurs within the `Min` function.
 Note also that Dafny automatically converts all non-ghost postconditions on the method under tests into `expect` statements,
 which the compiler translates to runtime checks in the target language of choice.
 
@@ -730,7 +735,7 @@ The following is a list of command-line-options supported by Dafny during test g
 
 - `--verification-time-limit` - the value is an integer that sets a timeout for generating a single test. 
   The default is 20 seconds.
-- `--length-limit` - the value is an integer that is used to limit the lenghts or all sequences and sizes of all 
+- `--length-limit` - the value is an integer that is used to limit the lengths or all sequences and sizes of all 
   maps and sets that test generation will consider as valid test inputs. This can sometimes be necessary to 
   prevent test generation from creating unwieldy tests with excessively long strings or large maps. This option is
   disabled by default
@@ -792,9 +797,8 @@ _This command is under development and not yet functional._
 #### 13.6.1.17. Plugins
 
 This execution mode is not a command, per se, but rather a command-line option that enables executing plugins to the dafny tool.
-Plugins may be either standalone tools or be additions to existing commands.
 
-The form of the command-line is `dafny --plugin:<path-to-one-assembly[,argument]*>` or `dafny <command> --plugin:<path-to-one-assembly[,argument]*>`
+The form of the command-line is `dafny --plugin:<path-to-one-assembly[,argument]*>`
 where the argument to `--plugin` gives the path to the compiled assembly of the plugin and the arguments to be provided to the plugin.
 
 More on writing and building plugins can be found [in this section](#sec-plugins).
@@ -857,7 +861,6 @@ base = ["../commonOptions.dfyconfig.toml"]
 [options]
 enforce-determinism = true
 warn-shadowing = true
-default-function-opacity = "Opaque"
 ```
 
 - At most one `.toml` file may be named on the command-line; when using the command-line no `.toml` file is used by default.
@@ -875,11 +878,12 @@ It's not possible to use Dafny project files in combination with the legacy CLI 
 
 ## 13.7. Verification {#sec-verification}
 
-In this section, we suggest a methodology to figure out [why a single assertion might not hold](#sec-verification-debugging), we propose techniques to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches), and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
+In this section, we suggest a methodology to figure out [why Dafny cannot prove a single assertion](#sec-verification-debugging), we propose techniques to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches), and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
 
 ### 13.7.1. Verification debugging when verification fails {#sec-verification-debugging}
 
-Let's assume one assertion is failing ("assertion might not hold" or "postcondition might not hold"). What should you do next?
+Let's assume one assertion is failing ("assertion could not be proved" or "postcondition could not be proved"). What should you do next?
+First, it's good to know that if an assertion is failing, it means that the assertion might not hold or that Dafny would requires more proof hints, which can be found in a mechanical way.
 
 The following section is textual description of the animation below, which illustrates the principle of debugging an assertion by computing the weakest precondition:  
 ![weakestpreconditionDemo](https://user-images.githubusercontent.com/3601079/157976402-83fe4d37-8042-40fc-940f-bcfc235c7d2b.gif)
@@ -894,7 +898,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   var j := if !b then 3 else 1;
   if b {
     return j;
-  }//^^^^^^^ a postcondition might not hold on this return path.
+  }//^^^^^^^ a postcondition could not be proved on this return path
   i := 2;
 }
 ```
@@ -908,7 +912,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   if b {
     i := j;
     return;
-  }//^^^^^^^ a postcondition might not hold on this return path.
+  }//^^^^^^^ a postcondition could not be proved on this return path
   i := 2;
 }
 ```
@@ -921,7 +925,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   var j := if !b then 3 else 1;
   if b {
     i := j;
-    assert 2 <= i; // This assertion might not hold
+    assert 2 <= i; // could not prove this assertion
     return;
   }
   i := 2;
@@ -940,14 +944,14 @@ method FailingPostcondition(b: bool) returns (i: int)
   var j := if !b then 3 else 1;
   if b {
     i := j;
-    assert 2 <= i; // This assertion might not hold
+    assert 2 <= i; // could not prove this assertion
     return;
   }
   i := 2;
 }
 ```
-To debug why this assert might not hold, we need to _move this assert up_, which is similar to [_computing the weakest precondition_](https://en.wikipedia.org/wiki/Predicate_transformer_semantics#Weakest_preconditions).
-For example, if we have `x := Y; assert F;` and the `assert F;` might not hold, the weakest precondition for it to hold before `x := Y;` can be written as the assertion `assert F[x:= Y];`, where we replace every occurence of `x` in `F` into `Y`.
+To debug why Dafny cannot prove this assert, we need to _move this assert up_, which is similar to [_computing the weakest precondition_](https://en.wikipedia.org/wiki/Predicate_transformer_semantics#Weakest_preconditions).
+For example, if we have `x := Y; assert F;` and Dafny cannot prove `assert F;`, the weakest precondition for it to hold before `x := Y;` can be written as the assertion `assert F[x:= Y];`, where we replace every occurrence of `x` in `F` into `Y`.
 Let's do it in our example:
 <!-- %check-verify UserGuide.5.expect -->
 ```dafny
@@ -956,7 +960,7 @@ method FailingPostcondition(b: bool) returns (i: int)
 {
   var j := if !b then 3 else 1;
   if b {
-    assert 2 <= j; // This assertion might not hold
+    assert 2 <= j; // could not prove this assertion
     i := j;
     assert 2 <= i;
     return;
@@ -973,7 +977,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
   var j := if !b then 3 else 1;
-  assert b  ==>  2 <= j;  // This assertion might not hold
+  assert b  ==>  2 <= j;  // could not prove this assertion
   if b {
     assert 2 <= j;
     i := j;
@@ -990,7 +994,7 @@ Now, either the error is obvious, or we can one more time replace `j` by its val
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
-  assert b  ==>  2 <= (if !b then 3 else 1);  // This assertion might not hold
+  assert b  ==>  2 <= (if !b then 3 else 1);  // could not prove this assertion
   var j := if !b then 3 else 1;
   assert b  ==>  2 <= j;
   if b {
@@ -1032,9 +1036,6 @@ This list is not exhaustive but can definitely be useful to provide the next ste
  <br><br>`assert A == B;`<br>`callLemma(x);`<br>`assert B == C;`<br> | [`calc == {`](#sec-calc-statement)<br>&nbsp;&nbsp;`  A;`<br>&nbsp;&nbsp;`  B;`<br>&nbsp;&nbsp;`  { callLemma(x); }`<br>&nbsp;&nbsp;`  C;`<br>`};`<br>`assert A == B;`<br>where the [`calc`](#sec-calc-statement) statement can be used to make intermediate computation steps explicit. Works with `<`, `>`, `<=`, `>=`, `==>`, `<==` and `<==>` for example.
  <br><br><br>`assert A ==> B;` | `if A {`<br>&nbsp;&nbsp;`  assert B;`<br>`};`<br>`assert A ==> B;`
  <br><br>`assert A && B;` | `assert A;`<br>`assert B;`<br>`assert A && B;`
- <br>`assert P(x);`<br>where `P` is an [`{:opaque}`](#sec-opaque) predicate | [`reveal P();`](#sec-reveal-statement)<br>`assert P(x);`<br><br>
- `assert P(x);`<br>where `P` is an [`{:opaque}`](#sec-opaque) predicate<br><br> | [`assert P(x) by {`](#sec-assert-statement)<br>[&nbsp;&nbsp;`  reveal P();`](#sec-reveal-statement)<br>`}`
- `assert P(x);`<br>where `P` is not an [`{:opaque}`](#sec-opaque) predicate with a lot of `&&` in its body and is assumed | Make `P` [`{:opaque}`](#sec-opaque) so that if it's assumed, it can be proven more easily. You can always [reveal](#sec-reveal-statement) it when needed.
  `ensures P ==> Q` on a lemma<br> | `requires P ensures Q` to avoid accidentally calling the lemma on inputs that do not satisfy `P`
  `seq(size, i => P)` | `seq(size, i requires 0 <= i < size => P);`
   <br><br>`assert forall x :: G(i) ==> R(i);` |  `assert G(i0);`<br>`assert R(i0);`<br>`assert forall i :: G(i) ==> R(i);` with a guess of the `i0` that makes the second assert to fail.
@@ -1298,7 +1299,7 @@ There are two solutions to this for now. First, one can define a [subset type](#
 type byte = x | 0 <= x < 256
 ```
 
-One of the problems of this approach is that additions, substractions and multiplications do not enforce the result to be in the same bounds, so it would have to be checked, and possibly truncated with modulos. For example:
+One of the problems of this approach is that additions, subtractions and multiplications do not enforce the result to be in the same bounds, so it would have to be checked, and possibly truncated with modulos. For example:
 
 <!-- %check-resolve -->
 ```dafny
@@ -1416,7 +1417,7 @@ assert c != 5/a;     // Correctness
 
 Well-formedness is proved at the same time as correctness, except for
 [well-formedness of requires and ensures clauses](#sec-well-formedness-specifications)
-which is proved separatedly from the well-formedness and correctness of the rest of the method/function.
+which is proved separately from the well-formedness and correctness of the rest of the method/function.
 For the rest of this section, we don't differentiate between well-formedness assertions and correctness assertions.
 
 We can also classify the assertions extracted by Dafny in a few categories:
@@ -1484,17 +1485,11 @@ The fundamental unit of verification in `dafny` is an _assertion batch_, which c
 
 #### 13.7.3.1. Controlling assertion batches {#sec-assertion-batches-control}
 
-Here is how you can control how `dafny` partitions assertions into batches.
+When Dafny verifies a symbol, such as a method, a function or a constant with a subset type, that verification may contain multiple assertions. A symbol is generally verified the fastest when all assertions it in are verified together, in what we call a single 'assertion batch'. However, is it possible to split verification of a symbol into multiple batches, and doing so makes the individual batches simpler, which can lead to less brittle verification behavior. Dafny contains several attributes that allow you to customize how verification is split into batches.
 
-* [`{:focus}`](#sec-focus) on an assert generates a separate assertion batch for the assertions of the enclosing block.
-* [`{:split_here}`](#sec-split_here) on an assert generates a separate assertion batch for assertions after this point.
-* [`{:isolate_assertions}`](#sec-isolate_assertions) on a function or a method generates one assertion batch per assertion
+Firstly, you can instruct Dafny to verify individual assertions in separate batches. You can place the `{:isolate}` attribute on a single assertion to place it in a separate batch, or you can place `{:isolate_assertions}` on a symbol, such as a function or method declaration, to place all assertions in it into separate batches. The CLI option `--isolate-assertions` will place all assertions into separate batches for all symbols. `{:isolate}` can be used on `assert`, `return` and `continue` statements. When placed on a `return` statement, it will verify the postconditions for all paths leading to that `return` in a separate batch. When placed on a `continue`, it will verify the loop invariants for all paths leading to that `continue` in a separate batch. 
 
-We discourage the use of the following _heuristics attributes_ to partition assertions into batches.
-The effect of these attributes may vary, because they are low-level attributes and tune low-level heuristics, and will result in splits that could be manually controlled anyway.
-* [`{:vcs_max_cost N}`](#sec-vcs_max_cost) on a function or method enables splitting the assertion batch until the "cost" of each batch is below N.
-  Usually, you would set [`{:vcs_max_cost 0}`](#sec-vcs_max_cost) and [`{:vcs_max_splits N}`](#sec-vcs_max_splits) to ensure it generates N assertion batches.
-* [`{:vcs_max_keep_going_splits N}`](#sec-vcs_max_keep_going_splits) where N > 1 on a method dynamically splits the initial assertion batch up to N components if the verifier is stuck the first time.
+Given an assertion that is placed into a separate batch, you can then further simplify the verification of this assertion by placing each control flow path that leads to this assertion into a separate batch. You can do this using the attribute `{:isolate "paths"}`.
 
 ### 13.7.4. Command-line options and other attributes to control verification {#sec-command-line-options-and-attributes-for-verification}
 
@@ -1605,7 +1600,7 @@ the global random seed `S` specified with `-randomSeed:S`, which
 defaults to `0`. The random seed affects the structure of the SMT
 queries sent to the solver, changing the ordering of SMT commands, the
 variable names used, and the random seed the solver itself uses when
-making decisions that can be arbitary.
+making decisions that can be arbitrary.
 
 For most use cases, it also makes sense to specify the
 `--log-format csv` flag, to log verification cost statistics to a
@@ -1962,7 +1957,7 @@ migrated to the POSIX-compliant `--` form as needed.
 
 These options emit general information about commands, options and attributes.
 When present, the dafny program will terminates after emitting the requested information
-but without processig any files.
+but without processing any files.
 
 * `--help`, `-h` - shows the various commands (which have help information under them as `dafny <command> -h`
 
@@ -2005,7 +2000,7 @@ a list of all .dfy files contained, recursively, in those folders
   the translator from Dafny to Boogie. Using an alternative prelude is
   primarily useful if you're extending the Dafny language or changing
   how Dafny constructs are modeled. The default prelude is 
-  [here](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/DafnyPrelude.bpl).
+  [here](https://github.com/dafny-lang/dafny/blob/master/Source/DafnyCore/DafnyPrelude.bpl).
 
 ### 13.9.3. Controlling plugins {#sec-controlling-plugins}
 
@@ -2185,7 +2180,7 @@ or the Dafny 4 syntax (`ghost function` and `function`)
 * `--unicode-char` - if false, the `char` type represents any UTF-16 code unit,
   that is, any 16-bit value, including surrogate code points and
   allows `\uXXXX` escapes in string and character literals.
-  If true, `char` represnts any Unicode scalar value,
+  If true, `char` represents any Unicode scalar value,
   that is, any Unicode code point excluding surrogates and
   allows `\U{X..X}` escapes in string and character literals. 
   The default is false for Dafny version 3 and true for version 4.
@@ -2350,7 +2345,7 @@ and what information it produces about the verification process.
   by placing the attribute [`{:disable-nonlinear-arithmetic}`](#sec-disable-nonlinear-arithmetic) after the module keyword.
   The attribute optionally takes the value `false` to enable nonlinear arithmetic.
 
-* `--manual-lemma-induction` - diables automatic inducntion for lemmas
+* `--manual-lemma-induction` - disables automatic inducntion for lemmas
 
 * `--isolate-assertions` - verify assertions individually
 
@@ -2742,7 +2737,7 @@ If you have Boogie installed locally, you can run the printed Boogie file with t
 DOTNET=$(which dotnet)
 
 BOOGIE_ROOT="path/to/boogie/Source"
-BOOGIE="$BOOGIE_ROOT/BoogieDriver/bin/Debug/net6.0/BoogieDriver.dll"
+BOOGIE="$BOOGIE_ROOT/BoogieDriver/bin/Debug/net8.0/BoogieDriver.dll"
 
 if [[ ! -x "$DOTNET" ]]; then
     echo "Error: Dafny requires .NET Core to run on non-Windows systems."
@@ -2779,7 +2774,7 @@ The following options are also commonly used:
   but a large positive number reports more errors per run
 
 * `--verification-time-limit:<n>` (was `-timeLimit:<n>`) - limits 
-  the number of seconds spent trying to verify each procedure.
+  the number of seconds spent trying to verify each assertion batch.
 
 
 ### 13.9.11. Controlling test generation {#sec-controlling-test-gen}

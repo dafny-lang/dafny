@@ -1,9 +1,7 @@
-using System;
+#nullable enable
+
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.Numerics;
 using System.Linq;
-using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -25,52 +23,35 @@ namespace Microsoft.Dafny;
 /// </summary>
 public abstract partial class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICanFormat {
   public virtual string WhatKind => "comprehension";
-  public readonly List<BoundVar> BoundVars;
-  public readonly Expression Range;
+  public List<BoundVar> BoundVars;
+  public Expression? Range;
   public Expression Term;
 
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
-  public IToken BodyStartTok = Token.NoToken;
+  public Attributes? Attributes { get; set; }
 
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(BoundVars != null);
-    Contract.Invariant(Term != null);
-  }
-
-  public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
-
-  [FilledInDuringResolution] public List<BoundedPool> Bounds;
+  [FilledInDuringResolution] public List<BoundedPool?>? Bounds;
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
 
   public List<BoundVar> UncompilableBoundVars() {
-    Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
     var v = BoundedPool.PoolVirtues.Finite | BoundedPool.PoolVirtues.Enumerable;
     return BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
-  public ComprehensionExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(bvars));
-    Contract.Requires(term != null);
-
-    BoundVars = bvars;
+  [SyntaxConstructor]
+  protected ComprehensionExpr(IOrigin origin, List<BoundVar> boundVars, Expression? range, Expression term, Attributes? attributes = null)
+    : base(origin) {
+    BoundVars = boundVars;
     Range = range;
     Term = term;
-    Attributes = attrs;
-    BodyStartTok = tok;
-    RangeToken = rangeToken;
+    Attributes = attributes;
   }
 
   protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {
     BoundVars = original.BoundVars.Select(bv => cloner.CloneBoundVar(bv, false)).ToList();
     Range = cloner.CloneExpr(original.Range);
     Attributes = cloner.CloneAttributes(original.Attributes);
-    BodyStartTok = cloner.Tok(original.BodyStartTok);
-    RangeToken = cloner.Tok(original.RangeToken);
     Term = cloner.CloneExpr(original.Term);
 
     if (cloner.CloneResolvedFields) {
@@ -78,13 +59,13 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     }
   }
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).
-    Concat(BoundVars).Concat(SubExpressions);
+    Attributes.AsEnumerable().
+    Concat<Node>(BoundVars).Concat(SubExpressions);
 
   public override IEnumerable<INode> PreResolveChildren =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>())
-    .Concat<Node>(Range != null && Range.tok.line > 0 ? new List<Node>() { Range } : new List<Node>())
-    .Concat(Term != null && Term.tok.line > 0 ? new List<Node> { Term } : new List<Node>());
+    Attributes.AsEnumerable()
+      .Concat<Node>(Range != null && Range.Origin.line > 0 ? [Range] : new List<Node>())
+      .Concat(Term.Origin.line > 0 ? [Term] : new List<Node>());
 
   public override IEnumerable<Expression> SubExpressions {
     get {

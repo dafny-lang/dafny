@@ -1,0 +1,6 @@
+redeclareBodyVerification.dfy(13,9): Error: the method must provide an equal or more detailed postcondition than in its parent trait
+redeclareBodyVerification.dfy(39,9): Error: cannot prove termination; try supplying a decreases clause
+redeclareBodyVerification.dfy(49,7): Error: cannot prove termination; try supplying a decreases clause
+redeclareBodyVerification.dfy(53,7): Error: cannot prove termination; try supplying a decreases clause
+
+Dafny program verifier finished with 7 verified, 4 errors

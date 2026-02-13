@@ -1,15 +1,18 @@
 include "System.dfy"
 
-// Interface with existing Dafny code (IToken)
-module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4"} MicrosoftDafny {
+// Interface with existing Dafny code (IOrigin)
+@Compile(false)
+@Options("-functionSyntax:4")
+module {:extern "Microsoft.Dafny"} MicrosoftDafny {
   import opened System
 
-  trait {:extern "IToken"} {:compile false} IToken {
+  @Compile(false)
+  trait {:extern "Token"} Token extends object {
     var val: CsString
     var LeadingTrivia: CsString
     var TrailingTrivia: CsString
-    var Next: IToken?
-    ghost var allTokens: seq<IToken>
+    var Next: Token?
+    ghost var allTokens: seq<Token>
 
     ghost predicate Valid() reads this, allTokens decreases |allTokens| {
       && |allTokens| > 0 && allTokens[0] == this
@@ -31,7 +34,7 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
         this.Next.AlltokenSpec(i - 1);
       }
     }
-    lemma TokenNextIsIPlus1(middle: IToken, i: int)
+    lemma TokenNextIsIPlus1(middle: Token, i: int)
       requires Valid()
       requires 0 <= i < |allTokens|
       requires allTokens[i] == middle
@@ -44,7 +47,7 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
       }
     }
 
-    lemma TokenNextIsNullImpliesLastToken(middle: IToken, i: int)
+    lemma TokenNextIsNullImpliesLastToken(middle: Token, i: int)
       requires middle.Valid() && this.Valid()
       requires 0 <= i < |allTokens|
       requires middle == allTokens[i]
@@ -57,7 +60,8 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
       }
     }
   }
-  class {:extern "TriviaFormatterHelper"} {:compile false} TriviaFormatterHelper {
+  @Compile(false)
+  class {:extern "TriviaFormatterHelper"} TriviaFormatterHelper {
     static predicate EndsWithNewline(input: CsString)
   }
 }

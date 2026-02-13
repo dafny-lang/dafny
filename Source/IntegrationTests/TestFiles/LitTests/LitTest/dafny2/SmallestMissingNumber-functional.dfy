@@ -90,7 +90,7 @@ function SMN''(xs: List<nat>, n: nat, len: nat): nat
       SMN''(R, n + llen, len - llen)
 }
 
-function Split(xs: List<nat>, b: nat): (List<nat>, List<nat>)
+opaque function Split(xs: List<nat>, b: nat): (List<nat>, List<nat>)
   ensures var r := Split(xs, b); Length(xs) == Length(r.0) + Length(r.1)
 {
   match xs
@@ -194,10 +194,20 @@ lemma Split_Correct(xs: List<nat>, b: nat)
     Elements(r.1) == (set x | x in Elements(xs) && b <= x) &&
     NoDuplicates(r.0) && NoDuplicates(r.1)
 {
+  var split := Split(xs, b);
+  reveal Split();
   match xs
   case Nil =>
-  case Cons(_, tail) =>
+    assert split == (Nil, Nil);
+    assert Elements(split.0) == {};
+  case Cons(x, tail) =>
     Split_Correct(tail, b);
+    var (L, R) := Split(tail, b);
+    if x < b {
+      assert split == (Cons(x, L), R);
+    } else {
+      assert split == (L, Cons(x, R));
+    }
 }
 
 lemma Elements_Property(xs: List)
@@ -206,17 +216,18 @@ lemma Elements_Property(xs: List)
 {
 }
 
-ghost function IntRange(lo: nat, len: nat): set<nat>
-  ensures |IntRange(lo, len)| == len
+opaque ghost function IntRange(lo: nat, len: nat): (s: set<nat>)
+  ensures |s| == len
+  ensures forall x :: x in s <==> lo <= x < lo + len
+  decreases len
 {
-  var S := set x | lo <= x < lo + len;
-  assert len != 0 ==> S == IntRange(lo, len - 1) + {lo+len-1};
-  S
+  if len == 0 then {} else
+    IntRange (lo + 1, len - 1) + {lo}
 }
 
 // ----- Proofs of alternative versions
 
-lemma {:isolate_assertions} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
+lemma {:induction false} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)
@@ -238,20 +249,27 @@ lemma {:isolate_assertions} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
     if llen < half {
       SMN'_Correct(L, n, llen);
     } else {
-      var s := SMN'(R, n + llen, len - llen);
+      var s := SMN'(xs, n, len);
       SMN'_Correct(R, n + llen, len - llen);
-      forall x | n <= x < s
-        ensures x in Elements(xs)
-      {
-        if x < n + llen {
-          SetEquality(Elements(L), bound);
+      assert n <= s <= n + len by {
+      }
+      assert s !in Elements(xs) by {
+      }
+      assert forall x :: n <= x < s ==> x in Elements(xs) by {
+        var t := SMN'(R, n + llen, len - llen);
+        forall x | n <= x < t
+          ensures x in Elements(xs)
+        {
+          if x < n + llen {
+            SetEquality(Elements(L), bound);
+          }
         }
       }
     }
   }
 }
 
-lemma {:isolate_assertions} SMN''_Correct(xs: List<nat>, n: nat, len: nat)
+lemma {:induction false} {:isolate_assertions} SMN''_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)

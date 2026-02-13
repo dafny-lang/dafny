@@ -191,7 +191,7 @@ method M(heap: object)
     }
 
     private static string DafnyProjectFile => Path.Combine(dafnyDirectory, "Source", "Dafny", "Dafny.csproj");
-    private static string DefaultDafnyArgs => $"run --no-build --project {DafnyProjectFile} -- -useBaseNameForFileName -compileVerbose:0 /errorTrace:0";
+    private static string DefaultDafnyArgs => $"run --no-build --project \"{DafnyProjectFile}\" -- -useBaseNameForFileName -compileVerbose:0 /errorTrace:0";
 
     string GetBoogie(string dafnyProgram, string optionalFileName = null) {
       string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";

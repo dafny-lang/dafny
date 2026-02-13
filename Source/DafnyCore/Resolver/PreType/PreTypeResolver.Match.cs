@@ -21,11 +21,11 @@ namespace Microsoft.Dafny {
         ResolveAttributes(mc, resolutionContext, false);
 
         scope.PushMarker();
-        ResolveExtendedPattern(stmt.Source.tok, mc.Pat, stmt.Source.PreType, false, resolutionContext);
+        ResolveExtendedPattern(stmt.Source.Origin, mc.Pat, stmt.Source.PreType, false, false, resolutionContext);
 
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         mc.Body.ForEach(ss => ResolveStatementWithLabels(ss, resolutionContext));
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
 
         scope.PopMarker();
       }
@@ -39,10 +39,10 @@ namespace Microsoft.Dafny {
         ResolveAttributes(mc, resolutionContext, false);
 
         scope.PushMarker();
-        ResolveExtendedPattern(expr.Source.tok, mc.Pat, expr.Source.PreType, false, resolutionContext);
+        ResolveExtendedPattern(expr.Source.Origin, mc.Pat, expr.Source.PreType, false, false, resolutionContext);
 
         ResolveExpression(mc.Body, resolutionContext);
-        AddSubtypeConstraint(expr.PreType, mc.Body.PreType, mc.Body.tok,
+        AddSubtypeConstraint(expr.PreType, mc.Body.PreType, mc.Body.Origin,
           "type of case bodies do not agree (found {1}, previous types {0})");
 
         scope.PopMarker();
@@ -54,7 +54,7 @@ namespace Microsoft.Dafny {
     /// of resolving it. If that still doesn't resolve it, then report and error and return "false".
     /// Otherwise (that is, upon success), return "true".
     /// </summary>
-    bool InsistOnKnowingPreType(IToken tok, PreType preType) {
+    bool InsistOnKnowingPreType(IOrigin tok, PreType preType) {
       if (preType.Normalize() is PreTypeProxy) {
         Constraints.PartiallySolveTypeConstraints(null, true);
 
@@ -69,10 +69,16 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Resolve "pattern" and push onto "scope" all its bound variables.
     /// </summary>
-    public void ResolveExtendedPattern(IToken sourceExprToken, ExtendedPattern pattern, PreType preType, bool inDisjunctivePattern, ResolutionContext resolutionContext) {
+    public void ResolveExtendedPattern(IOrigin sourceExprToken, ExtendedPattern pattern, PreType preType,
+      bool inPattern, bool inDisjunctivePattern, ResolutionContext resolutionContext) {
+
       if (pattern is DisjunctivePattern dp) {
+        if (inPattern) {
+          ReportError(dp.Origin, "Disjunctive patterns are not allowed inside other patterns");
+        }
+
         foreach (var alt in dp.Alternatives) {
-          ResolveExtendedPattern(sourceExprToken, alt, preType, true, resolutionContext);
+          ResolveExtendedPattern(sourceExprToken, alt, preType, true, true, resolutionContext);
         }
         return;
       }
@@ -80,15 +86,15 @@ namespace Microsoft.Dafny {
       if (pattern is LitPattern litPattern) {
         var lit = litPattern.OptimisticallyDesugaredLit;
         ResolveExpression(lit, resolutionContext);
-        AddSubtypeConstraint(preType, lit.PreType, litPattern.tok,
+        AddSubtypeConstraint(preType, lit.PreType, litPattern.Origin,
           "literal pattern (of type {1}) cannot be used with source type {0}");
         return;
       }
 
       var idPattern = (IdPattern)pattern;
-      if (idPattern.Type is not TypeProxy) {
+      if (idPattern.Type is not TypeProxy || idPattern.IsWildcardPattern) {
         Contract.Assert(idPattern.Arguments == null); // the parser ensures this condition (the ID cannot be followed by both "(...)" and ": ...")
-        resolver.ResolveType(idPattern.Tok, idPattern.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+        resolver.ResolveType(idPattern.Origin, idPattern.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         // When a type is supplied, the ID is understood to be a bound variable.
         ResolveParameterlessIdPattern(idPattern, preType, inDisjunctivePattern, resolutionContext);
         return;
@@ -123,11 +129,11 @@ namespace Microsoft.Dafny {
       } else {
         // this is an error; if tuples are involved, specialize the error message
         if (idPattern.Id == SystemModuleManager.TupleTypeCtorName(1)) {
-          ReportError(idPattern.Tok, "parentheses are not allowed around a pattern");
+          ReportError(idPattern.Origin, "parentheses are not allowed around a pattern");
         } else if (idPattern.Id.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
-          ReportError(pattern.Tok, $"tuple type does not match type '{preType}'");
+          ReportError(pattern.Origin, $"tuple type does not match type '{preType}'");
         } else {
-          ReportError(idPattern.Tok, $"type '{preType}' does not contain a datatype constructor '{idPattern.Id}'");
+          ReportError(idPattern.Origin, $"type '{preType}' does not contain a datatype constructor '{idPattern.Id}'");
         }
         return;
       }
@@ -137,26 +143,25 @@ namespace Microsoft.Dafny {
           // nullary constructor without () -- so convert it to a constructor
           idPattern.MakeAConstructor();
         } else {
-          ReportError(idPattern.Tok, $"constructor '{ctor.Name}' of arity {ctor.Formals.Count} is applied without any arguments");
+          ReportError(idPattern.Origin, $"constructor '{ctor.Name}' of arity {ctor.Formals.Count} is applied without any arguments");
           return;
         }
       }
       if (idPattern.Arguments.Count != ctor.Formals.Count) {
-        ReportError(idPattern.Tok, $"constructor '{ctor.Name}' of arity {ctor.Formals.Count} is applied to {idPattern.Arguments.Count} argument(s)");
+        ReportError(idPattern.Origin, $"constructor '{ctor.Name}' of arity {ctor.Formals.Count} is applied to {idPattern.Arguments.Count} argument(s)");
         return;
       }
 
       var subst = PreType.PreTypeSubstMap(dtd.TypeArgs, dpreType.Arguments);
       for (var i = 0; i < idPattern.Arguments.Count; i++) {
         var argumentPreType = ctor.Formals[i].PreType.Substitute(subst);
-        ResolveExtendedPattern(sourceExprToken, idPattern.Arguments[i], argumentPreType, inDisjunctivePattern, resolutionContext);
+        ResolveExtendedPattern(sourceExprToken, idPattern.Arguments[i], argumentPreType, true, inDisjunctivePattern, resolutionContext);
       }
     }
 
     /// <summary>
-    /// Tries to resolve "idPattern" as a symbolic constant with a LiteralExpr RHS.
-    ///
-    /// Return "true" iff "idPattern" is a symbolic constant with a RHS (regardless of what that RHS is).
+    /// Tries to resolve "idPattern" as a symbolic constant with a LiteralExpr RHS, and
+    /// returns "true" upon success.
     ///
     /// If there is such a RHS and that RHS is a LiteralExpr, then
     ///   * record the RHS literal as "idPattern.ResolvedLit", and
@@ -165,17 +170,17 @@ namespace Microsoft.Dafny {
     ///   * report an error, if "reportErrors".
     /// </summary>
     private bool TryResolvingAsConst(IdPattern idPattern, PreType preType, bool reportErrors, ResolutionContext resolutionContext) {
-      var e = new NameSegment(idPattern.Tok, idPattern.Id, null);
+      var e = new NameSegment(idPattern.Origin, idPattern.Id, null);
       ResolveNameSegment(e, true, null, resolutionContext, false, false);
       if (e.ResolvedExpression is MemberSelectExpr { Member: ConstantField { IsStatic: true, Rhs: { } rhs } }) {
         if (rhs is LiteralExpr lit) {
           // the ID refers to a const whose RHS is a literal
           idPattern.ResolvedLit = lit;
-          AddSubtypeConstraint(preType, lit.PreType, idPattern.Tok, "literal pattern (of type {1}) cannot be used with source type {0}");
+          AddSubtypeConstraint(preType, lit.PreType, idPattern.Origin, "literal pattern (of type {1}) cannot be used with source type {0}");
+          return true;
         } else if (reportErrors) {
-          ReportError(idPattern.Tok, $"{idPattern.Id} is not initialized as a constant literal");
+          ReportError(idPattern.Origin, $"{idPattern.Id} is not initialized as a constant literal");
         }
-        return true;
       }
       return false;
     }
@@ -192,13 +197,13 @@ namespace Microsoft.Dafny {
       // no other options remain; the ID denotes a new bound variable
 
       if (inDisjunctivePattern && !idPattern.IsWildcardPattern) {
-        ReportError(idPattern.Tok, "Disjunctive patterns may not bind variables");
+        ReportError(idPattern.Origin, "Disjunctive patterns may not bind variables");
       }
 
-      idPattern.BoundVar = new BoundVar(idPattern.Tok, idPattern.Id, idPattern.Type) {
+      idPattern.BoundVar = new BoundVar(idPattern.Origin, idPattern.Id, idPattern.Type) {
         PreType = Type2PreType(idPattern.Type, "case pattern ID")
       };
-      AddSubtypeConstraint(preType, idPattern.BoundVar.PreType, idPattern.Tok,
+      AddSubtypeConstraint(preType, idPattern.BoundVar.PreType, idPattern.Origin,
         "pattern (of type {1}) cannot be used with source type {0}");
       if (!idPattern.IsWildcardPattern) {
         resolver.ScopePushAndReport(scope, idPattern.BoundVar, "parameter");

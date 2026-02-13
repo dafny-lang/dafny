@@ -9,7 +9,8 @@ lemma BoundedIntUser(x: uint32, z: nat16)
   var uint16 := z as int as uint16;
 }
 
-method {:test} UseExterns() {
+@Test
+method UseExterns() {
   var squareOf8 := Externs.NonDefault.SquareNativeInt(8);
   expect squareOf8 == 64;
 }

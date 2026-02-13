@@ -1,5 +1,5 @@
 // RUN: cp %S/Simple.g4 %S/csharp/Simple.g4
-// RUN: %translate cs --include-runtime --allow-warnings --output:%S/csharp/Compiler.cs "%s"
+// RUN: %translate cs %trargs --include-runtime --allow-warnings --output:%S/csharp/Compiler.cs "%s"
 // RUN: dotnet run --project %S/csharp/SimpleCompiler.csproj -- %S/example_input.calc > "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -226,7 +226,7 @@ module StackMachine {
       case (PopAdd, _) => st
       case (PopSub, _) => st
       case (PopPrint, _) => st
-      case (PopVar, _) => st
+      case (PopVar(_), _) => st
     }
   }
 
@@ -430,7 +430,7 @@ module {:extern "SimpleCompiler.CSharpAST"} CSharpAST {
     function {:extern} Equals(other: Op__BinOp): bool
   }
 
-  trait {:compile false} {:extern} Expr {}
+  trait {:compile false} {:extern} Expr extends object {}
 
   trait {:compile false} {:extern} Const extends Expr {
     var n: nativeint
@@ -446,7 +446,7 @@ module {:extern "SimpleCompiler.CSharpAST"} CSharpAST {
     var e2: Expr
   }
 
-  trait {:compile false} {:extern} Stmt {}
+  trait {:compile false} {:extern} Stmt extends object {}
 
   trait {:compile false} {:extern} Print extends Stmt {
     var e: Expr
@@ -457,7 +457,7 @@ module {:extern "SimpleCompiler.CSharpAST"} CSharpAST {
     var e: Expr
   }
 
-  trait {:compile false} {:extern} Prog {
+  trait {:compile false} {:extern} Prog extends object {
     var s: System.Collections.Generic.List<Stmt>
   }
 }

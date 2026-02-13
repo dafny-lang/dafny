@@ -1,2 +1,7 @@
 DecreasesTo4.dfy(5,10): Error: bindings are not allowed in `decreases to` expressions.
-1 parse errors detected in DecreasesTo4.dfy
+DecreasesTo4.dfy(9,10): Error: bindings are not allowed in `decreases to` expressions.
+DecreasesTo4.dfy(13,10): Error: bindings are not allowed in `nonincreases to` expressions.
+DecreasesTo4.dfy(17,16): Error: bindings are not allowed in `decreases to` expressions.
+DecreasesTo4.dfy(21,16): Error: 'ghost' components are not allowed in `decreases to` expressions.
+DecreasesTo4.dfy(25,23): Error: 'ghost' components are not allowed in `nonincreases to` expressions.
+6 parse errors detected in DecreasesTo4.dfy

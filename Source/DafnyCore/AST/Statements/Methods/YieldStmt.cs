@@ -10,8 +10,8 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt>, ICanFormat {
   public YieldStmt(Cloner cloner, YieldStmt original) : base(cloner, original) {
   }
 
-  public YieldStmt(RangeToken rangeToken, List<AssignmentRhs> rhss)
-    : base(rangeToken, rhss) {
+  public YieldStmt(IOrigin origin, List<AssignmentRhs> rhss)
+    : base(origin, rhss, null) {
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

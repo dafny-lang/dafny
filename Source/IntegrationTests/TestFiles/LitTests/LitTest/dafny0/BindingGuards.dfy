@@ -158,9 +158,15 @@ method P3(m: int, n: int)
   }
 }
 
-ghost function f(s:set<int>):int
+ghost function f(s: set<int>): int
 {
   if x :| x in s then x else 0
+}
+
+ghost function f'(s: set<int>): int
+{
+  var r := if x :| x in s then x else 0;
+  r
 }
 
 // -------------- optional curly-brace syntax

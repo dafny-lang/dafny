@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny measure-complexity --iterations=3 --random-seed=1 --log-format:trx";"LogFileName="%t.trx" "%s"
+// RUN: %exits-with 4 %baredafny measure-complexity --mutations=3 --random-seed=1 --log-format:trx";"LogFileName="%t.trx" "%s"
 // RUN: %OutputCheck --file-to-check "%t.trx" "%s"
 
 // CHECK: \<UnitTestResult.* testName="ExampleWithSplits \(correctness\) \(assertion batch 3\).*\>

@@ -29,7 +29,7 @@ internal class TriggerTermSet {
       Cons<TriggerTerm> triggerTerms => ComputeTriggerCandidatesTerms(triggerTerms.Tail, relevantVariables).SelectMany(
         child => {
           var newSet = child.CopyWithAdd(triggerTerms.Head, relevantVariables);
-          return !newSet.IsRedundant ? new[] { newSet, child } : new[] { child };
+          return !newSet.IsRedundant ? [newSet, child] : new[] { child };
         }),
       Nil<TriggerTerm> => new[] { Empty() },
       _ => throw new ArgumentOutOfRangeException(nameof(source))
@@ -43,7 +43,7 @@ internal class TriggerTermSet {
   private static TriggerTermSet Empty() {
     var newSet = new TriggerTermSet {
       IsRedundant = false,
-      Terms = new List<TriggerTerm>(),
+      Terms = [],
       variables = new HashSet<BoundVar>(),
       termOwningAUniqueVar = new Dictionary<BoundVar, TriggerTerm>(),
       uniqueVarsOwnedByATerm = new Dictionary<TriggerTerm, ISet<BoundVar>>()
@@ -67,7 +67,7 @@ internal class TriggerTermSet {
   /// </summary>
   private TriggerTermSet CopyWithAdd(TriggerTerm term, IEnumerable<BoundVar> relevantVariables) {
     var copy = new TriggerTermSet();
-    copy.Terms = new List<TriggerTerm>(Terms);
+    copy.Terms = [.. Terms];
     copy.variables = new HashSet<BoundVar>(variables);
     copy.termOwningAUniqueVar = new Dictionary<BoundVar, TriggerTerm>(termOwningAUniqueVar);
     copy.uniqueVarsOwnedByATerm = new Dictionary<TriggerTerm, ISet<BoundVar>>(uniqueVarsOwnedByATerm);

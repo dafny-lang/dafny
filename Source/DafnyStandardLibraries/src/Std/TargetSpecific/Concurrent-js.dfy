@@ -1,52 +1,67 @@
-
-module {:compile false} Std.JavaScriptConcurrent replaces Concurrent {
+@Compile(false)
+module Std.JavaScriptConcurrent replaces Concurrent {
 
   class {:extern} MutableMap<K(==), V(==)> ... {
 
-    constructor {:extern} {:axiom} (ghost inv: (K, V) -> bool)
+    @Axiom
+    constructor {:extern} (ghost inv: (K, V) -> bool, bytesKeys: bool)
 
     ghost predicate Valid()
     {
       true
     }
 
-    method {:extern} {:axiom} Keys() returns (keys: set<K>)
+    @Axiom
+    method {:extern} Keys() returns (keys: set<K>)
 
-    method {:extern} {:axiom} HasKey(k: K) returns (used: bool)
+    @Axiom
+    method {:extern} HasKey(k: K) returns (used: bool)
 
-    method {:extern} {:axiom} Values() returns (values: set<V>)
+    @Axiom
+    method {:extern} Values() returns (values: set<V>)
 
-    method {:extern} {:axiom} Items() returns (items: set<(K,V)>)
+    @Axiom
+    method {:extern} Items() returns (items: set<(K,V)>)
 
-    method {:extern} {:axiom} Put(k: K, v: V)
+    @Axiom
+    method {:extern} Put(k: K, v: V)
 
-    method {:extern} {:axiom} Get(k: K) returns (r: Option<V>)
+    @Axiom
+    method {:extern} Get(k: K) returns (r: Option<V>)
 
-    method {:extern} {:axiom} Remove(k: K)
+    @Axiom
+    method {:extern} Remove(k: K)
 
-    method {:extern} {:axiom} Size() returns (c: nat)
+    @Axiom
+    method {:extern} Size() returns (c: nat)
 
   }
 
   class {:extern} AtomicBox<T> ... {
 
-    constructor {:extern} {:axiom} (ghost inv: T -> bool, t: T)
+    @Axiom
+    constructor {:extern} (ghost inv: T -> bool, t: T)
 
     ghost predicate Valid() { true }
 
-    method {:extern} {:axiom} Get() returns (t: T)
+    @Axiom
+    method {:extern} Get() returns (t: T)
 
-    method {:extern} {:axiom} Put(t: T)
+    @Axiom
+    method {:extern} Put(t: T)
 
   }
 
   class {:extern} Lock ... {
 
-    constructor {:extern} {:axiom} ()
+    @Axiom
+    constructor {:extern} ()
 
-    method {:extern} {:axiom} Lock()
+    @Axiom
+    method {:extern} Lock()
 
-    method {:extern} {:axiom} Unlock()
+    @Axiom
+    method {:extern} Unlock()
 
   }
 }
@@ -74,7 +89,7 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       this.knownValues := {};
     }
 
-    opaque ghost predicate Contained()
+    ghost predicate Contained()
       reads this`internal, this`knownKeys, this`knownValues
     {
       internal.Keys <= knownKeys && internal.Values <= knownValues
@@ -90,7 +105,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       requires Valid()
       ensures forall k :: k in keys ==> exists v :: v in knownValues && inv(k,v)
     {
-      reveal Contained();
       keys := internal.Keys;
     }
 
@@ -98,7 +112,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       requires Valid()
       ensures used ==> exists v :: v in knownValues && inv(k,v)
     {
-      reveal Contained();
       used := k in internal.Keys;
     }
 
@@ -106,7 +119,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       requires Valid()
       ensures forall v :: v in values ==> exists k :: k in knownKeys && inv(k,v)
     {
-      reveal Contained();
       values := internal.Values;
     }
 
@@ -134,7 +146,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       internal := internal[k := v];
       knownKeys := knownKeys + {k};
       knownValues := knownValues + {v};
-      reveal Contained();
     }
 
     method Remove(k: K)
@@ -147,16 +158,10 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       assert exists v :: inv(k,v);
 
       internal := internal - {k};
-      reveal Contained();
     }
 
     method Size() returns (c: nat)
-      requires Valid()
     {
-      // only here to mollify the auditor
-      reveal Contained();
-      assert Contained();
-
       c := |internal|;
     }
 

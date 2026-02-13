@@ -1,0 +1,3 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+The two lists, which are the tail of the same list but treated in different threads, are the same!

@@ -1,42 +1,56 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
+using Action = System.Action;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
 
-public interface INode {
-  public IToken StartToken => RangeToken.StartToken;
-  public IToken EndToken => RangeToken.EndToken;
-  IEnumerable<IToken> OwnedTokens { get; }
-  RangeToken RangeToken { get; }
-  IToken Tok { get; }
-  IEnumerable<INode> Children { get; }
-  IEnumerable<INode> PreResolveChildren { get; }
-}
+/// <summary>
+/// Indicates that this constructor is used to define an AST type corresponding to the syntax of Dafny
+///
+/// These constructors are invoked by the Dafny parser defined in Dafny.atg
+/// and by the Dafny deserializer.
+///
+/// The attribute is used by DeserializerGenerator.
+/// </summary>
+[AttributeUsage(AttributeTargets.Constructor)]
+public class SyntaxConstructorAttribute : Attribute { }
 
-public interface ICanFormat : INode {
-  /// Sets the indentation of individual tokens owned by this node, given
-  /// the new indentation set by the tokens preceding this node
-  /// Returns if further traverse needs to occur (true) or if it already happened (false)
-  bool SetIndent(int indentBefore, TokenNewIndentCollector formatter);
-}
+/// <summary>
+/// Used by the command '--generate-parsed-ast'. This attribute will cause the field to be ignored.
+/// Some constructors used during parsing also have a parameter whose value that points to the container of the object that is
+/// to be constructed. This parameters should not end up in the generated 'parsed AST', so their related fields
+/// are annotated with this attribute.
+/// </summary>
+[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field)]
+public class BackEdge : Attribute { }
 
+/// <summary>
+/// Indicates that in the syntax schema, this type has a different base type than in the C# types
+/// </summary>
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+public class SyntaxBaseType(System.Type? newBase) : Attribute {
+  public readonly System.Type? NewBase = newBase;
+}
 
 public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
 
-  protected IReadOnlyList<IToken> OwnedTokensCache;
+  protected IReadOnlyList<Token>? OwnedTokensCache;
 
-  public IToken StartToken => RangeToken?.StartToken;
+  public virtual bool SingleFileToken => true;
 
-  public IToken EndToken => RangeToken?.EndToken;
-  public abstract IToken Tok { get; }
+  public abstract IOrigin Origin { get; }
+
+  public abstract TokenRange EntireRange { get; }
+  public TokenRange ReportingRange => Origin.ReportingRange;
+  public Token Center => ReportingRange.StartToken;
 
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
@@ -53,24 +67,27 @@ public abstract class Node : INode {
   /// </summary>
   public abstract IEnumerable<INode> PreResolveChildren { get; }
 
-  public IEnumerable<IToken> CoveredTokens {
+  public IEnumerable<Token> CoveredTokens {
     get {
-      var token = StartToken;
+      var token = EntireRange.StartToken;
       if (token == Token.NoToken) {
         yield break;
       }
-      while (token.Prev != EndToken) {
+      while (token.Prev != EntireRange.EndToken) {
         yield return token;
         token = token.Next;
       }
     }
   }
 
+  public Token StartToken => EntireRange.StartToken;
+  public Token EndToken => EntireRange.EndToken;
+
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
   /// </summary>
-  public IEnumerable<IToken> OwnedTokens {
+  public IEnumerable<Token> OwnedTokens {
     get {
       if (OwnedTokensCache != null) {
         return OwnedTokensCache;
@@ -84,10 +101,10 @@ public abstract class Node : INode {
         // We need to filter these out to prevent an infinite loop
         Where(c => c.StartToken.pos <= c.EndToken.pos).
         GroupBy(child => child.StartToken.pos).
-        ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
+        ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos)!.EndToken
       );
 
-      var result = new List<IToken>();
+      var result = new List<Token>();
       if (StartToken == null) {
         Contract.Assume(EndToken == null);
       } else {
@@ -127,8 +144,6 @@ public abstract class Node : INode {
     }
   }
 
-  public abstract RangeToken RangeToken { get; set; }
-
   // <summary>
   // Returns all assumptions contained in this node or its descendants.
   // For each one, the decl field will be set to the closest containing declaration.
@@ -136,146 +151,69 @@ public abstract class Node : INode {
   // containing this node, or null if it is not contained in any.
   // </summary>
   public virtual IEnumerable<Assumption> Assumptions(Declaration decl) {
-    return Enumerable.Empty<Assumption>();
+    return [];
   }
 
-  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {
+  public ISet<INode> Visit(Func<INode, bool>? beforeChildren = null,
+    Action<INode>? afterChildren = null,
+    Action<Exception>? reportError = null) {
     reportError ??= _ => { };
     beforeChildren ??= node => true;
-    afterChildren ??= node => { };
 
     var visited = new HashSet<INode>();
-    var toVisit = new LinkedList<INode>();
+    var toVisit = new LinkedList<object>();
     toVisit.AddFirst(this);
     while (toVisit.Any()) {
       var current = toVisit.First();
       toVisit.RemoveFirst();
-      if (!visited.Add(current)) {
-        continue;
-      }
-
-      if (!beforeChildren(current)) {
-        continue;
-      }
-
-      var nodeAfterChildren = toVisit.First;
-      foreach (var child in current.Children) {
-        if (child == null) {
-          reportError(new InvalidOperationException($"Object of type {current.GetType()} has null child"));
+      if (current is INode currentNode) {
+        if (!visited.Add(currentNode)) {
           continue;
         }
 
-        if (nodeAfterChildren == null) {
-          toVisit.AddLast(child);
-        } else {
-          toVisit.AddBefore(nodeAfterChildren, child);
+        if (!beforeChildren(currentNode)) {
+          continue;
         }
-      }
 
-      afterChildren(current);
+        if (afterChildren != null) {
+          void AfterNodeChildren() => afterChildren(currentNode);
+          toVisit.AddFirst((Action)AfterNodeChildren);
+        }
+        var nodeAfterChildren = toVisit.First;
+        foreach (var child in currentNode.Children) {
+          if (child == null) {
+            reportError(new InvalidOperationException($"Object of type {current.GetType()} has null child"));
+            continue;
+          }
+
+          if (nodeAfterChildren == null) {
+            toVisit.AddLast(child);
+          } else {
+            // Depth-first, but with children in unreversed order
+            toVisit.AddBefore(nodeAfterChildren, child);
+          }
+        }
+      } else {
+        var currentAction = (Action)current;
+        currentAction();
+      }
     }
 
     return visited;
   }
 
   // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
-  protected string GetTriviaContainingDocstringFromStartTokenOrNull() {
+  protected bool GetStartTriviaDocstring(out string? trivia) {
     var matches = StartDocstringExtractor.Matches(StartToken.LeadingTrivia);
+    trivia = null;
     if (matches.Count > 0) {
-      return matches[^1].Value;
-    }
-
-    if (StartToken.Prev is { val: "|" or "{" }) {
+      trivia = matches[^1].Value;
+    } else if (StartToken.Prev is { val: "|" or "{" }) {
       matches = StartDocstringExtractor.Matches(StartToken.Prev.TrailingTrivia);
       if (matches.Count > 0) {
-        return matches[^1].Value;
+        trivia = matches[^1].Value;
       }
     }
-    return null;
-  }
-}
-
-public abstract class TokenNode : Node {
-  // Contains tokens that did not make it in the AST but are part of the expression,
-  // Enables ranges to be correct.
-  // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal IToken[] FormatTokens = null;
-
-  protected RangeToken rangeToken = null;
-
-  public IToken tok = Token.NoToken;
-
-  [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-  public override IToken Tok {
-    get => tok;
-  }
-
-  public override RangeToken RangeToken {
-    get {
-      if (rangeToken == null) {
-
-        var startTok = tok;
-        var endTok = tok;
-
-        void UpdateStartEndToken(IToken token1) {
-          if (token1.Filepath != tok.Filepath) {
-            return;
-          }
-
-          if (token1.pos < startTok.pos) {
-            startTok = token1;
-          }
-
-          if (token1.pos + token1.val.Length > endTok.pos + endTok.val.Length) {
-            endTok = token1;
-          }
-        }
-
-        void UpdateStartEndTokRecursive(INode node) {
-          if (node is null) {
-            return;
-          }
-
-          if (node.RangeToken.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
-              node is DefaultValueExpression) {
-            // Ignore any auto-generated expressions.
-          } else {
-            UpdateStartEndToken(node.StartToken);
-            UpdateStartEndToken(node.EndToken);
-          }
-        }
-
-        PreResolveChildren.ForEach(UpdateStartEndTokRecursive);
-
-        if (FormatTokens != null) {
-          foreach (var token in FormatTokens) {
-            UpdateStartEndToken(token);
-          }
-        }
-
-        rangeToken = new RangeToken(startTok, endTok);
-      }
-
-      return rangeToken;
-    }
-    set => rangeToken = value;
-  }
-}
-
-public abstract class RangeNode : Node { // TODO merge into Node when TokenNode is gone.
-
-  public override IToken Tok => StartToken; // TODO rename to ReportingToken in separate PR
-
-  public IToken tok => Tok; // TODO replace with Tok in separate PR
-
-  // TODO rename to Range in separate PR
-  public override RangeToken RangeToken { get; set; } // TODO remove setter when TokenNode is gone.
-
-  protected RangeNode(Cloner cloner, RangeNode original) {
-    RangeToken = cloner.Tok(original.RangeToken);
-  }
-
-  protected RangeNode(RangeToken rangeToken) {
-    RangeToken = rangeToken;
+    return trivia is not ("" or null);
   }
 }

@@ -1,12 +1,12 @@
 ByMethodResolution.dfy(17,6): Error: number of return parameters does not match declaration (found 2, expected 1)
-ByMethodResolution.dfy(25,4): Error: Method return value mismatch (expected real, got bv9)
-ByMethodResolution.dfy(24,6): Error: RHS (of type int) not assignable to LHS (of type real)
-ByMethodResolution.dfy(63,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
-ByMethodResolution.dfy(64,13): Error: a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
-ByMethodResolution.dfy(65,13): Error: a call to a twostate function is allowed only in specification contexts
+ByMethodResolution.dfy(25,4): Error: RHS (of type bv9) not assignable to LHS (of type real)
+ByMethodResolution.dfy(24,9): Error: integer literal used as if it had type real
+ByMethodResolution.dfy(63,14): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ByMethodResolution.dfy(64,15): Error: a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
+ByMethodResolution.dfy(65,15): Error: a call to a twostate function is allowed only in specification contexts
 ByMethodResolution.dfy(85,9): Error: ghost variables such as k are allowed only in specification contexts. k was inferred to be ghost based on its declaration or initialization.
 ByMethodResolution.dfy(92,14): Error: ghost variables such as a are allowed only in specification contexts. a was inferred to be ghost based on its declaration or initialization.
-ByMethodResolution.dfy(106,4): Error: a recursive call from a least predicate can go only to other least predicates
-ByMethodResolution.dfy(142,4): Error: a recursive call from a least predicate can go only to other least predicates
-ByMethodResolution.dfy(157,4): Error: a recursive call from a least predicate can go only to other least predicates
+ByMethodResolution.dfy(106,5): Error: a recursive call from a least predicate can go only to other least predicates
+ByMethodResolution.dfy(142,7): Error: a recursive call from a least predicate can go only to other least predicates
+ByMethodResolution.dfy(157,7): Error: a recursive call from a least predicate can go only to other least predicates
 11 resolution/type errors detected in ByMethodResolution.dfy

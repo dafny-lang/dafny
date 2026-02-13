@@ -26,7 +26,7 @@ static class CoverageReportCommand {
     ReportsArgument = new("reports", r => {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
     }, true, "directories with coverage reports to be merged");
-    DooFile.RegisterNoChecksNeeded(OnlyLabelOption, false);
+    OptionRegistry.RegisterOption(OnlyLabelOption, OptionScope.Cli);
   }
 
   // FilesArgument is intended for Dafny files, so CoverageReportCommand adds its own argument instead

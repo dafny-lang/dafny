@@ -6,12 +6,14 @@
 module WriteBytesToFile {
   import Std.FileIO
 
-  method {:test} Test() {
+  @Test
+  method Test() {
     // TODO: extern function for the expected error prefix
     theMain("build/../build/fileioexamples", "");
   }
 
-  method {:resource_limit 2000000} theMain(outputDir: string, expectedErrorPrefix: string) {
+  @ResourceLimit("2e6")
+  method theMain(outputDir: string, expectedErrorPrefix: string) {
 
       // Happy paths: write files to the output dir. (The %diff LIT commands check that we wrote the correct content.)
     {
@@ -34,12 +36,12 @@ module WriteBytesToFile {
         var res := FileIO.WriteBytesToFile(outputDir + "/output_plain", bytes);
         expect res.Success?, "unexpected failure writing to output_plain: " + res.error;
       }
-      // Ensure that nonexistent parent directories are created as necessary
+        // Ensure that nonexistent parent directories are created as necessary
       {
         var res := FileIO.WriteBytesToFile(outputDir + "/foo/bar/output_nested", bytes);
         expect res.Success?, "unexpected failure writing to output_nested: " + res.error;
       }
-      // Ensure that file paths with .. are handled correctly
+        // Ensure that file paths with .. are handled correctly
       {
         var res := FileIO.WriteBytesToFile(outputDir + "/foo/bar/../output_up", bytes);
         expect res.Success?, "unexpected failure writing to output_up: " + res.error;

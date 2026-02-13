@@ -28,10 +28,11 @@ module Std.JSON.Deserializer {
   }
 
   function UnsupportedEscape16(code: seq<uint16>): DeserializationError {
-    UnsupportedEscape(FromUTF16Checked(code).GetOr("Couldn't decode UTF-16"))
+    UnsupportedEscape(FromUTF16Checked(code).ToOption().GetOr("Couldn't decode UTF-16"))
   }
 
-  module {:disableNonlinearArithmetic} Uint16StrConversion refines Strings.ParametricConversion {
+  @DisableNonlinearArithmetic
+  module Uint16StrConversion refines Strings.ParametricConversion {
     import opened BoundedInts
 
     type Char = uint16
@@ -52,7 +53,8 @@ module Std.JSON.Deserializer {
       ]
 
     // The size of the map makes this impractical to verify easily.
-    lemma {:axiom} CharsConsistent()
+    @Axiom
+    lemma CharsConsistent()
       ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
   }
 
@@ -65,11 +67,13 @@ module Std.JSON.Deserializer {
     assume {:axiom} false; // BUG Verification inconclusive
     Uint16StrConversion.ToNatBound(str);
     var hd := Uint16StrConversion.ToNat(str);
-    assert hd < 0x1_0000 by { reveal Pow(); }
+    assert hd < 0x1_0000;
     hd as uint16
   }
 
-  function {:tailrecursion} {:isolate_assertions} Unescape(str: seq<uint16>, start: nat := 0, prefix: seq<uint16> := []): DeserializationResult<seq<uint16>>
+  @TailRecursion
+  @IsolateAssertions
+  function Unescape(str: seq<uint16>, start: nat := 0, prefix: seq<uint16> := []): DeserializationResult<seq<uint16>>
     decreases |str| - start
   { // Assumes UTF-16 strings
     if start >= |str| then Success(prefix)
@@ -79,7 +83,7 @@ module Std.JSON.Deserializer {
       else
         var c := str[start + 1];
         if c == 'u' as uint16 then
-          if |str| <= start + 6 then
+          if |str| < start + 6 then
             Failure(EscapeAtEOS)
           else
             var code := str[start + 2..start + 6];
@@ -107,10 +111,10 @@ module Std.JSON.Deserializer {
   }
 
   function String(js: Grammar.jstring): DeserializationResult<string> {
-    var asUtf32 :- FromUTF8Checked(js.contents.Bytes()).ToResult(DeserializationError.InvalidUnicode);
-    var asUint16 :- ToUTF16Checked(asUtf32).ToResult(DeserializationError.InvalidUnicode);
+    var asUtf32 :- FromUTF8Checked(js.contents.Bytes()).MapFailure((error: string) => DeserializationError.InvalidUnicode(error));
+    var asUint16 :- ToUTF16Checked(asUtf32).ToResult(DeserializationError.InvalidUnicode(""));
     var unescaped :- Unescape(asUint16);
-    FromUTF16Checked(unescaped).ToResult(DeserializationError.InvalidUnicode)
+    FromUTF16Checked(unescaped).MapFailure((error: string) => DeserializationError.InvalidUnicode(error))
   }
 
   const DIGITS := ByteStrConversion.charToDigit
@@ -144,11 +148,15 @@ module Std.JSON.Deserializer {
   }
 
   function Object(js: Grammar.jobject): DeserializationResult<seq<(string, Values.JSON)>> {
-    Seq.MapWithResult(d requires d in js.data => KeyValue(d.t), js.data)
+    var f := d requires d in js.data => KeyValue(d.t);
+    assert forall i :: 0 <= i < |js.data| ==> f.requires(js.data[i]);
+    Seq.MapWithResult(f, js.data)
   }
 
   function Array(js: Grammar.jarray): DeserializationResult<seq<Values.JSON>> {
-    Seq.MapWithResult(d requires d in js.data => Value(d.t), js.data)
+    var f := d requires d in js.data => Value(d.t);
+    assert forall i :: 0 <= i < |js.data| ==> f.requires(js.data[i]);
+    Seq.MapWithResult(f, js.data)
   }
 
   function Value(js: Grammar.Value): DeserializationResult<Values.JSON> {

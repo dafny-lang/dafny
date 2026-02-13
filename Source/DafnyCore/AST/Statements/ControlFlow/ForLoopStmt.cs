@@ -1,15 +1,16 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
 public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat {
-  public readonly BoundVar LoopIndex;
-  public readonly Expression Start;
-  public readonly Expression/*?*/ End;
-  public readonly bool GoingUp;
+  public BoundVar LoopIndex;
+  public Expression Start;
+  public Expression? End;
+  public bool GoingUp;
 
-  public ForLoopStmt Clone(Cloner cloner) {
+  public new ForLoopStmt Clone(Cloner cloner) {
     return new ForLoopStmt(cloner, this);
   }
 
@@ -20,16 +21,10 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
     GoingUp = original.GoingUp;
   }
 
-  public ForLoopStmt(RangeToken rangeToken, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
+  public ForLoopStmt(IOrigin origin, BoundVar loopIndexVariable, Expression start, Expression? end, bool goingUp,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    BlockStmt /*?*/ body, Attributes attrs)
-    : base(rangeToken, invariants, decreases, mod, body, attrs) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(loopIndexVariable != null);
-    Contract.Requires(start != null);
-    Contract.Requires(invariants != null);
-    Contract.Requires(decreases != null);
-    Contract.Requires(mod != null);
+    BlockStmt? body, List<Label> labels, Attributes? attributes)
+    : base(origin, invariants, decreases, mod, body, labels, attributes) {
     LoopIndex = loopIndexVariable;
     Start = start;
     End = end;
@@ -79,5 +74,45 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
     formatter.SetIndentBody(Body, indentBefore);
     formatter.SetClosingIndentedRegion(EndToken, indentBefore);
     return false;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string? proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+
+    var s = this;
+    if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].Origin, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+    }
+
+    s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
+    if (!mustBeErasable && s.IsGhost) {
+      reporter.Info(MessageSource.Resolver, s.Origin, "ghost for-loop");
+    }
+    if (s.IsGhost) {
+      if (s.Decreases.Expressions!.Exists(e => e is WildcardExpr)) {
+        reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
+      } else if (s.End == null && s.Decreases.Expressions.Count == 0) {
+        reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_ghost_loop_must_terminate, s, "a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause");
+      }
+    }
+    if (s.IsGhost && s.Mod.Expressions != null) {
+      s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
+    }
+    if (s.Body != null) {
+      s.Body.ResolveGhostness(resolver, reporter, s.IsGhost, codeContext,
+        proofContext, allowAssumptionVariables, inConstructorInitializationPhase);
+      if (s.Body.IsGhost) {
+        s.IsGhost = true;
+      }
+    }
+    if (!s.IsGhost) {
+      // If there were features in the bounds that are treated differently in ghost and non-ghost
+      // contexts, make sure they get treated for non-ghost use.
+      ExpressionTester.CheckIsCompilable(resolver, reporter, s.Start, codeContext);
+      if (s.End != null) {
+        ExpressionTester.CheckIsCompilable(resolver, reporter, s.End, codeContext);
+      }
+    }
   }
 }

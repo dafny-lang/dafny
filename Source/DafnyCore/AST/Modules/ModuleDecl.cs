@@ -9,6 +9,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Represents a submodule declaration at module level scope
 /// </summary>
+[SyntaxBaseType(typeof(Declaration))]
 public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
 
   public DafnyOptions Options { get; }
@@ -36,23 +37,30 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   }
   public int Height;
 
-  public readonly bool Opened; // TODO: Only true for Abstract and Alias module declarations. It seems like they need a common superclass since there's also code of the form 'd is AliasModuleDecl || d is AbstractModuleDecl'
+  public virtual bool Opened => false; // TODO: Only true for Abstract and Alias module declarations. It seems like they need a common superclass since there's also code of the form 'd is AliasModuleDecl || d is AbstractModuleDecl'
 
-  protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
+  protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
     Options = original.Options;
-    Opened = original.Opened;
     CloneId = original.CloneId;
   }
 
-  protected ModuleDecl(DafnyOptions options, RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
-    : base(rangeToken, name, parent, new List<TypeParameter>(), null, isRefining) {
+  [SyntaxConstructor]
+  protected ModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes attributes,
+    [BackEdge] ModuleDefinition enclosingModuleDefinition,
+    string cloneId)
+    : this(options, origin, nameNode, attributes, enclosingModuleDefinition, Guid.Parse(cloneId)) {
+  }
+
+  protected ModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes attributes, ModuleDefinition enclosingModule,
+    Guid cloneId)
+    : base(origin, nameNode, enclosingModule, [], attributes) {
     Options = options;
     Height = -1;
     Signature = null;
-    Opened = opened;
     CloneId = cloneId;
   }
+
   public abstract object Dereference();
 
   public override bool IsEssentiallyEmpty() {
@@ -61,24 +69,24 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
   }
 
   public virtual string GetTriviaContainingDocstring() {
-    IToken candidate = null;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
-      PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : Enumerable.Empty<IToken>();
+      PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : [];
     foreach (var token in tokens) {
       if (token.val == "{") {
-        candidate = token.Prev;
-        if (candidate.TrailingTrivia.Trim() != "") {
-          return candidate.TrailingTrivia;
+        if ((token.Prev.TrailingTrivia + token.LeadingTrivia).Trim() is { } tentativeTrivia and not "") {
+          return tentativeTrivia;
         }
       }
     }
-
-    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia2 and not "") {
+      return tentativeTrivia2;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 
   public override SymbolKind? Kind => SymbolKind.Namespace;

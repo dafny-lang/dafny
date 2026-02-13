@@ -82,7 +82,7 @@ lemma UpdateCLemma(cmd: Expression, deps: Expression, exts: Expression, stC: Sta
     var exts' := exprLiteral(litArrOfStrings(strs - {e}));
     // note: This assertion is necessary.
     assert stC' == UpdateC(cmd, deps, exts', S(stC.st, c'));
-    forall (cmd', deps', e' | Hash(Loc(cmd', deps', e')) == Hash(Loc(cmd, deps, e))) {
+    forall cmd', deps', e' | Hash(Loc(cmd', deps', e')) == Hash(Loc(cmd, deps, e)) {
       HashProperty(cmd', deps', e', cmd, deps, e);
     }
   }
@@ -612,7 +612,7 @@ lemma {:induction expr} EvalCLemma(expr: Expression, stC: StateC, env: Env)
             var stExecC := resultExec.snd;
             // note: This assertion is necessary.
             assert DomSt(stC'.st) <= DomSt(stCombinedC.st);
-            forall (p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st))
+            forall p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st)
               ensures GetSt(p, stCombinedC.st) == GetSt(p, stExecC.st)
             {
               assert DomSt(stCombinedC.st) <= DomSt(stExecC.st);

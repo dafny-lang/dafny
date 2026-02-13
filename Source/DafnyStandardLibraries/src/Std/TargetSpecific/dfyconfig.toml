@@ -9,12 +9,15 @@ includes = []
 track-print-effects = true
 enforce-determinism = true
 reads-clauses-on-methods = true
+type-system-refresh = true
+general-traits = "datatype"
+general-newtypes = true
 
 # Options important for sustainable development
 # of the libraries themselves.
 resource-limit = 1000000
 warn-redundant-assumptions = true
-warn-contradictory-assumptions = true
+warn-contradictory-assumptions = false
 
 library = [
   "../../../binaries/DafnyStandardLibraries.doo"

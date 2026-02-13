@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation
+// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=false --general-newtypes=false --relax-definite-assignment --spill-translation
 
 method Main() {
   Sequences();
@@ -10,7 +10,7 @@ method Main() {
   CovarianceRegressions.Test();
 }
 
-trait Number {
+trait Number extends object {
   const value: int
   method Print()
 }
@@ -235,7 +235,7 @@ method PrintMap(prefix: string, M: map<Number, Number>) {
     print sep;
     // pick smallest Number in s
     ghost var min := ThereIsASmallest(s);
-    var x :| x in s && forall y :: y in s ==> x.value <= y.value;
+    var x: Number :| x in s && forall y: Number :: y in s ==> x.value <= y.value;
     x.Print();
     print " := ";
     m[x].Print();
@@ -342,7 +342,8 @@ method Downcasts() {
   s, s' := DowncastM2(m);  // cast in, cast out
   s := var v: set<Integer> := m; v;  // regression test -- this once tripped up the compilation to Java, whereas the next line had not
   s' := var u: set<Number> := var v: set<Integer> := m; v; u;
-  var eq := s == m && m == s;
+  var s'' := DowncastFunction(a, b); // regression test -- the same error was later discovered in top-level function bodies
+  var eq := s == m && m == s && s == s'';
   print eq, "\n";  // true
 
   s := FId<Integer>(m);  // cast in
@@ -365,6 +366,12 @@ method Create<T>(a: T, b: T) returns (m: set<T>, n: multiset<T>, o: seq<T>, p: m
 {
   m, n, o := {a, b}, multiset{a, b}, [a, b];
   p := map[a := b, b := a];
+}
+
+function DowncastFunction(a: Integer, b: Integer): set<Integer> {
+  var m: set<Number> := {a, b};
+  var v: set<Integer> := m;
+  v
 }
 
 function DowncastF(s: set<Integer>): set<Number> { s }
@@ -454,7 +461,7 @@ function MapOfSeqOf<T(==), U>(t: T, u: U): map<seq<T>, U> {
 // -------------------- some regression tets --------------------
 
 module CovarianceRegressions {
-  trait Trait { }
+  trait Trait extends object { }
 
   method Test() {
     var a: set<Trait>;

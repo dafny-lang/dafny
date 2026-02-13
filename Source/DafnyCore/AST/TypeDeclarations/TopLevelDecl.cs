@@ -1,31 +1,34 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Newtonsoft.Json;
+using NJsonSchema.Converters;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISymbol {
+[JsonConverter(typeof(JsonInheritanceConverter<TopLevelDecl>), "discriminator")]
+public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   public abstract string WhatKind { get; }
   public string WhatKindAndName => $"{WhatKind} '{Name}'";
   public ModuleDefinition EnclosingModuleDefinition;
-  public readonly List<TypeParameter> TypeArgs;
+  public List<TypeParameter> TypeArgs;
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(TypeArgs));
+    Contract.Invariant(Cce.NonNullElements(TypeArgs));
   }
 
-  protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition parent) : base(cloner, original) {
+  protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition enclosingModule) : base(cloner, original) {
     TypeArgs = original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
-    EnclosingModuleDefinition = parent;
+    EnclosingModuleDefinition = enclosingModule;
   }
 
-  protected TopLevelDecl(RangeToken rangeToken, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, attributes, isRefining) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    EnclosingModuleDefinition = enclosingModule;
+  [SyntaxConstructor]
+  protected TopLevelDecl(IOrigin origin, Name nameNode,
+    [BackEdge] ModuleDefinition enclosingModuleDefinition,
+    List<TypeParameter> typeArgs, Attributes attributes)
+    : base(origin, nameNode, attributes) {
+    EnclosingModuleDefinition = enclosingModuleDefinition;
     TypeArgs = typeArgs;
   }
 
@@ -98,11 +101,13 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
   ///     class C<X> extends J<X, int>
   /// C.ParentTypes(real) = J<real, int>    // non-null types C and J
   /// C?.ParentTypes(real) = J?<real, int>  // possibly-null type C? and J?
+  /// 
+  /// If "includeTypeBounds" is "true", then for a type parameter, ParentTypes() returns the type bounds.
   /// </summary>
-  public virtual List<Type> ParentTypes(List<Type> typeArgs) {
+  public virtual List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
     Contract.Requires(typeArgs != null);
     Contract.Requires(this.TypeArgs.Count == typeArgs.Count);
-    return new List<Type>();
+    return [];
   }
 
   public bool AllowsAllocation => true;

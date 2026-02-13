@@ -21,5 +21,10 @@ PrecedenceLinter.dfy(365,2): Warning: unusual indentation in else branch of if-t
 PrecedenceLinter.dfy(463,11): Warning: unusual indentation in else branch of if-then-else (which ends at line 464, column 20); do you perhaps need parentheses?
 PrecedenceLinter.dfy(478,17): Warning: unusual indentation in else branch of if-then-else (which ends at line 479, column 9); do you perhaps need parentheses?
 PrecedenceLinter.dfy(480,17): Warning: unusual indentation in else branch of if-then-else (which ends at line 481, column 13); do you perhaps need parentheses?
+PrecedenceLinter.dfy(498,11): Warning: unusual indentation in else branch of if-then-else (which ends at line 501, column 18); do you perhaps need parentheses?
+PrecedenceLinter.dfy(505,17): Warning: unusual indentation in case expression (which ends at line 506, column 7); do you perhaps need parentheses?
+PrecedenceLinter.dfy(518,4): Warning: unusual indentation in else branch of if-then-else (which ends at line 522, column 9); do you perhaps need parentheses?
+
+Dafny program verifier did not attempt verification
 
 Dafny program verifier did not attempt verification

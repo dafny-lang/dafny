@@ -16,7 +16,8 @@ This may produce "surprising" results for negative values.
 For example, -3 div 5 is -1 and -3 mod 5 is 2.
 Note this is consistent: -3 * -1 + 2 == 5 */
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.ModInternals {
 
   import opened GeneralInternals
   import opened Mul
@@ -26,7 +27,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
   import opened DivInternalsNonlinear
 
   /* Performs modulus recursively. */
-  function {:opaque} ModRecursive(x: int, d: int): int
+  function ModRecursive(x: int, d: int): int
     requires d > 0
     decreases if x < 0 then (d - x) else x
   {
@@ -76,80 +77,142 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     }
   }
 
-  lemma {:isolate_assertions} LemmaDivAddDenominator(n: int, x: int)
+
+  @IsolateAssertions
+  lemma HelperAddDenom (n : int, x : int)
     requires n > 0
-    ensures (x + n) / n == x / n + 1
+    ensures  var zp := (x + n) / n - x / n - 1; 0 == n * zp + ((x + n) % n) - (x % n)
   {
-    LemmaFundamentalDivMod(x, n);
-    LemmaFundamentalDivMod(x + n, n);
     var zp := (x + n) / n - x / n - 1;
-    assert 0 == n * zp + ((x + n) % n) - (x % n) by { LemmaMulDistributes(); }
-    if (zp > 0) {
-      assert (x + n) / n == x / n + 1 by {
-        LemmaMulInequality(1, zp, n);
+    assert 0 == n * zp + ((x + n) % n) - (x % n) by {
+      assert x == n * (x / n) + (x % n) by {LemmaFundamentalDivMod(x, n);}
+      assert x + n == n * ((x + n)/ n) + ((x + n) % n) by {LemmaFundamentalDivMod(x + n, n);}
+      calc {
+        n;
+        n * ((x + n)/ n) - n * (x / n) + ((x + n) % n) - (x % n); {
+          LemmaMulDistributesSpecific (((x + n)/ n), x/n, n);
+          assert  n * ((x + n)/ n) - n * (x / n) == ((x + n)/ n - x / n) * n;
+        }
+        n * ((x + n)/ n - x / n) + ((x + n) % n) - (x % n);
+        n * (zp + 1) + ((x + n) % n) - (x % n);
       }
-    }
-    if (zp < 0) {
-      assert (x + n) / n == x / n + 1 by {
-        LemmaMulInequality(zp, -1, n);
+      calc {
+        0; // subtract the result of the above calc to get 0
+        n * (zp + 1) + ((x + n) % n) - (x % n) - n; {
+          LemmaMulDistributesSpecific (zp, 1, n);
+          assert (zp + 1) * n == n * (zp) + 1 * n;
+        }
+        n * (zp) + n + ((x + n) % n) - (x % n) - n;
+        n * zp + ((x + n) % n) - (x % n);
       }
     }
   }
 
-  lemma {:isolate_assertions} LemmaDivSubDenominator(n: int, x: int)
+  @IsolateAssertions
+  lemma HelperSubDenom (n : int, x : int)
+    requires n > 0
+    ensures var zm := (x - n) / n - x / n + 1; 0 == n * zm + ((x - n) % n) - (x % n)
+  {
+    var zm := (x - n) / n - x / n + 1;
+    assert 0 == n * zm + ((x - n) % n) - (x % n) by {
+      assert x == n * (x / n) + (x % n) by {LemmaFundamentalDivMod(x, n);}
+      assert x - n == n * ((x - n)/ n) + ((x - n) % n) by {LemmaFundamentalDivMod(x - n, n);}
+      calc {
+        n;
+        n * (x / n) - n * ((x - n)/ n) + (x % n) - ((x - n) % n); {
+          LemmaMulDistributesSpecific (x / n, (x - n)/ n, n);
+          assert  n * (x / n) - n * ((x - n)/ n) ==  n * (x / n - (x - n)/ n);
+        }
+        n * (x / n - (x - n)/ n) + (x % n) - ((x - n) % n);
+        n * (1 - zm) + (x % n) - ((x - n) % n);
+      }
+      calc {
+        0; // subtract the result of the above calc to get 0
+        n * (1 - zm) + (x % n) - ((x - n) % n) - n; {
+          LemmaMulDistributesSpecific (1, zm, n);
+          assert (1 - zm) * n == 1 * n - zm * n;
+        }
+        n - n * zm + (x % n) - ((x - n) % n) - n;
+        (x % n) - (x - n) % n - n * zm;
+      }
+    }
+  }
+
+
+
+  @IsolateAssertions
+  lemma LemmaDivAddDenominator(n: int, x: int)
+    requires n > 0
+    ensures (x + n) / n == x / n + 1
+  {
+    var zp := (x + n) / n - x / n - 1;
+    assert 0 == n * zp + ((x + n) % n) - (x % n) by { HelperAddDenom(n, x); }
+    assert zp == 0 by {
+      if zp > 0 {
+        LemmaMulInequality(1, zp, n);
+        assert zp == 0;
+      } else if zp < 0 {
+        LemmaMulInequality(zp, -1, n);
+        assert zp == 0;
+      }
+    }
+  }
+
+  @IsolateAssertions
+  lemma LemmaDivSubDenominator(n: int, x: int)
     requires n > 0
     ensures (x - n) / n == x / n - 1
   {
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x - n, n);
     var zm := (x - n) / n - x / n + 1;
-    assert 0 == n * zm + ((x - n) % n) - (x % n) by { LemmaMulDistributes(); }
-    if (zm > 0) {
-      assert (x - n) / n == x / n - 1 by {
+    assert 0 == n * zm + ((x - n) % n) - (x % n) by { HelperSubDenom (n, x); }
+    assert zm == 0 by {
+      if zm > 0 {
         LemmaMulInequality(1, zm, n);
+        assert zm == 0;
       }
-    }
-    if (zm < 0) {
-      assert (x - n) / n == x / n - 1 by {
+      else if zm < 0 {
         LemmaMulInequality(zm, -1, n);
+        assert zm == 0;
       }
     }
   }
 
-  lemma {:isolate_assertions} LemmaModAddDenominator(n: int, x: int)
+  @IsolateAssertions
+  lemma LemmaModAddDenominator(n: int, x: int)
     requires n > 0
     ensures (x + n) % n == x % n
   {
-    LemmaFundamentalDivMod(x, n);
-    LemmaFundamentalDivMod(x + n, n);
     var zp := (x + n) / n - x / n - 1;
-    assert 0 == n * zp + ((x + n) % n) - (x % n) by { LemmaMulDistributes(); }
-    if (zp > 0) {
+    assert 0 == n * zp + ((x + n) % n) - (x % n) by { HelperAddDenom(n, x); }
+    if zp > 0 {
       assert (x + n) % n == x % n by {
         LemmaMulInequality(1, zp, n);
       }
     }
-    if (zp < 0) {
+    if zp < 0 {
       assert (x + n) % n == x % n by {
         LemmaMulInequality(zp, -1, n);
       }
     }
   }
 
-  lemma {:isolate_assertions} LemmaModSubDenominator(n: int, x: int)
+  @IsolateAssertions
+  lemma LemmaModSubDenominator(n: int, x: int)
     requires n > 0
     ensures (x - n) % n == x % n
   {
     LemmaFundamentalDivMod(x, n);
     LemmaFundamentalDivMod(x - n, n);
     var zm := (x - n) / n - x / n + 1;
-    assert 0 == n * zm + ((x - n) % n) - (x % n) by { LemmaMulDistributes(); }
-    if (zm > 0) {
+    assert 0 == n * zm + ((x - n) % n) - (x % n) by { HelperSubDenom(n, x); }
+    if zm > 0 {
       assert (x - n) % n == x % n by {
         LemmaMulInequality(1, zm, n);
       }
     }
-    if (zm < 0) {
+    if zm < 0 {
       assert (x - n) % n == x % n by {
         LemmaMulInequality(zm, -1, n);
       }
@@ -163,7 +226,9 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     forall x: int
       ensures 0 <= x < n <==> x % n == x
     {
-      if (0 <= x < n) { LemmaSmallMod(x, n); }
+      if 0 <= x < n {
+        LemmaSmallMod(x, n);
+      }
       LemmaModRange(x, n);
     }
   }
@@ -193,7 +258,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
   }
 
   /* proves the quotient remainder theorem */
-  lemma {:isolate_assertions} LemmaQuotientAndRemainder(x: int, q: int, r: int, n: int)
+  @IsolateAssertions
+  lemma LemmaQuotientAndRemainder(x: int, q: int, r: int, n: int)
     requires n > 0
     requires 0 <= r < n
     requires x == q * n + r
@@ -235,19 +301,19 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
   ghost predicate ModAutoPlus(n: int)
     requires n > 0
   {
-    (forall x: int, y: int {:trigger (x + y) % n} ::
-       (var z := (x % n) + (y % n);
-        (  (0 <= z < n     && (x + y) % n == z)
-           || (n <= z < n + n && (x + y) % n == z - n))))
+    forall x: int, y: int {:trigger (x + y) % n} ::
+      var z := (x % n) + (y % n);
+      || (0 <= z < n     && (x + y) % n == z)
+      || (n <= z < n + n && (x + y) % n == z - n)
   }
 
   ghost predicate ModAutoMinus(n: int)
     requires n > 0
   {
-    (forall x: int, y: int {:trigger (x - y) % n} ::
-       (var z := (x % n) - (y % n);
-        (   (0 <= z < n && (x - y) % n == z)
-            || (-n <= z < 0 && (x - y) % n == z + n))))
+    forall x: int, y: int {:trigger (x - y) % n} ::
+      var z := (x % n) - (y % n);
+      || (0 <= z < n && (x - y) % n == z)
+      || (-n <= z < 0 && (x - y) % n == z + n)
 
   }
 
@@ -262,7 +328,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     LemmaModAutoMinus(n);
   }
 
-  lemma {:resource_limit 2000000} LemmaModAutoMinus(n: int)
+  @ResourceLimit("2e6")
+  lemma LemmaModAutoMinus(n: int)
     requires n > 0
     ensures ModAutoMinus(n)
   {

@@ -13,10 +13,10 @@ public class CachingProjectFileOpener : ProjectFileOpener {
 
 
   static CachingProjectFileOpener() {
-    DooFile.RegisterNoChecksNeeded(ProjectFileCacheExpiry, false);
+    OptionRegistry.RegisterOption(ProjectFileCacheExpiry, OptionScope.Cli);
   }
 
-  public CachingProjectFileOpener(IFileSystem fileSystem, DafnyOptions serverOptions, IToken origin) : base(fileSystem, origin) {
+  public CachingProjectFileOpener(IFileSystem fileSystem, DafnyOptions serverOptions, IOrigin origin) : base(fileSystem, origin) {
     this.serverOptions = serverOptions;
   }
 

@@ -1,5 +1,5 @@
-// NONUNIFORM: Temporary development of the Rust compiler
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// NONUNIFORM: Rust-specific tests
+// RUN: %baredafny run --target=rs --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 ghost const TWO_TO_THE_8:   int := 0x100
 ghost const TWO_TO_THE_16:  int := 0x10000
@@ -17,6 +17,12 @@ newtype int16 = x: int  | -0x8000 <= x < 0x8000
 newtype int32 = x: int  | -0x8000_0000 <= x < 0x8000_0000
 newtype int64 = x: int  | -0x8000_0000_0000_0000 <= x < 0x8000_0000_0000_0000
 newtype int128 = x: int  | -0x8000_0000_0000_0000_0000_0000_0000_0000 <= x < 0x8000_0000_0000_0000_0000_0000_0000_0000
+
+method TestLessEq() {
+  var x64: uint64 := 8 as uint64;
+  expect 8 as uint8 > 1 as uint8 + x64 as uint8;
+  expect 9 as uint8 > 1 as uint8 * x64 as uint8;
+}
 
 method TestU8() {
   var o8: uint8 := 1 as uint8;
@@ -249,7 +255,8 @@ method {:resource_limit "1e6"}  Main() {
   
   expect m3.Keys == {2, 3};
   expect m3.Values == {4, 6};
-  print ".Keys and .Values\n";
+  expect m3.Items == {(2, 4), (3, 6)};
+  print ".Keys .Values .Items\n";
 
   var st := {1};
   expect 1 in st;

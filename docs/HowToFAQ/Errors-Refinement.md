@@ -765,6 +765,32 @@ There are restrictions on what can be changed in a refinement.
 In particular, the variance of type parameters must remain the same.
 
 
+## **Error: type parameter '_name_' of _what_ '_declarationname_' is declared with a different number of type bounds than in the corresponding _what_ in the module it refines (expected _oldnum_, found _num_)** {#ref_mismatched_type_bounds_count}
+
+``` dafny
+module A {
+  type AbstrType<X extends object>
+}
+
+module B refines A {
+  type AbstrType<X>
+}
+```
+
+## **Error: type bound for type parameter '_name_' of _what_ '_declarationname_' is different from the corresponding type bound of the corresponding type parameter of the corresponding _what_ in the module it refines (expected '_oldbound_', found '_bound_'** {#ref_mismatched_type_parameter_bound}
+
+``` dafny
+module A {
+  type AbstrType<X extends object>
+}
+
+module B refines A {
+  trait Trait { }
+  type AbstrType<X extends Trait>
+}
+```
+
+
 ## **Error: _kind_ '_name_' is declared with a different number of _what_ (_num_ instead of _oldnum_) than the corresponding _kind_ in the module it refines** {#ref_mismatched_kind_count}
 
 ```dafny

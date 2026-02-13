@@ -33,7 +33,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
     BitwiseOr,
     BitwiseXor
   }
-  public readonly Opcode Op;
+  public Opcode Op;
   public enum ResolvedOpcode {
     YetUndetermined,  // the value before resolution has determined the value; .ResolvedOp should never be read in this state
 
@@ -114,13 +114,13 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
   }
   private ResolvedOpcode _theResolvedOp = ResolvedOpcode.YetUndetermined;
   public ResolvedOpcode ResolvedOp {
-    set {
-      Contract.Assume(_theResolvedOp == ResolvedOpcode.YetUndetermined || _theResolvedOp == value);  // there's never a reason for resolution to change its mind, is there?
-      _theResolvedOp = value;
-    }
     get {
       Debug.Assert(_theResolvedOp != ResolvedOpcode.YetUndetermined);  // shouldn't read it until it has been properly initialized
       return _theResolvedOp;
+    }
+    set {
+      Contract.Assume(_theResolvedOp == ResolvedOpcode.YetUndetermined || _theResolvedOp == value);  // there's never a reason for resolution to change its mind, is there?
+      _theResolvedOp = value;
     }
   }
   public ResolvedOpcode ResolvedOp_PossiblyStillUndetermined {  // offer a way to return _theResolveOp -- for experts only!
@@ -296,7 +296,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
         return "^";
       default:
         Contract.Assert(false);
-        throw new cce.UnreachableException();  // unexpected operator
+        throw new Cce.UnreachableException();  // unexpected operator
     }
   }
   public Expression E0;
@@ -325,10 +325,10 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
     }
   }
 
-  public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
-    :
-    base(tok) {
-    Contract.Requires(tok != null);
+  [SyntaxConstructor]
+  public BinaryExpr(IOrigin origin, Opcode op, Expression e0, Expression e1)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);
     this.Op = op;
@@ -339,8 +339,8 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
   /// <summary>
   /// Returns a resolved binary expression
   /// </summary>
-  public BinaryExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
-    : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
+  public BinaryExpr(IOrigin origin, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
+    : this(origin, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
     ResolvedOp = rop;
     switch (rop) {
       case ResolvedOpcode.EqCommon:

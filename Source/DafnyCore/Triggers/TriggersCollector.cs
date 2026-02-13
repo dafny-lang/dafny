@@ -22,11 +22,11 @@ internal class TriggersCollector {
 
   private T ReduceAnnotatedSubExpressions<T>(Expression expr, T seed, Func<TriggerAnnotation, T> map, Func<T, T, T> reduce) {
     return expr.SubExpressions.Select(e => map(Annotate(e)))
-      .Aggregate(seed, (acc, e) => reduce(acc, e));
+      .Aggregate(seed, reduce);
   }
 
   private List<TriggerTerm> CollectExportedCandidates(Expression expr) {
-    return ReduceAnnotatedSubExpressions(expr, new List<TriggerTerm>(), a => a.ExportedTerms, TriggerUtils.MergeAlterFirst);
+    return ReduceAnnotatedSubExpressions(expr, [], a => a.ExportedTerms, TriggerUtils.MergeAlterFirst);
   }
 
   private ISet<IVariable> CollectVariables(Expression expr) {
@@ -48,12 +48,9 @@ internal class TriggersCollector {
 
     TriggerAnnotation annotation = null; // TODO: Using ApplySuffix fixes the unresolved members problem in GenericSort
 
-    if (expr is LetExpr) {
-      var le = (LetExpr)expr;
-      if (le.LHSs.All(p => p.Var != null) && le.Exact) {
-        // Inline the let expression before doing trigger selection.
-        annotation = Annotate(BoogieGenerator.InlineLet(le));
-      }
+    if (expr is LetExpr { Exact: true } letExpr && letExpr.LHSs.All(p => p.Var != null)) {
+      // Inline the let expression before doing trigger selection.
+      annotation = Annotate(BoogieGenerator.InlineLet(letExpr));
     }
 
     if (annotation == null) {
@@ -101,6 +98,7 @@ internal class TriggersCollector {
         expr is DisplayExpression ||
         expr is MapDisplayExpr ||
         expr is DatatypeValue ||
+        expr is TernaryExpr ||
         TranslateToFunctionCall(expr)) {
       return true;
     } else if (expr is BinaryExpr) {
@@ -319,12 +317,12 @@ internal class TriggersCollector {
       ret = expr;
       if (expr is BinaryExpr bin) {
         if (bin.Op == BinaryExpr.Opcode.NotIn) {
-          expr = new BinaryExpr(bin.tok, BinaryExpr.Opcode.In, bin.E0, bin.E1) {
+          expr = new BinaryExpr(bin.Origin, BinaryExpr.Opcode.In, bin.E0, bin.E1) {
             ResolvedOp = RemoveNotInBinaryExprIn(bin.ResolvedOp),
             Type = bin.Type
           };
         } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
-          expr = new SeqSelectExpr(bin.tok, true, bin.E1, bin.E0, null, null) {
+          expr = new SeqSelectExpr(bin.Origin, true, bin.E1, bin.E0, null, null) {
             Type = bin.Type
           };
           isKiller = true; // [a in s] becomes [s[a] > 0], which is a trigger killer
@@ -334,7 +332,7 @@ internal class TriggersCollector {
             // For sets, isets, and multisets, change < to <= in triggers (and analogously
             // > to >=), since "a < b" translates as "a <= b && !(b <= a)" or
             // "a <= b && !(a == b)".
-            expr = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOp2SyntacticOp(newOpcode), bin.E0, bin.E1) {
+            expr = new BinaryExpr(bin.Origin, BinaryExpr.ResolvedOp2SyntacticOp(newOpcode), bin.E0, bin.E1) {
               ResolvedOp = newOpcode,
               Type = bin.Type
             };

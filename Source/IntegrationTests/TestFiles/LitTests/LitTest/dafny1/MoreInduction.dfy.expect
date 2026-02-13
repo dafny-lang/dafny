@@ -7,4 +7,4 @@ MoreInduction.dfy(87,10): Related location: this is the postcondition that could
 MoreInduction.dfy(93,0): Error: a postcondition could not be proved on this return path
 MoreInduction.dfy(92,21): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 28 verified, 4 errors
+Dafny program verifier finished with 26 verified, 4 errors

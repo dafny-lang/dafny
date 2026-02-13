@@ -1,0 +1,17 @@
+git-issue-2506.dfy(10,34): Error: a recursive call from a least predicate can go only to other least predicates
+git-issue-2506.dfy(13,49): Error: a least predicate can be called recursively only in positive positions
+git-issue-2506.dfy(15,45): Error: a least predicate is not allowed to declare any ensures clause
+git-issue-2506.dfy(31,34): Error: a recursive call from a least predicate can go only to other least predicates
+git-issue-2506.dfy(34,49): Error: a least predicate can be called recursively only in positive positions
+git-issue-2506.dfy(36,45): Error: a least predicate is not allowed to declare any ensures clause
+git-issue-2506.dfy(52,34): Error: a recursive call from a least predicate can go only to other least predicates
+git-issue-2506.dfy(55,49): Error: a least predicate can be called recursively only in positive positions
+git-issue-2506.dfy(57,45): Error: a least predicate is not allowed to declare any ensures clause
+git-issue-2506.dfy(73,34): Error: a recursive call from a least predicate can go only to other least predicates
+git-issue-2506.dfy(76,49): Error: a least predicate can be called recursively only in positive positions
+git-issue-2506.dfy(78,45): Error: a least predicate is not allowed to declare any ensures clause
+git-issue-2506.dfy(90,17): Error: Cyclic dependency among declarations: Class.a -> Class.b -> Class.a
+git-issue-2506.dfy(94,17): Error: Cyclic dependency among declarations: Datatype.a -> Datatype.b -> Datatype.a
+git-issue-2506.dfy(98,17): Error: Cyclic dependency among declarations: Newtype.a -> Newtype.b -> Newtype.a
+git-issue-2506.dfy(102,17): Error: Cyclic dependency among declarations: AbstractType.a -> AbstractType.b -> AbstractType.a
+16 resolution/type errors detected in git-issue-2506.dfy

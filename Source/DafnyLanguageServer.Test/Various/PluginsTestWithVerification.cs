@@ -16,7 +16,7 @@ public class PluginsTestWithVerification : PluginsTestBase {
     "PluginsTestVerification";
 
   protected override string[] CommandLineArgument =>
-    new[] { $@"{LibraryPath},""because\\ \""whatever""" };
+    [$@"{LibraryPath},""because\\ \""whatever"""];
 
   [Fact]
   public async Task EnsureItIsPossibleToLoadAPluginAndContinueVerification() {

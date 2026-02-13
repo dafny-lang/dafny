@@ -206,6 +206,7 @@ module N refines M { datatype D = ... Y | Z }
 
 ## **Error: datatype extending traits is not yet enabled by default; use --general-traits=datatype to enable it** {#p_general_traits_datatype}
 
+<!-- %check-resolve %options --general-traits=legacy -->
 ```dafny
 trait Trait { }
 datatype D extends Trait = A | B
@@ -1179,15 +1180,6 @@ The Dafny scanner saw a pragma -- the first character of the line is a # charact
 scanner recognizes. The only pragma ever recognized was `#line`.
 
 <!-- ./DafnyCore/AST/Grammar/ProgramParser.cs -->
-
-## **Warning: File contains no code** {#p_file_has_no_code}
-
-<!-- %check-resolve-warn -->
-```dafny
-// const c := 42
-```
-
-<!-- INSERT-TEXT -->
 
 ## **Error: [internal error] Parser exception: _message_** {#p_internal_exception}
 

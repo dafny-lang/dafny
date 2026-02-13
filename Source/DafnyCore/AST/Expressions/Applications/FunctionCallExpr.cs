@@ -5,12 +5,13 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionCallExpr> {
-  public string Name;
-  public readonly Expression Receiver;
-  public readonly IToken OpenParen;  // can be null if Args.Count == 0
-  public readonly IToken CloseParen;
-  public readonly Label/*?*/ AtLabel;
-  public readonly ActualBindings Bindings;
+  public Name NameNode;
+  public string Name => NameNode.Value;
+  public Expression Receiver;
+  public IOrigin OpenParen;  // can be null if Args.Count == 0
+  public Token CloseParen;
+  public Label/*?*/ AtLabel;
+  public ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   [FilledInDuringResolution] public List<PreType> PreTypeApplication_AtEnclosingClass;
   [FilledInDuringResolution] public List<PreType> PreTypeApplication_JustFunction;
@@ -63,7 +64,7 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
     Contract.Invariant(Receiver != null);
-    Contract.Invariant(cce.NonNullElements(Args));
+    Contract.Invariant(Cce.NonNullElements(Args));
     Contract.Invariant(
       Function == null || TypeApplication_AtEnclosingClass == null ||
       Function.EnclosingClass.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
@@ -74,41 +75,46 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
 
   [FilledInDuringResolution] public Function Function;
 
-  public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
-    : this(tok, fn, receiver, openParen, closeParen, new ActualBindings(args), atLabel) {
-    Contract.Requires(tok != null);
+  public FunctionCallExpr(string fn, Expression receiver, IOrigin openParen, Token closeParen,
+    [Captured] ActualBindings bindings, Label /*?*/ atLabel = null)
+    : this(Token.NoToken, new Name(Token.NoToken, fn), receiver, openParen, closeParen, bindings,
+      atLabel) {
+  }
+
+  public FunctionCallExpr(IOrigin origin, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
+    : this(origin, fn, receiver, openParen, closeParen, new ActualBindings(args), atLabel) {
+    Contract.Requires(origin != null);
     Contract.Requires(fn != null);
     Contract.Requires(receiver != null);
-    Contract.Requires(cce.NonNullElements(args));
+    Contract.Requires(Cce.NonNullElements(args));
     Contract.Requires(openParen != null || args.Count == 0);
     Contract.Ensures(type == null);
   }
 
-  public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public FunctionCallExpr(IOrigin origin, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(fn != null);
     Contract.Requires(receiver != null);
     Contract.Requires(bindings != null);
     Contract.Requires(openParen != null);
     Contract.Ensures(type == null);
 
-    this.Name = fn;
+    this.NameNode = fn;
     this.Receiver = receiver;
     this.OpenParen = openParen;
     this.CloseParen = closeParen;
     this.AtLabel = atLabel;
     this.Bindings = bindings;
-    this.FormatTokens = closeParen != null ? new[] { closeParen } : null;
   }
 
   /// <summary>
   /// This constructor is intended to be used when constructing a resolved FunctionCallExpr. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, IToken closeParen, [Captured] List<Expression> args,
+  public FunctionCallExpr(IOrigin origin, Name fn, Expression receiver, IOrigin openParen, Token closeParen, [Captured] List<Expression> args,
     Label /*?*/ atLabel = null)
-    : this(tok, fn, receiver, openParen, closeParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
+    : this(origin, fn, receiver, openParen, closeParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 
@@ -117,10 +123,10 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
   }
 
   public FunctionCallExpr(Cloner cloner, FunctionCallExpr original) : base(cloner, original) {
-    Name = original.Name;
+    NameNode = new Name(cloner, original.NameNode);
     Receiver = cloner.CloneExpr(original.Receiver);
-    OpenParen = original.OpenParen == null ? null : cloner.Tok(original.OpenParen);
-    CloseParen = original.CloseParen == null ? null : cloner.Tok(original.CloseParen);
+    OpenParen = original.OpenParen == null ? null : cloner.Origin(original.OpenParen);
+    CloseParen = original.CloseParen;
     Bindings = new ActualBindings(cloner, original.Bindings);
     AtLabel = original.AtLabel;
 
@@ -144,9 +150,7 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
   }
 
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return Enumerable.Repeat(Function, 1);
+  public IEnumerable<Reference> GetReferences() {
+    return Enumerable.Repeat(new Reference(NameNode.ReportingRange, Function), 1);
   }
-
-  public IToken NavigationToken => tok;
 }

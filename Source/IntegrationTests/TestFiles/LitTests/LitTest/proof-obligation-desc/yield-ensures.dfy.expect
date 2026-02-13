@@ -1,14 +1,14 @@
 yield-ensures.dfy(8,24): Error: possible violation of yield-ensures condition
  Asserted expression: count == val
-yield-ensures.dfy(5,25): Related location: this proposition could not be proved
+yield-ensures.dfy(5,25): Related location: this is the yield ensures that could not be proved
 yield-ensures.dfy(8,24): Error: possible violation of yield-ensures condition
  Asserted expression: 0 <= -i && -i <= count
-yield-ensures.dfy(6,18): Related location: this proposition could not be proved
+yield-ensures.dfy(6,18): Related location: this is the yield ensures that could not be proved
 yield-ensures.dfy(18,4): Error: possible violation of yield-ensures condition
  Asserted expression: this.out == val
-yield-ensures.dfy(12,25): Related location: this proposition could not be proved
+yield-ensures.dfy(12,25): Related location: this is the yield ensures that could not be proved
 yield-ensures.dfy(18,4): Error: possible violation of yield-ensures condition
  Asserted expression: 0 <= this.index && this.index <= count
-yield-ensures.dfy(13,18): Related location: this proposition could not be proved
+yield-ensures.dfy(13,18): Related location: this is the yield ensures that could not be proved
 
 Dafny program verifier finished with 2 verified, 4 errors

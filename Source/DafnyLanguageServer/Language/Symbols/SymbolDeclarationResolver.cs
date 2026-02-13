@@ -89,7 +89,7 @@ internal class SymbolDeclarationResolver {
     switch (memberDeclaration) {
       case Function function:
         return ProcessFunction(scope, function);
-      case Method method:
+      case MethodOrConstructor method:
         // TODO handle the constructors explicitly? The constructor is a sub-class of Method.
         return ProcessMethod(scope, method);
       case Field field:
@@ -118,8 +118,8 @@ internal class SymbolDeclarationResolver {
     functionSymbol.Body = ExpressionHandler(function.Body);
     functionSymbol.Ensures.AddRange(ProcessListAttributedExpressions(function.Ens, ExpressionHandler));
     functionSymbol.Requires.AddRange(ProcessListAttributedExpressions(function.Req, ExpressionHandler));
-    functionSymbol.Reads.AddRange(ProcessListFramedExpressions(function.Reads.Expressions, ExpressionHandler));
-    functionSymbol.Decreases.AddRange(ProcessListExpressions(function.Decreases.Expressions, ExpressionHandler));
+    functionSymbol.Reads.AddRange(ProcessListFramedExpressions(function.Reads.Expressions!, ExpressionHandler));
+    functionSymbol.Decreases.AddRange(ProcessListExpressions(function.Decreases.Expressions!, ExpressionHandler));
     functionSymbol.ByMethodBody = function.ByMethodBody == null ? null : ProcessFunctionByMethodBody(functionSymbol, function.ByMethodBody);
     return functionSymbol;
   }
@@ -151,7 +151,7 @@ internal class SymbolDeclarationResolver {
       .Cast<ScopeSymbol>();
   }
 
-  private MethodSymbol ProcessMethod(Symbol scope, Method method) {
+  private MethodSymbol ProcessMethod(Symbol scope, MethodOrConstructor method) {
     var methodSymbol = new MethodSymbol(scope, method);
     foreach (var parameter in method.Ins) {
       cancellationToken.ThrowIfCancellationRequested();
@@ -169,15 +169,15 @@ internal class SymbolDeclarationResolver {
     methodSymbol.Ensures.AddRange(ProcessListAttributedExpressions(method.Ens, ExpressionHandler));
     methodSymbol.Requires.AddRange(ProcessListAttributedExpressions(method.Req, ExpressionHandler));
     methodSymbol.Reads.AddRange(ProcessListExpressions(
-      method.Reads.Expressions.Select(frameExpression => frameExpression.E), ExpressionHandler));
+      method.Reads.Expressions!.Select(frameExpression => frameExpression.E), ExpressionHandler));
     methodSymbol.Modifies.AddRange(ProcessListExpressions(
-      method.Mod.Expressions.Select(frameExpression => frameExpression.E), ExpressionHandler));
-    methodSymbol.Decreases.AddRange(ProcessListExpressions(method.Decreases.Expressions, ExpressionHandler));
+      method.Mod.Expressions!.Select(frameExpression => frameExpression.E), ExpressionHandler));
+    methodSymbol.Decreases.AddRange(ProcessListExpressions(method.Decreases.Expressions!, ExpressionHandler));
 
     return methodSymbol;
   }
 
-  private ScopeSymbol ProcessBlockStmt(ScopeSymbol rootBlock, BlockStmt blockStatement) {
+  private ScopeSymbol ProcessBlockStmt(ScopeSymbol rootBlock, BlockLikeStmt blockStatement) {
     var localVisitor = new LocalVariableDeclarationVisitor(logger, rootBlock);
     localVisitor.Resolve(blockStatement);
     return rootBlock;
@@ -189,7 +189,7 @@ internal class SymbolDeclarationResolver {
     return ProcessBlockStmt(new ScopeSymbol(functionSymbol, blockStatement), blockStatement);
   }
 
-  private ScopeSymbol ProcessMethodBody(MethodSymbol methodSymbol, BlockStmt blockStatement) {
+  private ScopeSymbol ProcessMethodBody(MethodSymbol methodSymbol, BlockLikeStmt blockStatement) {
     return ProcessBlockStmt(new ScopeSymbol(methodSymbol, blockStatement), blockStatement);
   }
 

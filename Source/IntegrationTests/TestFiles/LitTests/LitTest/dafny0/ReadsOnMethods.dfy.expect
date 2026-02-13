@@ -1,8 +1,8 @@
 ReadsOnMethods.dfy(293,19): Warning: when a method is imported, meaning it has no body and an {:extern} annotation, Dafny can not guarantee that its implementation satisfies its post-conditions (its ensures clauses and outputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'.
 ReadsOnMethods.dfy(297,21): Warning: when a function is imported, meaning it has no body and an {:extern} annotation, Dafny can not guarantee that its implementation satisfies its post-conditions (its ensures clauses and outputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'.
 ReadsOnMethods.dfy(323,19): Warning: when a method is imported, meaning it has no body and an {:extern} annotation, Dafny can not guarantee that its implementation satisfies its post-conditions (its ensures clauses and outputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'.
-ReadsOnMethods.dfy(279,8): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-ReadsOnMethods.dfy(280,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+ReadsOnMethods.dfy(279,8): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+ReadsOnMethods.dfy(280,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 ReadsOnMethods.dfy(19,16): Error: insufficient reads clause to read field; Consider adding 'reads c' or 'reads c`u' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(29,29): Error: insufficient reads clause to read field; Consider adding 'reads c' or 'reads c`u' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(44,32): Error: insufficient reads clause to read field; Consider adding 'reads xs[0]' or 'reads xs[0]`u' in the enclosing method specification for resolution
@@ -10,15 +10,15 @@ ReadsOnMethods.dfy(54,29): Error: insufficient reads clause to read field; Consi
 ReadsOnMethods.dfy(73,29): Error: insufficient reads clause to read field; Consider adding 'reads r' or 'reads r`r' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(147,35): Error: function precondition could not be proved
 ReadsOnMethods.dfy(147,35): Error: insufficient reads clause to invoke function
-ReadsOnMethods.dfy(151,37): Error: insufficient reads clause to invoke function
-ReadsOnMethods.dfy(162,25): Error: insufficient reads clause to invoke function
-ReadsOnMethods.dfy(162,43): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(151,45): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(162,33): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(162,48): Error: insufficient reads clause to invoke function
 ReadsOnMethods.dfy(169,10): Error: insufficient reads clause to read field; Consider adding 'reads this' or 'reads this`Repr' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(172,19): Error: insufficient reads clause to read field; Consider adding 'reads this' or 'reads this`Repr' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(183,25): Error: insufficient reads clause to read field; Consider adding 'reads this' or 'reads this`y' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(245,9): Error: insufficient reads clause to read field; Consider adding 'reads b' or 'reads b`x' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(304,33): Error: insufficient reads clause to read field; Consider adding 'reads cache' or 'reads cache`state' in the enclosing method specification for resolution
-ReadsOnMethods.dfy(308,22): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(308,25): Error: insufficient reads clause to invoke function
 ReadsOnMethods.dfy(313,13): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(360,20): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(402,23): Error: insufficient reads clause to read field; Consider adding 'reads b' or 'reads b`x' in the enclosing function specification for resolution
@@ -26,12 +26,12 @@ ReadsOnMethods.dfy(411,13): Error: insufficient reads clause to read field; Cons
 ReadsOnMethods.dfy(413,4): Error: insufficient reads clause to read field; Consider adding 'reads b' or 'reads b`x' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(427,10): Error: insufficient reads clause to read array element; Consider adding 'reads a' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(436,10): Error: insufficient reads clause to read array element; Consider adding 'reads a' in the enclosing method specification for resolution
-ReadsOnMethods.dfy(469,2): Error: method might read an object not in the parent trait context's reads clause
+ReadsOnMethods.dfy(469,9): Error: accessed object in method could not be proved to be in the parent trait's reads clause
 ReadsOnMethods.dfy(479,26): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(484,24): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(494,35): Error: insufficient reads clause to call
-ReadsOnMethods.dfy(499,9): Error: insufficient reads clause to invoke function
-ReadsOnMethods.dfy(505,9): Error: assertion might not hold
+ReadsOnMethods.dfy(499,18): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(505,14): Error: assertion could not be proved
 ReadsOnMethods.dfy(516,11): Related location: this proposition could not be proved
 ReadsOnMethods.dfy(523,13): Error: insufficient reads clause to read field; Consider adding 'reads b' or 'reads b`x' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(530,50): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls

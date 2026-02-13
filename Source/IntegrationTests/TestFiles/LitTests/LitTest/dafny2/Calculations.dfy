@@ -49,6 +49,14 @@ lemma Lemma_ConcatNil(xs : List)
 lemma Lemma_RevCatCommute(xs : List)
   ensures forall ys, zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs);
 {
+  forall ys, zs
+    ensures revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs)
+  {
+    match xs
+    case Nil =>
+    case Cons(_, xs') =>
+      Lemma_RevCatCommute(xs');
+  }
 }
 
 // Here is a theorem that says "qreverse" and "reverse" calculate the same result.  The proof

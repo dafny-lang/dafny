@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
@@ -8,24 +10,16 @@ using DafnyCore.Options;
 namespace Microsoft.Dafny;
 
 public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
-  public readonly List<Expression> Args;
+  public List<Expression> Args;
 
-  public static readonly Option<bool> TrackPrintEffectsOption = new("--track-print-effects",
+  public static Option<bool> TrackPrintEffectsOption = new("--track-print-effects",
     "A compiled method, constructor, or iterator is allowed to have print effects only if it is marked with {{:print}}.");
   static PrintStmt() {
     DafnyOptions.RegisterLegacyBinding(TrackPrintEffectsOption, (options, value) => {
       options.EnforcePrintEffects = value;
     });
 
-    DooFile.RegisterLibraryChecks(
-      checks: new Dictionary<Option, OptionCompatibility.OptionCheck> {
-        { TrackPrintEffectsOption, OptionCompatibility.CheckOptionLocalImpliesLibrary }
-      });
-  }
-
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Args));
+    OptionRegistry.RegisterGlobalOption(TrackPrintEffectsOption, OptionCompatibility.CheckOptionLocalImpliesLibrary);
   }
 
   public PrintStmt Clone(Cloner cloner) {
@@ -36,11 +30,9 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
     Args = original.Args.Select(cloner.CloneExpr).ToList();
   }
 
-  public PrintStmt(RangeToken rangeToken, List<Expression> args)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(cce.NonNullElements(args));
-
+  [SyntaxConstructor]
+  public PrintStmt(IOrigin origin, List<Expression> args, Attributes? attributes = null)
+    : base(origin, attributes) {
     Args = args;
   }
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
@@ -54,5 +46,16 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    if (mustBeErasable) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_print_statement_is_not_ghost, this,
+        "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+    } else {
+      Args.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
+    }
   }
 }

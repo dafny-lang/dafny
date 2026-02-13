@@ -469,7 +469,7 @@ public class Scanner {
           lastWasCr = (ch == '\r');
         }
         NextCh();
-        if(triviaTrailing && triviaNewlines == 2 && (ch != '\n' || !lastWasCr)) {
+        if(triviaTrailing && triviaNewlines == 1 && (ch != '\n' || !lastWasCr)) {
           triviaTrailing = false;
           posTrailingEndLeadingStart = pos;
         }

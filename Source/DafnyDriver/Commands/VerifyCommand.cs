@@ -10,6 +10,7 @@ using DafnyCore;
 using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -18,15 +19,21 @@ public static class VerifyCommand {
   static VerifyCommand() {
     // Note these don't need checks because they are only "dafny verify" options;
     // they can't be specified when building a doo file.
-    DooFile.RegisterNoChecksNeeded(FilterSymbol, false);
-    DooFile.RegisterNoChecksNeeded(FilterPosition, false);
+    OptionRegistry.RegisterOption(FilterSymbol, OptionScope.Cli);
+    OptionRegistry.RegisterOption(FilterPosition, OptionScope.Cli);
+    OptionRegistry.RegisterOption(PerformanceStatisticsOption, OptionScope.Cli);
   }
 
+  public static readonly Option<int> PerformanceStatisticsOption = new("--performance-stats",
+    "Report a summary of the verification performance. " +
+    "The given argument is used to divide all the output with, which can help ignore small differences.") {
+    IsHidden = true
+  };
   public static readonly Option<string> FilterSymbol = new("--filter-symbol",
-    @"Filter what gets verified by selecting only symbols whose fully qualified name contains the given argument. For example: ""--filter-symbol=MyNestedModule.MyFooFunction""");
+    @"Filter what gets verified by selecting only symbols whose fully qualified name contains the given argument, for example: ""--filter-symbol=MyNestedModule.MyFooFunction"". Place a dot at the end of the argument to indicate the symbol name must end like this, which can be useful if one symbol name is a prefix of another.");
 
   public static readonly Option<string> FilterPosition = new("--filter-position",
-    @"Filter what gets verified based on a source location. The location is specified as a file path suffix, optionally followed by a colon and a line number. For example, `dafny verify dfyconfig.toml --filter-position=source1.dfy:5` will only verify things that range over line 5 in the file `source1.dfy`. In combination with `--isolate-assertions`, individual assertions can be verified by filtering on the line that contains them. When processing a single file, the filename can be skipped, for example: `dafny verify MyFile.dfy --filter-position=:23`");
+    @"Filter what gets verified based on a source location. The location is specified as a file path suffix, optionally followed by a colon and a line number or line range. For example, `dafny verify dfyconfig.toml --filter-position=source1.dfy:5-7` will only verify things that between (and including) line 5 and 7 in the file `source1.dfy`. You can also use `:5`, `:5-`, `:-5` to specify individual lines or open ranges. In combination with `--isolate-assertions`, individual assertions can be verified by filtering on the line that contains them. When processing a single file, the filename can be skipped, for example: `dafny verify MyFile.dfy --filter-position=:23`");
 
   public static Command Create() {
     var result = new Command("verify", "Verify the program.");
@@ -40,6 +47,7 @@ public static class VerifyCommand {
 
   private static IReadOnlyList<Option> VerifyOptions =>
     new Option[] {
+        PerformanceStatisticsOption,
         FilterSymbol,
         FilterPosition,
         DafnyFile.DoNotVerifyDependencies
@@ -64,7 +72,7 @@ public static class VerifyCommand {
       var verificationSummarized = ReportVerificationSummary(compilation, verificationResults);
       var proofDependenciesReported = ReportProofDependencies(compilation, resolution, verificationResults);
       var verificationResultsLogged = LogVerificationResults(compilation, resolution, verificationResults);
-      compilation.VerifyAllLazily(0).ToObservable().Subscribe(verificationResults);
+      compilation.VerifyAllLazily().ToObservable().Subscribe(verificationResults);
       await verificationSummarized;
       await verificationResultsLogged;
       await proofDependenciesReported;
@@ -72,6 +80,7 @@ public static class VerifyCommand {
 
     return await compilation.GetAndReportExitCode();
   }
+
   public static async Task ReportVerificationSummary(
     CliCompilation cliCompilation,
     IObservable<CanVerifyResult> verificationResults) {
@@ -80,6 +89,10 @@ public static class VerifyCommand {
     verificationResults.Subscribe(result => {
       foreach (var taskResult in result.Results) {
         var runResult = taskResult.Result;
+        Interlocked.Add(ref statistics.TotalResourcesUsed, runResult.ResourceCount);
+        lock (statistics) {
+          statistics.MaxVcResourcesUsed = Math.Max(statistics.MaxVcResourcesUsed, runResult.ResourceCount);
+        }
 
         switch (runResult.Outcome) {
           case SolverOutcome.Valid:
@@ -114,6 +127,16 @@ public static class VerifyCommand {
     });
     await verificationResults.WaitForComplete();
     await WriteTrailer(cliCompilation, statistics);
+    var performanceStatisticsDivisor = cliCompilation.Options.Get(PerformanceStatisticsOption);
+    if (performanceStatisticsDivisor != 0) {
+      int Round(int number) {
+        var numberForUpRounding = number + performanceStatisticsDivisor / 2;
+        return (numberForUpRounding / performanceStatisticsDivisor) * performanceStatisticsDivisor;
+      }
+      var output = cliCompilation.Options.OutputWriter;
+      await output.Status($"Total resources used is {Round(statistics.TotalResourcesUsed)}");
+      await output.Status($"Max resources used by VC is {Round(statistics.MaxVcResourcesUsed)}");
+    }
   }
 
   private static async Task WriteTrailer(CliCompilation cliCompilation,
@@ -128,35 +151,35 @@ public static class VerifyCommand {
 
     var output = cliCompilation.Options.OutputWriter;
 
-    await output.WriteLineAsync();
+    await using var trailer = output.StatusWriter();
+    await trailer.WriteLineAsync();
 
     if (cliCompilation.VerifiedAssertions) {
-      await output.WriteAsync($"{cliCompilation.Options.DescriptiveToolName} finished with {statistics.VerifiedAssertions} assertions verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
+      await trailer.WriteAsync($"{cliCompilation.Options.DescriptiveToolName} finished with {statistics.VerifiedAssertions} assertions verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
     } else {
-      await output.WriteAsync($"{cliCompilation.Options.DescriptiveToolName} finished with {statistics.VerifiedSymbols} verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
+      await trailer.WriteAsync($"{cliCompilation.Options.DescriptiveToolName} finished with {statistics.VerifiedSymbols} verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
     };
     if (statistics.InconclusiveCount != 0) {
-      await output.WriteAsync($", {statistics.InconclusiveCount} inconclusive{Util.Plural(statistics.InconclusiveCount)}");
+      await trailer.WriteAsync($", {statistics.InconclusiveCount} inconclusive{Util.Plural(statistics.InconclusiveCount)}");
     }
 
     if (statistics.TimeoutCount != 0) {
-      await output.WriteAsync($", {statistics.TimeoutCount} time out{Util.Plural(statistics.TimeoutCount)}");
+      await trailer.WriteAsync($", {statistics.TimeoutCount} time out{Util.Plural(statistics.TimeoutCount)}");
     }
 
     if (statistics.OutOfMemoryCount != 0) {
-      await output.WriteAsync($", {statistics.OutOfMemoryCount} out of memory");
+      await trailer.WriteAsync($", {statistics.OutOfMemoryCount} out of memory");
     }
 
     if (statistics.OutOfResourceCount != 0) {
-      await output.WriteAsync($", {statistics.OutOfResourceCount} out of resource");
+      await trailer.WriteAsync($", {statistics.OutOfResourceCount} out of resource");
     }
 
     if (statistics.SolverExceptionCount != 0) {
-      await output.WriteAsync($", {statistics.SolverExceptionCount} solver exceptions");
+      await trailer.WriteAsync($", {statistics.SolverExceptionCount} solver exceptions");
     }
 
-    await output.WriteLineAsync();
-    await output.FlushAsync();
+    await trailer.WriteLineAsync();
   }
 
   public static void ReportVerificationDiagnostics(CliCompilation compilation, IObservable<CanVerifyResult> verificationResults) {
@@ -164,18 +187,18 @@ public static class VerifyCommand {
       // We use an intermediate reporter so we can sort the diagnostics from all parts by token
       var batchReporter = new BatchErrorReporter(compilation.Options);
       foreach (var completed in result.Results) {
-        Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, completed.Task.Token,
+        Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName,
+          BoogieGenerator.ToDafnyToken(completed.Task.Token),
           (uint)completed.Result.RunTime.TotalSeconds,
           completed.Result, batchReporter);
       }
 
-      foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-        compilation.Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-          diagnostic.Message);
+      foreach (var diagnostic in batchReporter.AllMessages.Order()) {
+        compilation.Compilation.Reporter.MessageCore(diagnostic);
       }
     });
-  }
 
+  }
 
   public static async Task LogVerificationResults(CliCompilation cliCompilation, ResolutionResult resolution,
     IObservable<CanVerifyResult> verificationResults) {

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -9,17 +10,20 @@ namespace Microsoft.Dafny;
 /// Represents module X { ... }
 /// </summary>
 public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
-  public readonly ModuleDefinition ModuleDef;
+  public ModuleDefinition ModuleDef;
 
-  [FilledInDuringResolution] public ModuleSignature DefaultExport;  // the default export set of the module.
+  [FilledInDuringResolution] public ModuleSignature? DefaultExport;  // the default export set of the module.
 
-  private ModuleSignature emptySignature;
+  private ModuleSignature? emptySignature;
   public override ModuleSignature AccessibleSignature(bool ignoreExports) {
     if (ignoreExports) {
       return Signature;
     }
     return this.AccessibleSignature();
   }
+
+  public override bool SingleFileToken => ModuleDef.SingleFileToken;
+
   public override ModuleSignature AccessibleSignature() {
     if (DefaultExport == null) {
       if (emptySignature == null) {
@@ -33,20 +37,28 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
   public override IEnumerable<INode> Children => new[] { ModuleDef };
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public LiteralModuleDecl(Cloner cloner, LiteralModuleDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
-    var newModuleDefinition = cloner.CloneLiteralModuleDefinition ? cloner.CloneModuleDefinition(original.ModuleDef, parent) : original.ModuleDef;
+  public LiteralModuleDecl(Cloner cloner, LiteralModuleDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
+    var newModuleDefinition = cloner.CloneLiteralModuleDefinition ? cloner.CloneModuleDefinition(original.ModuleDef, enclosingModule) : original.ModuleDef;
     ModuleDef = newModuleDefinition;
     DefaultExport = original.DefaultExport;
     BodyStartTok = ModuleDef.BodyStartTok;
-    TokenWithTrailingDocString = ModuleDef.TokenWithTrailingDocString;
   }
 
-  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition module, ModuleDefinition parent, Guid cloneId)
-    : base(options, module.RangeToken, module.NameNode, parent, false, false, cloneId) {
-    ModuleDef = module;
-    BodyStartTok = module.BodyStartTok;
-    TokenWithTrailingDocString = module.TokenWithTrailingDocString;
+  [SyntaxConstructor]
+  public LiteralModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes? attributes,
+    ModuleDefinition enclosingModuleDefinition, string cloneId, ModuleDefinition moduleDef)
+    : base(options, origin, nameNode, attributes, enclosingModuleDefinition, cloneId) {
+    ModuleDef = moduleDef;
+    BodyStartTok = moduleDef.BodyStartTok;
+    moduleDef.EnclosingLiteralModuleDecl = this;
+  }
+
+  public LiteralModuleDecl(DafnyOptions options, ModuleDefinition moduleDef, ModuleDefinition? enclosingModule, Guid cloneId)
+    : base(options, moduleDef.Origin, moduleDef.NameNode, null, enclosingModule, cloneId) {
+    ModuleDef = moduleDef;
+    BodyStartTok = moduleDef.BodyStartTok;
+    moduleDef.EnclosingLiteralModuleDecl = this;
   }
 
   public override object Dereference() { return ModuleDef; }
@@ -78,6 +90,9 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
           }
       }
     }
+
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
+    Attributes.SetIndents(ModuleDef.Attributes, indentBefore, formatter);
 
     foreach (var decl2 in ModuleDef.TopLevelDecls) {
       formatter.SetDeclIndentation(decl2, innerIndent);
@@ -154,7 +169,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     resolver.ComputeIsRecursiveBit(compilation, module, rewriters);
     resolver.FillInDecreasesClauses(module);
     foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
-      resolver.reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
+      resolver.reporter.Info(MessageSource.Resolver, iter.Origin, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
     }
 
     foreach (var rewriter in rewriters) {
@@ -174,14 +189,23 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
 
   public void BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
     Contract.Requires(this != null);
-    Contract.Requires(parentBindings != null);
 
     var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
     if (!parentBindings.BindName(Name, this, bindings)) {
       parentBindings.TryLookup(Name, out var otherModule);
-      resolver.Reporter.Error(MessageSource.Resolver, new NestedToken(tok, otherModule.tok), "Duplicate module name: {0}", Name);
+      resolver.Reporter.Error(MessageSource.Resolver, new NestedOrigin(Origin, otherModule.Origin), "Duplicate module name: {0}", Name);
     }
   }
 
-  public IEnumerable<ISymbol> ChildSymbols => ModuleDef.ChildSymbols;
+  public IEnumerable<ISymbol> ChildSymbols => ModuleDef.TopLevelDecls.SelectMany(decl => {
+    if (decl is DefaultClassDecl defaultClassDecl) {
+      return defaultClassDecl.Members;
+    }
+
+    if (decl is ISymbol symbol) {
+      return new[] { symbol };
+    }
+
+    return Enumerable.Empty<ISymbol>();
+  });
 }

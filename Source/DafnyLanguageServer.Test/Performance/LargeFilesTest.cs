@@ -49,8 +49,8 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     var source = contentBuilder.ToString();
 
     Exception lastException = null;
-    List<double> timeToScheduleHistory = new();
-    List<double> divisionHistory = new();
+    List<double> timeToScheduleHistory = [];
+    List<double> divisionHistory = [];
     try {
       for (int attempt = 0; attempt < 10; attempt++) {
         var threadPoolSchedulingCancellationToken = new CancellationTokenSource();
@@ -68,7 +68,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         var afterChange = DateTime.Now;
         var changeMilliseconds = (afterChange - afterOpen).TotalMilliseconds;
         await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
-        threadPoolSchedulingCancellationToken.Cancel();
+        await threadPoolSchedulingCancellationToken.CancelAsync();
         var averageTimeToSchedule = await threadPoolSchedulingTimeTask;
         var division = changeMilliseconds / openMilliseconds;
 

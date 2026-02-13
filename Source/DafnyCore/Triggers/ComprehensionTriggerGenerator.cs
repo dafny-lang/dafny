@@ -122,7 +122,7 @@ namespace Microsoft.Dafny.Triggers {
       // In addition, we ignore cases where the only differences between a trigger
       // and a trigger match are places where a variable is replaced with an
       // expression whose free variables do not intersect that of the quantifier
-      // in which that expression is found. For examples of this behavious, see
+      // in which that expression is found. For examples of this behavior, see
       // triggers/literals-do-not-cause-loops.
       // This ignoring logic is implemented by the CouldCauseLoops method.
       bool foundLoop = false;
@@ -156,7 +156,7 @@ namespace Microsoft.Dafny.Triggers {
     private void CombineSplitQuantifier() {
       if (partWriters.Count > 1) {
         var groups = new List<QuantifierGroup>();
-        groups.Add(new QuantifierGroup(partWriters[0], new List<ComprehensionExpr> { partWriters[0].Comprehension }));
+        groups.Add(new QuantifierGroup(partWriters[0], [partWriters[0].Comprehension]));
         for (int i = 1; i < partWriters.Count; i++) {
           bool found = false;
           for (int j = 0; j < groups.Count; j++) {
@@ -169,7 +169,7 @@ namespace Microsoft.Dafny.Triggers {
           }
           if (!found) {
             // start a new group
-            groups.Add(new QuantifierGroup(partWriters[i], new List<ComprehensionExpr> { partWriters[i].Comprehension }));
+            groups.Add(new QuantifierGroup(partWriters[i], [partWriters[i].Comprehension]));
           }
         }
         if (groups.Count == partWriters.Count) {
@@ -177,18 +177,18 @@ namespace Microsoft.Dafny.Triggers {
           return;
         }
         // merge expressions in each group back to one quantifier.
-        List<SplitPartTriggerWriter> list = new List<SplitPartTriggerWriter>();
-        List<Expression> splits = new List<Expression>();
+        List<SplitPartTriggerWriter> list = [];
+        List<Expression> splits = [];
         foreach (var group in groups) {
           SplitPartTriggerWriter q = group.Quantifier;
           if (q.Comprehension is ForallExpr forallExpr) {
-            IToken tok = forallExpr.tok is NestedToken nestedToken ? nestedToken.Outer : forallExpr.tok;
+            IOrigin tok = forallExpr.Origin is NestedOrigin nestedToken ? nestedToken.Outer : forallExpr.Origin;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.And, group.Expressions);
-            q.Comprehension = new ForallExpr(tok, forallExpr.RangeToken, forallExpr.BoundVars, forallExpr.Range, expr, TriggerUtils.CopyAttributes(forallExpr.Attributes)) { Type = forallExpr.Type, Bounds = forallExpr.Bounds };
+            q.Comprehension = new ForallExpr(tok, forallExpr.BoundVars, forallExpr.Range, expr, TriggerUtils.CopyAttributes(forallExpr.Attributes)) { Type = forallExpr.Type, Bounds = forallExpr.Bounds };
           } else if (q.Comprehension is ExistsExpr existsExpr) {
-            IToken tok = existsExpr.tok is NestedToken nestedToken ? nestedToken.Outer : existsExpr.tok;
+            IOrigin tok = existsExpr.Origin is NestedOrigin nestedToken ? nestedToken.Outer : existsExpr.Origin;
             Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.Or, group.Expressions);
-            q.Comprehension = new ExistsExpr(tok, existsExpr.RangeToken, existsExpr.BoundVars, existsExpr.Range, expr, TriggerUtils.CopyAttributes(existsExpr.Attributes)) { Type = existsExpr.Type, Bounds = existsExpr.Bounds };
+            q.Comprehension = new ExistsExpr(tok, existsExpr.BoundVars, existsExpr.Range, expr, TriggerUtils.CopyAttributes(existsExpr.Attributes)) { Type = existsExpr.Type, Bounds = existsExpr.Bounds };
           }
           list.Add(q);
           splits.Add(q.Comprehension);
@@ -209,7 +209,7 @@ namespace Microsoft.Dafny.Triggers {
       return arg1.Terms.SequenceEqual(arg2.Terms, new PredicateEqualityComparer<TriggerTerm>(comparer));
     }
 
-    private Expression QuantifiersToExpression(IToken tok, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr> expressions) {
+    private Expression QuantifiersToExpression(IOrigin tok, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr> expressions) {
       var expr = expressions[0].Term;
       for (int i = 1; i < expressions.Count; i++) {
         expr = new BinaryExpr(tok, op, expr, expressions[i].Term);
@@ -220,15 +220,28 @@ namespace Microsoft.Dafny.Triggers {
     internal void CommitTriggers(SystemModuleManager systemModuleManager) {
       if (partWriters.Count > 1) {
         reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null,
-          comprehension.Tok, $"Quantifier was split into {partWriters.Count} parts. " +
+          comprehension.Origin, $"Quantifier was split into {partWriters.Count} parts. " +
            "Better verification performance and error reporting may be obtained by splitting the quantifier in source. " +
-           $"For more information, see the section quantifier instantiation rules in the reference manual.");
+           "For more information, see the section on quantifier instantiation rules in the reference manual.");
       }
 
       for (var index = 0; index < partWriters.Count; index++) {
         var triggerWriter = partWriters[index];
         triggerWriter.CommitTrigger(reporter, partWriters.Count > 1 ? index : null, systemModuleManager);
       }
+    }
+
+    public List<List<Expression>> GetTriggers(bool includeTriggersThatRequireNamedExpressions) {
+      var triggers = new List<List<Expression>>();
+      foreach (var triggerWriter in partWriters) {
+        if (includeTriggersThatRequireNamedExpressions || triggerWriter.NamedExpressions.Count == 0) {
+          foreach (var triggerCandidate in triggerWriter.Candidates) {
+            var trigger = triggerCandidate.Terms.ConvertAll(t => t.Expr);
+            triggers.Add(trigger);
+          }
+        }
+      }
+      return triggers;
     }
   }
 }

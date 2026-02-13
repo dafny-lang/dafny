@@ -35,13 +35,14 @@ namespace DafnyTestGeneration.Test {
     public CancellationToken CancellationToken => cancellationTokenSource.Token;
 
     protected static DafnyOptions GetDafnyOptions(List<Action<DafnyOptions>> optionSettings, TextWriter writer, params string[] arguments) {
-      var options = DafnyOptions.CreateUsingOldParser(writer, TextReader.Null, arguments ?? System.Array.Empty<string>());
+      var options = DafnyOptions.CreateUsingOldParser(writer, TextReader.Null, arguments ?? []);
       options.DefiniteAssignmentLevel = 3;
       options.WarnShadowing = true;
       options.VerifyAllModules = true;
       options.TestGenOptions.SeqLengthLimit = 3;
       options.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
       options.TestGenOptions.WarnDeadCode = false;
+      options.TestGenOptions.IgnoreWarnings = false;
       options.TimeLimit = 10;
       foreach (var optionSetting in optionSettings) {
         optionSetting(options);
@@ -51,7 +52,7 @@ namespace DafnyTestGeneration.Test {
 
     public static TheoryData<List<Action<DafnyOptions>>> OptionSettings() {
       var optionSettings = new TheoryData<List<Action<DafnyOptions>>>();
-      optionSettings.Add(new() { options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates });
+      optionSettings.Add([options => options.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates]);
       return optionSettings;
     }
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -7,12 +8,12 @@ namespace Microsoft.Dafny;
 
 public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring, ICanAutoRevealDependencies {
   public override bool CanBeRevealed() { return true; }
-  public readonly List<DatatypeCtor> Ctors;
+  public List<DatatypeCtor> Ctors;
 
   [FilledInDuringResolution] public Dictionary<string, DatatypeCtor> ConstructorsByName { get; set; }
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Ctors));
+    Contract.Invariant(Cce.NonNullElements(Ctors));
     Contract.Invariant(1 <= Ctors.Count);
   }
 
@@ -20,19 +21,24 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
   public override IEnumerable<INode> PreResolveChildren => Ctors.Concat(base.PreResolveChildren);
 
-  public DatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(ctors));
-    Contract.Requires(cce.NonNullElements(members));
+  [SyntaxConstructor]
+  protected DatatypeDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition, List<TypeParameter> typeArgs,
+    [Captured] List<DatatypeCtor> ctors, List<Type> traits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
+    Contract.Requires(origin != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModuleDefinition != null);
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(ctors));
+    Contract.Requires(Cce.NonNullElements(members));
     Contract.Requires((isRefining && ctors.Count == 0) || (!isRefining && 1 <= ctors.Count));
     Ctors = ctors;
     this.NewSelfSynonym();
+    IsRefining = isRefining;
   }
+
+  public override bool IsRefining { get; }
+
   public bool HasFinitePossibleValues {
     get {
       // Note, to determine finiteness, it doesn't matter if the constructors are ghost or non-ghost.
@@ -49,23 +55,29 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
+  public bool ContainsHide {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
+
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
-  List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
+  List<Formal> ICodeContext.Ins { get { return []; } }
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {
       // The resolver checks that a NewtypeDecl sits in its own SSC in the call graph.  Therefore,
       // the question of what its Decreases clause is should never arise.
-      throw new cce.UnreachableException();
+      throw new Cce.UnreachableException();
     }
   }
   bool ICallable.InferredDecreases {
-    get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
-    set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    get { throw new Cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    set { throw new Cce.UnreachableException(); }  // see comment above about ICallable.Decreases
   }
 
   /// <summary>
@@ -85,6 +97,8 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   public override SymbolKind? Kind => SymbolKind.Enum;
 
   public bool SetIndent(int indent, TokenNewIndentCollector formatter) {
+    Attributes.SetIndents(Attributes, indent, formatter);
+
     var indent2 = indent + formatter.SpaceTab;
     var verticalBarIndent = indent2;
     var rightOfVerticalBarIndent = indent2 + formatter.SpaceTab;
@@ -107,6 +121,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
       .OrderBy(token => token.pos);
     foreach (var token in ownedTokens) {
       switch (token.val) {
+        case "codatatype":
         case "datatype": {
             formatter.SetOpeningIndentedRegion(token, indent);
             break;
@@ -170,13 +185,18 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   }
 
   public string GetTriviaContainingDocstring() {
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
     foreach (var token in OwnedTokens) {
-      if (token.val == "=" && token.TrailingTrivia.Trim() != "") {
-        return token.TrailingTrivia;
+      if (token.val == "=") {
+        if ((token.Prev.TrailingTrivia + (token.LeadingTrivia ?? "")).Trim() is { } tentativeTrivia and not "") {
+          return tentativeTrivia;
+        }
       }
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 
   public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options, ErrorReporter Reporter) {
@@ -190,7 +210,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
         formal.DefaultValue = Rewriter.AddRevealStmtsToExpression(formal.DefaultValue, addedReveals);
 
         if (addedReveals.Any()) {
-          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, formal.tok,
+          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, formal.Origin,
             AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
         }
       }

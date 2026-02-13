@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
   class SubtypeConstraint : OptionalErrorPreTypeConstraint {
@@ -19,7 +20,7 @@ namespace Microsoft.Dafny {
       return string.Format(ErrorFormatString, Super, Sub);
     }
 
-    public SubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString, PreTypeConstraint baseError = null, bool reportErrors = true)
+    public SubtypeConstraint(PreType super, PreType sub, IOrigin tok, string errorFormatString, PreTypeConstraint baseError = null, bool reportErrors = true)
       : base(tok, errorFormatString, baseError, reportErrors) {
       Contract.Assert(super != null);
       Contract.Assert(sub != null);
@@ -27,7 +28,7 @@ namespace Microsoft.Dafny {
       Sub = sub.Normalize();
     }
 
-    public SubtypeConstraint(PreType super, PreType sub, IToken tok, Func<string> errorFormatStringProducer, bool reportErrors = true)
+    public SubtypeConstraint(PreType super, PreType sub, IOrigin tok, Func<string> errorFormatStringProducer, bool reportErrors = true)
       : base(tok, errorFormatStringProducer, reportErrors) {
       Contract.Assert(super != null);
       Contract.Assert(sub != null);
@@ -41,7 +42,7 @@ namespace Microsoft.Dafny {
       if (object.ReferenceEquals(super, Super) && object.ReferenceEquals(sub, Sub)) {
         return this;
       } else {
-        return new SubtypeConstraint(super, sub, Token.NoToken, ErrorFormatString, null, ReportErrors);
+        return new SubtypeConstraint(super, sub, tok, ErrorFormatString, null, ReportErrors);
       }
     }
 
@@ -77,8 +78,8 @@ namespace Microsoft.Dafny {
         //     Constrain beta :> b
         // else do nothing for now
         if (ptSuper.Decl is not TraitDecl) {
-          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, ReportErrors, constraints);
-          var pt = new DPreType(ptSuper.Decl, arguments);
+          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, ReportErrors, this, constraints);
+          var pt = new DPreType(ptSuper.Decl, arguments, KeepIfTypeSynonym(ptSuper.PrintablePreType));
           constraints.AddEqualityConstraint(pt, sub, tok, ErrorFormatString, null, ReportErrors);
           return true;
         }
@@ -93,8 +94,8 @@ namespace Microsoft.Dafny {
         if (PreTypeResolver.HasTraitSupertypes(ptSub)) {
           // there are parent traits
         } else {
-          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSub.Decl.TypeArgs, ptSub.Arguments, true, ReportErrors, constraints);
-          var pt = new DPreType(ptSub.Decl, arguments);
+          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSub.Decl.TypeArgs, ptSub.Arguments, true, ReportErrors, this, constraints);
+          var pt = new DPreType(ptSub.Decl, arguments, KeepIfTypeSynonym(ptSub.PrintablePreType));
           constraints.AddEqualityConstraint(super, pt, tok, ErrorFormatString, null, ReportErrors);
           return true;
         }
@@ -104,12 +105,21 @@ namespace Microsoft.Dafny {
       return false;
     }
 
+    [CanBeNull]
+    DPreType KeepIfTypeSynonym([CanBeNull] DPreType dPreType) {
+      if (dPreType is { Decl: TypeSynonymDecl and not SubsetTypeDecl }) {
+        return dPreType;
+      }
+
+      return null;
+    }
+
     /// <summary>
     /// For every non-variant parameters[i], constrain superArguments[i] == subArguments[i].
     /// For every co-variant parameters[i], constrain superArguments[i] :> subArguments[i].
     /// For every contra-variant parameters[i], constrain subArguments[i] :> superArguments[i].
     /// </summary>
-    static void ConstrainTypeArguments(List<TypeParameter> parameters, List<PreType> superArguments, List<PreType> subArguments, IToken tok,
+    static void ConstrainTypeArguments(List<TypeParameter> parameters, List<PreType> superArguments, List<PreType> subArguments, IOrigin tok,
       OptionalErrorPreTypeConstraint baseError, PreTypeConstraints constraints) {
       Contract.Requires(parameters.Count == superArguments.Count && superArguments.Count == subArguments.Count);
 
@@ -139,8 +149,8 @@ namespace Microsoft.Dafny {
     ///   - else if (pi is Co) == proxiesAreSupertypes, then a new proxy constrained by:  proxy :> ai
     ///   - else a new proxy constrained by:  ai :> proxy
     /// </summary>
-    static List<PreType> CreateProxiesForTypesAccordingToVariance(IToken tok, List<TypeParameter> parameters, List<PreType> arguments,
-      bool proxiesAreSupertypes, bool reportErrors, PreTypeConstraints state) {
+    static List<PreType> CreateProxiesForTypesAccordingToVariance(IOrigin tok, List<TypeParameter> parameters, List<PreType> arguments,
+      bool proxiesAreSupertypes, bool reportErrors, PreTypeConstraint baseError, PreTypeConstraints state) {
       Contract.Requires(parameters.Count == arguments.Count);
 
       if (parameters.All(tp => tp.Variance == TypeParameter.TPVariance.Non)) {
@@ -156,10 +166,11 @@ namespace Microsoft.Dafny {
           var co = tp.Variance == TypeParameter.TPVariance.Co ? "co" : "contra";
           var proxy = state.PreTypeResolver.CreatePreTypeProxy($"type used in {co}variance constraint");
           newArgs.Add(proxy);
+          var errorFormatString = $"covariant type parameter '{tp.Name}' would require {{1}} :> {{0}}";
           if ((tp.Variance == TypeParameter.TPVariance.Co) == proxiesAreSupertypes) {
-            state.AddSubtypeConstraint(proxy, arguments[i], tok, "bad", null, reportErrors); // TODO: improve error message
+            state.AddSubtypeConstraint(proxy, arguments[i], tok, errorFormatString, baseError, reportErrors);
           } else {
-            state.AddSubtypeConstraint(arguments[i], proxy, tok, "bad", null, reportErrors); // TODO: improve error message
+            state.AddSubtypeConstraint(arguments[i], proxy, tok, errorFormatString, baseError, reportErrors);
           }
         }
       }

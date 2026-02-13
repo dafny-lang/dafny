@@ -1,11 +1,11 @@
-LoopModifies.dfy(8,4): Error: assignment might update an array element not in the enclosing context's modifies clause
-LoopModifies.dfy(19,7): Error: assignment might update an array element not in the enclosing context's modifies clause
-LoopModifies.dfy(48,7): Error: assignment might update an array element not in the enclosing context's modifies clause
-LoopModifies.dfy(63,7): Error: assignment might update an array element not in the enclosing context's modifies clause
-LoopModifies.dfy(76,3): Error: loop modifies clause might violate context's modifies clause
-LoopModifies.dfy(100,7): Error: assignment might update an array element not in the enclosing context's modifies clause
-LoopModifies.dfy(148,10): Error: assignment might update an array element not in the enclosing context's modifies clause
-LoopModifies.dfy(199,9): Error: assignment might update an array element not in the enclosing context's modifies clause
-LoopModifies.dfy(287,12): Error: assignment might update an array element not in the enclosing context's modifies clause
+LoopModifies.dfy(8,4): Error: modified array location could not be proved to be in the current modifies clause
+LoopModifies.dfy(19,7): Error: modified array location could not be proved to be in the current modifies clause
+LoopModifies.dfy(48,7): Error: modified array location could not be proved to be in the current modifies clause
+LoopModifies.dfy(63,7): Error: modified array location could not be proved to be in the current modifies clause
+LoopModifies.dfy(76,3): Error: modified object in loop modifies clause could not be proved to be in the current modifies clause
+LoopModifies.dfy(100,7): Error: modified array location could not be proved to be in the current modifies clause
+LoopModifies.dfy(148,10): Error: modified array location could not be proved to be in the current modifies clause
+LoopModifies.dfy(199,9): Error: modified array location could not be proved to be in the current modifies clause
+LoopModifies.dfy(287,12): Error: modified array location could not be proved to be in the current modifies clause
 
 Dafny program verifier finished with 21 verified, 9 errors

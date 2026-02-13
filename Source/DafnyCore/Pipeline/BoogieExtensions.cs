@@ -24,14 +24,8 @@ namespace Microsoft.Dafny {
         range.ExclusiveEnd.GetLspPosition());
     }
 
-    /// <summary>
-    /// Gets the LSP range of the specified token.
-    /// </summary>
-    /// <param name="startToken">The token to get the range of.</param>
-    /// <param name="endToken">An optional other token to get the end of the range of.</param>
-    /// <returns>The LSP range of the token.</returns>
-    public static Range ToLspRange(this RangeToken range) {
-      return range.ToDafnyRange().ToLspRange();
+    public static Range ToLspRange(this TokenRange tokenRange) {
+      return tokenRange.ToDafnyRange().ToLspRange();
     }
 
     /// <summary>
@@ -40,7 +34,17 @@ namespace Microsoft.Dafny {
     /// <param name="startToken">The token to get the range of.</param>
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range GetLspRange(this IToken startToken, IToken endToken) {
+    public static Range ToLspRange(this INode node) {
+      return node.ToDafnyRange().ToLspRange();
+    }
+
+    /// <summary>
+    /// Gets the LSP range of the specified token.
+    /// </summary>
+    /// <param name="startToken">The token to get the range of.</param>
+    /// <param name="endToken">An optional other token to get the end of the range of.</param>
+    /// <returns>The LSP range of the token.</returns>
+    public static Range GetLspRange(this IOrigin startToken, IOrigin endToken) {
       return GetLspRangeGeneric(startToken, endToken);
     }
 
@@ -58,35 +62,21 @@ namespace Microsoft.Dafny {
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
     public static Range GetLspRange(this Boogie.IToken token, bool nameRange = false) {
-      if (token is NestedToken nestedToken) {
+      if (token is NestedOrigin nestedToken) {
         return GetLspRange(nestedToken.Outer, nameRange);
       }
-      var dafnyToken = BoogieGenerator.ToDafnyToken(!nameRange, token);
-      if (dafnyToken is RangeToken rangeToken) {
-        return GetLspRangeGeneric(rangeToken.StartToken, rangeToken.EndToken);
-      }
-      return GetLspRangeGeneric(token, token);
+
+      var dafnyToken = BoogieGenerator.ToDafnyToken(token);
+      var tokenRange = nameRange ? dafnyToken.ReportingRange : dafnyToken.EntireRange ?? dafnyToken.ReportingRange;
+      var lspRangeGeneric = GetLspRangeGeneric(tokenRange.StartToken, tokenRange.EndToken);
+      return lspRangeGeneric;
     }
 
     public static Position GetLspPosition(this DafnyPosition position) {
       return new Position(position.Line, position.Column);
     }
 
-    public static Location GetLocation(this IToken token) {
-      return new Location {
-        Uri = DocumentUri.From(token.Uri),
-        Range = token.GetLspRange(true)
-      };
-    }
-
-    public static Location GetLocation(this RangeToken token) {
-      return new Location() {
-        Uri = DocumentUri.From(token.Uri),
-        Range = token.GetLspRange()
-      };
-    }
-
-    public static FilePosition GetFilePosition(this IToken token, bool end = false) {
+    public static FilePosition GetFilePosition(this IOrigin token, bool end = false) {
       return new FilePosition(token.Uri, GetLspPosition(token, end));
     }
 

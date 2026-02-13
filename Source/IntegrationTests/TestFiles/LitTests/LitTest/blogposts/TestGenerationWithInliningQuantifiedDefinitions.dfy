@@ -1,13 +1,17 @@
 // Generating and Running Path-Based Tests:
 // RUN: %baredafny generate-tests %args Path %S/TestGenerationWithInliningQuantifiedDefinitions.dfy > %t-tests.dfy
-// RUN: %baredafny test %args --target:cs "%t-tests.dfy" >> "%t"
+// RUN: %baredafny test %args --target:cs "%t-tests.dfy" > "%t"
 
+// Syntactically, the test method has 4 paths: yes-yes, yes-no, no-yes, no-no. But the no-yes path is
+// not feasible.
+// For Path test coverage, the order in which the tests are generated depends on what
+// the verifier chooses to do first. Thus, if something changes in the verifier, then the CHECK lines below
+// may need to be permuted.
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: .*Dafny program verifier finished with 5 verified, 0 errors*
 // CHECK: .*Evaluating the position: checked=yes, checkmate=yes, pawn is attacking*
 // CHECK: .*Evaluating the position: checked=yes, checkmate=no, pawn is attacking*
 // CHECK: .*Evaluating the position: checked=no, checkmate=no*
-// CHECK: .*Evaluating the position: checked=yes, checkmate=yes, knight is attacking*
 // CHECK: .*Evaluating the position: checked=yes, checkmate=no, knight is attacking*
 
 include "Inputs/TestGenerationShared.dfy"

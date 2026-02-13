@@ -10,8 +10,9 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     Allocated,
     Lit,  // there is no syntax for this operator, but it is sometimes introduced during translation
     Assigned,
+    Negate,  // replaced by 0 - x during resolution in most cases (preserves IEEE 754 semantics for -0.0)
   }
-  public readonly Opcode Op;
+  public Opcode Op;
 
   public enum ResolvedOpcode {
     YetUndetermined,
@@ -25,6 +26,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     Allocated,
     Lit,
     Assigned,
+    FloatNegate,
   }
 
   private ResolvedOpcode _ResolvedOp = ResolvedOpcode.YetUndetermined;
@@ -45,6 +47,8 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
         (Opcode.Allocated, _) => ResolvedOpcode.Allocated,
         (Opcode.Lit, _) => ResolvedOpcode.Lit,
         (Opcode.Assigned, _) => ResolvedOpcode.Assigned,
+        (Opcode.Negate, Fp32Type _) => ResolvedOpcode.FloatNegate,
+        (Opcode.Negate, Fp64Type _) => ResolvedOpcode.FloatNegate,
         _ => ResolvedOpcode.YetUndetermined // Unreachable
       };
       Contract.Assert(_ResolvedOp != ResolvedOpcode.YetUndetermined);
@@ -59,9 +63,10 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     _ResolvedOp = resolvedOpcode;
   }
 
-  public UnaryOpExpr(IToken tok, Opcode op, Expression e)
-    : base(tok, e) {
-    Contract.Requires(tok != null);
+  [SyntaxConstructor]
+  public UnaryOpExpr(IOrigin origin, Opcode op, Expression e)
+    : base(origin, e) {
+    Contract.Requires(origin != null);
     Contract.Requires(e != null);
     Contract.Requires(op != Opcode.Fresh || this is FreshExpr);
     this.Op = op;

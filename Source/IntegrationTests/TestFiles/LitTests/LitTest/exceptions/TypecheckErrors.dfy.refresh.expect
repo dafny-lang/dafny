@@ -1,10 +1,10 @@
-TypecheckErrors.dfy(7,29): Error: string literal used as if it had type int
-TypecheckErrors.dfy(8,29): Error: string literal used as if it had type int
+TypecheckErrors.dfy(7,29): Error: string literal "not a nat" used as if it had type int
+TypecheckErrors.dfy(8,29): Error: string literal "not a nat either" used as if it had type int
 TypecheckErrors.dfy(39,10): Error: member IsFailure does not exist in BadOutcome1, in :- statement
 TypecheckErrors.dfy(43,10): Error: member 'PropagateFailure' does not exist in trait 'BadOutcome2'
 TypecheckErrors.dfy(43,10): Error: The right-hand side of ':-', which is of type 'BadOutcome2', must have functions 'IsFailure()', 'PropagateFailure()', and 'Extract()'
 TypecheckErrors.dfy(47,10): Error: number of lhs (1) must be one less than number of rhs (1) for a rhs type (BadOutcome3) without member Extract
-TypecheckErrors.dfy(51,23): Error: integer literal used as if it had type seq<char>
+TypecheckErrors.dfy(51,23): Error: integer literal used as if it had type string
 TypecheckErrors.dfy(71,4): Error: member IsFailure does not exist in BadVoidOutcome1, in :- statement
 TypecheckErrors.dfy(75,4): Error: member 'PropagateFailure' does not exist in trait 'BadVoidOutcome2'
 TypecheckErrors.dfy(75,4): Error: The right-hand side of ':-', which is of type 'BadVoidOutcome2', must have functions 'IsFailure()' and 'PropagateFailure()', but not 'Extract()'

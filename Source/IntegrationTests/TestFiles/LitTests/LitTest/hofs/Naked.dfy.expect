@@ -3,16 +3,11 @@ Naked.dfy(12,7): Error: cannot use naked function in recursive setting. Possible
 Naked.dfy(17,58): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(22,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(26,15): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(30,50): Error: function precondition could not be proved
-Naked.dfy(32,13): Related location: this proposition could not be proved
 Naked.dfy(32,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(38,10): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(42,11): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(46,4): Error: cannot prove termination; try supplying a decreases clause
 Naked.dfy(49,10): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(56,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(60,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(67,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(102,20): Error: assertion might not hold
-
-Dafny program verifier finished with 5 verified, 15 errors
+12 resolution/type errors detected in Naked.dfy

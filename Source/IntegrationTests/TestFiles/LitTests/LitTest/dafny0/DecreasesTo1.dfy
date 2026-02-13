@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %verify --show-proof-obligation-expressions "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --show-proof-obligation-expressions 
+
 method GoodInstances(x: int, y: int) {
   assert (true decreases to false);
   assert (1 decreases to 0);

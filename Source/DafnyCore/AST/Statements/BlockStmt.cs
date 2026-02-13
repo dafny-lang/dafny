@@ -1,74 +1,36 @@
+#nullable enable
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
-  public readonly List<Statement> Body;
+public class BlockStmt : BlockLikeStmt, ICloneable<BlockStmt> {
 
-  public BlockStmt Clone(Cloner cloner) {
-    return new BlockStmt(cloner, this);
-  }
+  public override List<Statement> Body { get; }
 
-  protected BlockStmt(Cloner cloner, BlockStmt original) : base(cloner, original) {
+  public BlockStmt(Cloner cloner, BlockLikeStmt original) : base(cloner, original) {
     Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
   }
 
-  public BlockStmt(RangeToken rangeToken, [Captured] List<Statement> body)
-    : base(rangeToken) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(cce.NonNullElements(body));
-    this.Body = body;
+  public BlockStmt(IOrigin origin, List<Statement> body, Attributes? attributes = null)
+    : this(origin, body, [], attributes) {
   }
 
-  public override IEnumerable<Statement> SubStatements => Body;
+  [SyntaxConstructor]
+  public BlockStmt(IOrigin origin, List<Statement> body, List<Label> labels, Attributes? attributes = null)
+    : base(origin, labels, attributes) {
+    Body = body;
+  }
 
-  public virtual void AppendStmt(Statement s) {
-    Contract.Requires(s != null);
+  public override void AppendStmt(Statement s) {
     Body.Add(s);
   }
 
-  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
-    var braceIndent = indentBefore;
-    var innerBlockIndent = indentBefore + formatter.SpaceTab;
-    foreach (var token in OwnedTokens) {
-      if (formatter.SetIndentLabelTokens(token, indentBefore)) {
-        continue;
-      }
-      switch (token.val) {
-        case "{": {
-            if (!formatter.TryGetIndentInline(token, out var indentLineBefore)) {
-              formatter.SetDelimiterIndentedRegions(token, braceIndent);
-            } else {
-              braceIndent = indentLineBefore;
-              if (!formatter.TryGetIndentAbove(token, out _)) {
-                formatter.SetDelimiterIndentedRegions(token, braceIndent);
-              }
+  public override void Prepend(Statement s) {
+    Body.Insert(0, s);
+  }
 
-              if (!TokenNewIndentCollector.IsFollowedByNewline(token)) {
-                // Align statements
-                formatter.SetAlign(indentBefore, token, out innerBlockIndent, out braceIndent);
-              }
-            }
-
-            break;
-          }
-        case "}": {
-            formatter.SetIndentations(token, braceIndent + formatter.SpaceTab, braceIndent, indentBefore);
-            break;
-          }
-      }
-    }
-
-    foreach (var blockStmtBody in Body) {
-      if (blockStmtBody is not BlockStmt && OwnedTokens.Any()) {
-        formatter.SetIndentations(blockStmtBody.StartToken, innerBlockIndent, innerBlockIndent);
-      }
-
-      formatter.Visit(blockStmtBody, indentBefore + formatter.SpaceTab);
-    }
-
-    return false;
+  public new BlockStmt Clone(Cloner cloner) {
+    return new BlockStmt(cloner, this);
   }
 }

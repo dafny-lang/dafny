@@ -1,0 +1,3 @@
+git-issue-5726a.dfy(20,12): Error: type parameter ('G1') passed to method 'DoIt' must meet type bound 'G' (got 'E?')
+git-issue-5726a.dfy(42,24): Error: type parameter ('G1') passed to type 'Thing' must meet type bound 'G' (got 'E?')
+2 resolution/type errors detected in git-issue-5726a.dfy

@@ -1,0 +1,30 @@
+Starting verification of mutation 1/1 with seed 0
+measure-complexity.dfy(6,18): Error: assertion could not be proved
+The total consumed resources are <redacted>
+The most demanding 100 verification tasks consumed these resources:
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>
+measure-complexity.dfy<redacted>

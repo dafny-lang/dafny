@@ -10,16 +10,16 @@ namespace Microsoft.Dafny;
 
 public class TextVerificationLogger : IVerificationResultFormatLogger {
   private TextWriter output;
-  private TextWriter fallbackWriter;
+  private IDafnyOutputWriter fallbackWriter;
   private ProofDependencyManager depManager;
 
-  public TextVerificationLogger(ProofDependencyManager depManager, TextWriter fallbackWriter) {
+  public TextVerificationLogger(ProofDependencyManager depManager, IDafnyOutputWriter fallbackWriter) {
     this.depManager = depManager;
     this.fallbackWriter = fallbackWriter;
   }
 
   public void Initialize(Dictionary<string, string> parameters) {
-    output = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : fallbackWriter;
+    output = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : fallbackWriter.StatusWriter();
   }
 
   public void LogScopeResults(VerificationScopeResult scopeResult) {
@@ -79,7 +79,7 @@ public class TextVerificationLogger : IVerificationResultFormatLogger {
     textWriter.Flush();
   }
 
-  public Task Flush() {
-    return Task.CompletedTask;
+  public async Task Flush() {
+    await output.DisposeAsync();
   }
 }

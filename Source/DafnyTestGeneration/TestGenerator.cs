@@ -33,8 +33,8 @@ namespace DafnyTestGeneration {
 
       program.Reporter.Options.PrintMode = PrintModes.Everything;
 
-      HashSet<string> allStates = new();
-      HashSet<string> allDeadStates = new();
+      HashSet<string> allStates = [];
+      HashSet<string> allDeadStates = [];
 
       // Generate tests based on counterexamples produced from modifications
       foreach (var modification in GetModifications(cache, program, out _)) {
@@ -90,9 +90,8 @@ namespace DafnyTestGeneration {
     private static void AddVerificationGoalsToEntryPoints(Program program) {
       foreach (var entryPoint in Utils.AllMemberDeclarationsWithAttribute(program.DefaultModule,
                  TestGenerationOptions.TestEntryAttribute)) {
-        var trivialAssertion = new AssertStmt(entryPoint.RangeToken,
-          new LiteralExpr(entryPoint.StartToken, true), null, null, null);
-        if (entryPoint is Method method && method.Body != null && method.Body.Body != null) {
+        var trivialAssertion = new AssertStmt(entryPoint.Origin, new LiteralExpr(entryPoint.StartToken, true), null, null);
+        if (entryPoint is Method method && method.Body != null && method.Body?.Body != null) {
           method.Body.Body.Insert(0, trivialAssertion);
         } else if (entryPoint is Function function && function.Body != null) {
           function.Body = new StmtExpr(entryPoint.StartToken, trivialAssertion, function.Body);
@@ -126,7 +125,7 @@ namespace DafnyTestGeneration {
       }
 
       var lineRegex = new Regex("^(.*)\\(([0-9]+),[0-9]+\\)");
-      HashSet<string> coveredStates = new(); // set of program states that are expected to be covered by tests
+      HashSet<string> coveredStates = []; // set of program states that are expected to be covered by tests
       foreach (var modification in cache.Values) {
         foreach (var preciseState in modification.CapturedStates) {
           if (modification.CounterexampleStatus == ProgramModification.Status.Success) {
@@ -170,8 +169,9 @@ namespace DafnyTestGeneration {
 
       foreach (var uri in lineCoverageLabels.Keys) {
         foreach (var lineNumber in lineCoverageLabels[uri].Keys) {
-          var rangeToken = new RangeToken(new Token(lineNumber, 1), new Token(lineNumber + 1, 0));
-          rangeToken.Uri = uri;
+          var rangeToken = new TokenRange(
+              new Token(lineNumber, 1) { Uri = uri },
+              new Token(lineNumber + 1, 1));
           coverageReport.LabelCode(rangeToken,
             lineCoverageLabels[uri][lineNumber]);
         }

@@ -18,7 +18,7 @@ namespace XUnitExtensions.Lit {
         return new NotCommand(operand);
       }
       if (tokens[0].Value == "%exits-with") {
-        var ec = Int32.Parse(tokens[1].Value);
+        var ec = tokens[1].Value;
         var operand = ParseArguments(tokens[2..], config);
         return new ExitCommand(ec, operand);
       }

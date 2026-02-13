@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -5,13 +7,11 @@ namespace Microsoft.Dafny;
 
 public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
   public override string WhatKind => "exists expression";
-  protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
+  protected override BinaryExpr.ResolvedOpcode SplitResolvedOp => BinaryExpr.ResolvedOpcode.Or;
 
-  public ExistsExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok, rangeToken, bvars, range, term, attrs) {
-    Contract.Requires(cce.NonNullElements(bvars));
-    Contract.Requires(tok != null);
-    Contract.Requires(term != null);
+  [SyntaxConstructor]
+  public ExistsExpr(IOrigin origin, List<BoundVar> boundVars, Expression? range, Expression term, Attributes? attributes = null)
+    : base(origin, boundVars, range, term, attributes) {
   }
 
   public ExistsExpr Clone(Cloner cloner) {
@@ -25,7 +25,7 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
     if (Range == null) {
       return Term;
     }
-    var body = new BinaryExpr(Term.tok, BinaryExpr.Opcode.And, Range, Term);
+    var body = new BinaryExpr(Term.Origin, BinaryExpr.Opcode.And, Range, Term);
     body.ResolvedOp = BinaryExpr.ResolvedOpcode.And;
     body.Type = Term.Type;
     return body;
@@ -37,32 +37,27 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
   /// Assumes the expression has been resolved.
   /// </summary>
   public Expression AlphaRename(string prefix) {
-    Contract.Requires(this != null);
-    Contract.Requires(prefix != null);
-
-    if (SplitQuantifier != null) {
-      // TODO: what to do?  Substitute(exists.SplitQuantifierExpression);
+    if (SplitQuantifierExpression is ExistsExpr splitQuantifierExpression) {
+      return splitQuantifierExpression.AlphaRename(prefix);
     }
 
     var substMap = new Dictionary<IVariable, Expression>();
-    var var4var = new Dictionary<BoundVar, BoundVar>();
     var bvars = new List<BoundVar>();
     foreach (var bv in BoundVars) {
-      var newBv = new BoundVar(bv.tok, prefix + bv.Name, bv.Type);
+      var newBv = new BoundVar(bv.Origin, prefix + bv.Name, bv.Type);
       bvars.Add(newBv);
-      var4var.Add(bv, newBv);
-      var ie = new IdentifierExpr(newBv.tok, newBv.Name);
-      ie.Var = newBv;  // resolve here
-      ie.Type = newBv.Type;  // resolve here
+      var ie = new IdentifierExpr(newBv.Origin, newBv);
       substMap.Add(bv, ie);
     }
     var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
     var range = Range == null ? null : s.Substitute(Range);
     var term = s.Substitute(Term);
     var attrs = s.SubstAttributes(Attributes);
-    var ex = new ExistsExpr(tok, RangeToken, bvars, range, term, attrs);
-    ex.Type = Type.Bool;
-    ex.Bounds = s.SubstituteBoundedPoolList(Bounds);
+
+    var ex = new ExistsExpr(Origin, bvars, range, term, attrs) {
+      Type = Type.Bool,
+      Bounds = s.SubstituteBoundedPoolList(Bounds),
+    };
     return ex;
   }
 }

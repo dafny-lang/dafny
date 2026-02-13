@@ -59,7 +59,7 @@ class HigherOrderHeapAllocationChecker : ASTVisitor<IASTVisitorContext> {
 
     // Since all updates and variable declarations are eventually broken down into
     // assignments, we need only consider an AssignStmt.
-    if (stmt is AssignStmt { Lhs: { } lhs, Rhs: { } rhs }) {
+    if (stmt is SingleAssignStmt { Lhs: { } lhs, Rhs: { } rhs }) {
 
       // Memory can be updated either by writing to a sequence-like collection
       // or by writing to an object's field.

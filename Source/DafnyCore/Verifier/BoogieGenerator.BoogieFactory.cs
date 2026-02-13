@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using DafnyCore.Verifier;
+using Microsoft.BaseTypes;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
@@ -15,10 +16,18 @@ namespace Microsoft.Dafny {
         // Boogie claims to support bv0, but it translates it straight down to the SMT solver's 0-width bitvector type.
         // However, the SMT-LIB 2 standard does not define such a bitvector width, so this is a bug in Boogie.  The
         // best would be to fix this in Boogie, but for now, we simply work around it here.
-        return predef.Bv0Type;
+        return Predef.Bv0Type;
       } else {
         return Bpl.Type.GetBvType(width);
       }
+    }
+
+    public Bpl.Type BplFp32Type => new Bpl.FloatType(Token.NoToken, 24, 8);
+    public Bpl.Type BplFp64Type => new Bpl.FloatType(Token.NoToken, 53, 11);
+
+    public Bpl.Type BplFloatType(Type dafnyType) {
+      Contract.Requires(dafnyType.IsFloatingPointType);
+      return dafnyType.IsFp32Type ? BplFp32Type : BplFp64Type;
     }
 
     internal Bpl.Expr BplBvLiteralExpr(Bpl.IToken tok, BaseTypes.BigNum n, BitvectorType bitvectorType) {
@@ -39,7 +48,7 @@ namespace Microsoft.Dafny {
         // Bpl.LiteralExpr for a bitvector.
         var zero = new Bpl.LiteralExpr(tok, BaseTypes.BigNum.ZERO, width);
         var absN = new Bpl.LiteralExpr(tok, -n, width);
-        var etran = new ExpressionTranslator(this, predef, tok, null);
+        var etran = new ExpressionTranslator(this, Predef, tok, null);
         return etran.TrToFunctionCall(tok, "sub_bv" + width, BplBvType(width), zero, absN, false);
       } else {
         return new Bpl.LiteralExpr(tok, n, width);
@@ -61,6 +70,7 @@ namespace Microsoft.Dafny {
 
       IsTraitParent,
 
+      SetIsMember,
       SetCard,
       SetEmpty,
       SetUnionOne,
@@ -80,6 +90,8 @@ namespace Microsoft.Dafny {
       ISetSubset,
       ISetDisjoint,
 
+      MultiSetMultiplicity,
+      MultiSetUpdateMultiplicity,
       MultiSetCard,
       MultiSetEmpty,
       MultiSetUnionOne,
@@ -143,6 +155,10 @@ namespace Microsoft.Dafny {
       FDim,  // field dimension (0 - named, 1 or more - indexed)
       IsGhostField,
 
+      FieldFamily,
+      FieldDepth,
+      LocalField,
+
       DatatypeCtorId,
       DtRank,
       BoxRank,
@@ -151,6 +167,9 @@ namespace Microsoft.Dafny {
 
       AtLayer
     }
+
+    public const string BoxFunctionName = "$Box";
+    public const string UnboxFunctionName = "$Unbox";
 
     Bpl.Expr Lit(Bpl.Expr expr, Bpl.Type typ) {
       Contract.Requires(expr != null);
@@ -162,6 +181,10 @@ namespace Microsoft.Dafny {
         return FunctionCall(expr.tok, BuiltinFunction.LitInt, null, expr);
       } else if (typ.IsReal) {
         return FunctionCall(expr.tok, BuiltinFunction.LitReal, null, expr);
+      } else if (typ is Bpl.FloatType) {
+        // For floating-point types, we don't need a Lit wrapper since Boogie handles them natively
+        // This avoids issues with constant folding and SMT translation
+        return expr;
       } else {
         return FunctionCall(expr.tok, BuiltinFunction.Lit, typ, expr);
       }
@@ -182,6 +205,9 @@ namespace Microsoft.Dafny {
           default:
             break;
         }
+      } else if (expr is Bpl.LiteralExpr literalExpr && literalExpr.Val is BigFloat) {
+        // Floating-point literals don't have a Lit wrapper, so they are already "lit"
+        return expr;
       }
       return null;
     }
@@ -209,15 +235,19 @@ namespace Microsoft.Dafny {
     // expressions, for instance), creates an assume statement in Boogie,
     // and then adds information to track that assumption as a potential
     // proof dependency.
-    private Bpl.AssumeCmd TrAssumeCmdWithDependenciesAndExtend(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Func<Bpl.Expr, Bpl.Expr> extendExpr,
+    public Bpl.AssumeCmd TrAssumeCmdWithDependenciesAndExtend(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Func<Bpl.Expr, Bpl.Expr> extendExpr,
       string comment = null, bool warnWhenUnused = false, Bpl.QKeyValue attributes = null) {
       var expr = etran.TrExpr(dafnyExpr);
       var cmd = TrAssumeCmd(tok, extendExpr(expr), attributes);
-      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.tok, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
+      proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.Origin, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
       return cmd;
     }
 
     static Bpl.Expr RemoveLit(Bpl.Expr expr) {
+      if (expr is Bpl.LiteralExpr literalExpr && literalExpr.Val is BigFloat) {
+        // Floating-point literals don't have a Lit wrapper, so return as-is
+        return expr;
+      }
       return GetLit(expr) ?? expr;
     }
 
@@ -227,6 +257,10 @@ namespace Microsoft.Dafny {
       if (expr is Bpl.IdentifierExpr ie) {
         return letBoundVariablesWithLitRHS.Contains(ie.Name);
       }
+      if (expr is Bpl.LiteralExpr literalExpr && literalExpr.Val is BigFloat) {
+        // Floating-point literals are always considered "lit"
+        return true;
+      }
       return GetLit(expr) != null;
     }
 
@@ -234,7 +268,7 @@ namespace Microsoft.Dafny {
     Bpl.NAryExpr FunctionCall(Bpl.IToken tok, BuiltinFunction f, Bpl.Type typeInstantiation, params Bpl.Expr[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(args != null);
-      Contract.Requires(predef != null);
+      Contract.Requires(Predef != null);
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
       switch (f) {
@@ -253,19 +287,19 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.LayerSucc:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "$LS", predef.LayerType, args);
+          return FunctionCall(tok, "$LS", Predef.LayerType, args);
         case BuiltinFunction.AsFuelBottom:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "AsFuelBottom", predef.LayerType, args);
+          return FunctionCall(tok, "AsFuelBottom", Predef.LayerType, args);
         case BuiltinFunction.CharFromInt:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "char#FromInt", predef.CharType, args);
+          return FunctionCall(tok, "char#FromInt", Predef.CharType, args);
         case BuiltinFunction.CharToInt:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "char#ToInt", predef.CharType, args);
+          return FunctionCall(tok, "char#ToInt", Predef.CharType, args);
         case BuiltinFunction.IsChar:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
@@ -293,26 +327,29 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "IsTraitParent", Bpl.Type.Bool, args);
 
+        case BuiltinFunction.SetIsMember:
+          Contract.Assert(args.Length == 2);
+          return FunctionCall(tok, "Set#IsMember", Bpl.Type.Bool, args);
         case BuiltinFunction.SetCard:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "Set#Card", Bpl.Type.Int, args);
         case BuiltinFunction.SetEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.SetType;
+            Bpl.Type resultType = Predef.SetType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Set#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.SetUnionOne:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Set#UnionOne", predef.SetType, args);
+          return FunctionCall(tok, "Set#UnionOne", Predef.SetType, args);
         case BuiltinFunction.SetUnion:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Set#Union", predef.SetType, args);
+          return FunctionCall(tok, "Set#Union", Predef.SetType, args);
         case BuiltinFunction.SetIntersection:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Set#Intersection", predef.SetType, args);
+          return FunctionCall(tok, "Set#Intersection", Predef.SetType, args);
         case BuiltinFunction.SetDifference:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Set#Difference", predef.SetType, args);
+          return FunctionCall(tok, "Set#Difference", Predef.SetType, args);
         case BuiltinFunction.SetEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -327,21 +364,21 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "Set#Disjoint", Bpl.Type.Bool, args);
         case BuiltinFunction.ISetEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.ISetType;
+            Bpl.Type resultType = Predef.ISetType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "ISet#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.ISetUnionOne:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "ISet#UnionOne", predef.ISetType, args);
+          return FunctionCall(tok, "ISet#UnionOne", Predef.ISetType, args);
         case BuiltinFunction.ISetUnion:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "ISet#Union", predef.ISetType, args);
+          return FunctionCall(tok, "ISet#Union", Predef.ISetType, args);
         case BuiltinFunction.ISetIntersection:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "ISet#Intersection", predef.ISetType, args);
+          return FunctionCall(tok, "ISet#Intersection", Predef.ISetType, args);
         case BuiltinFunction.ISetDifference:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "ISet#Difference", predef.ISetType, args);
+          return FunctionCall(tok, "ISet#Difference", Predef.ISetType, args);
         case BuiltinFunction.ISetEqual:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "ISet#Equal", Bpl.Type.Bool, args);
@@ -351,26 +388,32 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.ISetDisjoint:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "ISet#Disjoint", Bpl.Type.Bool, args);
+        case BuiltinFunction.MultiSetMultiplicity:
+          Contract.Assert(args.Length == 2);
+          return FunctionCall(tok, "MultiSet#Multiplicity", Bpl.Type.Int, args);
+        case BuiltinFunction.MultiSetUpdateMultiplicity:
+          Contract.Assert(args.Length == 3);
+          return FunctionCall(tok, "MultiSet#UpdateMultiplicity", Predef.MultiSetType, args);
         case BuiltinFunction.MultiSetCard:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "MultiSet#Card", Bpl.Type.Int, args);
         case BuiltinFunction.MultiSetEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.MultiSetType;
+            Bpl.Type resultType = Predef.MultiSetType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "MultiSet#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.MultiSetUnionOne:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "MultiSet#UnionOne", predef.MultiSetType, args);
+          return FunctionCall(tok, "MultiSet#UnionOne", Predef.MultiSetType, args);
         case BuiltinFunction.MultiSetUnion:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "MultiSet#Union", predef.MultiSetType, args);
+          return FunctionCall(tok, "MultiSet#Union", Predef.MultiSetType, args);
         case BuiltinFunction.MultiSetIntersection:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "MultiSet#Intersection", predef.MultiSetType, args);
+          return FunctionCall(tok, "MultiSet#Intersection", Predef.MultiSetType, args);
         case BuiltinFunction.MultiSetDifference:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "MultiSet#Difference", predef.MultiSetType, args);
+          return FunctionCall(tok, "MultiSet#Difference", Predef.MultiSetType, args);
         case BuiltinFunction.MultiSetEqual:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "MultiSet#Equal", Bpl.Type.Bool, args);
@@ -382,10 +425,10 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "MultiSet#Disjoint", Bpl.Type.Bool, args);
         case BuiltinFunction.MultiSetFromSet:
           Contract.Assert(args.Length == 1);
-          return FunctionCall(tok, "MultiSet#FromSet", predef.MultiSetType, args);
+          return FunctionCall(tok, "MultiSet#FromSet", Predef.MultiSetType, args);
         case BuiltinFunction.MultiSetFromSeq:
           Contract.Assert(args.Length == 1);
-          return FunctionCall(tok, "MultiSet#FromSeq", predef.MultiSetType, args);
+          return FunctionCall(tok, "MultiSet#FromSeq", Predef.MultiSetType, args);
         case BuiltinFunction.IsGoodMultiSet:
           Contract.Assert(args.Length == 1);
           return FunctionCall(tok, "$IsGoodMultiSet", Bpl.Type.Bool, args);
@@ -395,30 +438,30 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "Seq#Length", Bpl.Type.Int, args);
         case BuiltinFunction.SeqEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.SeqType;
+            Bpl.Type resultType = Predef.SeqType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Seq#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.SeqBuild:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Seq#Build", predef.SeqType, args);
+          return FunctionCall(tok, "Seq#Build", Predef.SeqType, args);
         case BuiltinFunction.SeqAppend:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Seq#Append", predef.SeqType, args);
+          return FunctionCall(tok, "Seq#Append", Predef.SeqType, args);
         case BuiltinFunction.SeqIndex:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Seq#Index", predef.BoxType, args);
+          return FunctionCall(tok, "Seq#Index", Predef.BoxType, args);
         case BuiltinFunction.SeqUpdate:
           Contract.Assert(args.Length == 3);
-          return FunctionCall(tok, "Seq#Update", predef.SeqType, args);
+          return FunctionCall(tok, "Seq#Update", Predef.SeqType, args);
         case BuiltinFunction.SeqContains:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "Seq#Contains", Bpl.Type.Bool, args);
         case BuiltinFunction.SeqDrop:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Seq#Drop", predef.SeqType, args);
+          return FunctionCall(tok, "Seq#Drop", Predef.SeqType, args);
         case BuiltinFunction.SeqTake:
           Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "Seq#Take", predef.SeqType, args);
+          return FunctionCall(tok, "Seq#Take", Predef.SeqType, args);
         case BuiltinFunction.SeqEqual:
           Contract.Assert(args.Length == 2);
           return FunctionCall(tok, "Seq#Equal", Bpl.Type.Bool, args);
@@ -434,7 +477,7 @@ namespace Microsoft.Dafny {
 
         case BuiltinFunction.MapEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.MapType;
+            Bpl.Type resultType = Predef.MapType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Map#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.MapCard:
@@ -449,7 +492,7 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "Map#Elements", typeInstantiation, args);
         case BuiltinFunction.MapGlue:
           Contract.Assert(args.Length == 3);
-          return FunctionCall(tok, "Map#Glue", predef.MapType, args);
+          return FunctionCall(tok, "Map#Glue", Predef.MapType, args);
         case BuiltinFunction.MapEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -465,7 +508,7 @@ namespace Microsoft.Dafny {
 
         case BuiltinFunction.IMapEmpty: {
             Contract.Assert(args.Length == 0);
-            Bpl.Type resultType = predef.IMapType;
+            Bpl.Type resultType = Predef.IMapType;
             return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "IMap#Empty", resultType, args), resultType);
           }
         case BuiltinFunction.IMapDomain:
@@ -476,7 +519,7 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "IMap#Elements", typeInstantiation, args);
         case BuiltinFunction.IMapGlue:
           Contract.Assert(args.Length == 3);
-          return FunctionCall(tok, "IMap#Glue", predef.IMapType, args);
+          return FunctionCall(tok, "IMap#Glue", Predef.IMapType, args);
         case BuiltinFunction.IMapEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -485,20 +528,20 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.IndexField:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "IndexField", predef.FieldName(tok), args);
+          return FunctionCall(tok, "IndexField", Predef.FieldName(tok), args);
         case BuiltinFunction.MultiIndexField:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "MultiIndexField", predef.FieldName(tok), args);
+          return FunctionCall(tok, "MultiIndexField", Predef.FieldName(tok), args);
 
         case BuiltinFunction.Box:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "$Box", predef.BoxType, args);
+          return FunctionCall(tok, BoxFunctionName, Predef.BoxType, args);
         case BuiltinFunction.Unbox:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
-          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "$Unbox", typeInstantiation, args), typeInstantiation);
+          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, UnboxFunctionName, typeInstantiation, args), typeInstantiation);
 
         case BuiltinFunction.RealToInt:
           Contract.Assume(args.Length == 1);
@@ -529,19 +572,19 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.DynamicType:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "dtype", predef.ClassNameType, args);
+          return FunctionCall(tok, "dtype", Predef.ClassNameType, args);
         case BuiltinFunction.TypeTuple:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "TypeTuple", predef.ClassNameType, args);
+          return FunctionCall(tok, "TypeTuple", Predef.ClassNameType, args);
         case BuiltinFunction.DeclType:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "DeclType", predef.ClassNameType, args);
+          return FunctionCall(tok, "DeclType", Predef.ClassNameType, args);
         case BuiltinFunction.FieldOfDecl:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "FieldOfDecl", predef.FieldName(tok), args);
+          return FunctionCall(tok, "FieldOfDecl", Predef.FieldName(tok), args);
         case BuiltinFunction.FDim:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
@@ -554,7 +597,7 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.DatatypeCtorId:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "DatatypeCtorId", predef.DtCtorId, args);
+          return FunctionCall(tok, "DatatypeCtorId", Predef.DtCtorId, args);
         case BuiltinFunction.DtRank:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
@@ -574,8 +617,23 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "AtLayer", typeInstantiation, args);
 
+        case BuiltinFunction.FieldFamily:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "field_family", Predef.FieldNameFamily(tok), args);
+
+        case BuiltinFunction.FieldDepth:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "field_depth", Bpl.Type.Int, args);
+
+        case BuiltinFunction.LocalField:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "local_field", Predef.FieldName(tok), args);
+
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected built-in function
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected built-in function
       }
     }
 
@@ -586,32 +644,68 @@ namespace Microsoft.Dafny {
       Contract.Requires(args != null);
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
+      if (OpCodeMapping.TryGetValue(function, out var opcode)) {
+        return Boogie.Expr.Binary(tok, opcode, args[0], args[1]);
+      }
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, function, returnType)), new List<Bpl.Expr>(args));
     }
+
+
+    static Bpl.Expr Id(Bpl.IToken tok, string name) {
+      return new Boogie.IdentifierExpr(tok, name);
+    }
+    static Bpl.Expr Id(Bpl.IToken tok, Boogie.Constant constant) {
+      return new Boogie.IdentifierExpr(tok, constant);
+    }
+    static Bpl.Expr One(Bpl.IToken tok) {
+      return new Boogie.LiteralExpr(tok, BigNum.ONE);
+    }
+
+    private static readonly Dictionary<string, Boogie.BinaryOperator.Opcode> OpCodeMapping = new() {
+      { "+", Bpl.BinaryOperator.Opcode.Add },
+      { "-", Bpl.BinaryOperator.Opcode.Sub },
+      { "*", Bpl.BinaryOperator.Opcode.Mul },
+      { "/int", Bpl.BinaryOperator.Opcode.Div },
+      { "%", Bpl.BinaryOperator.Opcode.Mod },
+      { "/real", Bpl.BinaryOperator.Opcode.RealDiv },
+      { "/float", Bpl.BinaryOperator.Opcode.FloatDiv },
+      { "**", Bpl.BinaryOperator.Opcode.Pow },
+      { "==", Bpl.BinaryOperator.Opcode.Eq },
+      { "!=", Bpl.BinaryOperator.Opcode.Neq },
+      { ">", Bpl.BinaryOperator.Opcode.Gt },
+      { ">=", Bpl.BinaryOperator.Opcode.Ge },
+      { "<", Bpl.BinaryOperator.Opcode.Lt },
+      { "<=", Bpl.BinaryOperator.Opcode.Le },
+      { "&&", Bpl.BinaryOperator.Opcode.And },
+      { "||", Bpl.BinaryOperator.Opcode.Or },
+      { "==>", Bpl.BinaryOperator.Opcode.Imp },
+      { "<==>", Bpl.BinaryOperator.Opcode.Iff }
+    };
 
     static Bpl.NAryExpr FunctionCall(Bpl.IToken tok, string function, Bpl.Type returnType, List<Bpl.Expr> args) {
       Contract.Requires(tok != null);
       Contract.Requires(function != null);
       Contract.Requires(returnType != null);
-      Contract.Requires(cce.NonNullElements(args));
+      Contract.Requires(Cce.NonNullElements(args));
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
-      List<Bpl.Expr> aa = new List<Bpl.Expr>();
+      List<Bpl.Expr> aa = [];
       foreach (Bpl.Expr arg in args) {
         aa.Add(arg);
       }
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, function, returnType)), aa);
     }
 
-    public Bpl.Expr ProperSubset(Bpl.IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
+    public Bpl.Expr ProperSubset(Bpl.IToken tok, Bpl.Expr e0, Bpl.Expr e1, bool isFinite) {
       Contract.Requires(tok != null);
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
+      var subsetOperator = isFinite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
       return Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.And,
-        FunctionCall(tok, BuiltinFunction.SetSubset, null, e0, e1),
-        Bpl.Expr.Not(FunctionCall(tok, BuiltinFunction.SetSubset, null, e1, e0)));
+        FunctionCall(tok, subsetOperator, null, e0, e1),
+        Bpl.Expr.Not(FunctionCall(tok, subsetOperator, null, e1, e0)));
     }
     public Bpl.Expr ProperMultiset(Bpl.IToken tok, Bpl.Expr e0, Bpl.Expr e1) {
       Contract.Requires(tok != null);
@@ -684,7 +778,7 @@ namespace Microsoft.Dafny {
         : new Bpl.ForallExpr(tok, typeParams, formals, kv, triggers, body, immutable);
     }
 
-    static Bpl.Expr BplAnd(IEnumerable<Bpl.Expr> conjuncts) {
+    public static Bpl.Expr BplAnd(IEnumerable<Bpl.Expr> conjuncts) {
       Contract.Requires(conjuncts != null);
       Bpl.Expr eq = Bpl.Expr.True;
       foreach (var c in conjuncts) {
@@ -693,7 +787,7 @@ namespace Microsoft.Dafny {
       return eq;
     }
 
-    static Bpl.Expr BplAnd(Bpl.Expr a, Bpl.Expr b) {
+    public static Bpl.Expr BplAnd(Bpl.Expr a, Bpl.Expr b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -712,7 +806,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static Bpl.Expr BplOr(IEnumerable<Bpl.Expr> disjuncts) {
+    public static Bpl.Expr BplOr(IEnumerable<Bpl.Expr> disjuncts) {
       Contract.Requires(disjuncts != null);
       Bpl.Expr eq = Bpl.Expr.False;
       foreach (var d in disjuncts) {
@@ -721,7 +815,7 @@ namespace Microsoft.Dafny {
       return eq;
     }
 
-    static Bpl.Expr BplOr(Bpl.Expr a, Bpl.Expr b) {
+    public static Bpl.Expr BplOr(Bpl.Expr a, Bpl.Expr b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -742,7 +836,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static Bpl.Expr BplIff(Bpl.Expr a, Bpl.Expr b) {
+    public static Bpl.Expr BplIff(Bpl.Expr a, Bpl.Expr b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -767,7 +861,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static Bpl.Expr BplImp(Bpl.Expr a, Bpl.Expr b) {
+    public static Bpl.Expr BplImp(Bpl.Expr a, Bpl.Expr b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -786,7 +880,7 @@ namespace Microsoft.Dafny {
 
     private void BplIfIf(Bpl.IToken tk, bool yes, Bpl.Expr guard, BoogieStmtListBuilder builder, Action<BoogieStmtListBuilder> k) {
       if (yes) {
-        var newBuilder = new BoogieStmtListBuilder(builder.tran, options);
+        var newBuilder = new BoogieStmtListBuilder(builder.tran, options, builder.Context);
         k(newBuilder);
         builder.Add(new Bpl.IfCmd(tk, guard, newBuilder.Collect(tk), null, null));
       } else {
@@ -829,12 +923,12 @@ namespace Microsoft.Dafny {
       return new Bpl.Axiom(e.tok, e);
     }
 
-    static Bpl.Expr BplLocalVar(string name, Bpl.Type ty, List<Bpl.Variable> lvars) {
-      lvars.Add(BplLocalVar(name, ty, out var v));
+    public static Bpl.Expr BplLocalVar(string name, Bpl.Type ty, Variables lvars) {
+      lvars.GetOrAdd(BplLocalVar(name, ty, out var v));
       return v;
     }
 
-    static Bpl.LocalVariable BplLocalVar(string name, Bpl.Type ty, out Bpl.Expr e) {
+    public static Bpl.LocalVariable BplLocalVar(string name, Bpl.Type ty, out Bpl.Expr e) {
       Contract.Requires(ty != null);
       var v = new Bpl.LocalVariable(ty.tok, new Bpl.TypedIdent(ty.tok, name, ty));
       e = new Bpl.IdentifierExpr(ty.tok, name, ty);
@@ -843,8 +937,8 @@ namespace Microsoft.Dafny {
 
     /* This function allows you to replace, for example:
 
-           Bpl.BoundVariable iVar = new Bpl.BoundVariable(e.tok, new Bpl.TypedIdent(e.tok, "$i", Bpl.Type.Int));
-           Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(e.tok, iVar);
+           Bpl.BoundVariable iVar = new Bpl.BoundVariable(e.Tok, new Bpl.TypedIdent(e.Tok, "$i", Bpl.Type.Int));
+           Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(e.Tok, iVar);
 
        with:
 
@@ -881,19 +975,14 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public static IToken ToDafnyToken(bool reportRanges, Bpl.IToken boogieToken) {
-      if (boogieToken is BoogieRangeToken boogieRangeToken) {
-        if (!reportRanges && boogieRangeToken.Center is not null) {
-          return boogieRangeToken.Center;
-        }
-
-        return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
-      }
+    public static IOrigin ToDafnyToken(Bpl.IToken boogieToken) {
       if (boogieToken == null) {
         return null;
-      } else if (boogieToken is IToken dafnyToken) {
+      } else if (boogieToken is IOrigin dafnyToken) {
         return dafnyToken;
-      } else if (boogieToken == Boogie.Token.NoToken) {
+      } else if (boogieToken is VCGeneration.TokenWrapper tokenWrapper) {
+        return ToDafnyToken(tokenWrapper.Inner);
+      } else if (ReferenceEquals(boogieToken, Boogie.Token.NoToken)) {
         return Token.NoToken;
       } else {
         // These boogie Tokens can be created by TokenTextWriter

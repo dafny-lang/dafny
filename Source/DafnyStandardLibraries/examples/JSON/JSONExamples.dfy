@@ -5,7 +5,8 @@
  */
 
 /** High-level API (JSON values) */
-module {:options "-functionSyntax:4"} AbstractSyntax {
+@Options("-functionSyntax:4")
+module AbstractSyntax {
   import Std.JSON.API
   import opened Std.JSON.Values
   import opened Std.Wrappers
@@ -15,7 +16,9 @@ module {:options "-functionSyntax:4"} AbstractSyntax {
    The high-level API works with fairly simple datatype values that contain 
    native Dafny strings. 
    */
-  method {:test} {:resource_limit 100000000} Test() {
+  @Test
+  @ResourceLimit("100e6")
+  method Test() {
 
     /**
      Use `API.Deserialize` to deserialize a byte string.
@@ -126,7 +129,8 @@ module {:options "-functionSyntax:4"} AbstractSyntax {
  If you care about low-level performance, or about preserving existing
  formatting as much as possible, you may prefer to use the lower-level API:
  */
-module {:options "-functionSyntax:4"} ConcreteSyntax {
+@Options("-functionSyntax:4")
+module ConcreteSyntax {
   import Std.JSON.ZeroCopy.API
   import opened Std.Unicode.UnicodeStringsWithUnicodeChar
   import opened Std.JSON.Grammar
@@ -138,7 +142,9 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
    encoding: each node contains pointers to parts of a string, such that
    concatenating the fields of all nodes reconstructs the serialized value.
   */
-  method {:test} {:resource_limit 100000000} Test() {
+  @Test
+  @ResourceLimit("100e6")
+  method Test() {
 
     /** 
      The low-level API exposes the same functions and methods as the high-level
@@ -254,20 +260,21 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
     // BUG(https://github.com/dafny-lang/dafny/issues/2184)
     // BUG(https://github.com/dafny-lang/dafny/issues/2690)
     var fn' := (sf: Suffixed<D, S>) requires (ghost var in_sq := sf => sf in sq; in_sq(sf)) => sf.(t := fn(sf));
-    var sq' := Seq.Map(fn', sq);
+    Seq.Map(fn', sq)
+  }
 
-    assert NoTrailingSuffix(sq') by {
-      forall idx | 0 <= idx < |sq'| ensures sq'[idx].suffix.Empty? <==> idx == |sq'| - 1 {
-        calc {
-          sq'[idx].suffix.Empty?;
-          fn'(sq[idx]).suffix.Empty?;
-          sq[idx].suffix.Empty?;
-          idx == |sq| - 1;
-          idx == |sq'| - 1;
-        }
+  lemma MapSuffixedSequenceNoTrailingSuffix<D, S>(sq: SuffixedSequence<D, S>, fn: Suffixed<D, S> --> D)
+    requires forall suffixed | suffixed in sq :: fn.requires(suffixed)
+    ensures NoTrailingSuffix(MapSuffixedSequence<D, S>(sq, fn))
+  {
+    var sq' := MapSuffixedSequence<D, S>(sq, fn);
+    forall idx | 0 <= idx < |sq'| ensures sq'[idx].suffix.Empty? <==> idx == |sq'| - 1 {
+      calc {
+        sq'[idx].suffix.Empty?;
+        sq[idx].suffix.Empty?;
+        idx == |sq| - 1;
+        idx == |sq'| - 1;
       }
     }
-
-    sq'
   }
 }

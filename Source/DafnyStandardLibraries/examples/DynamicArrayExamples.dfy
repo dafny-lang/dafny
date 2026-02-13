@@ -2,7 +2,8 @@ module DynamicArrayExamples {
   import opened Std.DynamicArray
   import opened Std.BoundedInts
 
-  method {:test} Ensure() {
+  @Test
+  method Ensure() {
     var arr := new DynamicArray<int>();
     arr.Ensure(100, 3);
     for i: int := 0 to 100
@@ -15,7 +16,8 @@ module DynamicArrayExamples {
     }
   }
 
-  method {:test} Push_At_Put_PopFast_PushFast() {
+  @Test
+  method Push_At_Put_PopFast_PushFast() {
     var arr := new DynamicArray<int>();
     for i: int := 0 to 1000
       invariant arr.Valid?()

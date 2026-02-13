@@ -2,9 +2,9 @@ ResolutionErrors5.dfy(50,33): Error: type of yield-parameter must support auto-i
 ResolutionErrors5.dfy(58,13): Error: a ghost function is allowed only in specification contexts
 ResolutionErrors5.dfy(72,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors5.dfy(73,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors5.dfy(75,19): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
-ResolutionErrors5.dfy(76,9): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
-ResolutionErrors5.dfy(77,9): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(75,20): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(76,20): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(77,27): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
 ResolutionErrors5.dfy(78,18): Error: type parameter 'G' (passed in as 'ORDINAL') to the function 'F'' is not allowed to use ORDINAL
 ResolutionErrors5.dfy(79,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the method 'ParameterizedMethod' is not allowed to use ORDINAL
 ResolutionErrors5.dfy(83,8): Error: an ORDINAL type is not allowed to be used as a type argument
@@ -68,9 +68,9 @@ ResolutionErrors5.dfy(425,32): Error: an abstemious function is allowed to invok
 ResolutionErrors5.dfy(430,12): Error: an abstemious function is allowed to codatatype-match only on its parameters
 ResolutionErrors5.dfy(437,9): Error: an abstemious function is not allowed to check codatatype equality
 ResolutionErrors5.dfy(439,14): Error: an abstemious function is not allowed to check codatatype equality
-ResolutionErrors5.dfy(464,19): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
-ResolutionErrors5.dfy(465,13): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
-ResolutionErrors5.dfy(466,13): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(464,20): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(465,24): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors5.dfy(466,31): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
 ResolutionErrors5.dfy(467,18): Error: type parameter 'G' (passed in as 'ORDINAL') to the function 'F'' is not allowed to use ORDINAL
 ResolutionErrors5.dfy(468,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the lemma 'ParameterizedLemma' is not allowed to use ORDINAL
 ResolutionErrors5.dfy(469,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL

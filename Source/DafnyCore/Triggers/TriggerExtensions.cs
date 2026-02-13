@@ -14,7 +14,7 @@ using DafnyCore.Generic;
 namespace Microsoft.Dafny.Triggers {
   internal static class DeduplicateExtension {
     public static List<T> Deduplicate<T>(this IEnumerable<T> seq, Func<T, T, bool> eq) {
-      List<T> deduplicated = new List<T>();
+      List<T> deduplicated = [];
 
       foreach (var elem in seq) {
         if (!deduplicated.Any(other => eq(elem, other))) {
@@ -154,7 +154,6 @@ namespace Microsoft.Dafny.Triggers {
     private static bool SameBoundVar(IVariable arg1, IVariable arg2) {
       return arg1 == arg2 ||
              (arg1.Name == arg2.Name &&
-              arg1.CompileName == arg2.CompileName &&
               arg1.DisplayName == arg2.DisplayName &&
               arg1.UniqueName == arg2.UniqueName &&
               arg1.IsGhost == arg2.IsGhost &&
@@ -269,12 +268,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(LambdaExpr expr1, LambdaExpr expr2) {
-#if THROW_UNSUPPORTED_COMPARISONS
-      Contract.Assume(false); // This kind of expression never appears in a trigger
-      throw new NotImplementedException();
-#else
-      return false;
-#endif
+      return true;
     }
 
     private static bool ShallowEq(MapComprehension expr1, MapComprehension expr2) {
@@ -418,8 +412,8 @@ namespace Microsoft.Dafny.Triggers {
       Func<Type, Type, bool> comparer1 = TypeEq;
       return expr1.MemberName == expr2.MemberName &&
              expr1.Member == expr2.Member &&
-             expr1.TypeApplication_AtEnclosingClass.SequenceEqual(expr2.TypeApplication_AtEnclosingClass, new PredicateEqualityComparer<Type>(comparer)) &&
-             expr1.TypeApplication_JustMember.SequenceEqual(expr2.TypeApplication_JustMember, new PredicateEqualityComparer<Type>(comparer1));
+             expr1.TypeApplicationAtEnclosingClass.SequenceEqual(expr2.TypeApplicationAtEnclosingClass, new PredicateEqualityComparer<Type>(comparer)) &&
+             expr1.TypeApplicationJustMember.SequenceEqual(expr2.TypeApplicationJustMember, new PredicateEqualityComparer<Type>(comparer1));
     }
 
     internal static bool TypeEq(Type type1, Type type2) {

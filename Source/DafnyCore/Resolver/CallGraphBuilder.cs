@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
       astVisitor.VisitFunction(function);
     }
 
-    public static void VisitMethod(Method method, ErrorReporter reporter) {
+    public static void VisitMethod(MethodOrConstructor method, ErrorReporter reporter) {
       var astVisitor = new CallGraphASTVisitor(reporter);
       astVisitor.VisitMethod(method);
     }
@@ -130,7 +130,7 @@ namespace Microsoft.Dafny {
         base.VisitFunction(f);
       }
 
-      public override void VisitMethod(Method method) {
+      public override void VisitMethod(MethodOrConstructor method) {
         if (method.OverriddenMethod != null) {
           // add an edge from the trait method to that of the class/type
           AddCallGraphEdgeRaw(method.OverriddenMethod, method);
@@ -170,7 +170,7 @@ namespace Microsoft.Dafny {
           } else {
             // Apparently, we're called on the CallStmt.MemberSelect expression. The call-graph edge is added by the
             // handling of the CallStmt. Below, we will continue visiting the MemberSelectExpr.Obj subexpression.
-            Contract.Assert(memberSelectExpr.Member is Method);
+            Contract.Assert(memberSelectExpr.Member is MethodOrConstructor);
           }
 
         } else if (expr is FunctionCallExpr functionCallExpr) {
@@ -213,9 +213,9 @@ namespace Microsoft.Dafny {
       }
 
       protected override bool VisitOneStatement(Statement stmt, CallGraphBuilderContext context) {
-        if (stmt is AssignStmt assignStmt) {
+        if (stmt is SingleAssignStmt assignStmt) {
           // check on assumption variables
-          if (context.CodeContext is Method currentMethod &&
+          if (context.CodeContext is MethodOrConstructor currentMethod &&
               (assignStmt.Lhs.Resolved as IdentifierExpr)?.Var is LocalVariable localVar &&
               Attributes.Contains(localVar.Attributes, "assumption")) {
             if ((assignStmt.Rhs as ExprRhs)?.Expr is BinaryExpr binaryExpr &&
@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
         if (field is ConstantField cf) {
           if (cf == callingContext) {
             // detect self-loops here, since they don't show up in the graph's SSC methods
-            reporter.Error(MessageSource.Resolver, cf.tok, "recursive dependency involving constant initialization: {0} -> {0}", cf.Name);
+            reporter.Error(MessageSource.Resolver, cf.Origin, "recursive dependency involving constant initialization: {0} -> {0}", cf.Name);
           } else {
             AddCallGraphEdge(callingContext, cf, e, false);
           }

@@ -1,4 +1,4 @@
-frame-dereference-non-null.dfy(7,12): Error: frame expression might dereference null
+frame-dereference-non-null.dfy(7,12): Error: frame expression could not be proved to be non-null
  Asserted expression: c != null
 
 Dafny program verifier finished with 0 verified, 1 error

@@ -3,10 +3,10 @@ git-issue-4787.dfy(11,2): Error: a postcondition could not be proved on this ret
 11 |   {}
    |   ^
 
-git-issue-4787.dfy(10,12): Related location: this is the postcondition that could not be proved
+git-issue-4787.dfy(10,24): Related location: this is the postcondition that could not be proved
    |
 10 |     ensures |ToSet(xs)| <= |xs|
-   |             ^^^^^^^^^^^^^^^^^^^
+   |                         ^^
 
 git-issue-4787.dfy(14,13): Warning: unnecessary requires clause
    |

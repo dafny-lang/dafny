@@ -143,7 +143,59 @@ GeneralNewtypeResolution.dfy(670,11): Error: Function body type mismatch (expect
 GeneralNewtypeResolution.dfy(675,12): Error: Function body type mismatch (expected bool, got MyBool)
 GeneralNewtypeResolution.dfy(679,12): Error: Function body type mismatch (expected bool, got MyBool)
 GeneralNewtypeResolution.dfy(683,12): Error: Function body type mismatch (expected bool, got MyBool)
-145 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(701,10): Error: a newtype ('Wrapper') must be based on some numeric type (got G)
+GeneralNewtypeResolution.dfy(705,10): Error: boolean literal used as if it had type Wrapper<?0>
+GeneralNewtypeResolution.dfy(710,7): Error: RHS (of type bool) not assignable to LHS (of type Wrapper<?2>)
+GeneralNewtypeResolution.dfy(715,7): Error: RHS (of type bool) not assignable to LHS (of type Wrapper<bool>)
+GeneralNewtypeResolution.dfy(720,12): Error: type conversion target type not determined (got 'Wrapper<?4>')
+GeneralNewtypeResolution.dfy(759,12): Error: type conversion target type not determined (got '?4')
+GeneralNewtypeResolution.dfy(798,12): Error: type conversion target type not determined (got '?4')
+GeneralNewtypeResolution.dfy(830,10): Error: a newtype ('Co0') must be based on some numeric type (got seq<int -> X>)
+GeneralNewtypeResolution.dfy(831,10): Error: a newtype ('Co1') must be based on some numeric type (got seq<int -> X>)
+GeneralNewtypeResolution.dfy(832,10): Error: a newtype ('Co2') must be based on some numeric type (got seq<int -> X>)
+GeneralNewtypeResolution.dfy(833,10): Error: a newtype ('Co3') must be based on some numeric type (got seq<int -> X>)
+GeneralNewtypeResolution.dfy(834,10): Error: a newtype ('Co4') must be based on some numeric type (got seq<int -> X>)
+GeneralNewtypeResolution.dfy(836,10): Error: a newtype ('Contra0') must be based on some numeric type (got seq<X -> int>)
+GeneralNewtypeResolution.dfy(837,10): Error: a newtype ('Contra1') must be based on some numeric type (got seq<X -> int>)
+GeneralNewtypeResolution.dfy(838,10): Error: a newtype ('Contra2') must be based on some numeric type (got seq<X -> int>)
+GeneralNewtypeResolution.dfy(839,10): Error: a newtype ('Contra3') must be based on some numeric type (got seq<X -> int>)
+GeneralNewtypeResolution.dfy(840,10): Error: a newtype ('Contra4') must be based on some numeric type (got seq<X -> int>)
+GeneralNewtypeResolution.dfy(853,10): Error: a newtype ('A0') must be based on some numeric type (got NeedsEq<Y>)
+GeneralNewtypeResolution.dfy(854,10): Error: a newtype ('A1') must be based on some numeric type (got NeedsAutoInit<Y>)
+GeneralNewtypeResolution.dfy(855,10): Error: a newtype ('A2') must be based on some numeric type (got NeedsNonempty<Y>)
+GeneralNewtypeResolution.dfy(856,10): Error: a newtype ('A3') must be based on some numeric type (got NeedsNoReferences<Y>)
+GeneralNewtypeResolution.dfy(858,10): Error: a newtype ('B0') must be based on some numeric type (got NeedsEq<Z>)
+GeneralNewtypeResolution.dfy(859,10): Error: a newtype ('B1') must be based on some numeric type (got NeedsAutoInit<Z>)
+GeneralNewtypeResolution.dfy(860,10): Error: a newtype ('B2') must be based on some numeric type (got NeedsNonempty<Z>)
+GeneralNewtypeResolution.dfy(861,10): Error: a newtype ('B3') must be based on some numeric type (got NeedsNoReferences<Z>)
+GeneralNewtypeResolution.dfy(881,10): Error: a newtype ('A0') must be based on some numeric type (got NeedsEq<Y>)
+GeneralNewtypeResolution.dfy(895,9): Error: type parameters are not allowed to be renamed from the names given in the type in the module being refined (expected 'T', found 'U')
+GeneralNewtypeResolution.dfy(899,4): Error: type parameter 'V' is not allowed to change the requirement of supporting auto-initialization
+GeneralNewtypeResolution.dfy(900,4): Error: type parameter 'W' is not allowed to change the requirement of supporting auto-initialization
+GeneralNewtypeResolution.dfy(901,4): Error: type parameter 'X' is not allowed to change the requirement of being nonempty
+GeneralNewtypeResolution.dfy(902,4): Error: type parameter 'Y' is not allowed to change the requirement of supporting equality
+GeneralNewtypeResolution.dfy(903,4): Error: type parameter 'YY' is not allowed to change the requirement of supporting equality
+GeneralNewtypeResolution.dfy(904,4): Error: type parameter 'Z' is not allowed to change the no-reference-type requirement
+GeneralNewtypeResolution.dfy(905,4): Error: type parameter 'ZZ' is not allowed to change the no-reference-type requirement
+GeneralNewtypeResolution.dfy(910,5): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '-')
+GeneralNewtypeResolution.dfy(911,5): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '+')
+GeneralNewtypeResolution.dfy(912,4): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '=')
+GeneralNewtypeResolution.dfy(917,12): Error: type parameters are not allowed to be renamed from the names given in the newtype in the module being refined (expected 'T', found 'U')
+GeneralNewtypeResolution.dfy(921,4): Error: type parameter 'V' is not allowed to change the requirement of supporting auto-initialization
+GeneralNewtypeResolution.dfy(922,4): Error: type parameter 'W' is not allowed to change the requirement of supporting auto-initialization
+GeneralNewtypeResolution.dfy(923,4): Error: type parameter 'X' is not allowed to change the requirement of being nonempty
+GeneralNewtypeResolution.dfy(924,4): Error: type parameter 'Y' is not allowed to change the requirement of supporting equality
+GeneralNewtypeResolution.dfy(925,4): Error: type parameter 'YY' is not allowed to change the requirement of supporting equality
+GeneralNewtypeResolution.dfy(926,4): Error: type parameter 'Z' is not allowed to change the no-reference-type requirement
+GeneralNewtypeResolution.dfy(927,4): Error: type parameter 'ZZ' is not allowed to change the no-reference-type requirement
+GeneralNewtypeResolution.dfy(932,5): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '-')
+GeneralNewtypeResolution.dfy(933,5): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '+')
+GeneralNewtypeResolution.dfy(934,4): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '=')
+GeneralNewtypeResolution.dfy(940,10): Error: recursive constraint dependency involving a newtype: A -> A
+GeneralNewtypeResolution.dfy(945,10): Error: recursive constraint dependency involving a newtype: A -> A
+GeneralNewtypeResolution.dfy(950,7): Error: type-synonym cycle: A -> A
+GeneralNewtypeResolution.dfy(955,10): Error: recursive constraint dependency involving a newtype: A -> A
+197 resolution/type errors detected in GeneralNewtypeResolution.dfy
 GeneralNewtypeResolution.dfy(34,10): Error: a newtype ('MyOrdinal') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got ORDINAL)
 GeneralNewtypeResolution.dfy(40,10): Error: a newtype ('MyObject') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got object)
 GeneralNewtypeResolution.dfy(41,10): Error: a newtype ('MyTrait') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got Trait)
@@ -177,8 +229,6 @@ GeneralNewtypeResolution.dfy(231,8): Error: Duplicate local-variable name: d
 GeneralNewtypeResolution.dfy(233,8): Error: Duplicate local-variable name: v
 GeneralNewtypeResolution.dfy(228,16): Error: type of right argument to + (UpperCase) must agree with the result type (MyChar)
 GeneralNewtypeResolution.dfy(229,17): Error: type of right argument to + (MyChar) must agree with the result type (char)
-GeneralNewtypeResolution.dfy(239,11): Error: type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got MyChar)
-GeneralNewtypeResolution.dfy(240,11): Error: type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got UpperCase)
 GeneralNewtypeResolution.dfy(266,11): Error: type of right argument to + (Word) must agree with the result type (BV)
 GeneralNewtypeResolution.dfy(268,11): Error: type of right argument to * (bv17) must agree with the result type (BV)
 GeneralNewtypeResolution.dfy(269,11): Error: type of right argument to / (bv32) must agree with the result type (BV)
@@ -192,8 +242,8 @@ GeneralNewtypeResolution.dfy(277,6): Error: RHS (of type Big) not assignable to 
 GeneralNewtypeResolution.dfy(282,16): Error: type of left argument to << (bv32) must agree with the result type (BV)
 GeneralNewtypeResolution.dfy(283,16): Error: type of left argument to >> (bv32) must agree with the result type (BV)
 GeneralNewtypeResolution.dfy(267,11): Error: type of right argument to - (BV) must agree with the result type (Big)
-GeneralNewtypeResolution.dfy(286,36): Error: incorrect argument type for function parameter 'w' (expected nat, found int32)
-GeneralNewtypeResolution.dfy(287,22): Error: incorrect argument type for function parameter 'w' (expected nat, found int32)
+GeneralNewtypeResolution.dfy(286,37): Error: incorrect argument type for function parameter 'w' (expected nat, found int32)
+GeneralNewtypeResolution.dfy(287,23): Error: incorrect argument type for function parameter 'w' (expected nat, found int32)
 GeneralNewtypeResolution.dfy(289,6): Error: RHS (of type bv32) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(294,11): Error: arguments to <= must have a common supertype (got BV and bv32)
 GeneralNewtypeResolution.dfy(295,11): Error: arguments to >= must have a common supertype (got BV and bv1024)
@@ -214,8 +264,7 @@ GeneralNewtypeResolution.dfy(308,6): Error: RHS (of type int32) not assignable t
 GeneralNewtypeResolution.dfy(399,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(403,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(422,15): Error: GhostBits is a newtype and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
-GeneralNewtypeResolution.dfy(411,33): Related location: The constraint is not compilable because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
-GeneralNewtypeResolution.dfy(434,13): Error: type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got bv5)
+GeneralNewtypeResolution.dfy(411,47): Related location: a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
 GeneralNewtypeResolution.dfy(441,30): Error: :nativeType can only be used on a newtype based on integers or bitvectors
 GeneralNewtypeResolution.dfy(443,31): Error: The width of bitvector type bv325 cannot fit into native type 'uint'. Note: constraints of bitvector-based newtypes are not considered when determining native types.
 GeneralNewtypeResolution.dfy(444,31): Error: The width of bitvector type bv325 cannot fit into native type 'uint'.
@@ -262,4 +311,52 @@ GeneralNewtypeResolution.dfy(670,11): Error: Function body type mismatch (expect
 GeneralNewtypeResolution.dfy(675,12): Error: Function body type mismatch (expected bool, got MyBool)
 GeneralNewtypeResolution.dfy(679,12): Error: Function body type mismatch (expected bool, got MyBool)
 GeneralNewtypeResolution.dfy(683,12): Error: Function body type mismatch (expected bool, got MyBool)
-117 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(705,10): Error: boolean literal used as if it had type Wrapper<?0>
+GeneralNewtypeResolution.dfy(710,7): Error: RHS (of type bool) not assignable to LHS (of type Wrapper<?2>)
+GeneralNewtypeResolution.dfy(715,7): Error: RHS (of type bool) not assignable to LHS (of type Wrapper<bool>)
+GeneralNewtypeResolution.dfy(720,12): Error: type conversion target type not determined (got 'Wrapper<?4>')
+GeneralNewtypeResolution.dfy(759,12): Error: type conversion target type not determined (got '?4')
+GeneralNewtypeResolution.dfy(798,12): Error: type conversion target type not determined (got '?4')
+GeneralNewtypeResolution.dfy(822,32): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(824,24): Error: formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '-X' or '!X')
+GeneralNewtypeResolution.dfy(826,25): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(827,25): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(834,34): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(836,30): Error: formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '-X' or '!X')
+GeneralNewtypeResolution.dfy(838,31): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(839,31): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(853,18): Error: type parameter (X) passed to type NeedsEq must support equality (got Y) (perhaps try declaring type parameter 'Y' on line 853 as 'Y(==)', which says it can only be instantiated with a type that supports equality)
+GeneralNewtypeResolution.dfy(854,18): Error: type parameter (X) passed to type NeedsAutoInit must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 854 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+GeneralNewtypeResolution.dfy(855,18): Error: type parameter (X) passed to type NeedsNonempty must be nonempty (got Y) (perhaps try declaring type parameter 'Y' on line 855 as 'Y(00)', which says it can only be instantiated with a nonempty type)
+GeneralNewtypeResolution.dfy(856,18): Error: type parameter (X) passed to type NeedsNoReferences must contain no references (got Y) (perhaps try declaring type parameter 'Y' on line 856 as 'Y(!new)', which says it can only be instantiated with a type that contains no references)
+GeneralNewtypeResolution.dfy(863,15): Error: type parameter (X) passed to type NeedsEq must support equality (got Y) (perhaps try declaring type parameter 'Y' on line 863 as 'Y(==)', which says it can only be instantiated with a type that supports equality)
+GeneralNewtypeResolution.dfy(864,15): Error: type parameter (X) passed to type NeedsAutoInit must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 864 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+GeneralNewtypeResolution.dfy(865,15): Error: type parameter (X) passed to type NeedsNonempty must be nonempty (got Y) (perhaps try declaring type parameter 'Y' on line 865 as 'Y(00)', which says it can only be instantiated with a nonempty type)
+GeneralNewtypeResolution.dfy(866,15): Error: type parameter (X) passed to type NeedsNoReferences must contain no references (got Y) (perhaps try declaring type parameter 'Y' on line 866 as 'Y(!new)', which says it can only be instantiated with a type that contains no references)
+GeneralNewtypeResolution.dfy(895,9): Error: type parameters are not allowed to be renamed from the names given in the type in the module being refined (expected 'T', found 'U')
+GeneralNewtypeResolution.dfy(899,4): Error: type parameter 'V' is not allowed to change the requirement of supporting auto-initialization
+GeneralNewtypeResolution.dfy(900,4): Error: type parameter 'W' is not allowed to change the requirement of supporting auto-initialization
+GeneralNewtypeResolution.dfy(901,4): Error: type parameter 'X' is not allowed to change the requirement of being nonempty
+GeneralNewtypeResolution.dfy(902,4): Error: type parameter 'Y' is not allowed to change the requirement of supporting equality
+GeneralNewtypeResolution.dfy(903,4): Error: type parameter 'YY' is not allowed to change the requirement of supporting equality
+GeneralNewtypeResolution.dfy(904,4): Error: type parameter 'Z' is not allowed to change the no-reference-type requirement
+GeneralNewtypeResolution.dfy(905,4): Error: type parameter 'ZZ' is not allowed to change the no-reference-type requirement
+GeneralNewtypeResolution.dfy(910,5): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '-')
+GeneralNewtypeResolution.dfy(911,5): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '+')
+GeneralNewtypeResolution.dfy(912,4): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '=')
+GeneralNewtypeResolution.dfy(917,12): Error: type parameters are not allowed to be renamed from the names given in the newtype in the module being refined (expected 'T', found 'U')
+GeneralNewtypeResolution.dfy(921,4): Error: type parameter 'V' is not allowed to change the requirement of supporting auto-initialization
+GeneralNewtypeResolution.dfy(922,4): Error: type parameter 'W' is not allowed to change the requirement of supporting auto-initialization
+GeneralNewtypeResolution.dfy(923,4): Error: type parameter 'X' is not allowed to change the requirement of being nonempty
+GeneralNewtypeResolution.dfy(924,4): Error: type parameter 'Y' is not allowed to change the requirement of supporting equality
+GeneralNewtypeResolution.dfy(925,4): Error: type parameter 'YY' is not allowed to change the requirement of supporting equality
+GeneralNewtypeResolution.dfy(926,4): Error: type parameter 'Z' is not allowed to change the no-reference-type requirement
+GeneralNewtypeResolution.dfy(927,4): Error: type parameter 'ZZ' is not allowed to change the no-reference-type requirement
+GeneralNewtypeResolution.dfy(932,5): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '-')
+GeneralNewtypeResolution.dfy(933,5): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '+')
+GeneralNewtypeResolution.dfy(934,4): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '=')
+GeneralNewtypeResolution.dfy(940,10): Error: recursive constraint dependency involving a newtype: A -> A
+GeneralNewtypeResolution.dfy(945,10): Error: recursive constraint dependency involving a newtype: A -> A
+GeneralNewtypeResolution.dfy(950,7): Error: type-synonym cycle: A -> A
+GeneralNewtypeResolution.dfy(955,10): Error: recursive constraint dependency involving a newtype: A -> A
+162 resolution/type errors detected in GeneralNewtypeResolution.dfy

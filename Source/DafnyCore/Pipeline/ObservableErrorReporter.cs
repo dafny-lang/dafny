@@ -27,22 +27,8 @@ namespace Microsoft.Dafny {
       this.entryUri = entryUri;
     }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string? errorId, IToken rootTok, string msg) {
-      if (ErrorsOnly && level != ErrorLevel.Error) {
-        return false;
-      }
-      var relatedInformation = new List<DafnyRelatedInformation>();
-
-      var usingSnippets = Options.Get(Snippets.ShowSnippets);
-      if (rootTok is NestedToken nestedToken) {
-        relatedInformation.AddRange(
-          ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
-            nestedToken.Inner, nestedToken.Message, usingSnippets)
-        );
-      }
-
-      var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, rootTok, msg, level, relatedInformation);
-      AddDiagnosticForFile(dafnyDiagnostic, GetUriOrDefault(rootTok));
+    public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
+      AddDiagnosticForFile(dafnyDiagnostic, dafnyDiagnostic.Range?.Uri ?? entryUri);
       return true;
     }
 
@@ -81,8 +67,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Uri GetUriOrDefault(IToken token) {
-      return token.Filepath == null
+    private Uri GetUriOrDefault(IOrigin token) {
+      return token.Uri == null
         ? entryUri
         : token.Uri;
     }

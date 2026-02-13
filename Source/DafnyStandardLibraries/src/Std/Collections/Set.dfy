@@ -135,7 +135,7 @@ module Std.Collections.Set {
   }
 
   /* Map an injective function to each element of a set. */
-  function {:opaque} Map<X(!new), Y>(f: X --> Y, xs: set<X>): (ys: set<Y>)
+  opaque function Map<X(!new), Y>(f: X --> Y, xs: set<X>): (ys: set<Y>)
     reads f.reads
     requires forall x {:trigger f.requires(x)} :: f.requires(x)
     requires Injective(f)
@@ -166,7 +166,7 @@ module Std.Collections.Set {
 
   /* Construct a set using elements of another set for which a function returns
   true. */
-  function {:opaque} Filter<X(!new)>(f: X ~> bool, xs: set<X>): (ys: set<X>)
+  opaque function Filter<X(!new)>(f: X ~> bool, xs: set<X>): (ys: set<X>)
     reads set x, o | x in xs && o in f.reads(x) :: o
     requires forall x {:trigger f.requires(x)} {:trigger x in xs} :: x in xs ==> f.requires(x)
     ensures forall y {:trigger f(y)}{:trigger y in xs} :: y in ys <==> y in xs && f(y)
@@ -200,7 +200,7 @@ module Std.Collections.Set {
   }
 
   /* Construct a set with all integers in the range [a, b). */
-  function {:opaque} SetRange(a: int, b: int): (s: set<int>)
+  opaque function SetRange(a: int, b: int): (s: set<int>)
     requires a <= b
     ensures forall i {:trigger i in s} :: a <= i < b <==> i in s
     ensures |s| == b - a
@@ -210,7 +210,7 @@ module Std.Collections.Set {
   }
 
   /* Construct a set with all integers in the range [0, n). */
-  function {:opaque} SetRangeZeroBound(n: int): (s: set<int>)
+  opaque function SetRangeZeroBound(n: int): (s: set<int>)
     requires n >= 0
     ensures forall i {:trigger i in s} :: 0 <= i < n <==> i in s
     ensures |s| == n

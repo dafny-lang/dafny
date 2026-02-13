@@ -15,8 +15,7 @@ namespace PluginsTestTranslationError {
     }
 
     public override void PreVerify(ModuleDefinition module) {
-      Reporter.Error(MessageSource.Translator, module.Tok,
-        "Translation error that should appear in the code");
+      Reporter.Error(MessageSource.Translator, module.Origin, "Translation error that should appear in the code");
     }
   }
 

@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Gets all children of the current symbol.
     /// </summary>
-    public virtual IEnumerable<ILegacySymbol> Children => Enumerable.Empty<ILegacySymbol>();
+    public virtual IEnumerable<ILegacySymbol> Children => [];
 
     /// <summary>
     /// Gets the symbol representing the enclosing scope, <c>null</c> if no other symbol.

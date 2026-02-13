@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code 4 "%s"
+
 
 lemma M(n: nat) //returns (y: nat)
 {
@@ -20,7 +20,7 @@ lemma MM(n: nat) returns (y: nat)
 {
   if n != 0 {
     y := FF(n-1);
-  }
+  } else { y := *; }
 }
 ghost function FF(n: nat): nat
   decreases n, 1
@@ -92,9 +92,9 @@ ghost function F_PreconditionViolation(n: int): int
 // --------------------- These had had parsing problems in the past
 
 lemma MyLemma(x: int) {
-  var d: Dtz;
+  var d: Dtz := *;
   if 0 < x {
-    var y: int;
+    var y: int := *;
     match MyLemma(y); d {  // error: cannot prove termination
       case Cons0(_) =>
       case Cons1(_) =>
@@ -158,4 +158,97 @@ ghost function Parsing_Regression_test2(): int
               ( calc { x; < x+1; }
                 17
   ) ) ) ) ) ) )
+}
+
+function PartialToTheDiagonal(x: int, y: int): int
+  requires x == y
+{
+  5
+}
+
+opaque function GimmieSeven(i: int): int { 7 }
+lemma AboutGimmieSeven(i: int)
+  ensures GimmieSeven(i) == 7
+{
+  reveal GimmieSeven();
+}
+
+function TestForallStatement0(a: int, b: int): int
+{
+  PartialToTheDiagonal(GimmieSeven(a), GimmieSeven(b)) // error: precondition violation
+}
+
+function TestForallStatement1(a: int, b: int): int
+{
+  reveal GimmieSeven();
+  PartialToTheDiagonal(GimmieSeven(a), GimmieSeven(b))
+}
+
+function TestForallStatement2(a: int, b: int): int
+{
+  AboutGimmieSeven(a);
+  AboutGimmieSeven(b);
+  PartialToTheDiagonal(GimmieSeven(a), GimmieSeven(b))
+}
+
+function TestForallStatement3(a: int, b: int): int
+{
+  assert GimmieSeven(a) == GimmieSeven(b) by {
+    forall i
+      ensures GimmieSeven(i) == 7
+    {
+      AboutGimmieSeven(i);
+    }
+  }
+  PartialToTheDiagonal(GimmieSeven(a), GimmieSeven(b))
+}
+
+function TestForallStatement4(a: int, b: int): int
+{
+  assert forall i :: GimmieSeven(i) == 7 by {
+    forall i
+      ensures GimmieSeven(i) == 7
+    {
+      AboutGimmieSeven(i);
+    }
+  }
+  PartialToTheDiagonal(GimmieSeven(a), GimmieSeven(b))
+}
+
+function TestForallStatement5(a: int, b: int): int
+{
+  forall i
+    ensures GimmieSeven(i) == 7
+  {
+    AboutGimmieSeven(i);
+  }
+  PartialToTheDiagonal(GimmieSeven(a), GimmieSeven(b))
+}
+
+function TestForallStatement6(a: int, b: int): int
+{
+  forall i {
+    AboutGimmieSeven(i);
+  }
+  PartialToTheDiagonal(GimmieSeven(a), GimmieSeven(b))
+}
+
+function TestForallStatement7(a: int, b: int): int
+  requires 0 <= a && 0 <= b
+{
+  forall i | 0 <= i
+    ensures GimmieSeven(i) == 7
+  {
+    AboutGimmieSeven(i);
+  }
+  PartialToTheDiagonal(GimmieSeven(a), GimmieSeven(b))
+}
+
+function TestForallStatement8(a: int, b: int): int
+  requires 0 <= a && 0 <= b
+{
+  forall i | 0 <= i {
+    AboutGimmieSeven(i);
+  }
+  PartialToTheDiagonal(GimmieSeven(a), GimmieSeven(b))
 }

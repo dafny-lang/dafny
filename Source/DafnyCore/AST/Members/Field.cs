@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -7,40 +8,45 @@ namespace Microsoft.Dafny;
 
 public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override string WhatKind => "field";
-  public readonly bool IsMutable;  // says whether or not the field can ever change values
-  public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
-  public PreType PreType;
 
-  public readonly Type Type; // Might be null after parsing and set during resolution
+  public override bool HasStaticKeyword => false;
+  public virtual bool IsMutable => true;  // says whether or not the field can ever change values
+  public virtual bool IsUserMutable => true;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
+
+  public PreType? PreType;
+
+  public Type Type;
+
+  public Type? ExplicitType;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(Type != null);
     Contract.Invariant(!IsUserMutable || IsMutable);  // IsUserMutable ==> IsMutable
   }
 
-  public override IEnumerable<INode> Children => Type?.Nodes ?? Enumerable.Empty<INode>();
+  public override IEnumerable<INode> Children =>
+    (Type?.Nodes ?? Enumerable.Empty<INode>()).Concat(this.Attributes.AsEnumerable());
 
-  public Field(RangeToken rangeToken, Name name, bool isGhost, Type type, Attributes attributes)
-    : this(rangeToken, name, false, isGhost, true, true, type, attributes) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);
+
+  public Field(Cloner cloner, Field original) : base(cloner, original) {
+    ExplicitType = cloner.CloneType(original.ExplicitType);
+    // This is set even before resolution
+    Type = cloner.CloneType(original.Type);
   }
 
-  public Field(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, false) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);
-    Contract.Requires(!isUserMutable || isMutable);
-    IsMutable = isMutable;
-    IsUserMutable = isUserMutable;
-    Type = type;
+  [SyntaxConstructor]
+  public Field(IOrigin origin, Name nameNode, bool isGhost, Type? explicitType, Attributes? attributes)
+    : base(origin, nameNode, isGhost, attributes) {
+    Contract.Requires(origin != null);
+    Contract.Requires(nameNode != null);
+    ExplicitType = explicitType;
+    Type = ExplicitType ?? new InferredTypeProxy();
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetOpeningIndentedRegion(StartToken, indentBefore);
     formatter.SetIndentations(EndToken, below: indentBefore);
+    Attributes.SetIndents(Attributes, indentBefore, formatter);
     var hasComma = OwnedTokens.Any(token => token.val == ",");
     switch (this) {
       case ConstantField constantField:
@@ -88,12 +94,22 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
     return true;
   }
 
-  public string GetTriviaContainingDocstring() {
-    if (EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+  public string? GetTriviaContainingDocstring() {
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
+    foreach (var token in OwnedTokens) {
+      if (token.val == ":=") {
+        if ((token.Prev.TrailingTrivia + (token.LeadingTrivia ?? "")).Trim() is { } tentativeTrivia and not "") {
+          return tentativeTrivia;
+        }
+      }
+    }
+    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia2 and not "") {
+      return tentativeTrivia2;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 
   public override SymbolKind? Kind => SymbolKind.Field;

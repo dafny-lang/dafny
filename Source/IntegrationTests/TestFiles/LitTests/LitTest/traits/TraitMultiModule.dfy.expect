@@ -1,3 +1,4 @@
-TraitMultiModule.dfy(22,19): Error: class 'C2' is in a different module than trait 'M1.T1'. A class may only extend a trait in the same module, unless the parent trait is annotated with {:termination false}.
-TraitMultiModule.dfy(30,22): Error: class 'C2' is in a different module than trait 'M1.T1'. A class may only extend a trait in the same module, unless the parent trait is annotated with {:termination false}.
-2 resolution/type errors detected in TraitMultiModule.dfy
+TraitMultiModule.dfy(26,19): Error: class 'C2' is in a different module than trait 'M1.T1'. A class may only extend a trait in the same module, unless the parent trait is annotated with {:termination false} or the class with @AssumeCrossModuleTermination.
+TraitMultiModule.dfy(40,19): Error: trait 'T3' is in a different module than trait 'M1.T1'. A trait may only extend a trait in the same module, unless the parent trait is annotated with {:termination false} or the trait with @AssumeCrossModuleTermination.
+TraitMultiModule.dfy(65,22): Error: class 'C2' is in a different module than trait 'M3.T6'. A class may only extend a trait in the same module, unless the parent trait is annotated with {:termination false} or the class with @AssumeCrossModuleTermination.
+3 resolution/type errors detected in TraitMultiModule.dfy

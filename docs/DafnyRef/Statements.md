@@ -179,8 +179,7 @@ a, b.e().f := m() {:attr};
 
 In this case, the right-hand-side must be a method call and the number of
 left-hand sides must match the number of out-parameters of the
-method that is called or there must be just one ``Lhs`` to the left of
-the `:=`, which then is assigned a tuple of the out-parameters.
+method that is called.
 Note that the result of a method call is not allowed to be used as an argument of
 another method call, as if it were an expression.
 
@@ -257,6 +256,38 @@ Note that the syntax
 ```
 
 is interpreted as a label in which the user forgot the `label` keyword.
+
+### 8.5.6. Method call with a `by` proof
+
+The purpose of this form of a method call is to seperate the called method's
+precondition and its proof from the rest of the correctness proof of the
+calling method.
+
+<!-- %check-verify Statements.16.expect -->
+```dafny
+opaque predicate P() { true }
+
+lemma ProveP() ensures P() {
+  reveal P();
+}
+
+method M(i: int) returns (r: int)
+  requires P()
+  ensures r == i
+{ r := i; }
+
+method C() {
+  var v := M(1/3) by { // We prove 3 != 0 outside of the by proof
+    ProveP();          // Prove precondtion  
+  }
+  assert v == 0;       // Use postcondition
+  assert P();          // Fails
+}
+```
+
+By placing the call to lemma `ProveP` inside of the by block, we can not use
+`P` after the method call. The well-formedness checks of the arguments to the
+method call are not subject to the separation.
 
 ## 8.6. Update with Failure Statement (`:-`) ([grammar](#g-update-with-failure-statement)) {#sec-update-with-failure-statement}
 
@@ -2031,7 +2062,7 @@ is not used subsequently.  For example, consider
 ```dafny
 method m(i: int) {
   assert x: i == 0; // Fails
-  assert i == 0; // Fails also because the x: makes the first assertion opaque
+  assert i == 0; // Fails also because the label 'x:' hides the first assertion
 }
 ```
 The first assertion fails. Without the label `x:`, the second would succeed because after a failing assertion, the 
@@ -2099,27 +2130,75 @@ relevant information.
 Section 7 of [http://leino.science/papers/krml276.html](http://leino.science/papers/krml276.html) provides 
 an extended illustration of this technique to make all the dependencies of an `assert` explicit.
 
-### 8.20.3. Revealing function bodies
+### 8.20.3. Hiding and revealing function bodies {#hide-statement}
 
-By default, function bodies are transparent and available for constructing proofs of assertions that use those functions. 
-This can be changed using the `--defaul-function-opacity` commandline flag, or by using the [`:{opaque}`](#sec-opaque) attribute and treat it as an uninterpreted function, whose properties are
-just its specifications.  This action limits the information available to the logical reasoning engine and may make a proof 
-possible where there might be information overload otherwise.
+By default, function bodies are revealed and available for constructing proofs of assertions that use those functions.
+However, if a function body is not necessary for a proof, the runtime of the proof can be improved by hiding that body.
+To do this, use the hide statement. Here's an example:
 
-But then there may be specific instances where the definition of that opaque function is needed. In that situation, the
-body of the function can be _revealed_ using the reveal statement. Here is an example:
-<!-- %check-verify Statements.9.expect -->
+<!-- %check-verify %options --isolate-assertions --type-system-refresh -->
 ```dafny
-opaque function f(i: int): int { i + 1 }
+// We are using the options --isolate-assertions and --type-system-refresh
+method Outer(x: int)
+  requires ComplicatedBody(x) 
+{
+  hide ComplicatedBody; // This hides the body of ComplicatedBody for the remainder of the method.
+  
+  // The body of ComplicatedBody is not needed to prove the requires of Inner
+  var y := Inner(x);
+  
+  // We reveal ComplicatedBody inside the following expression, to prove that we are not dividing by zero
+  var z := (reveal ComplicatedBody; 10 / x);
+}
 
-method m(i: int) {
-  assert f(i) == i + 1;
+method Inner(x: int) returns (r: int)
+  requires ComplicatedBody(x)
+
+predicate ComplicatedBody(x: int) {
+  x != 0 && true // pretend true is complicated 
 }
 ```
-Without the [`opaque`] modifier, the assertion is valid; with the modifier it cannot be proved because the body of the
-function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
-Note that the pseudo-function-call in the `reveal` statement is written without arguments and serves to mark `f` as a function name
-instead of a label.
+
+Here is a larger example that shows the rules for hide and reveal statements when used on functions:
+
+<!-- %check-verify Statements.8b.expect %options --isolate-assertions --type-system-refresh -->
+```dafny
+// We are using the options --isolate-assertions and --type-system-refresh
+predicate P() { true }
+predicate Q(x: bool) requires x
+
+method Foo() {
+  var q1 := Q(hide P; P()); // error, precondition not satisfied
+  var q2 := Q(hide P; reveal P; P()); // no error
+  
+  hide *;
+  
+  var q3 := Q(P()); // error, precondition not satisfied
+  var q4 := Q(reveal P; P()); // no error
+  
+  if (*) {
+    reveal P;
+    assert P();
+  } else {
+    assert P(); // error
+  }
+  reveal P;
+  if (*) {
+    assert P();
+  } else {
+    hide *;
+    assert P(); // error
+  }
+  
+  hide *;
+  if (*) {
+    reveal P;
+  } else {
+    reveal P;
+  }
+  assert P(); // error, since the previous two reveal statements are out of scope
+}
+```
 
 ### 8.20.4. Revealing constants
 
@@ -2397,4 +2476,27 @@ the expressions is to provide hints to aid Dafny in proving that
 step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
 
+## 8.24. Opaque Block ([grammar](#g-opaque-block)) {#sec-opaque-block}
+As a Dafny sequence of statements grows in length, it can become harder to verify later statements in the block. With each statement, new information can become available, and with each modification of the heap, it becomes more expensive to access information from an older heap version. To reduce the verification complexity of long lists of statements, Dafny users can extract part of this block into a separate method or lemma. However, doing so introduces some boilerplate, which is where opaque blocks come in. They achieve a similar effect on verification performance as extracting code, but without the boilerplate. 
 
+An opaque block is similar to a block statement: it contains a sequence of zero or more statements, enclosed by curly braces. However, an opaque block is preceded by the keyword 'opaque', and may define ensures and modifies clauses before the curly braces. Anything that happens inside the block is invisible to the statements that come after it, unless it is specified by the ensures clause. Here is an example:
+
+<!-- %check-verify Statements.opaqueBlock.expect -->
+```dafny
+method OpaqueBlockUser() returns (x: int)
+  ensures x > 4 
+{
+  x := 1;
+  var y := 1;
+  opaque
+    ensures x > 3 
+  {
+    x := x + y;
+    x := x + 2;
+  }
+  assert x == 4; // error
+  x := x + 1;
+}
+```
+
+By default, the modifies clause of an opaque block is the same as that of the enclosing context. Opaque blocks may be nested.

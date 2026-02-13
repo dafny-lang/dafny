@@ -11,11 +11,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using OmniSharp.Extensions.JsonRpc.Server;
-using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
@@ -68,20 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private (ISymbol? symbol, string? symbolHoverContent) GetStaticHoverContent(HoverParams request, IdeState state) {
-      IHasNavigationToken? declarationOrUsage =
-        state.ResolvedProgram.FindNode<IHasNavigationToken>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
-      ISymbol? symbol;
-
-      if (declarationOrUsage is IHasReferences usage) {
-        symbol = state.SymbolTable.ReferenceToNode.GetValueOrDefault(usage) as ISymbol;
-      } else {
-        // If we hover over a usage, display the information of the declaration
-        symbol = declarationOrUsage as ISymbol;
-        if (symbol != null && !symbol.NavigationToken.ToRange().ToLspRange().Contains(request.Position)) {
-          symbol = null;
-        }
-      }
-
+      var symbol = state.SymbolTable.GetDeclarationNode(request.TextDocument.Uri.ToUri(), request.Position) as ISymbol;
       if (symbol == null) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
@@ -136,8 +119,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             .ToList();
 
         // Put errors in the front. Put assertions with the highest resource count first
-        List<(string content, long resources)> errors = new();
-        List<(string content, long resources)> other = new();
+        List<(string content, long resources)> errors = [];
+        List<(string content, long resources)> other = [];
 
         foreach (var assertionBatch in orderedAssertionBatches) {
           if (!assertionBatch.Range.Contains(position)) {
@@ -304,19 +287,25 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         string deltaInformation = "";
         while (token != null) {
           var errorToken = token;
-          if (token is NestedToken nestedToken) {
+          if (token is NestedOrigin nestedToken) {
             errorToken = nestedToken.Outer;
             token = nestedToken.Inner;
           } else {
             token = null;
           }
-          var dafnyToken = BoogieGenerator.ToDafnyToken(true, errorToken);
+          var dafnyToken = BoogieGenerator.ToDafnyToken(errorToken);
 
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
 
-          if (dafnyToken is RangeToken rangeToken && !hoveringPostcondition) {
-            var originalText = rangeToken.PrintOriginal();
+          if (dafnyToken.IncludesRange && !hoveringPostcondition) {
+            string originalText;
+            if (dafnyToken.EntireRange != null) {
+              originalText = dafnyToken.EntireRange.PrintOriginal();
+            } else {
+              var tokenNode = ideState.Program.FindNode<Node>(dafnyToken.Uri, dafnyToken.ToDafnyPosition());
+              originalText = tokenNode.EntireRange.PrintOriginal();
+            }
             deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
 
@@ -336,7 +325,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         } else {
           information += GetDescription(returnCounterexample.FailingReturn.Description);
         }
-        information += MoreInformation(returnCounterexample.FailingAssert.tok, currentlyHoveringPostcondition);
+        information += MoreInformation(returnCounterexample.FailingEnsures.tok, currentlyHoveringPostcondition);
       } else if (counterexample is CallCounterexample callCounterexample) {
         if (assertionNode.StatusVerification == GutterVerificationStatus.Error &&
             callCounterexample.FailingRequires.Description.SuccessDescription != "assertion always holds"
@@ -355,7 +344,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         information += MoreInformation(assertEnsuresCmd.Ensures.tok, currentlyHoveringPostcondition);
       } else {
         information += GetDescription(assertCmd?.Description);
-        if (assertCmd?.tok is NestedToken) {
+        if (assertCmd?.tok is NestedOrigin) {
           information += MoreInformation(assertCmd.tok, currentlyHoveringPostcondition);
         }
       }

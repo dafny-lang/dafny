@@ -1,6 +1,6 @@
-RankNeg.dfy(10,25): Error: cannot prove termination; try supplying a decreases clause
-RankNeg.dfy(15,27): Error: cannot prove termination; try supplying a decreases clause
-RankNeg.dfy(22,30): Error: cannot prove termination; try supplying a decreases clause
-RankNeg.dfy(32,24): Error: cannot prove termination; try supplying a decreases clause
+RankNeg.dfy(10,35): Error: cannot prove termination; try supplying a decreases clause
+RankNeg.dfy(15,37): Error: cannot prove termination; try supplying a decreases clause
+RankNeg.dfy(22,41): Error: cannot prove termination; try supplying a decreases clause
+RankNeg.dfy(32,35): Error: cannot prove termination; try supplying a decreases clause
 
 Dafny program verifier finished with 1 verified, 4 errors

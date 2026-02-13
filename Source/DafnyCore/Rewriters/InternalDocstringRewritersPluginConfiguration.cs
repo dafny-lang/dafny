@@ -12,7 +12,7 @@ public class InternalDocstringRewritersPluginConfiguration : Plugins.PluginConfi
   static InternalDocstringRewritersPluginConfiguration() {
     DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
       (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
-    DooFile.RegisterNoChecksNeeded(UseJavadocLikeDocstringRewriterOption, false);
+    OptionRegistry.RegisterOption(UseJavadocLikeDocstringRewriterOption, OptionScope.Cli);
   }
 
   public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
@@ -21,11 +21,11 @@ public class InternalDocstringRewritersPluginConfiguration : Plugins.PluginConfi
 
   public override DocstringRewriter[] GetDocstringRewriters(DafnyOptions options) {
     if (options.UseJavadocLikeDocstringRewriter) {
-      return new DocstringRewriter[] {
+      return [
         new JavadocLikeDocstringRewriter()
-      };
+      ];
     } else {
-      return new DocstringRewriter[] { };
+      return [];
     }
   }
 }

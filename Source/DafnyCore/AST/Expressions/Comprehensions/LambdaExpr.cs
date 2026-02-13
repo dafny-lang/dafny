@@ -1,18 +1,20 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
 public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, IFrameScope {
-  public override string WhatKind => Reads.Expressions.Count != 0 ? "lambda" : Range != null ? "partial lambda" : "total lambda";
+  public override string WhatKind => Reads.Expressions is { Count: > 0 } ? "lambda" : Range != null ? "partial lambda" : "total lambda";
 
   public Expression Body => Term;
 
-  public readonly Specification<FrameExpression> Reads;
+  public Specification<FrameExpression> Reads;
 
-  public LambdaExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression requires, Specification<FrameExpression> reads, Expression body)
-    : base(tok, rangeToken, bvars, requires, body, null) {
-    Contract.Requires(reads != null);
+  [SyntaxConstructor]
+  public LambdaExpr(IOrigin origin, List<BoundVar> boundVars, Expression? range, Specification<FrameExpression> reads, Expression term, Attributes? attributes = null)
+    : base(origin, boundVars, range, term, attributes) {
     Reads = reads;
   }
 
@@ -21,6 +23,9 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, IFrameScope
       yield return Term;
       if (Range != null) {
         yield return Range;
+      }
+      if (Reads.Expressions == null) {
+        yield break;
       }
       foreach (var read in Reads.Expressions) {
         yield return read.E;
@@ -77,7 +82,7 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, IFrameScope
     }
 
     foreach (var bv in BoundVars) {
-      if (bv.SyntacticType != null) {
+      if (bv.IsTypeExplicit) {
         formatter.SetTypeIndentation(bv.SyntacticType);
       }
     }

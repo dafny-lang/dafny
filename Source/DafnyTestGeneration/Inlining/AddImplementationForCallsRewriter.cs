@@ -15,15 +15,14 @@ using Token = Microsoft.Boogie.Token;
 namespace DafnyTestGeneration.Inlining;
 
 /// <summary>
-/// Create implementations for all "Call$$" procedures by making them
+/// Create implementations for all "CallPost$$" procedures by making them
 /// call the respective "Impl$$ implementations. This allows to implement
 /// inlining of Dafny methods further down the road.
 /// </summary>
 public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
 
-  private const string CallPrefix = "Call$$";
   private readonly DafnyOptions options;
-  private List<Implementation> implsToAdd = new();
+  private List<Implementation> implsToAdd = [];
 
   private Program /*?*/ program;
 
@@ -32,7 +31,7 @@ public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
   }
 
   public override Procedure /*?*/ VisitProcedure(Procedure /*?*/ node) {
-    if (node == null || !node.Name.StartsWith(CallPrefix) ||
+    if (node == null || !node.Name.StartsWith(BoogieGenerator.CallPrefix + BoogieGenerator.NameSeparator) ||
         node.Name.EndsWith(ProgramModifier.CtorPostfix)) {
       return node;
     }
@@ -71,12 +70,12 @@ public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
         .ToList());
     cmd.Proc = calleeProc;
     // create a block for this call:
-    var block = new Block(new Token(), "anon_0", new List<Cmd> { cmd },
+    var block = new Block(new Token(), "anon_0", [cmd],
       new ReturnCmd(new Token()));
     // construct the new implementation:
     var callerImpl = new Implementation(new Token(), callerName,
       node.TypeParameters, inParams, outParams, vars,
-      new List<Block> { block }, node.Attributes);
+      [block], node.Attributes);
     callerImpl.Proc = node;
     implsToAdd.Add(callerImpl);
     return node;
@@ -97,7 +96,7 @@ public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
 
   public override Program VisitProgram(Program node) {
     program = node;
-    implsToAdd = new();
+    implsToAdd = [];
     node = base.VisitProgram(node);
     node.AddTopLevelDeclarations(implsToAdd);
     return Utils.DeepCloneResolvedProgram(node, options);

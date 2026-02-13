@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -5,24 +7,21 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValue>, ICanFormat {
-  public readonly string DatatypeName;
-  public readonly string MemberName;
-  public readonly ActualBindings Bindings;
+  public string DatatypeName;
+  public string MemberName;
+  public ActualBindings Bindings;
   public List<Expression> Arguments => Bindings.Arguments;
 
   public override IEnumerable<INode> Children => new Node[] { Bindings };
 
-  [FilledInDuringResolution] public DatatypeCtor Ctor;
-  [FilledInDuringResolution] public List<Type> InferredTypeArgs = new List<Type>();
-  [FilledInDuringResolution] public List<PreType> InferredPreTypeArgs = new List<PreType>();
+  [FilledInDuringResolution] public DatatypeCtor? Ctor;
+  [FilledInDuringResolution] public List<Type> InferredTypeArgs = [];
+  [FilledInDuringResolution] public List<PreType> InferredPreTypeArgs = [];
   [FilledInDuringResolution] public bool IsCoCall;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(DatatypeName != null);
-    Contract.Invariant(MemberName != null);
-    Contract.Invariant(cce.NonNullElements(Arguments));
-    Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
-    Contract.Invariant(Ctor == null || InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
+    Contract.Invariant(Ctor == null || InferredTypeArgs.Count == Ctor?.EnclosingDatatype?.TypeArgs.Count);
   }
 
   public DatatypeValue Clone(Cloner cloner) {
@@ -41,34 +40,34 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
     }
   }
 
-  public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<ActualBinding> arguments)
-    : base(tok) {
-    Contract.Requires(cce.NonNullElements(arguments));
-    Contract.Requires(tok != null);
-    Contract.Requires(datatypeName != null);
-    Contract.Requires(memberName != null);
-    this.DatatypeName = datatypeName;
-    this.MemberName = memberName;
-    this.Bindings = new ActualBindings(arguments);
+  public DatatypeValue(IOrigin origin, string datatypeName, string memberName, [Captured] List<ActualBinding> arguments)
+    : this(origin, datatypeName, memberName, new ActualBindings(arguments)) {
+  }
+
+  [SyntaxConstructor]
+  public DatatypeValue(IOrigin origin, string datatypeName, string memberName, ActualBindings bindings)
+    : base(origin) {
+    DatatypeName = datatypeName;
+    MemberName = memberName;
+    Bindings = bindings;
   }
 
   /// <summary>
   /// This constructor is intended to be used when constructing a resolved DatatypeValue. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public DatatypeValue(IToken tok, string datatypeName, string memberName, List<Expression> arguments)
-    : this(tok, datatypeName, memberName, arguments.ConvertAll(e => new ActualBinding(null, e))) {
+  public DatatypeValue(IOrigin origin, string datatypeName, string memberName, List<Expression> arguments)
+    : this(origin, datatypeName, memberName, arguments.ConvertAll(e => new ActualBinding(null, e))) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 
   public override IEnumerable<Expression> SubExpressions =>
     Arguments ?? Enumerable.Empty<Expression>();
 
-  public IEnumerable<IHasNavigationToken> GetReferences() {
-    return Enumerable.Repeat(Ctor, 1);
+  public IEnumerable<Reference> GetReferences() {
+    return Enumerable.Repeat(new Reference(ReportingRange, Ctor), 1);
   }
 
-  public IToken NavigationToken => tok;
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
     return true;

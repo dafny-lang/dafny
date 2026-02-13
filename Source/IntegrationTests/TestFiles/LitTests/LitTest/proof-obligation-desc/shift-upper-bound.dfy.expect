@@ -1,4 +1,4 @@
-shift-upper-bound.dfy(5,6): Error: rotate amount must not exceed the width of the result (2)
+shift-upper-bound.dfy(5,16): Error: rotate amount must not exceed the width of the result (2)
  Asserted expression: 3 <= 2
 
 Dafny program verifier finished with 0 verified, 1 error

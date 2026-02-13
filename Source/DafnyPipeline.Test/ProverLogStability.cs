@@ -119,7 +119,7 @@ type ImapSimulator<!A, B> =
       var regularProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, originalProgram));
       regularProverLog = regularProverLog.Replace("\r", "");
       if (updateProverLog) {
-        var path = Path.GetFullPath(filePath).Replace("bin" + Path.DirectorySeparatorChar + "Debug" + Path.DirectorySeparatorChar + "net6.0" + Path.DirectorySeparatorChar, "");
+        var path = Path.GetFullPath(filePath).Replace("bin" + Path.DirectorySeparatorChar + "Debug" + Path.DirectorySeparatorChar + "net8.0" + Path.DirectorySeparatorChar, "");
         await File.WriteAllTextAsync(path, regularProverLog);
         await Console.Out.WriteLineAsync("Updated prover log file at " + path);
       } else {
@@ -143,7 +143,7 @@ type ImapSimulator<!A, B> =
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
           var (outcome, _) = await DafnyMain.BoogieOnce(new ErrorReporterSink(options),
-            options, options.OutputWriter, engine, "", "", boogieProgram, "programId");
+            options, new StringWriter(), engine, "", "", boogieProgram, "programId");
         }
       }
       foreach (var proverFile in Directory.GetFiles(directory)) {

@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -5,27 +7,31 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICloneable<LetExpr>, ICanFormat {
-  public readonly List<CasePattern<BoundVar>> LHSs;
-  public readonly List<Expression> RHSs;
-  public readonly Expression Body;
-  public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
-  public Attributes Attributes { get; set; }
-  [FilledInDuringResolution] public List<BoundedPool> Constraint_Bounds;  // null for Exact=true and for when expression is in a ghost context
+  public List<CasePattern<BoundVar>> LHSs;
+  public List<Expression> RHSs;
+  public Expression Body;
+  public bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
+
+  public Attributes? Attributes { get; set; }
+
+  string IAttributeBearingDeclaration.WhatKind => "let expression";
+
+  // null for Exact=true and for when expression is in a ghost context
+  [FilledInDuringResolution] public List<BoundedPool>? Constraint_Bounds;
   // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
-  private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
-  private BoogieGenerator lastBoogieGeneratorUsed; // avoid clashing desugaring between translators
+
+  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
+  private Expression? translationDesugaring;
+
+  private BoogieGenerator? lastBoogieGeneratorUsed; // avoid clashing desugaring between translators
 
   public void SetTranslationDesugaring(BoogieGenerator trans, Expression expr) {
     lastBoogieGeneratorUsed = trans;
     translationDesugaring = expr;
   }
 
-  public Expression GetTranslationDesugaring(BoogieGenerator trans) {
-    if (lastBoogieGeneratorUsed == trans) {
-      return translationDesugaring;
-    } else {
-      return null;
-    }
+  public Expression? GetTranslationDesugaring(BoogieGenerator trans) {
+    return lastBoogieGeneratorUsed == trans ? translationDesugaring : null;
   }
 
   public LetExpr Clone(Cloner cloner) {
@@ -43,20 +49,21 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     }
   }
 
-  public LetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
-    : base(tok) {
+  [SyntaxConstructor]
+  public LetExpr(IOrigin origin, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact, Attributes? attributes = null)
+    : base(origin) {
     LHSs = lhss;
     RHSs = rhss;
     Body = body;
     Exact = exact;
-    Attributes = attrs;
+    Attributes = attributes;
   }
 
-  public static LetExpr Havoc(IToken tok, Type type = null) {
+  public static LetExpr Havoc(IOrigin tok, Type? type = null) {
     type ??= new InferredTypeProxy();
     var boundVar = new BoundVar(tok, "x", type);
     var casePatterns = new List<CasePattern<BoundVar>>() { new(tok, boundVar) };
-    return new LetExpr(tok, casePatterns, new List<Expression>() { CreateBoolLiteral(tok, true) },
+    return new LetExpr(tok, casePatterns, [CreateBoolLiteral(tok, true)],
       new IdentifierExpr(tok, boundVar), false) {
       Type = type
     };
@@ -122,8 +129,8 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>())
-    .Concat(LHSs)
+    Attributes.AsEnumerable().
+      Concat<Node>(LHSs)
     .Concat(base.Children);
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

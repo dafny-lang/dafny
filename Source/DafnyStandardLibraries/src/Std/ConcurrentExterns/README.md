@@ -1,0 +1,1 @@
+Everything before and including the path `ConcurrentExterns/` is removed when importing these extern files into a project

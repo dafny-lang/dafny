@@ -1,4 +1,4 @@
-// RUN: %verify --allow-deprecation --solver-option="O:smt.qi.eager_threshold=30" "%s" > "%t"
+// RUN: %verify --solver-option="O:smt.qi.eager_threshold=30" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This is the Extractor Problem from section 11.8 of the ACL2 book,
@@ -25,7 +25,7 @@ ghost opaque function nth<T(00)>(n: int, xs: List<T>): T
 }
 
 ghost function nthWorker<T>(n: int, xs: List<T>): T
-  requires 0 <= n < length(xs);
+  requires 0 <= n < length(xs)
 {
   if n == 0 then xs.head else nthWorker(n-1, xs.tail)
 }
@@ -57,7 +57,7 @@ ghost function xtr<T(00)>(mp: List<int>, lst: List): List
 }
 
 lemma ExtractorTheorem<T(00)>(xs: List)
-  ensures xtr(nats(length(xs)), xs) == rev(xs);
+  ensures xtr(nats(length(xs)), xs) == rev(xs)
 {
   var a, b := xtr(nats(length(xs)), xs), rev(xs);
   calc {
@@ -73,7 +73,7 @@ lemma ExtractorTheorem<T(00)>(xs: List)
     length(b);
   }
   forall i | 0 <= i < length(xs)
-    ensures nth(i, a) == nth(i, b);
+    ensures nth(i, a) == nth(i, b)
   {
     reveal nth();
     ExtractorLemma(i, xs);
@@ -86,22 +86,22 @@ lemma ExtractorTheorem<T(00)>(xs: List)
 // lemmas about length
 
 lemma XtrLength<T(00)>(mp: List<int>, lst: List)
-  ensures length(xtr(mp, lst)) == length(mp);
+  ensures length(xtr(mp, lst)) == length(mp)
 {
 }
 
 lemma NatsLength(n: nat)
-  ensures length(nats(n)) == n;
+  ensures length(nats(n)) == n
 {
 }
 
 lemma AppendLength(xs: List, ys: List)
-  ensures length(append(xs, ys)) == length(xs) + length(ys);
+  ensures length(append(xs, ys)) == length(xs) + length(ys)
 {
 }
 
 lemma RevLength(xs: List)
-  ensures length(rev(xs)) == length(xs);
+  ensures length(rev(xs)) == length(xs)
 {
   match xs {
     case Nil =>
@@ -142,8 +142,8 @@ lemma EqualElementsMakeEqualLists<T(00)>(xs: List, ys: List)
 // here is the theorem, but applied to the ith element
 
 lemma {:isolate_assertions} ExtractorLemma<T(00)>(i: int, xs: List)
-  requires 0 <= i < length(xs);
-  ensures nth(i, xtr(nats(length(xs)), xs)) == nth(i, rev(xs));
+  requires 0 <= i < length(xs)
+  ensures nth(i, xtr(nats(length(xs)), xs)) == nth(i, rev(xs))
 {
   calc {
     nth(i, xtr(nats(length(xs)), xs));
@@ -160,8 +160,8 @@ lemma {:isolate_assertions} ExtractorLemma<T(00)>(i: int, xs: List)
 // lemmas about what nth gives on certain lists
 
 lemma NthXtr<T(00)>(i: int, mp: List<int>, lst: List<T>)
-  requires 0 <= i < length(mp);
-  ensures nth(i, xtr(mp, lst)) == nth(nth(i, mp), lst);
+  requires 0 <= i < length(mp)
+  ensures nth(i, xtr(mp, lst)) == nth(nth(i, mp), lst)
 {
   reveal nth();
   XtrLength(mp, lst);
@@ -179,8 +179,8 @@ lemma NthXtr<T(00)>(i: int, mp: List<int>, lst: List<T>)
 }
 
 lemma NthNats(i: int, n: nat)
-  requires 0 <= i < n;
-  ensures nth(i, nats(n)) == n - 1 - i;
+  requires 0 <= i < n
+  ensures nth(i, nats(n)) == n - 1 - i
 {
   reveal nth();
   NatsLength(n);
@@ -188,14 +188,14 @@ lemma NthNats(i: int, n: nat)
 }
 
 lemma NthNatsWorker(i: int, n: nat)
-  requires 0 <= i < n && length(nats(n)) == n;
-  ensures nthWorker(i, nats(n)) == n - 1 - i;
+  requires 0 <= i < n && length(nats(n)) == n
+  ensures nthWorker(i, nats(n)) == n - 1 - i
 {
 }
 
 lemma NthRev<T(00)>(i: int, xs: List)
-  requires 0 <= i < length(xs) == length(rev(xs));
-  ensures nthWorker(i, rev(xs)) == nthWorker(length(xs) - 1 - i, xs);
+  requires 0 <= i < length(xs) == length(rev(xs))
+  ensures nthWorker(i, rev(xs)) == nthWorker(length(xs) - 1 - i, xs)
 {
   reveal nth();
   assert xs.Cons?;
@@ -236,8 +236,8 @@ lemma NthRev<T(00)>(i: int, xs: List)
 }
 
 lemma NthAppendA<T(00)>(i: int, xs: List, ys: List)
-  requires 0 <= i < length(xs);
-  ensures nth(i, append(xs, ys)) == nth(i, xs);
+  requires 0 <= i < length(xs)
+  ensures nth(i, append(xs, ys)) == nth(i, xs)
 {
   reveal nth();
   if i == 0 {
@@ -258,8 +258,8 @@ lemma NthAppendA<T(00)>(i: int, xs: List, ys: List)
 }
 
 lemma NthAppendB<T(00)>(i: int, xs: List, ys: List)
-  requires length(xs) <= i < length(xs) + length(ys);
-  ensures nth(i, append(xs, ys)) == nth(i - length(xs), ys);
+  requires length(xs) <= i < length(xs) + length(ys)
+  ensures nth(i, append(xs, ys)) == nth(i - length(xs), ys)
 {
   reveal nth();
   AppendLength(xs, ys);

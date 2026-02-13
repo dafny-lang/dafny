@@ -1,5 +1,8 @@
 #! /usr/bin/env bash
 
+# Make sure to exit the script if anything goes wrong
+set -e
+
 ## This script copies the current development docs into the dafny.org
 ## user-facing web pages, making a snapshot of the current docs.
 ## It is intended to be run as part of a release procedure (so that
@@ -18,8 +21,8 @@
 ## It also takes one option: -b <branchname>
 ## (the branch used defaults to 'master')
 
-if [ ! `which gh` ]; then echo "This script requires that gh is installed"; exit 1; fi
-if [ ! `which git` ]; then echo "This script requires that git is installed"; exit 1; fi
+if ! which gh >/dev/null 2>&1; then echo "This script requires that gh is installed"; exit 1; fi
+if ! which git >/dev/null 2>&1; then echo "This script requires that git is installed"; exit 1; fi
 
 ## Check that gh is logged in by running gh auth status, and if not, run gh auth login
 if [ -z "`gh auth status | grep -i logged`" ]; then
@@ -69,8 +72,10 @@ mkdir -p $P
 CWD=`pwd`
 cd $P
 (git clone git@github.com:dafny-lang/dafny.git -b $branch --depth 1) || \
+(echo "Retrying with the HTTPS protocol..." && git clone https://github.com/dafny-lang/dafny.git -b $branch --depth 1) || \
     (echo FAILED to clone dafny; exit 1)
 (git clone git@github.com:dafny-lang/dafny-lang.github.io.git -b main --depth 1) || \
+    (echo "Retrying with the HTTPS protocol..." && git clone https://github.com/dafny-lang/dafny-lang.github.io.git -b main --depth 1) || \
     (echo FAILED to clone dafny-lang.github.io; exit 1)
 cd $CWD
 
@@ -88,10 +93,10 @@ echo Branch is "$B"
 ## Changes locally
 git checkout -b "$B" $branch
 sed -i -e "szlatest)zlatest)\n- [$V](https://dafny.org/$V)z" Snapshots.md
-rm Snapshots.md-e
+rm Snapshots.md-e || echo "No Snapshots.md-e to remove"
 git add Snapshots.md
 git commit -m "Documentation snapshot for $V"
-git push --set-upstream origin "$B"
+git push --force --set-upstream origin "$B"
 (gh pr create --fill -R https://github.com/dafny-lang/dafny -B $branch --head "$B" | tail -1 > $P/url1) || \
     (echo FAILED to create PR with gh; exit 1)
 
@@ -121,7 +126,7 @@ sed -i -e "s/$M.*/${M}Latest release documentation snapshot/" $T/latest/index.ht
 
 CWD=`pwd`
 cd $T
-rm `find . -name index.html-e`
+rm `find . -name index.html-e` || echo "index.html-e not deleted because not found"
 
 (git add -u \
   && git add "$V" \
@@ -130,7 +135,7 @@ rm `find . -name index.html-e`
   ) || ( echo FAILED to commit or push the snapshot ; exit 1  ) \
 
 git status
-git push --set-upstream origin "$B"
+git push --force --set-upstream origin "$B"
 gh pr create --fill -R https://github.com/dafny-lang/dafny-lang.github.io -B main --head "$B" | tail -1 > $P/url2
 cd $CWD
 

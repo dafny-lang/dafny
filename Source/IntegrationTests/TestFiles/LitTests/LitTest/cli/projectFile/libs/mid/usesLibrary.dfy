@@ -9,7 +9,5 @@ module Consumer {
     Some(42)
   }
 
-  method AssertFalse() {
-    assert false;
-  }
+  method AssertFalse() ensures false { } 
 }

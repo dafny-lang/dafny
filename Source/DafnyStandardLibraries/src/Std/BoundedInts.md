@@ -36,7 +36,6 @@ In the second, the module is imported as opened, in which case the type and cons
 ```dafny
 module M {
   import BI = Std.BoundedInts
-  
   method m(k: BI.int16) {
     assert k as int < BI.TWO_TO_THE_15;
   }

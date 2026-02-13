@@ -1,0 +1,2 @@
+autoinit.dfy(5,6): Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option
+1 resolution/type errors detected in autoinit.dfy

@@ -240,7 +240,7 @@ method test_factorial1()
   var n10 := S(S(S(S(n6))));
   var n12 := S(S(n10));
 
-  assert factorial(n5)==mult(n10, n12);
+  assert {:split_here} factorial(S(n3)) == mult(n2, n12);
 }
 
 method test_factorial1_old()

@@ -1,13 +1,14 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using System.Numerics;
 
 namespace Microsoft.Dafny;
 
 public class LitPattern : ExtendedPattern {
-  public readonly Expression OrigLit;  // the expression as parsed; typically a LiteralExpr, but could be a NegationExpression
-  private LiteralExpr optimisticallyDesugaredLit;
+  public Expression OrigLit;  // the expression as parsed; typically a LiteralExpr, but could be a NegationExpression
+  private LiteralExpr? optimisticallyDesugaredLit;
 
   /// <summary>
   /// The patterns of match constructs are rewritten very early during resolution, before any type information
@@ -39,11 +40,11 @@ public class LitPattern : ExtendedPattern {
         if (OrigLit is NegationExpression neg) {
           var lit = (LiteralExpr)neg.E;
           if (lit.Value is BaseTypes.BigDec d) {
-            optimisticallyDesugaredLit = new LiteralExpr(neg.tok, -d);
+            optimisticallyDesugaredLit = new LiteralExpr(neg.Origin, -d);
           } else {
-            var n = (BigInteger)lit.Value;
-            var tok = new Token(neg.tok.line, neg.tok.col) {
-              Uri = neg.tok.Uri,
+            var n = (BigInteger)lit.Value!;
+            var tok = new Token(neg.Origin.line, neg.Origin.col) {
+              Uri = neg.Origin.Uri,
               val = "-0"
             };
             optimisticallyDesugaredLit = new LiteralExpr(tok, -n);
@@ -56,9 +57,10 @@ public class LitPattern : ExtendedPattern {
     }
   }
 
-  public LitPattern(IToken tok, Expression lit, bool isGhost = false) : base(tok, isGhost) {
-    Contract.Requires(lit is LiteralExpr || lit is NegationExpression);
-    this.OrigLit = lit;
+  [SyntaxConstructor]
+  public LitPattern(IOrigin origin, Expression origLit, bool isGhost = false) : base(origin, isGhost) {
+    Contract.Requires(origLit is LiteralExpr || origLit is NegationExpression);
+    OrigLit = origLit;
   }
 
   public override string ToString() {
@@ -81,7 +83,7 @@ public class LitPattern : ExtendedPattern {
 
     var literal = OptimisticallyDesugaredLit;
     resolver.ResolveExpression(literal, resolutionContext);
-    resolver.AddAssignableConstraint(literal.tok, sourceType, literal.Type,
+    resolver.AddAssignableConstraint(literal.Origin, sourceType, literal.Type,
       "literal expression in case (of type '{1}') not assignable to match source type '{0}'");
   }
 }

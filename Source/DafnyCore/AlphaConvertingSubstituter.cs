@@ -10,18 +10,18 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class AlphaConvertingSubstituter : Substituter {
     public AlphaConvertingSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
-      : base(receiverReplacement is ImplicitThisExpr ? new ThisExpr(receiverReplacement.tok) { Type = receiverReplacement.Type } : receiverReplacement, substMap, typeMap) {
+      : base(receiverReplacement is ImplicitThisExpr ? new ThisExpr(receiverReplacement.Origin) { Type = receiverReplacement.Type } : receiverReplacement, substMap, typeMap) {
       Contract.Requires(substMap != null);
       Contract.Requires(typeMap != null);
     }
     protected override List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfBoundVars) {
-      var newBoundVars = vars.Count == 0 ? vars : new List<BoundVar>();
+      var newBoundVars = vars.Count == 0 ? vars : [];
       foreach (var bv in vars) {
         var tt = bv.Type.Subst(typeMap);
-        var newBv = new BoundVar(bv.tok, "_'" + bv.Name, tt);
+        var newBv = new BoundVar(bv.Origin, "_'" + bv.Name, tt);
         newBoundVars.Add(newBv);
         // update substMap to reflect the new BoundVar substitutions
-        var ie = new IdentifierExpr(newBv.tok, newBv.Name) { Var = newBv, Type = newBv.Type };
+        var ie = new IdentifierExpr(newBv.Origin, newBv.Name) { Var = newBv, Type = newBv.Type };
         substMap.Add(bv, ie);
       }
       return newBoundVars;

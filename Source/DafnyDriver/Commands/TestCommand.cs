@@ -9,7 +9,7 @@ static class TestCommand {
   static TestCommand() {
     DafnyOptions.RegisterLegacyBinding(MethodsToTest, (o, v) => { o.MethodsToTest = v; });
 
-    DooFile.RegisterNoChecksNeeded(MethodsToTest, false);
+    OptionRegistry.RegisterOption(MethodsToTest, OptionScope.Cli);
 
     DafnyOptions.RegisterLegacyUi(RunAllTestsMainMethod.IncludeTestRunner, DafnyOptions.ParseBoolean, "Compilation options", "runAllTests", @"0 (default) - Annotates compiled methods with the {:test}
         attribute such that they can be tested using a testing framework

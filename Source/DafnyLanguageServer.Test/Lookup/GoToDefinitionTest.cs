@@ -12,6 +12,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class GoToDefinitionTest : ClientBasedLanguageServerTest {
 
     [Fact]
+    public async Task DatatypeFields() {
+      var source = @"
+datatype MultipleFields = MultipleFields(x: int, [>y<]: int)
+
+method Update(m: MultipleFields) {
+  var m2 := m.(><y := 3);
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
+    }
+
+    [Fact]
     public async Task ModuleImport1ResolutionErrorInDependency() {
       var source = @"
 module User {

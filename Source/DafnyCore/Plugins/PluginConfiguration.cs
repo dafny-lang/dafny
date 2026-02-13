@@ -28,7 +28,7 @@ public abstract class PluginConfiguration {
   /// </summary>
   /// <returns>a list of Rewriter that are going to be used in the resolution pipeline</returns>
   public virtual Rewriter[] GetRewriters(ErrorReporter errorReporter) {
-    return Array.Empty<Rewriter>();
+    return [];
   }
 
   /// <summary>
@@ -37,7 +37,7 @@ public abstract class PluginConfiguration {
   /// <param name="options"></param>
   /// <returns>A list of compilers implemented by this plugin</returns>
   public virtual IExecutableBackend[] GetCompilers(DafnyOptions options) {
-    return Array.Empty<IExecutableBackend>();
+    return [];
   }
 
   /// <summary>
@@ -46,7 +46,7 @@ public abstract class PluginConfiguration {
   /// <param name="options"></param>
   /// <returns>A list of docstring converters implemented by this plugin, applied from left to right</returns>
   public virtual DocstringRewriter[] GetDocstringRewriters(DafnyOptions options) {
-    return Array.Empty<DocstringRewriter>();
+    return [];
   }
 
   /// <summary>
@@ -55,6 +55,6 @@ public abstract class PluginConfiguration {
   /// <param name="options"></param>
   /// <returns>A list of compiler instrumenters implemented by this plugin</returns>
   public virtual CompilerInstrumenter[] GetCompilerInstrumenters(ErrorReporter reporter) {
-    return Array.Empty<CompilerInstrumenter>();
+    return [];
   }
 }

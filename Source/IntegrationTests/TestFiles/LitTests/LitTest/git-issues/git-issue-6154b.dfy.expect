@@ -1,0 +1,3 @@
+git-issue-6154b.dfy(6,14): Error: arguments to rank comparison must be datatypes (got Y and IList<X>)
+git-issue-6154b.dfy(7,15): Error: arguments to rank comparison must be datatypes (got IList<X> and Y)
+2 resolution/type errors detected in git-issue-6154b.dfy

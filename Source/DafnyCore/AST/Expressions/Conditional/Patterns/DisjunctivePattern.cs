@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -5,10 +7,12 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class DisjunctivePattern : ExtendedPattern {
-  public readonly List<ExtendedPattern> Alternatives;
-  public DisjunctivePattern(IToken tok, List<ExtendedPattern> alternatives, bool isGhost = false) : base(tok, isGhost) {
-    Contract.Requires(alternatives != null && alternatives.Count > 0);
-    this.Alternatives = alternatives;
+  public List<ExtendedPattern> Alternatives;
+
+  [SyntaxConstructor]
+  public DisjunctivePattern(IOrigin origin, List<ExtendedPattern> alternatives, bool isGhost = false) : base(origin, isGhost) {
+    Contract.Requires(alternatives.Count > 0);
+    Alternatives = alternatives;
   }
 
   public override IEnumerable<INode> Children => Alternatives;
@@ -29,7 +33,7 @@ public class DisjunctivePattern : ExtendedPattern {
     bool inPattern, bool inDisjunctivePattern) {
 
     if (inPattern) {
-      resolver.reporter.Error(MessageSource.Resolver, Tok, "Disjunctive patterns are not allowed inside other patterns");
+      resolver.reporter.Error(MessageSource.Resolver, Origin, "Disjunctive patterns are not allowed inside other patterns");
     }
 
     foreach (var alternative in Alternatives) {

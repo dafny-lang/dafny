@@ -2,19 +2,20 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
 public class CoverageInstrumenter {
   private readonly SinglePassCodeGenerator codeGenerator;
-  private List<(IToken, string)>/*?*/ legend;  // non-null implies options.CoverageLegendFile is non-null
+  private List<(IOrigin, string)>/*?*/ legend;  // non-null implies options.CoverageLegendFile is non-null
   private string talliesFilePath;
 
   public CoverageInstrumenter(SinglePassCodeGenerator codeGenerator) {
     this.codeGenerator = codeGenerator;
     if (codeGenerator.Options?.CoverageLegendFile != null
         || codeGenerator.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
-      legend = new List<(IToken, string)>();
+      legend = [];
     }
 
     if (codeGenerator.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
@@ -26,7 +27,7 @@ public class CoverageInstrumenter {
     get => legend != null;
   }
 
-  public void Instrument(IToken tok, string description, ConcreteSyntaxTree wr) {
+  public void Instrument(IOrigin tok, string description, ConcreteSyntaxTree wr) {
     Contract.Requires(tok != null);
     Contract.Requires(description != null);
     Contract.Requires(wr != null || !IsRecording);
@@ -37,7 +38,7 @@ public class CoverageInstrumenter {
     }
   }
 
-  public void UnusedInstrumentationPoint(IToken tok, string description) {
+  public void UnusedInstrumentationPoint(IOrigin tok, string description) {
     Contract.Requires(tok != null);
     Contract.Requires(description != null);
     if (legend != null) {
@@ -45,7 +46,7 @@ public class CoverageInstrumenter {
     }
   }
 
-  public void InstrumentExpr(IToken tok, string description, bool resultValue, ConcreteSyntaxTree wr) {
+  public void InstrumentExpr(IOrigin tok, string description, bool resultValue, ConcreteSyntaxTree wr) {
     Contract.Requires(tok != null);
     Contract.Requires(description != null);
     Contract.Requires(wr != null || !IsRecording);
@@ -79,19 +80,22 @@ public class CoverageInstrumenter {
     }
   }
 
-  public void WriteLegendFile() {
-    if (codeGenerator.Options?.CoverageLegendFile != null) {
-      var filename = codeGenerator.Options.CoverageLegendFile;
-      Contract.Assert(filename != null);
-      TextWriter wr = filename == "-" ? codeGenerator.Options.OutputWriter : new StreamWriter(new FileStream(Path.GetFullPath(filename), FileMode.Create));
-      {
-        for (var i = 0; i < legend.Count; i++) {
-          var e = legend[i];
-          wr.WriteLine($"{i}: {e.Item1.TokenToString(codeGenerator.Options)}: {e.Item2}");
-        }
-      }
-      legend = null;
+  public async Task WriteLegendFile() {
+    if (codeGenerator.Options?.CoverageLegendFile == null) {
+      return;
     }
+
+    var filename = codeGenerator.Options.CoverageLegendFile;
+    Contract.Assert(filename != null);
+    await using TextWriter wr = filename == "-"
+      ? codeGenerator.Options.OutputWriter.StatusWriter()
+      : new StreamWriter(new FileStream(Path.GetFullPath(filename), FileMode.Create));
+    for (var i = 0; i < legend.Count; i++) {
+      var e = legend[i];
+      await wr.WriteLineAsync($"{i}: {e.Item1.OriginToString(codeGenerator.Options)}: {e.Item2}");
+    }
+
+    legend = null;
   }
 
   public void PopulateCoverageReport(CoverageReport coverageReport) {
@@ -102,8 +106,9 @@ public class CoverageInstrumenter {
         var label = tally == 0 ? CoverageLabel.NotCovered : CoverageLabel.FullyCovered;
         // For now we only identify branches at the line granularity,
         // which matches what `dafny generate-tests ... --coverage-report` does as well.
-        var rangeToken = new RangeToken(new Token(token.line, 1), new Token(token.line + 1, 0));
-        rangeToken.Uri = token.Uri;
+        var rangeToken = new TokenRange(
+          new Token(token.line, 1) { Uri = token.Uri },
+          new Token(token.line + 1, 1));
         coverageReport.LabelCode(rangeToken, label);
       }
     }

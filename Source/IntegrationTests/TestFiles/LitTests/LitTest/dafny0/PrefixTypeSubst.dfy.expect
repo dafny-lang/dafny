@@ -231,7 +231,7 @@ greatest lemma N<D0, D1, D2>(o: MyClass<D0, D1>)
   N<D0, D1, D2>(o);
 }
 /***
-lemma {:axiom} /*{:_induction _k}*/ N#<D0, D1, D2>[_k: ORDINAL](o: MyClass<D0, D1>)
+lemma {:axiom} /*{:_inductionTrigger o.R#[_k]()}*/ /*{:_induction _k}*/ N#<D0, D1, D2>[_k: ORDINAL](o: MyClass<D0, D1>)
   ensures o.R#<D2>[_k]()
   decreases _k, o
 {
@@ -253,7 +253,7 @@ greatest lemma O<D0, D1, D2>()
   O<D0, D1, D2>();
 }
 /***
-lemma {:axiom} /*{:_induction _k}*/ O#<D0, D1, D2>[_k: ORDINAL]()
+lemma {:axiom} /*{:_inductionTrigger MyClass<D0, D1>.S#[_k]()}*/ /*{:_induction _k}*/ O#<D0, D1, D2>[_k: ORDINAL]()
   ensures MyClass<D0, D1>.S#<D2>[_k]()
   decreases _k
 {
@@ -448,7 +448,7 @@ greatest lemma RstRst7<alpha, beta, gamma>()
   }
 }
 /***
-lemma {:axiom} /*{:_induction _k}*/ RstRst7#<alpha, beta, gamma>[_k: ORDINAL]()
+lemma {:axiom} /*{:_inductionTrigger MyClass<alpha, beta>.RST#[_k]()}*/ /*{:_induction _k}*/ RstRst7#<alpha, beta, gamma>[_k: ORDINAL]()
   ensures MyClass<alpha, beta>.RST#<gamma>[_k]()
   decreases _k
 {
@@ -512,7 +512,7 @@ greatest lemma RstRst10<alpha, beta, gamma>[nat]()
 {
 }
 /***
-lemma {:axiom} /*{:_induction _k}*/ RstRst10#<alpha, beta, gamma>[_k: nat]()
+lemma {:axiom} /*{:_inductionTrigger MyClass<alpha, beta>.RST_Nat#[_k]()}*/ /*{:_induction _k}*/ RstRst10#<alpha, beta, gamma>[_k: nat]()
   ensures MyClass<alpha, beta>.RST_Nat#<gamma>[_k]()
   decreases _k
 {
@@ -588,7 +588,7 @@ class MyClass<A, B> {
     L(u, v);
   }
   /***
-  lemma {:axiom} /*{:_induction this, _k}*/ L#<U, V>[_k: ORDINAL](u: U, v: V)
+  lemma {:axiom} /*{:_inductionTrigger P#[_k](u, v)}*/ /*{:_induction _k}*/ L#<U, V>[_k: ORDINAL](u: U, v: V)
     ensures P#[_k](u, v)
     decreases _k
   {
@@ -611,7 +611,7 @@ class MyClass<A, B> {
     assert R#<char>[_k - 1]();
   }
   /***
-  lemma {:axiom} /*{:_induction this, _k}*/ M#<W>[_k: ORDINAL]()
+  lemma {:axiom} /*{:_inductionTrigger R#[_k]()}*/ /*{:_induction _k}*/ M#<W>[_k: ORDINAL]()
     ensures R#<char>[_k]()
     decreases _k
   {
@@ -649,7 +649,7 @@ module DefaultValueExpressionSubstitution {
    */
   method Test()
   {
-    var r: int := 3 + Fa<real>(7, 7 + var x: real :| true; 7);
+    var r: int := 3 + Fa<real>(7, 7 + var x: real /*{:_delayTriggerWarning}*/ /*{:_noAutoTriggerFound}*/ :| true; 7);
     r := r + Fb<real>({});
     var rs: set<real> := {2.7};
     r := r + Fc<real>(rs, forall xa: real {:trigger xa in rs} :: xa in rs ==> true);
@@ -688,19 +688,19 @@ module DefaultValueExpressionSubstitution {
   }
 }
 PrefixTypeSubst.dfy(52,0): Error: a postcondition could not be proved on this return path
-PrefixTypeSubst.dfy(51,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
+PrefixTypeSubst.dfy(51,40): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,24): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(58,0): Error: a postcondition could not be proved on this return path
-PrefixTypeSubst.dfy(57,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
+PrefixTypeSubst.dfy(57,40): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,24): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(64,0): Error: a postcondition could not be proved on this return path
-PrefixTypeSubst.dfy(63,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
+PrefixTypeSubst.dfy(63,40): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,24): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(70,0): Error: a postcondition could not be proved on this return path
-PrefixTypeSubst.dfy(69,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
+PrefixTypeSubst.dfy(69,40): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,24): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(85,9): Error: a postcondition could not be proved on this return path
-PrefixTypeSubst.dfy(81,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
+PrefixTypeSubst.dfy(81,40): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,24): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 12 verified, 5 errors

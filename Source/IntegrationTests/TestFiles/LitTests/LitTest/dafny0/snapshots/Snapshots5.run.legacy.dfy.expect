@@ -1,27 +1,27 @@
-Snapshots5.v0.dfy(10,12): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-Snapshots5.v0.dfy(13,10): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-Snapshots5.v0.dfy(20,12): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-Snapshots5.v0.dfy(26,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-Processing command (at Snapshots5.v0.dfy(10,40)) assert {:id "id1"} (forall b#1_1: bool :: b#1_1 || !b#1_1) || 0 != 0;
+Snapshots5.v0.dfy(10,12): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+Snapshots5.v0.dfy(13,10): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+Snapshots5.v0.dfy(20,12): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+Snapshots5.v0.dfy(26,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+Processing command (at Snapshots5.v0.dfy(10,5)) assert {:id "id1"} (forall b#1_1: bool :: b#1_1 || !b#1_1) || 0 != 0;
   >>> DoNothingToAssert
-Processing command (at Snapshots5.v0.dfy(13,38)) assert {:id "id3"} (forall b#1: bool :: b#1 || !b#1) || 3 != 3;
+Processing command (at Snapshots5.v0.dfy(13,3)) assert {:id "id3"} (forall b#1: bool :: b#1 || !b#1) || 3 != 3;
   >>> DoNothingToAssert
-Processing command (at Snapshots5.v0.dfy(20,40)) assert {:id "id4"} (forall b#3_1: bool :: b#3_1 || !b#3_1) || 1 != 1;
+Processing command (at Snapshots5.v0.dfy(20,5)) assert {:id "id4"} (forall b#3_1: bool :: b#3_1 || !b#3_1) || 1 != 1;
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 1 verified, 0 errors
-Snapshots5.v1.dfy(10,12): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-Snapshots5.v1.dfy(13,10): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-Snapshots5.v1.dfy(20,12): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-Snapshots5.v1.dfy(22,10): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-Snapshots5.v1.dfy(27,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-Processing command (at Snapshots5.v1.dfy(10,40)) assert {:id "id10"} (forall b#1_1: bool :: b#1_1 || !b#1_1) || 0 != 0;
+Snapshots5.v1.dfy(10,12): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+Snapshots5.v1.dfy(13,10): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+Snapshots5.v1.dfy(20,12): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+Snapshots5.v1.dfy(22,10): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+Snapshots5.v1.dfy(27,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+Processing command (at Snapshots5.v1.dfy(10,5)) assert {:id "id10"} (forall b#1_1: bool :: b#1_1 || !b#1_1) || 0 != 0;
   >>> MarkAsFullyVerified
-Processing command (at Snapshots5.v1.dfy(13,38)) assert {:id "id12"} (forall b#1: bool :: b#1 || !b#1) || 3 != 3;
+Processing command (at Snapshots5.v1.dfy(13,3)) assert {:id "id12"} (forall b#1: bool :: b#1 || !b#1) || 3 != 3;
   >>> MarkAsFullyVerified
-Processing command (at Snapshots5.v1.dfy(20,37)) assert {:id "id13"} (exists b#3_1: bool :: Lit(true)) || 4 != 4;
+Processing command (at Snapshots5.v1.dfy(20,5)) assert {:id "id13"} (exists b#3_1: bool :: Lit(true)) || 4 != 4;
   >>> DoNothingToAssert
-Processing command (at Snapshots5.v1.dfy(22,35)) assert {:id "id14"} (exists b#3: bool :: Lit(true)) || 5 != 5;
+Processing command (at Snapshots5.v1.dfy(22,3)) assert {:id "id14"} (exists b#3: bool :: Lit(true)) || 5 != 5;
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 1 verified, 0 errors

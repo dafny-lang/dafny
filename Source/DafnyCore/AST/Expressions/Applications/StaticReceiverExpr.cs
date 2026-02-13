@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 /// been invoked without specifying a receiver (that is, by just giving the name of the enclosing class).
 /// </summary>
 public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
-  public readonly Type UnresolvedType;
+  public Type UnresolvedType;
   /// <summary>
   /// A static member can be invoked through an object, in which case the object is not used for the call.
   /// However, the object expression must be verified and is thus stored here, in addition to its type.
@@ -21,9 +21,9 @@ public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
   /// </summary>
   public Expression ContainerExpression;
 
-  public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public StaticReceiverExpr(IOrigin origin, Type t, bool isImplicit)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(t != null);
     UnresolvedType = t;
     IsImplicit = isImplicit;
@@ -38,12 +38,12 @@ public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
   /// Constructs a resolved LiteralExpr representing the fictitious static-receiver literal whose type is
   /// "cl" parameterized by the type arguments of "cl" itself.
   /// </summary>
-  public StaticReceiverExpr(IToken tok, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public StaticReceiverExpr(IOrigin origin, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(cl != null);
     var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-    Type = new UserDefinedType(tok, cl is DefaultClassDecl ? cl.Name : cl.Name + "?", cl, typeArgs);
+    Type = new UserDefinedType(origin, cl is DefaultClassDecl ? cl.Name : cl.Name + "?", cl, typeArgs);
     UnresolvedType = Type;
     IsImplicit = isImplicit;
     ObjectToDiscard = lhs;
@@ -62,9 +62,9 @@ public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
   ///   a trait that in turn extends trait "W(g(Y))".  If "t" denotes type "C(G)" and "cl" denotes "W",
   ///   then type of the StaticReceiverExpr will be "T(g(f(G)))".
   /// </summary>
-  public StaticReceiverExpr(IToken tok, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public StaticReceiverExpr(IOrigin origin, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(t.ResolvedClass != null);
     Contract.Requires(cl != null);
     var top = t.AsTopLevelTypeWithMembersBypassInternalSynonym;
@@ -73,9 +73,9 @@ public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
       var clArgsInTermsOfTFormals = cl.TypeArgs.ConvertAll(tp => top.ParentFormalTypeParametersToActuals[tp]);
       var subst = TypeParameter.SubstitutionMap(top.TypeArgs, t.TypeArgs);
       var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => ty.Subst(subst));
-      Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
+      Type = new UserDefinedType(origin, cl.Name, cl, typeArgs);
     } else if (t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
-      Type = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
+      Type = new UserDefinedType(origin, cl.Name, cl, t.TypeArgs);
     } else {
       Type = t;
     }

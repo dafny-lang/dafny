@@ -1,7 +1,14 @@
 excludes = [
   # Built per-target language instead
-  "**/TargetSpecific/*.dfy"
+  "**/TargetSpecific/*.dfy",
 ]
+
+# includes = [
+#   "Std/Collections/Set.dfy",
+#   "Std/Functions.dfy",
+#   "Std/Relations.dfy",
+#   "Std/Termination.dfy"
+# ]
 
 [options]
 # Options that help support more values of consuming context options
@@ -9,10 +16,14 @@ excludes = [
 track-print-effects = true
 enforce-determinism = true
 reads-clauses-on-methods = true
+type-system-refresh = true
+general-traits = "datatype"
+general-newtypes = true
 
 # Options important for sustainable development
 # of the libraries themselves.
 resource-limit = 1000000
+verification-time-limit = 300
 # These give too many false positives right now, but should be enabled in the future
 warn-redundant-assumptions = false
 warn-contradictory-assumptions = false

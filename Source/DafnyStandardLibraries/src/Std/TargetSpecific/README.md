@@ -40,3 +40,8 @@ is shared between concurrent executions
 (see [the `{:concurrent}` attribute](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-concurrent-attribute)).
 It cannot currently offer any other guarantees related to concurrent execution,
 such as freedom from deadlocks.
+
+## Notes about naming
+
+Currently, replacement modules should appear in files before the files containing modules that include them, [issue tracked here](https://github.com/dafny-lang/dafny/issues/5728).
+Therefore, until that issue is fixed, it might be advisable to add a number in your files to make the order deterministic, as the "find" command might have different outputs based on the OS.

@@ -1,6 +1,6 @@
-using System;
+#nullable enable
+
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny;
@@ -18,28 +18,29 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
 
   IReadOnlyList<NestedMatchCase> INestedMatch.Cases => Cases;
 
-  public readonly bool UsesOptionalBraces;
-  public Attributes Attributes;
+  public bool UsesOptionalBraces;
+  public Attributes? Attributes;
 
-  [FilledInDuringResolution]
-  public Expression Flattened { get; set; }
+  [FilledInDuringResolution] public Expression Flattened { get; set; } = null!;
 
   public NestedMatchExpr(Cloner cloner, NestedMatchExpr original) : base(cloner, original) {
-    this.Source = cloner.CloneExpr(original.Source);
-    this.Cases = original.Cases.Select(cloner.CloneNestedMatchCaseExpr).ToList();
-    this.UsesOptionalBraces = original.UsesOptionalBraces;
+    Source = cloner.CloneExpr(original.Source);
+    Cases = original.Cases.Select(cloner.CloneNestedMatchCaseExpr).ToList();
+    UsesOptionalBraces = original.UsesOptionalBraces;
+
     if (cloner.CloneResolvedFields) {
       Flattened = cloner.CloneExpr(original.Flattened);
     }
   }
 
-  public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces, Attributes attrs = null) : base(tok) {
-    Contract.Requires(source != null);
-    Contract.Requires(cce.NonNullElements(cases));
-    this.Source = source;
-    this.Cases = cases;
-    this.UsesOptionalBraces = usesOptionalBraces;
-    this.Attributes = attrs;
+  [SyntaxConstructor]
+  public NestedMatchExpr(IOrigin origin, Expression source, [Captured] List<NestedMatchCaseExpr> cases,
+    bool usesOptionalBraces, Attributes? attributes = null)
+    : base(origin) {
+    Source = source;
+    Cases = cases;
+    UsesOptionalBraces = usesOptionalBraces;
+    Attributes = attributes;
   }
 
   public override IEnumerable<Expression> SubExpressions {
@@ -64,13 +65,13 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
       resolver.PartiallySolveTypeConstraints(true);
 
       if (Source.Type is TypeProxy) {
-        resolver.reporter.Error(MessageSource.Resolver, tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
+        resolver.reporter.Error(MessageSource.Resolver, Origin, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
         return;
       }
     }
 
     var errorCount = resolver.reporter.Count(ErrorLevel.Error);
-    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.tok, Source.Type).NormalizeExpand();
+    var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.Origin, Source.Type).NormalizeExpand();
     if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
     }

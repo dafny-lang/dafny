@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
+using System.CommandLine.Builder;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -7,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny;
+using Scripts;
 using TestDafny;
 using Xunit;
 using Xunit.Abstractions;
@@ -25,18 +28,18 @@ namespace IntegrationTests {
     private static readonly Assembly TestDafnyAssembly = typeof(MultiBackendTest).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
-    private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
+    private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net8.0/
 
-    private static readonly string[] DefaultBoogieArguments = new[] {
+    private static readonly string[] DefaultBoogieArguments = [
       "/infer:j",
       "/proverOpt:O:auto_config=false",
       "/proverOpt:O:type_check=true",
       "/proverOpt:O:smt.case_split=3",
-      "/proverOpt:O:smt.qi.eager_threshold=100",
+      "/proverOpt:O:smt.qi.eager_threshold=44",
       "/proverOpt:O:smt.delay_units=true",
       "/proverOpt:O:smt.arith.solver=2",
       "/proverOpt:PROVER_PATH:" + RepositoryRoot + $"../unzippedRelease/dafny/z3/bin/z3-{DafnyOptions.DefaultZ3Version}"
-    };
+    ];
 
     private static readonly LitTestConfiguration Config;
 
@@ -60,21 +63,84 @@ namespace IntegrationTests {
       // These explicit defaults are here, and should remain here independent of the user-facing defaults.
       // The metatests/StdLibsOffByDefaultInTests.dfy test directly enforces this.
 
-      string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false" };
-      string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
-      string[] defaultTranslateArgs = new[] { "--use-basename-for-filename", "--cores:2", "--standard-libraries:false", "--verification-time-limit:300", "--resource-limit:50e6" };
-      string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
-      string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
+      string[] defaultResolveArgs = ["resolve",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false"
+      ];
+      string[] defaultVerifyArgs = ["verify",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false",
+        "--cores:2",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
+      ];
+      string[] defaultTranslateArgs = [ // these are arguments you get with %translate (additional standard arguments are obtained by %trargs
+      ];
+      string[] trargs = [
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
+        "--use-basename-for-filename",
+        "--cores:2",
+        "--show-snippets:false",
+        "--standard-libraries:false",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
+      ];
+
+      string[] defaultBuildArgs = ["build",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false",
+        "--cores:2",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
+      ];
+      string[] defaultRunArgs = ["run",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
+        "--use-basename-for-filename",
+        "--show-snippets:false",
+        "--standard-libraries:false",
+        "--cores:2",
+        "--verification-time-limit:300",
+        "--resource-limit:50e6"
+      ];
+      string[] defaultAuditArgs = ["audit",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
+        "--use-basename-for-filename",
+        "--standard-libraries:false"
+      ];
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
-        { "%trargs", "--use-basename-for-filename --show-snippets:false, --standard-libraries:false --cores:2 --verification-time-limit:300 --resource-limit:50e6" },
+        { "%trargs", trargs },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}") },
         { "%repositoryRoot", RepositoryRoot.Replace(@"\", "/") },
       };
 
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
+        {
+          "%tobinary", (args, config) =>
+            new MainWithWritersCommand("source-to-binary", args,
+              async (output, error, input, finalArgs) =>
+                await SourceToBinary.GetCommand(output).InvokeAsync(finalArgs))
+        },
         {
           "%baredafny", (args, config) =>
             DafnyCommand(args, config, InvokeMainMethodsDirectly)
@@ -102,6 +168,9 @@ namespace IntegrationTests {
         }, {
           "%run", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultRunArgs, args), config, InvokeMainMethodsDirectly)
+        }, {
+          "%audit", (args, config) =>
+            DafnyCommand(AddExtraArgs(defaultAuditArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
             DafnyCommand(AddExtraArgs(DafnyCliTests.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)
@@ -133,6 +202,12 @@ namespace IntegrationTests {
         }, {
           "%sed", (args, config) => SedCommand.Parse(args.ToArray())
         }, {
+          "%mv", (args, config) => MvCommand.Parse(args.ToArray())
+        }, {
+          "%rm", (args, config) => RmCommand.Parse(args.ToArray())
+        }, {
+          "%cp", (args, config) => CpCommand.Parse(args.ToArray())
+        }, {
           "%OutputCheck", OutputCheckCommand.Parse
         }
       };
@@ -142,9 +217,9 @@ namespace IntegrationTests {
 
       string[] features;
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-        features = new[] { "ubuntu", "posix" };
+        features = ["ubuntu", "posix"];
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-        features = new[] { "windows" };
+        features = ["windows"];
         string path = System.Reflection.Assembly.GetExecutingAssembly().Location;
         var directory = System.IO.Path.GetDirectoryName(path);
         Environment.SetEnvironmentVariable("DOTNET_CLI_HOME", directory);
@@ -155,7 +230,7 @@ namespace IntegrationTests {
         Environment.SetEnvironmentVariable("HOME",
           Environment.GetEnvironmentVariable("HOMEDRIVE") + Environment.GetEnvironmentVariable("HOMEPATH"));
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-        features = new[] { "macosx", "posix" };
+        features = ["macosx", "posix"];
       } else {
         throw new Exception($"Unsupported OS: {RuntimeInformation.OSDescription}");
       }
@@ -224,9 +299,12 @@ namespace IntegrationTests {
     }
 
     [FileTheory]
-    [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
-              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
-              })]
+    [FileData(Includes = ["**/*.dfy", "**/*.transcript"],
+              Excludes = [
+                "**/Inputs/**/*",
+                "**/Output/**/*",
+                "libraries/**/*"
+              ])]
     public void LitTest(string path) {
       var testPath = path.Replace("TestFiles/LitTests/LitTest", "");
       var mode = Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_MODE");

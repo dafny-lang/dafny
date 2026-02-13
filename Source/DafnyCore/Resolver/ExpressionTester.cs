@@ -43,12 +43,12 @@ public class ExpressionTester {
     new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  private void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
-    reporter?.Error(MessageSource.Resolver, errorId, e, msg, args);
+  private void ReportError(ErrorId errorId, Expression e, params object[] messageParts) {
+    reporter?.Error(MessageSource.Resolver, errorId, e, messageParts);
   }
 
-  private void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
-    reporter?.Error(MessageSource.Resolver, errorId, t, msg, args);
+  private void ReportError(ErrorId errorId, IOrigin t, params object[] messageParts) {
+    reporter?.Error(MessageSource.Resolver, errorId, t, messageParts);
   }
 
   /// <summary>
@@ -135,23 +135,23 @@ public class ExpressionTester {
           }
 
           string msg;
-          ErrorId eid;
+          ErrorId errorId;
           if (callExpr.Function is TwoStateFunction || callExpr.Function is ExtremePredicate || callExpr.Function is PrefixPredicate) {
             msg = $"a call to a {callExpr.Function.WhatKind} is allowed only in specification contexts";
-            eid = ErrorId.r_ghost_call_only_in_specification;
+            errorId = ErrorId.r_ghost_call_only_in_specification;
           } else {
             var what = callExpr.Function.WhatKind;
             string compiledDeclHint;
             if (options.FunctionSyntax == FunctionSyntaxOptions.Version4) {
               compiledDeclHint = "without the 'ghost' keyword";
-              eid = ErrorId.r_ghost_call_only_in_specification_function_4;
+              errorId = ErrorId.r_ghost_call_only_in_specification_function_4;
             } else {
               compiledDeclHint = $"with '{what} method'";
-              eid = ErrorId.r_ghost_call_only_in_specification_function_3;
+              errorId = ErrorId.r_ghost_call_only_in_specification_function_3;
             }
             msg = $"a call to a ghost {what} is allowed only in specification contexts (consider declaring the {what} {compiledDeclHint})";
           }
-          ReportError(eid, callExpr, msg);
+          ReportError(errorId, callExpr, msg);
           return false;
         }
         if (callExpr.Function.ByMethodBody != null) {
@@ -345,7 +345,7 @@ public class ExpressionTester {
     } else if (expr is MatchExpr matchExpr) {
       var mc = FirstCaseThatDependsOnGhostCtor(matchExpr.Cases);
       if (mc != null) {
-        ReportError(ErrorId.r_match_not_compilable, mc.tok, "match expression is not compilable, because it depends on a ghost constructor");
+        ReportError(ErrorId.r_match_not_compilable, mc.Origin, "match expression is not compilable, because it depends on a ghost constructor");
         isCompilable = false;
       }
       // other conditions are checked below
@@ -356,7 +356,7 @@ public class ExpressionTester {
                   expr, "a `decreases to` expression is allowed only in specification and ghost contexts");
       return false;
 
-    } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
+    } else if (expr is ConcreteSyntaxExpression { ResolvedExpression: not null } concreteSyntaxExpression) {
       return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
     }
 
@@ -382,7 +382,8 @@ public class ExpressionTester {
   ///
   /// 0. If "toType" is a supertype of "fromType", then a type test would always return "true". A similar situation
   /// is when "toType" is a non-null type and the nullable version of "toType" is a supertype of "from"; then,
-  /// the run-time type tests consists simply of a non-null check.
+  /// the run-time type tests consists simply of a non-null check. Else, if "toType" is a type parameter, then we
+  /// never allow the check in compiled code.
   ///
   /// If those simple cases don't apply, there the compilability of the type test comes down to two remaining parts:
   ///
@@ -414,6 +415,10 @@ public class ExpressionTester {
       // this requires no run-time work or a simple null comparison, so it can trivially be compiled
       return true;
     }
+    if (toType.IsTypeParameter) {
+      // this is never allowed in compiled code
+      return false;
+    }
 
     // part 1
     if (toType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: RedirectingTypeDecl { ConstraintIsCompilable: false } }) {
@@ -430,7 +435,7 @@ public class ExpressionTester {
       // calling "AsParentType"). Let's say the result is A<U> for some type expression U. If U contains all type parameters from T, then the
       // mapping from B<T> to A<U> is unique, which means the mapping from B<Y> to A<X> is unique.
       var B = udtTo.ResolvedClass;
-      var B_T = UserDefinedType.FromTopLevelDecl(B.tok, B);
+      var B_T = UserDefinedType.FromTopLevelDecl(B.Origin, B);
 
       var A = fromType.NormalizeExpand(); // important to NOT keep constraints here, since they won't be evident at run time
       Type A_U;
@@ -479,7 +484,7 @@ public class ExpressionTester {
       return false;
     } else if (expr is IdentifierExpr) {
       IdentifierExpr e = (IdentifierExpr)expr;
-      return cce.NonNull(e.Var).IsGhost;
+      return Cce.NonNull(e.Var).IsGhost;
     } else if (expr is DatatypeValue) {
       var e = (DatatypeValue)expr;
       if (e.Ctor.IsGhost) {
@@ -643,8 +648,12 @@ public class ExpressionTester {
     } else if (expr is MultiSetFormingExpr) {
       var e = (MultiSetFormingExpr)expr;
       return UsesSpecFeatures(e.E);
+    } else if (expr is IndexFieldLocation or FieldLocation) {
+      return true;
+    } else if (expr is LocalsObjectExpression) {
+      return true;
     } else {
-      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
     }
   }
   static void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {

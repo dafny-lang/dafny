@@ -48,9 +48,8 @@ abstract class PrettyPrintable {
     }
     var paramsStr = parameters == null ? "" : $"<{String.Join(", ", parameters)}>";
     parts.Add($"{name.AsDecl(forceExtern: true)}{paramsStr}");
-    if (inheritance != null) {
-      parts.Add($"extends {String.Join(", ", inheritance.Select(t => t.ToString()))}");
-    }
+    var parentTypes = inheritance == null ? "" : string.Concat(inheritance.Select(t => ", " + t.ToString()));
+    parts.Add("extends object" + parentTypes);
     wr.WriteLine($"{indent}{String.Join(" ", parts)} {{");
   }
 
@@ -215,7 +214,7 @@ internal class TypeDecl : PrettyPrintable {
     syntax.BaseList?.Types
       .Where(bt => !IsSkippedBaseType(bt))
       .Select(bt => new Type(bt.Type, model))
-    ?? Enumerable.Empty<Type>();
+    ?? [];
 
   public override void Pp(TextWriter wr, string indent) {
     var baseTypes = BaseTypes.ToList();
@@ -388,8 +387,8 @@ internal class Variable : PrettyPrintable {
 internal class Name {
   private const string EscapePrefix = "CSharp_";
 
-  private static readonly List<string> DisallowedNameWords = new List<string>
-    {"type", "ORDINAL", "Keys", "Values", "Items", "IsLimit", "IsSucc", "Offset", "IsNat"};
+  private static readonly List<string> DisallowedNameWords =
+    ["type", "ORDINAL", "Keys", "Values", "Items", "IsLimit", "IsSucc", "Offset", "IsNat"];
   private static readonly Regex DisallowedNameRe =
     new Regex($"^(_|({String.Join("|", DisallowedNameWords)})$)");
 
@@ -519,7 +518,7 @@ public static class AutoProgram {
 
     var skipInterfaceOption = new Option<List<string>>(
       name: "--skip-interface",
-      description: "An interface to ommit from `extends` lists, e.g. `--skip-interface Microsoft.Dafny.ICloneable`.") {
+      description: "An interface to omit from `extends` lists, e.g. `--skip-interface Microsoft.Dafny.ICloneable`.") {
       ArgumentHelpName = "interfaceName",
       Arity = ArgumentArity.ZeroOrMore,
       AllowMultipleArgumentsPerToken = false

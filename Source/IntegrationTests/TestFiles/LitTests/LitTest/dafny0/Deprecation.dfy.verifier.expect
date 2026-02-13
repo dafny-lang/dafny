@@ -3,3 +3,9 @@ Deprecation.dfy(22,0): Warning: the old keyword phrase 'inductive predicate' has
 Deprecation.dfy(25,0): Warning: the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'
 Deprecation.dfy(28,0): Warning: the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'
 Deprecation.dfy(31,0): Warning: the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'
+Deprecation.dfy(48,11): Warning: parentheses around the forall-statement bound variables are deprecated and not needed
+Deprecation.dfy(48,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
+Deprecation.dfy(56,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
+Deprecation.dfy(64,11): Warning: parentheses around the forall-statement bound variables are deprecated and not needed
+Deprecation.dfy(72,11): Warning: parentheses around the forall-statement bound variables are deprecated and not needed
+Deprecation.dfy(81,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead

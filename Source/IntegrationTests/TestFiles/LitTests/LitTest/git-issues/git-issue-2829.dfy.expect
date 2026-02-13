@@ -1,7 +1,5 @@
-git-issue-2829.dfy(52,38): Error: second argument to "in" must be a set, multiset, or sequence with elements of type string, or a map with domain string (instead got iset<A>) (expecting element type to be assignable to A (got string))
-git-issue-2829.dfy(53,23): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got A)
-git-issue-2829.dfy(53,15): Error: arguments must have comparable types (got string and A)
-git-issue-2829.dfy(54,16): Error: arguments must have comparable types (got seq<A> and seq<string>)
-git-issue-2829.dfy(56,18): Error: incorrect argument type at index 2 for function parameter 'input' (expected string, found A)
-git-issue-2829.dfy(56,18): Error: incorrect argument type at index 3 for function parameter 'output' (expected seq<A>, found seq<string>) (covariant type parameter would require string <: A)
-6 resolution/type errors detected in git-issue-2829.dfy
+git-issue-2829.dfy(55,14): Error: incorrect argument type at index 0 for function application parameter (expected string, found A)
+git-issue-2829.dfy(55,17): Error: incorrect argument type at index 1 for function application parameter (expected A, found string)
+git-issue-2829.dfy(55,14): Error: type mismatch for argument 0 (function expects string, got A)
+git-issue-2829.dfy(55,17): Error: type mismatch for argument 1 (function expects A, got string)
+4 resolution/type errors detected in git-issue-2829.dfy

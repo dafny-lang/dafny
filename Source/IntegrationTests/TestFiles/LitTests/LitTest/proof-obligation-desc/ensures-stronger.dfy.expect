@@ -1,6 +1,6 @@
-ensures-stronger.dfy(16,2): Error: the method must provide an equal or more detailed postcondition than in its parent trait
+ensures-stronger.dfy(16,9): Error: the method must provide an equal or more detailed postcondition than in its parent trait
  Asserted expression: P(res') ==> b' ==> Q(res')
-ensures-stronger.dfy(16,2): Error: the method must provide an equal or more detailed postcondition than in its parent trait
+ensures-stronger.dfy(16,9): Error: the method must provide an equal or more detailed postcondition than in its parent trait
  Asserted expression: P(res') ==> P(res' + 1)
 
 Dafny program verifier finished with 1 verified, 2 errors

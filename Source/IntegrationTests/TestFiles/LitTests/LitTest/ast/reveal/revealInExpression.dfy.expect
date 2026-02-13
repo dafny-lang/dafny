@@ -1,0 +1,3 @@
+revealInExpression.dfy(34,6): Error: assertion could not be proved
+
+Dafny program verifier finished with 15 verified, 1 error

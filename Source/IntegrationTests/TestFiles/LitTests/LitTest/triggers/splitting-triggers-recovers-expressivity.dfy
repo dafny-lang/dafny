@@ -57,5 +57,7 @@ lemma loop()
   requires P(0)
   requires forall i {:matchingloop}  {:matchinglooprewrite false} :: i >= 0 ==> Q(i) && (P(i) ==> P(i+1))
   ensures P(100) {
+    assert P(44);
+    assert P(88);
     // Works: the matching loop is explicitly allowed
 }

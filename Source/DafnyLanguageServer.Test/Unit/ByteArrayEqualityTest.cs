@@ -18,10 +18,10 @@ public class ByteArrayEqualityTest {
   [Fact]
   public void TestHashCode() {
     var equality = new HashEquality();
-    var hashCodeOne = equality.GetHashCode(new byte[] { 1, 0, 0, 0, 1, 1 });
+    var hashCodeOne = equality.GetHashCode([1, 0, 0, 0, 1, 1]);
     Assert.Equal(1, hashCodeOne);
 
-    var hashCode2Power24 = equality.GetHashCode(new byte[] { 0, 0, 0, 1, 1, 1, 1 });
+    var hashCode2Power24 = equality.GetHashCode([0, 0, 0, 1, 1, 1, 1]);
     Assert.Equal(Math.Pow(2, 24), hashCode2Power24);
   }
 }

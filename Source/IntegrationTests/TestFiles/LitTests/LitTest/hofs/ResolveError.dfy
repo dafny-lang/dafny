@@ -88,8 +88,8 @@ module AritySituations {
     var f' := F;
     var g' := G;
 
-    var s0 := P(F, 5);  // error: F takes 2 arguments, but P expect a function that takes 1
-    var s1 := P(G, (2,true));  // fine
+    // (see method MF below) var s0 := P(F, 5);
+    var s1 := P(G, (2, true));  // fine
 
     var v: () -> real;
     var w: (()) -> real;
@@ -102,9 +102,40 @@ module AritySituations {
     w := V;  // error
   }
 
+  method MF()
+  {
+    var s0 := P(F, 5);  // error: F takes 2 arguments, but P expect a function that takes 1
+    var s1 := P(G, (2, true));  // fine
+  }
+
   method P<T,U>(r: T -> U, x: T) returns (u: U)
     requires r.requires(x)
   {
     u := r(x);
+  }
+}
+
+module Arrows {
+  type MyInt = int
+
+  function A(o: object, x: MyInt): nat
+    requires x != 10
+    reads o
+  function B(o: object, x: MyInt): nat
+    reads o
+  function C(o: object, x: MyInt): nat
+    requires x != 10
+  function D(o: object, x: MyInt): nat
+
+  method Test() returns (x: int) {
+    x := A; // error
+    x := B; // error
+    x := C; // error
+    x := D; // error
+
+    x := (o: object, x: MyInt) requires x != 10 reads o => 2 as nat; // error
+    x := (o: object, x: MyInt) reads o => 2 as nat; // error
+    x := (o: object, x: MyInt) requires x != 10 => 2 as nat; // error
+    x := (o: object, x: MyInt) => 2 as nat; // error
   }
 }

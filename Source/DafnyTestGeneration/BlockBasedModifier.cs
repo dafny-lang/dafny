@@ -42,7 +42,7 @@ namespace DafnyTestGeneration {
         return;
       }
       if (!stateToBlocks.ContainsKey(state)) {
-        stateToBlocks[state] = new();
+        stateToBlocks[state] = [];
       }
       stateToBlocks[state].Add(block);
     }
@@ -56,7 +56,7 @@ namespace DafnyTestGeneration {
       }
       var testEntryNames = Utils.DeclarationHasAttribute(implementation, TestGenerationOptions.TestInlineAttribute)
         ? TestEntries
-        : new() { implementation.VerboseName };
+        : [implementation.VerboseName];
       var blocks = node.Blocks.ToList();
       blocks.Reverse();
       var stateToBlocksMap = new Dictionary<string, HashSet<Block>>();
@@ -69,20 +69,20 @@ namespace DafnyTestGeneration {
           continue;
         }
         foreach (var twinBlock in stateToBlocksMap[state]) {
-          twinBlock.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+          twinBlock.Cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
         }
         var record = modifications.GetProgramModification(program, implementation,
           Utils.AllBlockIds(block, DafnyInfo.Options).ToHashSet(),
           testEntryNames, $"{implementation.VerboseName.Split(" ")[0]} ({state})");
         if (record.IsCovered(modifications)) {
           foreach (var twinBlock in stateToBlocksMap[state]) {
-            twinBlock.cmds.RemoveAt(twinBlock.cmds.Count - 1);
+            twinBlock.Cmds.RemoveAt(twinBlock.Cmds.Count - 1);
           }
           continue;
         }
         yield return record;
         foreach (var twinBlock in stateToBlocksMap[state]) {
-          twinBlock.cmds.RemoveAt(twinBlock.cmds.Count - 1);
+          twinBlock.Cmds.RemoveAt(twinBlock.Cmds.Count - 1);
         }
       }
 

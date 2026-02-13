@@ -5,13 +5,11 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Diagnostics.Contracts;
-using JetBrains.Annotations;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny {
   public record TypeConstraint(Type Super, Type Sub, TypeConstraint.ErrorMsg ErrMsg, bool KeepConstraints) {
@@ -23,11 +21,11 @@ namespace Microsoft.Dafny {
       resolver.TypeConstraintErrorsToBeReported.Clear();
     }
     public abstract class ErrorMsg {
-      public abstract IToken Tok { get; }
+      public abstract IOrigin Tok { get; }
       bool reported;
       public void FlagAsError(ModuleResolver resolver) {
         if (resolver.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          resolver.Options.OutputWriter.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
+          resolver.Options.OutputWriter.Debug($"flagging error: {ApproximateErrorMessage()}");
         }
         resolver.TypeConstraintErrorsToBeReported.Add(this);
       }
@@ -44,10 +42,12 @@ namespace Microsoft.Dafny {
         if (this is ErrorMsgWithToken) {
           var err = (ErrorMsgWithToken)this;
           Contract.Assert(err.Tok != null);
-          reporter.Error(MessageSource.Resolver, err.Tok, err.Msg + suffix, RemoveAmbiguity(err.MsgArgs));
+          reporter.Error(MessageSource.Resolver, err.Tok, new object[] { err.Msg + suffix }.Concat(RemoveAmbiguity(err.MsgArgs)).ToArray());
         } else {
           var err = (ErrorMsgWithBase)this;
-          err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, RemoveAmbiguity(err.MsgArgs)) + ")" + suffix);
+          if (!err.BaseMsg.reported) {
+            err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, RemoveAmbiguity(err.MsgArgs)) + ")" + suffix);
+          }
         }
         reported = true;
       }
@@ -73,12 +73,12 @@ namespace Microsoft.Dafny {
       protected abstract string ApproximateErrorMessage();
     }
     public class ErrorMsgWithToken : ErrorMsg {
-      readonly IToken tok;
-      public override IToken Tok => tok;
+      readonly IOrigin tok;
+      public override IOrigin Tok => tok;
       readonly string msg;
       public virtual string Msg => msg;
       public readonly object[] MsgArgs;
-      public ErrorMsgWithToken(IToken tok, string msg, params object[] msgArgs) {
+      public ErrorMsgWithToken(IOrigin tok, string msg, params object[] msgArgs) {
         Contract.Requires(tok != null);
         Contract.Requires(msg != null);
         Contract.Requires(msgArgs != null);
@@ -90,7 +90,7 @@ namespace Microsoft.Dafny {
       protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
     }
     public class ErrorMsgWithBase : ErrorMsg {
-      public override IToken Tok {
+      public override IOrigin Tok {
         get { return BaseMsg.Tok; }
       }
       public readonly ErrorMsg BaseMsg;

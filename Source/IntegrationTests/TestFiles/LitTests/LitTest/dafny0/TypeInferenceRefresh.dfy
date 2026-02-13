@@ -145,7 +145,7 @@ function Qf(x: int, a: array<int>): bool
   forall i :: 0 <= i < x ==> m[i] == true // error: index might be outside domain
 }
 
-trait AsTr { }
+trait AsTr extends object { }
 class AsCl extends AsTr { }
 
 method Is(clIn: AsCl) {
@@ -169,7 +169,7 @@ method As(clIn: AsCl, ch: char) returns (cl: AsCl) {
   var x: int;
   var ord: ORDINAL;
   x := ch as int;
-  ord := ch as ORDINAL;
+
 }
 
 method As?(clIn: AsCl) returns (cl: AsCl?) {
@@ -256,7 +256,7 @@ method Mxy(x: int, y: int) {
 }
 
 module Inheritance {
-  trait Trait { }
+  trait Trait extends object { }
   class A extends Trait { }
   class B extends Trait { }
   class C<X, Y, Z> extends Trait { }
@@ -1010,6 +1010,107 @@ module UnaryMinus {
   }
 }
 
+module TypeInferenceViaInAndEquals {
+  trait GrandParent { }
+  trait Parent extends GrandParent { const data: int }
+  trait Child extends Parent { }
+
+  method Test(ghost s: set<Parent>, n: Parent) returns (ghost b: bool)
+  {
+    // type inference uses "in" to obtain type
+    b := forall y :: y in s ==> y.data == 19;
+    b := forall y :: y in s ==> P(y);
+
+    // type inference uses "==" to obtain type
+    b := forall y :: y == n ==> y.data == 19;
+    var z := MagicAssign();
+    b := z == n;
+  }
+
+  predicate P<X>(x: X)
+  method MagicAssign<X>() returns (r: X)
+}
+
+module CollectionUpdates {
+  method P(n: nat) returns (m: map<nat, nat>, j: multiset<nat>) {
+    m := map[n := n];
+    j := multiset{n, n, n};
+    
+    m := m[n := 10];
+    m := m[10 := n];
+    m := m[n := n];
+    j := j[n := 38];
+  }
+
+  trait Trait extends object { }
+
+  method Q(n: Trait) returns (m: map<Trait, Trait>, j: multiset<Trait>) {
+    m := map[n := n];
+    j := multiset{n, n, n};
+    
+    m := m[n := n];
+    j := j[n := 38];
+  }
+}
+
+module ConstWithValueOfSubsetType {
+  const f := (n: nat) => n as real
+
+  function N(): nat
+  const g := var n := N(); n
+
+  predicate NeedsNat(n: nat)
+  type MT = u: int | 0 <= u && var n := N(); NeedsNat(n + u) witness *
+
+  method ForEach<X>(s: set<X>, f: X -> real) returns (r: real) {
+    r := 0.0;
+    var s := s;
+    while s != {} {
+      var x :| x in s;
+      r := r + f(x);
+      s := s - {x};
+    }
+  }
+
+  method M(s: set<nat>) returns (r: real) {
+    r := ForEach(s, f);
+
+    var flocal := (n: nat) => n as real;
+    r := ForEach(s, flocal);
+
+    var glocal := N();
+  }
+}
+
+module RangeSelectExpr {
+  function SameSequence<X>(s: seq<X>): seq<X> { s }
+
+  type pos = x: int | 0 < x witness 1
+
+  lemma SimpleTest(xs: seq<nat>, ps: seq<pos>, arr: array<nat>, i: nat, x: int)
+  {
+    var ys := SameSequence(xs); // seq<nat>
+    var zs := SameSequence(xs[0..]); // seq<nat>
+
+    var za := SameSequence(arr[0..]); // seq<nat>
+
+    var aas := xs[0..]; // seq<nat>
+
+    var bbs; // seq<int>
+    bbs := xs[0..];
+    bbs := ps[0..];
+
+    // Check, by some verified assertions and a seq-update, that the types of the local variables were inferred as expected.
+    ys, zs, za, aas, bbs := *, *, *, *, *;
+    assert i < |ys| ==> 0 <= ys[i];
+    assert i < |zs| ==> 0 <= zs[i];
+    assert i < |za| ==> 0 <= za[i];
+    assert i < |aas| ==> 0 <= aas[i];
+    if i < |bbs| {
+      var updated := bbs[i := x];
+    }
+  }
+}
 
 /****************************************************************************************
  ******** TO DO *************************************************************************

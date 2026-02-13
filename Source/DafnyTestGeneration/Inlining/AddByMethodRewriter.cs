@@ -47,9 +47,9 @@ public class AddByMethodRewriter : IRewriter {
     if (attributes is UserSuppliedAttributes) {
       var usa = (UserSuppliedAttributes)attributes;
       return new UserSuppliedAttributes(
-        cloner.Tok(usa.tok),
-        cloner.Tok(usa.OpenBrace),
-        cloner.Tok(usa.CloseBrace),
+        cloner.Origin(usa.Origin),
+        cloner.Origin(usa.OpenBrace),
+        cloner.Origin(usa.CloseBrace),
         attributes.Args.ConvertAll(cloner.CloneExpr),
         RemoveOpaqueAttr(attributes.Prev, cloner));
     }
@@ -68,11 +68,11 @@ public class AddByMethodRewriter : IRewriter {
       return;
     }
 
-    var returnStatement = new ReturnStmt(func.Body.RangeToken,
-      new List<AssignmentRhs> { new ExprRhs(new Cloner().CloneExpr(func.Body)) });
+    var returnStatement = new ReturnStmt(func.Body.Origin,
+      [new ExprRhs(new Cloner().CloneExpr(func.Body))]);
     func.ByMethodBody = new BlockStmt(
-      func.Body.RangeToken,
-      new List<Statement> { returnStatement });
-    func.ByMethodTok = func.Body.tok;
+      func.Body.Origin,
+      [returnStatement]);
+    func.ByMethodTok = func.Body.Origin;
   }
 }

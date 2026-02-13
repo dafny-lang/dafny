@@ -9,9 +9,9 @@ module Seq {
   {
   }
 
-  function {:opaque} IndexOfOption<T(==)>(s: seq<T>, v: T): (o: Option<nat>)
+  opaque function IndexOfOption<T(==)>(s: seq<T>, v: T): (o: Option<nat>)
     ensures if o.Some? then o.value < |s| && s[o.value] == v &&
-                            forall j {:trigger s[j]} :: 0 <= j < o.value ==> s[j] != v
+                            forall j :: 0 <= j < o.value ==> s[j] != v
             else v !in s
   {
     if |s| == 0 then None()

@@ -7,7 +7,7 @@ module {:extern "Extern"} Extern {
   method {:extern "Extern", "Caller"} Caller(inc:uint64-->uint64, x:uint64) returns (y:uint64)
     requires inc.requires(x)
 
-  method {:extern "Extern", "GenericCaller"} GenericCaller<A>(inc:A-->A, x:A) returns (y:A)
+method {:extern "Extern", "GenericCaller"} GenericCaller<A>(inc:A-->A, x:A) returns (y:A)
     requires inc.requires(x)
 
   class {:extern} GenericClass<A>

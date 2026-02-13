@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -11,19 +12,23 @@ public class ClassDecl : ClassLikeDecl {
   [FilledInDuringResolution] public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Members));
-    Contract.Invariant(ParentTraits != null);
+    Contract.Invariant(Cce.NonNullElements(Members));
+    Contract.Invariant(Traits != null);
   }
 
-  public ClassDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
-    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(members));
+  [SyntaxConstructor]
+  public ClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
+    [Captured] List<MemberDecl> members, List<Type> traits, bool isRefining)
+    : base(origin, nameNode, attributes, typeArgs, enclosingModuleDefinition, members, traits) {
+    Contract.Requires(origin != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModuleDefinition != null);
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(members));
     NonNullTypeDecl = new NonNullTypeDecl(this);
+    IsRefining = isRefining;
     this.NewSelfSynonym();
   }
+  public override bool IsRefining { get; }
 }

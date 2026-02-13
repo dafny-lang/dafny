@@ -1,4 +1,2 @@
-git-issue-847.dfy(40,39): Error: a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas
-git-issue-847.dfy(40,49): Error: a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas
-git-issue-847.dfy(41,14): Error: a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas
-3 resolution/type errors detected in git-issue-847.dfy
+git-issue-847.dfy(48,19): Error: the decreases clause of function 'O.fr' is not allowed to call 'level', because they are mutually recursive
+1 resolution/type errors detected in git-issue-847.dfy

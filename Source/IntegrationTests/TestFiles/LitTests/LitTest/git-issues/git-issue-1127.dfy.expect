@@ -1,3 +1,3 @@
-git-issue-1127.dfy(15,7): Error: type parameter (T) passed to function Func must be nonempty (got PossiblyEmpty)
-git-issue-1127.dfy(29,17): Error: type parameter (T) passed to function GetInhabitant must support auto-initialization (got EmptyInt)
+git-issue-1127.dfy(15,26): Error: type parameter (T) passed to function Func must be nonempty (got PossiblyEmpty)
+git-issue-1127.dfy(29,40): Error: type parameter (T) passed to function GetInhabitant must support auto-initialization (got EmptyInt)
 2 resolution/type errors detected in git-issue-1127.dfy

@@ -26,7 +26,7 @@ public class BottomUpVisitor {
   public void Visit(ICallable decl) {
     if (decl is Function f) {
       Visit(f);
-    } else if (decl is Method m) {
+    } else if (decl is MethodOrConstructor m) {
       Visit(m);
     } else if (decl is TypeSynonymDecl tsd) {
       Visit(tsd);
@@ -54,7 +54,7 @@ public class BottomUpVisitor {
       Visit(ntd.Witness);
     }
   }
-  public void Visit(Method method) {
+  public void Visit(MethodOrConstructor method) {
     Visit(method.Req);
     Visit(method.Reads.Expressions);
     Visit(method.Mod.Expressions);

@@ -60,7 +60,7 @@ public class PluginsTest {
     var library = GetLibrary("rewriterPreventingVerificationWithArgument");
 
     var options = DafnyOptions.CreateUsingOldParser(output);
-    options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
+    options.Plugins.Add(AssemblyPlugin.Load(library, ["because whatever"]));
 
     var programString = "function test(): int { 1 }";
     var reporter = new BatchErrorReporter(options);
@@ -76,7 +76,7 @@ public class PluginsTest {
     var library = GetLibrary("rewriterPreventingVerification");
 
     var options = DafnyOptions.CreateUsingOldParser(output);
-    options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
+    options.Plugins.Add(AssemblyPlugin.Load(library, ["ignored arguments"]));
 
     var programString = "function test(): int { 1 }";
     var reporter = new BatchErrorReporter(options);
@@ -91,7 +91,7 @@ public class PluginsTest {
     var library = GetLibrary("rewriterAllowingVerification");
 
     var options = DafnyOptions.CreateUsingOldParser(output);
-    options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
+    options.Plugins.Add(AssemblyPlugin.Load(library, ["ignored arguments"]));
 
     var programString = "function test(): int { 1 }";
     var reporter = new BatchErrorReporter(options);

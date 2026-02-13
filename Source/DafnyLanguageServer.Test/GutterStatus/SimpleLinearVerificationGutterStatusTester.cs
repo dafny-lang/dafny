@@ -29,12 +29,26 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  ? :method NotVerified() { // Should not be highlighted in green
  ? :  assert 1 == 0;
  ? :}
- | :method {:only} Verified() { // Verified
+ | :@VerifyOnly method Verified() { // Verified
  | :  assert true;
  | :}
  ? :method NotVerified2() { // Should not be highlighted in green
  ? :  assert 1 == 0;
  ? :}", false, intermediates: false);
+  }
+
+  [Fact]
+  public async Task ConstantWithoutRhsMarkedAsVerified() {
+    await VerifyTrace(@"
+ | :class Test {
+ | :  const x: int
+ | :
+ | :  method Testing()
+ | :    requires x > 0
+ | :    ensures x != 0
+ | :  {
+ | :  }
+ | :}", false, intermediates: false);
   }
 
   [Fact]
@@ -212,9 +226,9 @@ method Foo() ensures false { } ";
  .  S [=][-][~][=]:  x > 3 { y := x;
  .  S [ ][I][S][ ]:  //Replace1:\n
  .  S [=][-][~][ ]:  while(y <= 1) invariant y >= 2 {
- .  S [ ][-][~][=]:    y := y + 1;
- .  S [ ][I][S][ ]:  }
- .  S [ ][I][S][ ]:}
+ .  S [O][-][~][=]:    y := y + 1;
+ .  S [O][o][Q][O]:  }
+ .  S [ ][o][Q][O]:}
 #########[I][S][ ]:", false);
   }
 

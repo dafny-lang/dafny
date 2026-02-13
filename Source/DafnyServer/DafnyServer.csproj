@@ -5,19 +5,9 @@
       <AssemblyName>DafnyServer</AssemblyName>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
-      <TargetFramework>net6.0</TargetFramework>
+      <RollForward>Major</RollForward>
       <OutputPath>..\..\Binaries\</OutputPath>
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-  </PropertyGroup>
-
-  <!-- Working around some stange behavior in dotnet publish: https://github.com/dotnet/sdk/issues/10566 -->
-  <PropertyGroup Condition="$(RUNTIME_IDENTIFIER) != ''">
-    <RuntimeIdentifier>$(RUNTIME_IDENTIFIER)</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %build --rprint:- "%s" > "%t"
+// RUN: %exits-with 2 %build --rprint:- --type-system-refresh=false --general-traits=legacy --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 module Tests {
 class CC {
@@ -152,9 +152,9 @@ module MorePlusTests {
 
 module References {
   class C extends K, M { }
-  trait R { }
-  trait K { }
-  trait M { }
+  trait R extends object { }
+  trait K extends object { }
+  trait M extends object { }
 
   method M0() returns (c: C, r: R)
   {
@@ -178,12 +178,12 @@ module References {
 
   method M2() returns (c: C, r: R, o: object)
   {
-    c := o;  // OK for type resolution, but must be proved
+    c := o as C;  // OK for type resolution, but must be proved
   }
 
   method M3() returns (c: C, r: R, o: object)
   {
-    r := o;  // OK for type resolution, but must be proved
+    r := o as R;  // OK for type resolution, but must be proved
   }
 }
 
@@ -191,7 +191,7 @@ module SimpleClassesAndTraits {
   class C extends K, M { }
   class D extends K, M { }
   trait R { }
-  trait K { var h: int }
+  trait K extends object { var h: int }
   trait M { }
 
   method Infer(c: C, o: object, k: K, d: D) returns (k': K) {
@@ -285,7 +285,7 @@ module Datatypes {
 }
 
 module TraitStuff {
-  trait Part {
+  trait Part extends object {
     var id: int
   }
   trait Motorized { }
@@ -467,7 +467,7 @@ module Arrays_and_SubsetTypesOK {
 }
 
 module TypeArgumentPrintTests {
-  trait Tr<X> { }
+  trait Tr<X> extends object { }
 
   class Cl<Y> extends Tr<Y> {
     lemma M() {

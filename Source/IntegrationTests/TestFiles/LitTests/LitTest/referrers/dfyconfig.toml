@@ -1,0 +1,5 @@
+includes=["memorylocations.dfy", "localsmemorylocation.dfy"]
+
+[options]
+type-system-refresh=true
+referrers=true

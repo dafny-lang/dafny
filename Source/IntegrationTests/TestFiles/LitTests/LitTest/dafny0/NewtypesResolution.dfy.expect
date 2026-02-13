@@ -21,7 +21,7 @@ NewtypesResolution.dfy(156,9): Error: name of type (B) is used as a variable
 NewtypesResolution.dfy(157,11): Error: name of type (Syn) is used as a variable
 NewtypesResolution.dfy(162,8): Error: member 'U' does not exist in type synonym 'Y'
 NewtypesResolution.dfy(162,9): Error: expected method call, found expression
-NewtypesResolution.dfy(188,56): Error: incorrect argument type at index 0 for datatype constructor parameter (expected int, found bool)
+NewtypesResolution.dfy(188,61): Error: incorrect argument type at index 0 for datatype constructor parameter (expected int, found bool)
 NewtypesResolution.dfy(221,13): Error: arguments to < must have a common supertype (got Even and nat)
 NewtypesResolution.dfy(223,13): Error: arguments to < must have a common supertype (got Even and int)
 NewtypesResolution.dfy(227,13): Error: arguments to < must have a common supertype (got Even and int)

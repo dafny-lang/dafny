@@ -30,7 +30,7 @@ public class SystemModuleManager {
   public ModuleSignature systemNameInfo;
 
   public int MaxNonGhostTupleSizeUsed { get; private set; }
-  public IToken MaxNonGhostTupleSizeToken { get; private set; }
+  public IOrigin MaxNonGhostTupleSizeToken { get; private set; }
 
   private byte[] hash;
 
@@ -62,7 +62,7 @@ public class SystemModuleManager {
             Concat(TotalArrowTypeDecls.Keys.OrderBy(x => x)).
             Concat(tupleInts.OrderBy(x => x));
         var bytes = ints.SelectMany(BitConverter.GetBytes).ToArray();
-        hash = HashAlgorithm.Create("SHA256")!.ComputeHash(bytes);
+        hash = SHA256.Create()!.ComputeHash(bytes);
       }
 
       return hash;
@@ -70,10 +70,12 @@ public class SystemModuleManager {
   }
 
   public readonly ISet<int> Bitwidths = new HashSet<int>();
+  public readonly ISet<int> FloatWidths = new HashSet<int>();
   [FilledInDuringResolution] public SpecialField ORDINAL_Offset;  // used by the translator
 
+  public readonly TypeSynonymDecl StringDecl;
   public readonly SubsetTypeDecl NatDecl;
-  public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, new List<Type>()); }
+  public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, []); }
   public readonly TraitDecl ObjectDecl;
   public UserDefinedType ObjectQ() {
     Contract.Assume(ObjectDecl != null);
@@ -87,26 +89,26 @@ public class SystemModuleManager {
   }
 
   public SystemModuleManager(DafnyOptions options) {
-    SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
+    SystemModule = new(SourceOrigin.NoToken, new Name("_System"), [],
       ModuleKindEnum.Concrete, false, null, null, null);
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
-    var str = new TypeSynonymDecl(RangeToken.NoToken, new Name("string"),
-      new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
-      new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
-    SystemModule.SourceDecls.Add(str);
+    StringDecl = new ConcreteTypeSynonymDecl(SourceOrigin.NoToken, new Name("string"),
+      new TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
+      [], SystemModule, new SeqType(new CharType()), null);
+    SystemModule.SourceDecls.Add(StringDecl);
     // create subset type 'nat'
     var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
     var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
     var ax = AxiomAttribute();
-    NatDecl = new SubsetTypeDecl(RangeToken.NoToken, new Name("nat"),
-      new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
-      new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
+    NatDecl = new SubsetTypeDecl(SourceOrigin.NoToken, new Name("nat"),
+      new TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
+      [], SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
     ((RedirectingTypeDecl)NatDecl).ConstraintIsCompilable = true;
     SystemModule.SourceDecls.Add(NatDecl);
     // create trait 'object'
-    ObjectDecl = new TraitDecl(RangeToken.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
+    ObjectDecl = new TraitDecl(SourceOrigin.NoToken, new Name("object"), SystemModule, [], [], DontCompile(), false, []);
     SystemModule.SourceDecls.Add(ObjectDecl);
     // add one-dimensional arrays, since they may arise during type checking
     // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -120,37 +122,42 @@ public class SystemModuleManager {
     TupleType(Token.NoToken, 2, true);
     // Several methods and fields rely on 1-argument arrow types
     CreateArrowTypeDecl(1);
+    // 2-argument arrow types created lazily for fp64.Equal
 
-    valuetypeDecls = new[] {
+    valuetypeDecls = [
       new ValuetypeDecl("bool", SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
       new ValuetypeDecl("char", SystemModule, t => t.IsCharType, typeArgs => Type.Char),
-      new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
-      new ValuetypeDecl("real", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
+      new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), _ => Type.Int),
+      new ValuetypeDecl("real", SystemModule, t => t.IsRealType, _ => Type.Real),
+      new ValuetypeDecl("fp32", SystemModule, t => t.IsFp32Type, _ => Type.Fp32),
+      new ValuetypeDecl("fp64", SystemModule, t => t.IsFp64Type, _ => Type.Fp64),
       new ValuetypeDecl("ORDINAL", SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
       new ValuetypeDecl("_bv", SystemModule, t => t.IsBitVectorType && !Options.Get(CommonOptionBag.TypeSystemRefresh),
         null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied (it's used only in the legacy resolver)
       new ValuetypeDecl("set", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        [TPVarianceSyntax.Covariant_Strict],
         t => t.AsSetType is { Finite: true }, typeArgs => new SetType(true, typeArgs[0])),
       new ValuetypeDecl("iset", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive },
+        [TPVarianceSyntax.Covariant_Permissive],
         t => t.IsISetType, typeArgs => new SetType(false, typeArgs[0])),
       new ValuetypeDecl("seq", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        [TPVarianceSyntax.Covariant_Strict],
         t => t.AsSeqType != null, typeArgs => new SeqType(typeArgs[0])),
       new ValuetypeDecl("multiset", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        [TPVarianceSyntax.Covariant_Strict],
         t => t.AsMultiSetType != null, typeArgs => new MultiSetType(typeArgs[0])),
       new ValuetypeDecl("map", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>()
-          { TypeParameter.TPVarianceSyntax.Covariant_Strict, TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        [TPVarianceSyntax.Covariant_Strict, TPVarianceSyntax.Covariant_Strict],
         t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
       new ValuetypeDecl("imap", SystemModule,
-        new List<TypeParameter.TPVarianceSyntax>()
-          { TypeParameter.TPVarianceSyntax.Covariant_Permissive, TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        [TPVarianceSyntax.Covariant_Permissive, TPVarianceSyntax.Covariant_Strict],
         t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
-    };
-    SystemModule.SourceDecls.AddRange(valuetypeDecls);
+    ];
+
+    // Add all valuetype decls to system module (except fp32 and fp64, which are added lazily on first use)
+    SystemModule.SourceDecls.AddRange(valuetypeDecls.Where((_, i) =>
+      i != (int)ValuetypeVariety.Fp32 && i != (int)ValuetypeVariety.Fp64));
+
     // Resolution error handling relies on being able to get to the 0-tuple declaration
     TupleType(Token.NoToken, 0, true);
 
@@ -163,21 +170,23 @@ public class SystemModuleManager {
       enclosingType.Members.Add(member);
     }
 
-    var floor = new SpecialField(RangeToken.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
+    var floor = new SpecialField(SourceOrigin.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
     AddMember(floor, ValuetypeVariety.Real);
 
-    var isLimit = new SpecialField(RangeToken.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false, Type.Bool, null);
+    var isLimit = new SpecialField(SourceOrigin.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false, Type.Bool, null);
     AddMember(isLimit, ValuetypeVariety.BigOrdinal);
 
-    var isSucc = new SpecialField(RangeToken.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false, Type.Bool, null);
+    var isSucc = new SpecialField(SourceOrigin.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false, Type.Bool, null);
     AddMember(isSucc, ValuetypeVariety.BigOrdinal);
 
-    var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
+    var limitOffset = new SpecialField(SourceOrigin.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
     AddMember(limitOffset, ValuetypeVariety.BigOrdinal);
     ORDINAL_Offset = limitOffset;
 
-    var isNat = new SpecialField(RangeToken.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
+    var isNat = new SpecialField(SourceOrigin.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
     AddMember(isNat, ValuetypeVariety.BigOrdinal);
+
+    // Note: fp32 and fp64 members are initialized lazily on first use
 
     // Add "Keys", "Values", and "Items" to map, imap
     foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
@@ -185,16 +194,16 @@ public class SystemModuleManager {
       var isFinite = typeVariety == ValuetypeVariety.Map;
 
       var r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[0]));
-      var keys = new SpecialField(RangeToken.NoToken, "Keys", SpecialField.ID.Keys, null, false, false, false, r, null);
+      var keys = new SpecialField(SourceOrigin.NoToken, "Keys", SpecialField.ID.Keys, null, false, false, false, r, null);
 
       r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[1]));
-      var values = new SpecialField(RangeToken.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r, null);
+      var values = new SpecialField(SourceOrigin.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r, null);
 
       var gt = vtd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       var dt = TupleType(Token.NoToken, 2, true);
       var tupleType = new UserDefinedType(Token.NoToken, dt.Name, dt, gt);
       r = new SetType(isFinite, tupleType);
-      var items = new SpecialField(RangeToken.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
+      var items = new SpecialField(SourceOrigin.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
 
       foreach (var memb in new[] { keys, values, items }) {
         AddMember(memb, typeVariety);
@@ -205,26 +214,95 @@ public class SystemModuleManager {
     // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
     AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateLeft", new SelfType());
     AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateRight", new SelfType());
+
+    // Create 2-argument arrow types early to avoid circular dependency
+    CreateArrowTypeDecl(2);
   }
 
   public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
     var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null) };
-    var rotateMember = new SpecialFunction(RangeToken.NoToken, name, SystemModule, false, false,
-      new List<TypeParameter>(), formals, resultType,
-      new List<AttributedExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>(),
-      new Specification<Expression>(new List<Expression>(), null), null, null, null);
+    var rotateMember = new SpecialFunction(SourceOrigin.NoToken, name, SystemModule, false, false,
+      [], formals, resultType,
+      [], new Specification<FrameExpression>([], null), [],
+      new Specification<Expression>([], null), null, null, null);
     rotateMember.EnclosingClass = enclosingType;
     rotateMember.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(rotateMember);
   }
 
+  public void AddFloatSpecialValues(ValuetypeDecl enclosingType, Type floatType) {
+    AddFloatConstant(enclosingType, "NaN", SpecialField.ID.NaN, floatType);
+    AddFloatConstant(enclosingType, "PositiveInfinity", SpecialField.ID.PositiveInfinity, floatType);
+    AddFloatConstant(enclosingType, "NegativeInfinity", SpecialField.ID.NegativeInfinity, floatType);
+    AddFloatConstant(enclosingType, "Pi", SpecialField.ID.Pi, floatType);
+    AddFloatConstant(enclosingType, "E", SpecialField.ID.E, floatType);
+    AddFloatConstant(enclosingType, "MaxValue", SpecialField.ID.MaxValue, floatType);
+    AddFloatConstant(enclosingType, "MinValue", SpecialField.ID.MinValue, floatType);
+    AddFloatConstant(enclosingType, "MinNormal", SpecialField.ID.MinNormal, floatType);
+    AddFloatConstant(enclosingType, "MinSubnormal", SpecialField.ID.MinSubnormal, floatType);
+    AddFloatConstant(enclosingType, "Epsilon", SpecialField.ID.Epsilon, floatType);
+  }
+
+  private void AddFloatStaticMethods(ValuetypeDecl enclosingType, Type floatType) {
+    AddFloatStaticFunction(enclosingType, "Equal", [("x", floatType), ("y", floatType)], Type.Bool);
+    // Unchecked arithmetic methods - no NaN or invalid operation preconditions
+    // These allow testing IEEE 754 edge cases (e.g., inf/inf = NaN, nan + x = NaN)
+    AddFloatStaticFunction(enclosingType, "Add", [("x", floatType), ("y", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Sub", [("x", floatType), ("y", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Mul", [("x", floatType), ("y", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Div", [("x", floatType), ("y", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Neg", [("x", floatType)], floatType);
+    // Unchecked comparison methods - no NaN preconditions (always return false for NaN)
+    AddFloatStaticFunction(enclosingType, "Less", [("x", floatType), ("y", floatType)], Type.Bool);
+    AddFloatStaticFunction(enclosingType, "LessOrEqual", [("x", floatType), ("y", floatType)], Type.Bool);
+    AddFloatStaticFunction(enclosingType, "Greater", [("x", floatType), ("y", floatType)], Type.Bool);
+    AddFloatStaticFunction(enclosingType, "GreaterOrEqual", [("x", floatType), ("y", floatType)], Type.Bool);
+    AddFloatMathematicalFunctions(enclosingType, floatType);
+    AddFloatInexactConversionMethods(enclosingType, floatType);
+  }
+
+  private void AddFloatMathematicalFunctions(ValuetypeDecl enclosingType, Type floatType) {
+    CreateArrowTypeDecl(2);
+    AddFloatStaticFunction(enclosingType, "Min", [("x", floatType), ("y", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Max", [("x", floatType), ("y", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Abs", [("x", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Floor", [("x", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Ceiling", [("x", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Round", [("x", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Sqrt", [("x", floatType)], floatType);
+  }
+
+  private void AddFloatInexactConversionMethods(ValuetypeDecl enclosingType, Type floatType) {
+    AddFloatStaticFunction(enclosingType, "FromReal", [("r", Type.Real)], floatType);
+    AddFloatStaticFunction(enclosingType, "ToInt", [("f", floatType)], Type.Int);
+
+    // Cross-float conversions
+    if (floatType is Fp32Type) {
+      AddFloatStaticFunction(enclosingType, "FromFp64", [("f", new Fp64Type())], floatType);
+    } else if (floatType is Fp64Type) {
+      AddFloatStaticFunction(enclosingType, "FromFp32", [("f", new Fp32Type())], floatType);
+    }
+  }
+
+  private void AddFloatStaticFunction(ValuetypeDecl enclosingType, string name, (string, Type)[] parameters, Type returnType) {
+    var formals = parameters.Select(p => new Formal(Token.NoToken, p.Item1, p.Item2, true, false, null)).ToList();
+    var method = new SpecialFunction(SourceOrigin.NoToken, name, SystemModule, true, false,
+      [], formals, returnType,
+      [], new Specification<FrameExpression>([], null), [],
+      new Specification<Expression>([], null), null, null, null) {
+      EnclosingClass = enclosingType
+    };
+    method.AddVisibilityScope(SystemModule.VisibilityScope, false);
+    enclosingType.Members.Add(method);
+  }
+
   private Attributes DontCompile() {
     var flse = Expression.CreateBoolLiteral(Token.NoToken, false);
-    return new Attributes("compile", new List<Expression>() { flse }, null);
+    return new Attributes("compile", [flse], null);
   }
 
   public static Attributes AxiomAttribute(Attributes prev = null) {
-    return new Attributes("axiom", new List<Expression>(), prev);
+    return new Attributes("axiom", [], prev);
   }
 
   /// <summary>
@@ -233,12 +311,167 @@ public class SystemModuleManager {
   public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
     Contract.Requires(1 <= dims);
     Contract.Requires(arg != null);
-    var (result, mod) = ArrayType(Token.NoToken, dims, new List<Type> { arg }, allowCreationOfNewClass);
+    var (result, mod) = ArrayType(Token.NoToken, dims, [arg], allowCreationOfNewClass);
     mod(this);
     return result;
   }
 
-  public static (UserDefinedType type, Action<SystemModuleManager> ModifyBuiltins) ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
+  // Initialize fp64 type and add to system module on first reference
+  public void EnsureFloatTypesInitialized(ProgramResolver programResolver) {
+    EnsureFloatTypesInitialized();
+
+    var fp32TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp32];
+
+    // Add fp32 to system module if not already there
+    if (!SystemModule.SourceDecls.Contains(fp32TypeDecl)) {
+      SystemModule.SourceDecls.Add(fp32TypeDecl);
+    }
+
+    // Register fp32 in systemNameInfo.TopLevels for name resolution
+    systemNameInfo.TopLevels.TryAdd("fp32", fp32TypeDecl);
+
+    // Add fp32 members to classMembers dictionary
+    var memberDictionary = fp32TypeDecl.Members
+      .GroupBy(member => member.Name)
+      .ToDictionary(g => g.Key, g => g.First());
+    programResolver.AddSystemClass(fp32TypeDecl, memberDictionary);
+  }
+
+  private void EnsureFloatTypesInitialized() {
+    var fp32TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp32];
+
+    // Check if already initialized by looking for "Min" member
+    if (fp32TypeDecl.Members.Any(m => m.Name == "Min")) {
+      return;
+    }
+
+    // Initialize both fp32 and fp64 members together (they share implementation)
+    InitializeFp32Members();
+    InitializeFp64Members();
+
+    // Add both to system module
+    if (!SystemModule.SourceDecls.Contains(fp32TypeDecl)) {
+      SystemModule.SourceDecls.Add(fp32TypeDecl);
+    }
+    var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
+    if (!SystemModule.SourceDecls.Contains(fp64TypeDecl)) {
+      SystemModule.SourceDecls.Add(fp64TypeDecl);
+    }
+  }
+
+  public void EnsureFp64TypeInitialized(ProgramResolver programResolver) {
+    EnsureFp64TypeInitialized();
+
+    var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
+
+    // Register fp64 in systemNameInfo.TopLevels for name resolution
+    systemNameInfo.TopLevels.TryAdd("fp64", fp64TypeDecl);
+
+    // Add fp64 members to classMembers dictionary
+    var memberDictionary = fp64TypeDecl.Members
+      .GroupBy(member => member.Name)
+      .ToDictionary(g => g.Key, g => g.First());
+    programResolver.AddSystemClass(fp64TypeDecl, memberDictionary);
+  }
+
+  // Overload for backward compatibility (called from AsValuetypeDecl)
+  private void EnsureFp64TypeInitialized() {
+    var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
+
+    // Check if already initialized by looking for "Min" member
+    if (fp64TypeDecl.Members.Any(m => m.Name == "Min")) {
+      return;
+    }
+
+    // Initialize fp32 members
+    InitializeFp32Members();
+
+    // Initialize fp64 members
+    InitializeFp64Members();
+
+    // Add fp32 to system module
+    var fp32TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp32];
+    if (!SystemModule.SourceDecls.Contains(fp32TypeDecl)) {
+      SystemModule.SourceDecls.Add(fp32TypeDecl);
+    }
+
+    // Add fp64 to system module
+    if (!SystemModule.SourceDecls.Contains(fp64TypeDecl)) {
+      SystemModule.SourceDecls.Add(fp64TypeDecl);
+    }
+  }
+
+  // Helper method to add a member to a valuetype with proper initialization
+  private void AddMemberToValuetype(MemberDecl member, ValuetypeVariety valuetypeVariety) {
+    var enclosingType = valuetypeDecls[(int)valuetypeVariety];
+    member.EnclosingClass = enclosingType;
+    member.AddVisibilityScope(SystemModule.VisibilityScope, false);
+    enclosingType.Members.Add(member);
+  }
+
+  private void AddFloatInstanceMembers(ValuetypeVariety variety) {
+    AddFloatInstancePredicate(variety, "IsFinite", SpecialField.ID.IsFinite);
+    AddFloatInstancePredicate(variety, "IsNaN", SpecialField.ID.IsNaN);
+    AddFloatInstancePredicate(variety, "IsInfinite", SpecialField.ID.IsInfinite);
+    AddFloatInstancePredicate(variety, "IsNormal", SpecialField.ID.IsNormal);
+    AddFloatInstancePredicate(variety, "IsSubnormal", SpecialField.ID.IsSubnormal);
+    AddFloatInstancePredicate(variety, "IsZero", SpecialField.ID.IsZero);
+    AddFloatInstancePredicate(variety, "IsNegative", SpecialField.ID.IsNegative);
+    AddFloatInstancePredicate(variety, "IsPositive", SpecialField.ID.IsPositive);
+  }
+
+  private void AddFloatInstancePredicate(ValuetypeVariety variety, string name, SpecialField.ID id) {
+    var field = new SpecialField(SourceOrigin.NoToken, name, id, null,
+      false, false, false, Type.Bool, null);
+    AddMemberToValuetype(field, variety);
+  }
+
+  private void InitializeFp32Members() {
+    var fp32TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp32];
+    var fp32Type = new Fp32Type();
+    AddFloatInstanceMembers(ValuetypeVariety.Fp32);
+    AddFloatSpecialValues(fp32TypeDecl, fp32Type);
+    AddFloatStaticMethods(fp32TypeDecl, fp32Type);
+  }
+
+  private void InitializeFp64Members() {
+    var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
+    var fp64Type = new Fp64Type();
+    AddFloatInstanceMembers(ValuetypeVariety.Fp64);
+    AddFloatSpecialValues(fp64TypeDecl, fp64Type);
+    AddFloatStaticMethods(fp64TypeDecl, fp64Type);
+  }
+
+  private void AddFp64SpecialValues() {
+    var fp64Type = new Fp64Type();
+    var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
+
+    AddFloatConstant(fp64TypeDecl, "NaN", SpecialField.ID.NaN, fp64Type);
+    AddFloatConstant(fp64TypeDecl, "PositiveInfinity", SpecialField.ID.PositiveInfinity, fp64Type);
+    AddFloatConstant(fp64TypeDecl, "NegativeInfinity", SpecialField.ID.NegativeInfinity, fp64Type);
+    AddFloatConstant(fp64TypeDecl, "MaxValue", SpecialField.ID.MaxValue, fp64Type);
+    AddFloatConstant(fp64TypeDecl, "MinValue", SpecialField.ID.MinValue, fp64Type);
+    AddFloatConstant(fp64TypeDecl, "Epsilon", SpecialField.ID.Epsilon, fp64Type);
+    AddFloatConstant(fp64TypeDecl, "MinNormal", SpecialField.ID.MinNormal, fp64Type);
+    AddFloatConstant(fp64TypeDecl, "MinSubnormal", SpecialField.ID.MinSubnormal, fp64Type);
+    AddFloatConstant(fp64TypeDecl, "Pi", SpecialField.ID.Pi, fp64Type);
+    AddFloatConstant(fp64TypeDecl, "E", SpecialField.ID.E, fp64Type);
+
+    AddFloatStaticFunction(fp64TypeDecl, "Equal", [("a", fp64Type), ("b", fp64Type)], Type.Bool);
+    AddFloatStaticFunction(fp64TypeDecl, "Abs", [("x", fp64Type)], fp64Type);
+    AddFloatStaticFunction(fp64TypeDecl, "Sqrt", [("x", fp64Type)], fp64Type);
+  }
+
+  private void AddFloatConstant(ValuetypeDecl enclosingType, string name, SpecialField.ID id, Type floatType) {
+    var constant = new StaticSpecialField(SourceOrigin.NoToken, name, id, null,
+      false, false, false, floatType, null) {
+      EnclosingClass = enclosingType
+    };
+    constant.AddVisibilityScope(SystemModule.VisibilityScope, false);
+    enclosingType.Members.Add(constant);
+  }
+
+  public static (UserDefinedType type, Action<SystemModuleManager> ModifyBuiltins) ArrayType(IOrigin tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
     Contract.Requires(tok != null);
     Contract.Requires(1 <= dims);
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // ideally, it is 1, but more will generate an error later, and null means it will be filled in automatically
@@ -257,7 +490,7 @@ public class SystemModuleManager {
       ArrayClassDecl arrayClass = new ArrayClassDecl(dims, builtIns.SystemModule, builtIns.DontCompile());
       for (int d = 0; d < dims; d++) {
         string name = dims == 1 ? "Length" : "Length" + d;
-        Field len = new SpecialField(RangeToken.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
+        Field len = new SpecialField(SourceOrigin.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
         len.EnclosingClass = arrayClass; // resolve here
         arrayClass.Members.Add(len);
       }
@@ -291,29 +524,29 @@ public class SystemModuleManager {
       return;
     }
 
-    IToken tok = Token.NoToken;
+    IOrigin tok = Token.NoToken;
     var tps = Util.Map(Enumerable.Range(0, arity + 1),
       x => x < arity
-        ? new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
-        : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TPVarianceSyntax.Contravariance)
+        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TPVarianceSyntax.Covariant_Strict));
     var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
 
     Function CreateMember(string name, Type resultType, Function readsFunction = null) {
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
         (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
-      var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, tok, argExprs) {
+      var readsIS = new FunctionCallExpr(tok, new Name("reads"), new ImplicitThisExpr(tok), tok, Token.NoToken, argExprs) {
         Type = ObjectSetType(),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
-      var function = new Function(RangeToken.NoToken, new Name(name), false, true, false,
-        new List<TypeParameter>(), args, null, resultType,
-        new List<AttributedExpression>(), new Specification<FrameExpression>(readsFrame, null), new List<AttributedExpression>(),
-        new Specification<Expression>(new List<Expression>(), null),
+      var function = new Function(SourceOrigin.NoToken, new Name(name), false, true, false,
+        [], args, null, resultType,
+        [], new Specification<FrameExpression>(readsFrame, null), [],
+        new Specification<Expression>([], null),
         null, null, null, null, null);
       readsIS.Function = readsFunction ?? function; // just so we can really claim the member declarations are resolved
       readsIS.TypeApplication_AtEnclosingClass = tys; // ditto
-      readsIS.TypeApplication_JustFunction = new List<Type>(); // ditto
+      readsIS.TypeApplication_JustFunction = []; // ditto
       return function;
     }
 
@@ -327,13 +560,13 @@ public class SystemModuleManager {
     // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
     tps = Util.Map(Enumerable.Range(0, arity + 1),
       x => x < arity
-        ? new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
-        : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TPVarianceSyntax.Contravariance)
+        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TPVarianceSyntax.Covariant_Strict));
     tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
     var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
-    var partialArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
-      new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-      id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
+    var partialArrow = new SubsetTypeDecl(SourceOrigin.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
+      TypeParameterCharacteristics.Default(), tps, SystemModule,
+      id, ArrowSubtypeConstraint(tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)partialArrow).ConstraintIsCompilable = false;
     PartialArrowTypeDecls.Add(arity, partialArrow);
     SystemModule.SourceDecls.Add(partialArrow);
@@ -342,13 +575,13 @@ public class SystemModuleManager {
 
     tps = Util.Map(Enumerable.Range(0, arity + 1),
       x => x < arity
-        ? new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
-        : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        ? new TypeParameter(SourceOrigin.NoToken, new Name("T" + x), TPVarianceSyntax.Contravariance)
+        : new TypeParameter(SourceOrigin.NoToken, new Name("R"), TPVarianceSyntax.Covariant_Strict));
     tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
     id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
-    var totalArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
-      new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-      id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
+    var totalArrow = new SubsetTypeDecl(SourceOrigin.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
+      TypeParameterCharacteristics.Default(), tps, SystemModule,
+      id, ArrowSubtypeConstraint(tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
     ((RedirectingTypeDecl)totalArrow).ConstraintIsCompilable = false;
     TotalArrowTypeDecls.Add(arity, totalArrow);
     SystemModule.SourceDecls.Add(totalArrow);
@@ -360,12 +593,13 @@ public class SystemModuleManager {
   /// the built-in total-arrow type (if "total", in which case "member" is expected to denote the "requires" member).
   /// The given "id" is expected to be already resolved.
   /// </summary>
-  private Expression ArrowSubtypeConstraint(IToken tok, RangeToken rangeToken, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
+  private Expression ArrowSubtypeConstraint(IOrigin tok, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
     Contract.Requires(tok != null);
     Contract.Requires(id != null);
     Contract.Requires(member != null);
     Contract.Requires(tps != null && 1 <= tps.Count);
     var f = new IdentifierExpr(tok, id);
+    f.Type = id.Type;
     // forall x0,x1,x2 :: f.reads(x0,x1,x2) == {}
     // OR
     // forall x0,x1,x2 :: f.requires(x0,x1,x2)
@@ -378,21 +612,15 @@ public class SystemModuleManager {
       args.Add(new IdentifierExpr(tok, bv));
       bounds.Add(new SpecialAllocIndependenceAllocatedBoundedPool());
     }
-    var fn = new MemberSelectExpr(tok, f, member.Name) {
-      Member = member,
-      TypeApplication_AtEnclosingClass = f.Type.TypeArgs,
-      TypeApplication_JustMember = new List<Type>(),
-      Type = GetTypeOfFunction(member, tps.ConvertAll(tp => (Type)new UserDefinedType(tp)), new List<Type>())
-    };
-    Expression body = new ApplyExpr(tok, fn, args, tok);
+    Expression body = Expression.CreateResolvedCall(tok, f, member, args, [], this);
     body.Type = member.ResultType;  // resolve here
     if (!total) {
-      Expression emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
+      Expression emptySet = new SetDisplayExpr(tok, true, []);
       emptySet.Type = member.ResultType;  // resolve here
       body = Expression.CreateEq(body, emptySet, member.ResultType);
     }
     if (tps.Count > 1) {
-      body = new ForallExpr(tok, rangeToken, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
+      body = new ForallExpr(tok, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
     }
     return body;
   }
@@ -410,10 +638,10 @@ public class SystemModuleManager {
     var formals = Util.Concat(f.EnclosingClass.TypeArgs, f.TypeArgs);
     var actuals = Util.Concat(typeArgumentsClass, typeArgumentsMember);
     var typeMap = TypeParameter.SubstitutionMap(formals, actuals);
-    return new ArrowType(f.tok, atd, f.Ins.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
+    return new ArrowType(f.Origin, atd, f.Ins.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
   }
 
-  public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {
+  public TupleTypeDecl TupleType(IOrigin tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {
     Contract.Requires(tok != null);
     Contract.Requires(0 <= dims);
     Contract.Requires(argumentGhostness == null || argumentGhostness.Count == dims);
@@ -487,12 +715,14 @@ public class SystemModuleManager {
 
   public ValuetypeDecl AsValuetypeDecl(Type t) {
     Contract.Requires(t != null);
-    foreach (var vtd in valuetypeDecls) {
-      if (vtd.IsThisType(t)) {
-        return vtd;
-      }
+    if (t.IsFp32Type) {
+      EnsureFloatTypesInitialized();
     }
-    return null;
+    if (t.IsFp64Type) {
+      EnsureFp64TypeInitialized();
+    }
+
+    return valuetypeDecls.FirstOrDefault(vtd => vtd.IsThisType(t));
   }
 
   public void ResolveValueTypeDecls(ProgramResolver programResolver) {
@@ -503,11 +733,15 @@ public class SystemModuleManager {
         if (member is Function function) {
           moduleResolver.ResolveFunctionSignature(function);
           CallGraphBuilder.VisitFunction(function, programResolver.Reporter);
-        } else if (member is Method method) {
+        } else if (member is MethodOrConstructor method) {
           moduleResolver.ResolveMethodSignature(method);
           CallGraphBuilder.VisitMethod(method, programResolver.Reporter);
         }
       }
+
+      // Add ValuetypeDecl members to the classMembers dictionary for member resolution
+      var memberDictionary = valueTypeDecl.Members.ToDictionary(member => member.Name, member => member);
+      programResolver.AddSystemClass(valueTypeDecl, memberDictionary);
     }
   }
 
@@ -545,11 +779,23 @@ declared: {allDeclaredArities.Comma()}");
   }
 }
 
+// Custom static special field class for fp64 constants
+public class StaticSpecialField : SpecialField {
+  public override bool HasStaticKeyword => true;
+
+  public StaticSpecialField(IOrigin origin, string name, ID specialId, object idParam,
+    bool isGhost, bool isMutable, bool isUserMutable, Type explicitType, Attributes attributes)
+    : base(origin, name, specialId, idParam, isGhost, isMutable, isUserMutable, explicitType, attributes) {
+  }
+}
+
 enum ValuetypeVariety {
   Bool = 0,
   Char,
   Int,
   Real,
+  Fp32,
+  Fp64,
   BigOrdinal,
   Bitvector,
   Set,

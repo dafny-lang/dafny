@@ -4,9 +4,9 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
-  public readonly Expression E;
-  public readonly Type FromType;
-  public readonly Type ToType;
+  public Expression E;
+  public Type FromType;
+  public Type ToType;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E != null);
@@ -15,7 +15,7 @@ public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as 
   }
 
   public BoxingCastExpr(Expression e, Type fromType, Type toType)
-    : base(e.tok) {
+    : base(e.Origin) {
     Contract.Requires(e != null);
     Contract.Requires(fromType != null);
     Contract.Requires(toType != null);

@@ -1,0 +1,17 @@
+localsmemorylocation-resolutionerrors.dfy(12,17): Error: variable 'i' is not declared - did you mean locals`x
+localsmemorylocation-resolutionerrors.dfy(12,29): Error: variable 'i' is not declared - did you mean locals`x
+localsmemorylocation-resolutionerrors.dfy(15,22): Error: variable 'j' is not declared - did you mean one of locals`x, or locals`i
+localsmemorylocation-resolutionerrors.dfy(16,11): Error: Expected 'locals', got unrelated method name 'LocalVars'
+localsmemorylocation-resolutionerrors.dfy(22,27): Error: variable 'r' is not declared - did you mean one of locals`i, or locals`mem_i
+localsmemorylocation-resolutionerrors.dfy(25,22): Error: variable 'j' is not declared - did you mean one of locals`i, locals`mem_i, locals`r, locals`mem_r, or locals`mem_i2
+localsmemorylocation-resolutionerrors.dfy(26,22): Error: variable 'k' is not declared - did you mean one of locals`i, locals`mem_i, locals`r, locals`mem_r, locals`mem_i2, or locals`mem_j
+localsmemorylocation-resolutionerrors.dfy(32,26): Error: variable 'i' is not declared - did you mean Parameters`i
+localsmemorylocation-resolutionerrors.dfy(33,30): Error: input parameter 'k' is not declared - did you mean one of Parameters`i, Parameters`mem_i, or locals`test
+localsmemorylocation-resolutionerrors.dfy(37,22): Error: field location expressions cannot be used outside of a method
+localsmemorylocation-resolutionerrors.dfy(45,26): Error: input parameter 'mem_j' is not declared - did you mean SingleParam`mem_i
+localsmemorylocation-resolutionerrors.dfy(46,14): Error: Expected 'locals' or the explicit name of the enclosing method call 'SingleParam' as the left-hand-side of the memory location expression, got 'CallSingleParam'
+localsmemorylocation-resolutionerrors.dfy(47,14): Error: unresolved identifier: NonExistingMethod
+localsmemorylocation-resolutionerrors.dfy(47,32): Error: type of the receiver is not fully determined at this program point
+localsmemorylocation-resolutionerrors.dfy(47,32): Error: Expected member selection, but got 
+localsmemorylocation-resolutionerrors.dfy(51,9): Error: field location expressions cannot be used outside of a method
+16 resolution/type errors detected in localsmemorylocation-resolutionerrors.dfy

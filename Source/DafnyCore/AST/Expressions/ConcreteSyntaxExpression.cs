@@ -15,23 +15,18 @@ public abstract class ConcreteSyntaxExpression : Expression {
     }
   }
 
+  /// <summary>
+  /// // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+  /// </summary>
   [FilledInDuringResolution]
-  private Expression resolvedExpression;
+  public Expression ResolvedExpression { get; set; }
 
-  public Expression ResolvedExpression {
-    get => resolvedExpression;
-    set {
-      resolvedExpression = value;
-      if (rangeToken != null && resolvedExpression != null) {
-        resolvedExpression.RangeToken = rangeToken;
-      }
-    }
-  }  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
-
-  public ConcreteSyntaxExpression(IToken tok)
-    : base(tok) {
+  [SyntaxConstructor]
+  protected ConcreteSyntaxExpression(IOrigin origin)
+    : base(origin) {
   }
-  public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<Node>() : new[] { ResolvedExpression };
+  public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<Node>() : [ResolvedExpression
+  ];
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression != null) {
@@ -42,13 +37,15 @@ public abstract class ConcreteSyntaxExpression : Expression {
 
   public override IEnumerable<Expression> TerminalExpressions {
     get {
-      foreach (var e in ResolvedExpression.TerminalExpressions) {
-        yield return e;
+      if (ResolvedExpression != null) {
+        foreach (var e in ResolvedExpression.TerminalExpressions) {
+          yield return e;
+        }
       }
     }
   }
 
-  public virtual IEnumerable<Expression> PreResolveSubExpressions => Enumerable.Empty<Expression>();
+  public virtual IEnumerable<Expression> PreResolveSubExpressions => [];
   public override IEnumerable<INode> PreResolveChildren => PreResolveSubExpressions;
 
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;

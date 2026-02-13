@@ -15,7 +15,7 @@ public class RefinementTests : ClientBasedLanguageServerTest {
 module A {
 
   lemma Test()
-
+  function F(): int
 }
 
 module B refines A {
@@ -25,10 +25,13 @@ module B refines A {
   {
   }
 
+  function F(): int
+    ensures false { 3 }
+
 }".TrimStart();
     var document = await CreateOpenAndWaitForResolve(source);
-    var diagnostics = await GetLastDiagnostics(document);
-    Assert.NotEmpty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+    var diagnostics = await GetLastDiagnostics(document, DiagnosticSeverity.Error);
+    Assert.Equal(2, diagnostics.Length);
   }
 
   public RefinementTests(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {

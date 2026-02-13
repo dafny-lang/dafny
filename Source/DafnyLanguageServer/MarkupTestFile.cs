@@ -9,10 +9,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Security.Policy;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.CodeAnalysis.Text;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -48,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static void Parse(string input, out string output, out List<int> positions,
       out IReadOnlyList<AnnotatedSpan> spans) {
-      positions = new List<int>();
+      positions = [];
       var tempSpans = new List<AnnotatedSpan>();
 
       var outputBuilder = new StringBuilder();
@@ -114,7 +112,7 @@ namespace Microsoft.Dafny.LanguageServer {
         int finalIndex) {
       var (matchIndex, name) = spanStartStack.Pop();
 
-      var span = TextSpan.FromBounds(matchIndex, finalIndex);
+      var span = new TextSpan(matchIndex, finalIndex - matchIndex);
       spans.Add(new AnnotatedSpan(name, span));
     }
 
@@ -152,7 +150,7 @@ namespace Microsoft.Dafny.LanguageServer {
       GetPositionsAndAnnotatedRanges(input, out output, out positions, out var annotatedRanges);
       namedRanges = new Dictionary<string, List<Range>>();
       foreach (var annotatedRange in annotatedRanges) {
-        var ranges = namedRanges.GetOrCreate(annotatedRange.Annotation, () => new());
+        var ranges = namedRanges.GetOrCreate(annotatedRange.Annotation, () => []);
         ranges.Add(annotatedRange.Range);
       }
     }
@@ -170,8 +168,7 @@ namespace Microsoft.Dafny.LanguageServer {
       GetIndexAndSpans(input, out output, out var positionIndices, out var spans);
       var buffer = new TextBuffer(output);
       positions = positionIndices.Select(index => buffer.FromIndex(index)).ToList();
-      ranges = spans.Select(span => new Range(buffer.FromIndex(span.Span.Start), buffer.FromIndex(span.Span.End)))
-        .ToImmutableArray();
+      ranges = [.. spans.Select(span => new Range(buffer.FromIndex(span.Span.Start), buffer.FromIndex(span.Span.End)))];
     }
 
     public static void GetPositionAndRanges(string input, out string output, out Position cursorPosition, out ImmutableArray<Range> ranges) {
@@ -195,6 +192,10 @@ namespace Microsoft.Dafny.LanguageServer {
     //   GetSpans(input, out output, out ImmutableArray<TextSpan> spans);
     //   textSpan = spans.Single();
     // }
+  }
+
+  public record TextSpan(int Start, int Length) {
+    public int End => Start + Length;
   }
 
   public record AnnotatedSpan(string Annotation, TextSpan Span);

@@ -14,9 +14,9 @@ namespace Microsoft.Dafny;
 ///
 /// </summary>
 public class TryRecoverStatement : Statement, ICloneable<TryRecoverStatement> {
-  public readonly Statement TryBody;
-  public readonly IVariable HaltMessageVar;
-  public readonly Statement RecoverBody;
+  public Statement TryBody;
+  public IVariable HaltMessageVar;
+  public Statement RecoverBody;
 
   public TryRecoverStatement Clone(Cloner cloner) {
     return new TryRecoverStatement(cloner, this);
@@ -29,12 +29,17 @@ public class TryRecoverStatement : Statement, ICloneable<TryRecoverStatement> {
   }
 
   public TryRecoverStatement(Statement tryBody, IVariable haltMessageVar, Statement recoverBody)
-    : base(new RangeToken(tryBody.StartToken, recoverBody.EndToken)) {
+    : base(new SourceOrigin(tryBody.StartToken, recoverBody.EndToken)) {
     Contract.Requires(tryBody != null);
     Contract.Requires(haltMessageVar != null);
     Contract.Requires(recoverBody != null);
     TryBody = tryBody;
     HaltMessageVar = haltMessageVar;
     RecoverBody = recoverBody;
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable, ICodeContext codeContext,
+    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    throw new System.NotSupportedException("This type is only created after resolution");
   }
 }

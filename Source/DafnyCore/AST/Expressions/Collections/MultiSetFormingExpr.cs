@@ -1,27 +1,23 @@
+#nullable enable
+
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
 public class MultiSetFormingExpr : Expression, ICloneable<MultiSetFormingExpr> {
   [Peer]
-  public readonly Expression E;
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(E != null);
-  }
+  public Expression E;
 
   public MultiSetFormingExpr(Cloner cloner, MultiSetFormingExpr original) : base(cloner, original) {
     E = cloner.CloneExpr(original.E);
   }
 
+  [SyntaxConstructor]
   [Captured]
-  public MultiSetFormingExpr(IToken tok, Expression expr)
-    : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(expr != null);
-    cce.Owner.AssignSame(this, expr);
-    E = expr;
+  public MultiSetFormingExpr(IOrigin origin, Expression e)
+    : base(origin) {
+    Cce.Owner.AssignSame(this, e);
+    E = e;
   }
 
   public override IEnumerable<Expression> SubExpressions {

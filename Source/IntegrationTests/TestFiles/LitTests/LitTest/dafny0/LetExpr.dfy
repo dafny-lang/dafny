@@ -127,11 +127,11 @@ method Theorem0(n: int)
   }
 }
 
-ghost method Theorem1(n: int)
+lemma Theorem1(n: int)
   requires 1 <= n;
   ensures 1 <= Fib(n);
 {
-  // in a ghost method, the induction tactic takes care of it
+  // in a lemma, the induction tactic takes care of it
 }
 
 ghost function Theorem2(n: int): int
@@ -308,8 +308,8 @@ function F_bad(d: Tuple<
                             Tuple<bool, int>,
                             Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
 {
-  var p, Pair(Pair(b0, x), Pair(Pair(y0, y1: nat), Pair(b1, b2))), q: int  // error: int-to-nat failure
-   := d.0, d, d.1.0.1;
+  var p, Pair(Pair(b0, x), Pair(Pair(y0, y1: nat), Pair(b1, b2))), q: int
+   := d.0, d, d.1.0.1;  // error: int-to-nat failure
   assert q < 200;  // error: assertion failure
   p.1 + if b0 then x + y0 else x + y1
 }
@@ -432,6 +432,6 @@ module LitLet {
     var n10 := plus(n5, n5);
     var n12 := S(S(n10));
 
-    assert factorial(n5) == mult(n10, n12);
+    assert factorial(S(n3)) == mult(n2, n12);
   }
 }

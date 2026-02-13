@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --type-system-refresh --general-newtypes
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --type-system-refresh=true --general-newtypes=true
 
 method Main() {
   Numerics.Test();
@@ -11,6 +11,11 @@ method Main() {
   SubsetTypeIsTests.Test();
   NewtypeIsTests.Test();
   NewBehaviors.Test();
+  TypeParameters.Test();
+  AutoInit.Test();
+  RefinementB.Test(2.0, 3.0);
+  SimpleNewtypeWitness.Test();
+  CharToInt.Test();
 }
 
 module Numerics {
@@ -182,7 +187,7 @@ module Char {
     var c, u, r := Comparisons();
     print c, " ", u, " ", r, "\n"; // 'e' 'E' true
     MyString([u, u, u]);
-    MyString("hello");
+    MyString("HELLO");
     Mix();
     GoodOl'Char('B');
   }
@@ -578,5 +583,92 @@ module NewBehaviors {
     var w1: MyBool := x is Word;
 
     print mIs, " ", mAs, " ", w0, " ", w1, "\n"; // true false true false
+  }
+}
+
+module TypeParameters {
+  newtype Wrapper<G> = g: G | true witness *
+  newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
+
+  method Test() {
+    var b: Wrapper<bool>;
+    b := true ==> false;
+    var i: Wrapper<Wrapper<int>>;
+    i := Wrap3(25) as Wrapper<Wrapper<int>>;
+    var j: Wrapper<Wrapper<Wrapper<int32>>>;
+    j := Wrap3(30);
+    print b, " ", i, " ", j, "\n"; // false 25 30
+
+    print Unwrap3(j) < 2, " "; // false
+    print Unwrap3(j) < 32, " | "; // true |
+    var w: int32 := 299;
+    b := Unwrap3(j) < w;
+    print b, "\n"; // true
+  }
+
+  function Wrap3(x: int32): Wrapper<Wrapper<Wrapper<int32>>> {
+    x as Wrapper<int32> as Wrapper<Wrapper<int32>> as Wrapper<Wrapper<Wrapper<int32>>>
+  }
+
+  function Unwrap3(x: Wrapper<Wrapper<Wrapper<int32>>>): int32 {
+    x as Wrapper<Wrapper<int32>> as Wrapper<int32> as int32
+  }
+}
+
+module AutoInit {
+  newtype A<Unused> = x: int | 5 <= x witness 5
+  newtype B<Unused> = z: real | true
+  newtype Int32<Unused> = x | -0x8000_0000 <= x < 0x8000_0000 witness 7
+
+  newtype pos = x: int | 0 < x witness 19
+
+  method TestOne<X(0)>() {
+    var x: X := *;
+    print x, "\n";
+  }
+
+  method Test() {
+    TestOne<A<pos>>(); // 5
+    TestOne<B<pos>>(); // 0.0
+    TestOne<Int32<pos>>(); // 7
+  }
+}
+
+abstract module RefinementA {
+  type AbstractType
+  newtype NAT = AbstractType witness *
+  newtype NATx = x: AbstractType | true witness *
+
+  method Test(n: NAT, nx: NATx) {
+    print n, " ", nx, "\n";
+  }
+}
+
+module RefinementB refines RefinementA {
+  type AbstractType = real
+}
+
+module SimpleNewtypeWitness {
+  newtype A = x: int | 100 <= x witness 102
+  newtype B = a: A | true witness 103
+  newtype C = A witness 104
+
+  method Test() {
+    var a: A := *;
+    var b: B := *;
+    var c: C := *;
+    print a, " ", b, " ", c, "\n"; // 102 103 104
+  }
+}
+
+module CharToInt {
+  newtype char16 = c: char | c as int < 65536
+
+  method Test() {
+    var c: char := 'c';
+    var d: char16 := 'd';
+
+    print c, " (", c as int, ", ", c as char as int, "), ";
+    print d, " (", d as int, ", ", d as char as int, ")\n";
   }
 }

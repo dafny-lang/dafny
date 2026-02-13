@@ -13,9 +13,19 @@ module SequenceConcatOptimization {
   // but the others take much longer than I was willing to wait.
   method {:test} SirConcatsALot() {
     var s: seq<int> := [];
-    for i := 0 to 1_000_000 {
+    var n := 1_000_000;
+
+    for i := 0 to n 
+      invariant |s| == i
+    {
       s := s + [i];
     }
-    expect |s| == 1_000_000;
+
+    for i := 0 to n
+    {
+      expect s[i] == i;
+    }
+
+    expect |s| == n;
   }
 }

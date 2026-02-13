@@ -5,8 +5,8 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ModuleQualifiedId : Node, IHasReferences {
-  public readonly List<Name> Path; // Path != null && Path.Count > 0
+public class ModuleQualifiedId : NodeWithoutOrigin, IHasReferences {
+  public List<Name> Path; // Path != null && Path.Count > 0
 
   // The following are filled in during resolution
   // Note that the root (first path segment) is resolved initially,
@@ -21,13 +21,19 @@ public class ModuleQualifiedId : Node, IHasReferences {
   [FilledInDuringResolution] public ModuleDefinition Def { get; private set; } // the module definition corresponding to the full path
   [FilledInDuringResolution] public ModuleSignature Sig { get; set; } // the module signature corresponding to the full path
 
+  [SyntaxConstructor]
   public ModuleQualifiedId(List<Name> path) {
+    Origin = new SourceOrigin(path.First().StartToken, path.Last().EndToken, path.Last().Center);
     Contract.Assert(path != null && path.Count > 0);
     Path = path; // note that the list is aliased -- not to be modified after construction
   }
 
+  public override TokenRange EntireRange => Origin.EntireRange!;
+  public override IOrigin Origin { get; }
+
   public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) {
     Path = original.Path.Select(n => n.Clone(cloner)).ToList();
+    Origin = cloner.Origin(original.Origin);
     if (cloner.CloneResolvedFields) {
       Root = original.Root;
     }
@@ -37,7 +43,7 @@ public class ModuleQualifiedId : Node, IHasReferences {
     return Path[0].Value;
   }
 
-  public IToken RootToken() {
+  public IOrigin RootToken() {
     return Path[0].StartToken;
   }
 
@@ -62,21 +68,16 @@ public class ModuleQualifiedId : Node, IHasReferences {
     }
   }
 
-  public override IToken Tok => Path.Last().Tok;
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public override RangeToken RangeToken {
-    get => new(Path.First().StartToken, Path.Last().EndToken);
-    set => throw new NotSupportedException();
-  }
 
-  public IToken NavigationToken => Path.Last().StartToken;
-
-  public IEnumerable<IHasNavigationToken> GetReferences() {
+  public IEnumerable<Reference> GetReferences() {
     // Normally the target should already have been resolved, but in certain conditions like an unused alias module decl,
     // Decl might not be set yet so we need to resolve it here.
-    return Enumerable.Repeat(ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)), 1);
+
+    var reference = new Reference(Path.Last().ReportingRange, ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)));
+    return Enumerable.Repeat(reference, 1);
   }
 
   /// <summary>

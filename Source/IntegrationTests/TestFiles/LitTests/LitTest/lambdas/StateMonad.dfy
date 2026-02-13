@@ -1,4 +1,4 @@
-// RUN: %build "%s" > "%t"
+// RUN: %build "%s" --type-system-refresh=false --general-newtypes=false > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 abstract module Monad {

@@ -1,10 +1,12 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
 public class SeqConstructionExpr : Expression, ICloneable<SeqConstructionExpr> {
-  public Type/*?*/ ExplicitElementType;
+  public Type? ExplicitElementType;
   public Expression N;
   public Expression Initializer;
 
@@ -15,13 +17,11 @@ public class SeqConstructionExpr : Expression, ICloneable<SeqConstructionExpr> {
     ExplicitElementType = elemType;
   }
 
-  public SeqConstructionExpr(IToken tok, Type/*?*/ elementType, Expression length, Expression initializer)
-    : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(length != null);
-    Contract.Requires(initializer != null);
-    ExplicitElementType = elementType;
-    N = length;
+  [SyntaxConstructor]
+  public SeqConstructionExpr(IOrigin origin, Type? explicitElementType, Expression n, Expression initializer)
+    : base(origin) {
+    ExplicitElementType = explicitElementType;
+    N = n;
     Initializer = initializer;
   }
   public override IEnumerable<Expression> SubExpressions {

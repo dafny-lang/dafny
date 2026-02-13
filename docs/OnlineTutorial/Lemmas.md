@@ -620,7 +620,7 @@ lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
   requires root in subgraph && goal in graph - subgraph
   ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
 {
-  forall p {
+  forall p: seq<Node> {
     DisproofLemma(p, subgraph, root, goal, graph);
   }
 }
@@ -683,7 +683,7 @@ lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
   requires root in subgraph && goal in graph - subgraph
   ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
 {
-  forall p {
+  forall p: seq<Node> {
     DisproofLemma(p, subgraph, root, goal, graph);
   }
 }
@@ -778,7 +778,7 @@ lemma ClosedLemma(subgraph: set<Node>, root: Node, goal: Node, graph: set<Node>)
   requires root in subgraph && goal in graph - subgraph
   ensures !(exists p: seq<Node> :: pathSpecific(p, root, goal, graph))
 {
-  forall p {
+  forall p: seq<Node> {
     DisproofLemma(p, subgraph, root, goal, graph);
   }
 }

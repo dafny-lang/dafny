@@ -19,6 +19,7 @@
   */
 abstract module Std.Unicode.UnicodeEncodingForm {
   import opened Wrappers
+  import Strings
 
   import Functions
   import Collections.Seq
@@ -127,15 +128,15 @@ abstract module Std.Unicode.UnicodeEncodingForm {
 
   /**
     * Returns the unique partition of the given code unit sequence into minimal well-formed code unit subsequences,
-    * or None if no such partition exists.
+    * or Failure(CodeUnitSeq) if no such partition exists, where the resulting sequence is the suffix it could not partition.
     */
-  function PartitionCodeUnitSequenceChecked(s: CodeUnitSeq): (maybeParts: Option<seq<MinimalWellFormedCodeUnitSeq>>)
-    ensures maybeParts.Some? ==> Seq.Flatten(maybeParts.Extract()) == s
+  function PartitionCodeUnitSequenceChecked(s: CodeUnitSeq): (maybeParts: Result<seq<MinimalWellFormedCodeUnitSeq>, CodeUnitSeq>)
+    ensures maybeParts.Success? ==> Seq.Flatten(maybeParts.Extract()) == s
     decreases |s|
   {
-    if s == [] then Some([])
+    if s == [] then Success([])
     else
-      var prefix :- SplitPrefixMinimalWellFormedCodeUnitSubsequence(s);
+      var prefix :- SplitPrefixMinimalWellFormedCodeUnitSubsequence(s).ToResult(s);
       // Recursing/iterating on subsequences leads to quadratic running time in most/all Dafny runtimes as of this writing.
       // This definition (and others in the Unicode modules) emphasizes clarity and correctness,
       // and while the by-method implementation avoids stack overflows due to non-tail-recursive recursion,
@@ -143,27 +144,29 @@ abstract module Std.Unicode.UnicodeEncodingForm {
       // The best solution would be to ensure all Dafny runtimes implement subsequences as an O(1)
       // operation, so this implementation would become linear.
       var restParts :- PartitionCodeUnitSequenceChecked(s[|prefix|..]);
-      Some([prefix] + restParts)
+      Success([prefix] + restParts)
   } by method {
     if s == [] {
-      return Some([]);
+      return Success([]);
     }
     var result: seq<MinimalWellFormedCodeUnitSeq> := [];
     var rest := s;
     while |rest| > 0
-      invariant PartitionCodeUnitSequenceChecked(s).Some?
-           <==> PartitionCodeUnitSequenceChecked(rest).Some?
+      invariant PartitionCodeUnitSequenceChecked(s).Success?
+           <==> PartitionCodeUnitSequenceChecked(rest).Success?
       invariant
-        PartitionCodeUnitSequenceChecked(s).Some? ==>
+        if PartitionCodeUnitSequenceChecked(s).Success? then
           && PartitionCodeUnitSequenceChecked(s).value
              == result + PartitionCodeUnitSequenceChecked(rest).value
+        else
+          PartitionCodeUnitSequenceChecked(s).error == PartitionCodeUnitSequenceChecked(rest).error
     {
-      var prefix :- SplitPrefixMinimalWellFormedCodeUnitSubsequence(rest);
+      var prefix :- SplitPrefixMinimalWellFormedCodeUnitSubsequence(rest).ToResult(rest);
       result := result + [prefix];
       rest := rest[|prefix|..];
     }
     assert result + [] == result;
-    return Some(result);
+    return Success(result);
   }
 
   /**
@@ -181,20 +184,20 @@ abstract module Std.Unicode.UnicodeEncodingForm {
     * containing exactly the minimal well-formed code unit subsequence.
     */
   lemma LemmaPartitionMinimalWellFormedCodeUnitSubsequence(m: MinimalWellFormedCodeUnitSeq)
-    ensures PartitionCodeUnitSequenceChecked(m) == Some([m])
+    ensures PartitionCodeUnitSequenceChecked(m) == Success([m])
   {
     LemmaSplitPrefixMinimalWellFormedCodeUnitSubsequenceInvertsPrepend(m, []);
     calc == {
-      Some(m);
-      SplitPrefixMinimalWellFormedCodeUnitSubsequence(m + []);
+      Success(m);
+      SplitPrefixMinimalWellFormedCodeUnitSubsequence(m + []).ToResult(m);
       { assert m + [] == m; }
-      SplitPrefixMinimalWellFormedCodeUnitSubsequence(m);
+      SplitPrefixMinimalWellFormedCodeUnitSubsequence(m).ToResult(m);
     }
     calc == {
       PartitionCodeUnitSequenceChecked(m);
-      Some([m] + []);
+      Success([m] + []);
       { assert [m] + [] == [m]; }
-      Some([m]);
+      Success([m]);
     }
   }
 
@@ -203,7 +206,7 @@ abstract module Std.Unicode.UnicodeEncodingForm {
     */
   function IsWellFormedCodeUnitSequence(s: CodeUnitSeq): (b: bool)
   {
-    PartitionCodeUnitSequenceChecked(s).Some?
+    PartitionCodeUnitSequenceChecked(s).Success?
   }
 
   /**
@@ -275,7 +278,7 @@ abstract module Std.Unicode.UnicodeEncodingForm {
     s := [];
     ghost var unflattened: seq<MinimalWellFormedCodeUnitSeq> := [];
     for i := |vs| downto 0
-      invariant unflattened == Seq.Map(EncodeScalarValue, vs[i..])
+      invariant unflattened == Seq.MapPartialFunction(EncodeScalarValue, vs[i..])
       invariant s == Seq.Flatten(unflattened)
     {
       var next: MinimalWellFormedCodeUnitSeq := EncodeScalarValue(vs[i]);
@@ -292,46 +295,52 @@ abstract module Std.Unicode.UnicodeEncodingForm {
     ensures EncodeScalarSequence(vs) == s
   {
     var parts := PartitionCodeUnitSequence(s);
-    var vs := Seq.Map(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
+    var vs := Seq.MapPartialFunction(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
     calc == {
       s;
       Seq.Flatten(parts);
-      { assert parts == Seq.Map(EncodeScalarValue, vs); }
-      Seq.Flatten(Seq.Map(EncodeScalarValue, vs));
+      { assert parts == Seq.MapPartialFunction(EncodeScalarValue, vs); }
+      Seq.Flatten(Seq.MapPartialFunction(EncodeScalarValue, vs));
       EncodeScalarSequence(vs);
     }
     vs
   }
 
+  function DecodeErrorMessage(index: int): string {
+    "Could not decode byte at index " + Strings.OfInt(index)
+  }
+
   /**
-    * Returns the scalar value sequence encoded by the given code unit sequence, or None if the given Unicode string
+    * Returns the scalar value sequence encoded by the given code unit sequence, or Failure if the given Unicode string
     * is not well-formed.
     */
-  function DecodeCodeUnitSequenceChecked(s: CodeUnitSeq): (maybeVs: Option<seq<ScalarValue>>)
+  function DecodeCodeUnitSequenceChecked(s: CodeUnitSeq): (resultVs: Result<seq<ScalarValue>, string>)
     ensures IsWellFormedCodeUnitSequence(s) ==>
-              && maybeVs.Some?
-              && maybeVs.Extract() == DecodeCodeUnitSequence(s)
-    ensures !IsWellFormedCodeUnitSequence(s) ==> && maybeVs.None?
+              && resultVs.Success?
+              && resultVs.Extract() == DecodeCodeUnitSequence(s)
+    ensures !IsWellFormedCodeUnitSequence(s) ==> && resultVs.Failure?
   {
     // IsWellFormedCodeUnitSequence and DecodeCodeUnitSequence each call PartitionCodeUnitSequence,
     // so for efficiency we avoid recomputing the partition in the by-method.
-    if IsWellFormedCodeUnitSequence(s) then Some(DecodeCodeUnitSequence(s))
-    else None
+    match PartitionCodeUnitSequenceChecked(s) {
+      case Success(_) => Success(DecodeCodeUnitSequence(s))
+      case Failure(s') => Failure(DecodeErrorMessage(|s|-|s'|))
+    }
   }
   by method {
     var maybeParts := PartitionCodeUnitSequenceChecked(s);
-    if maybeParts.None? {
-      return None;
+    if maybeParts.Failure? {
+      return Failure(DecodeErrorMessage(|s|-|maybeParts.error|));
     }
     var parts := maybeParts.value;
-    var vs := Seq.Map(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
+    var vs := Seq.MapPartialFunction(DecodeMinimalWellFormedCodeUnitSubsequence, parts);
     calc == {
       s;
       Seq.Flatten(parts);
-      { assert parts == Seq.Map(EncodeScalarValue, vs); }
-      Seq.Flatten(Seq.Map(EncodeScalarValue, vs));
+      { assert parts == Seq.MapPartialFunction(EncodeScalarValue, vs); }
+      Seq.Flatten(Seq.MapPartialFunction(EncodeScalarValue, vs));
       EncodeScalarSequence(vs);
     }
-    return Some(vs);
+    return Success(vs);
   }
 }

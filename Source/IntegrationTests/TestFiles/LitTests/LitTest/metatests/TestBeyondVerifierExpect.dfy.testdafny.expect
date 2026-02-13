@@ -44,11 +44,4 @@ Diff (changing expected into actual):
 
 Executing on C++...
 Executing on Rust...
-AssertEqualWithDiff() Failure
-Diff (changing expected into actual):
--good bye
-+hello
- 
-
-(non-blocking) The Rust code generator is internal. Not having a '*.rs.check' file is acceptable for now.
 Executing on ResolvedDesugaredExecutableDafny...

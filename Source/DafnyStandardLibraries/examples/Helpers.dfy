@@ -5,7 +5,7 @@
 
 module Helpers {
   import opened Std.Wrappers
-    // TODO: consider tweaking /testContracts to support this use case better.
+  // TODO: consider tweaking /testContracts to support this use case better.
   method AssertAndExpect(p: bool, maybeMsg: Option<string> := None) requires p {
     match maybeMsg {
       case None => {

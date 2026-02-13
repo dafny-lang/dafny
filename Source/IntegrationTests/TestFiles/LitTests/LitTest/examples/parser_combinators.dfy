@@ -31,11 +31,11 @@
 /// anonymous functions (“lambdas”) modularly: every time a lambda is created,
 /// as with `(fun () -> parentheses' ())`, Dafny checks that the function can be
 /// called in any context.  To see why, consider the function `Apply` below and
-/// the following two uses of it:
+/// the following two uses of it (see also parser_combinators_error.dfy):
 
 function Apply(f: () -> int): int { f() }
 
-function F0(): int { Apply(F0) }
+// function F0(): int { Apply(F0) } // cannot use F0 naked here (see parser_combinators_error.dfy)
 function F1(): int { Apply(() => F1()) }
 
 /// Dafny rejects `F0` because it does not allow using “naked” recursive

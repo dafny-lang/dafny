@@ -1,10 +1,11 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
 public class ExprRhs : AssignmentRhs, ICloneable<ExprRhs> {
-  public readonly Expression Expr;
+  public Expression Expr;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Expr != null);
@@ -17,9 +18,14 @@ public class ExprRhs : AssignmentRhs, ICloneable<ExprRhs> {
     Expr = cloner.CloneExpr(original.Expr);
   }
 
-  public ExprRhs(Expression expr, Attributes attrs = null)
-    : base(expr.tok, attrs) {
-    Contract.Requires(expr != null);
+  [SyntaxConstructor]
+  public ExprRhs(IOrigin origin, Expression expr, Attributes? attributes = null)
+    : base(origin, attributes) {
+    Expr = expr;
+  }
+
+  public ExprRhs(Expression expr, Attributes? attrs = null)
+    : base(expr.Origin, attrs) {
     Expr = expr;
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }

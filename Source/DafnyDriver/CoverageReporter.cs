@@ -48,6 +48,7 @@ public class CoverageReporter {
       return actualPath;
     });
   }
+
   public CoverageReporter(DafnyOptions options) {
     reporter = options.DiagnosticsFormat switch {
       DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
@@ -80,7 +81,7 @@ public class CoverageReporter {
   }
 
   public async Task Merge(List<string> coverageReportsToMerge, string coverageReportOutDir) {
-    List<CoverageReport> reports = new();
+    List<CoverageReport> reports = [];
     var mergedReport = new CoverageReport("Combined Coverage Report", "Locations", "_combined", null);
     foreach (var reportDir in coverageReportsToMerge) {
       if (!Directory.Exists(reportDir)) {
@@ -142,10 +143,9 @@ public class CoverageReporter {
             int.TryParse(span.Groups[3].Value, out var col)) {
           var nextToken = new Token(line, col);
           nextToken.Uri = uri;
-          var precedingToken = new Token(line, col - 1);
+          var precedingToken = new Token(line, col);
           precedingToken.Uri = uri;
-          var rangeToken = new RangeToken(lastEndToken, precedingToken);
-          rangeToken.Uri = uri;
+          var rangeToken = new TokenRange(lastEndToken, precedingToken);
           report.LabelCode(rangeToken, lastLabel);
           lastLabel = FromHtmlClass(span.Groups[1].Value);
           lastEndToken = nextToken;
@@ -154,7 +154,7 @@ public class CoverageReporter {
 
       var lastToken = new Token(source.Count(c => c == '\n') + 2, 0);
       lastToken.Uri = uri;
-      var lastRangeToken = new RangeToken(lastEndToken, lastToken);
+      var lastRangeToken = new TokenRange(lastEndToken, lastToken);
       report.LabelCode(lastRangeToken, lastLabel);
     }
     return report;
@@ -162,7 +162,7 @@ public class CoverageReporter {
 
   /// <summary> Serialize a single coverage report to disk </summary>
   public Task SerializeCoverageReports(CoverageReport report, string directory) {
-    return SerializeCoverageReports(new List<CoverageReport> { report }, directory);
+    return SerializeCoverageReports([report], directory);
   }
 
   /// <summary>
@@ -176,7 +176,7 @@ public class CoverageReporter {
       sessionDirectory = Path.Combine(reportsDirectory, sessionName);
     }
     Directory.CreateDirectory(sessionDirectory);
-    HashSet<Uri> allUris = new();
+    HashSet<Uri> allUris = [];
     reports.ForEach(report => allUris.UnionWith(report.AllFiles()));
     if (allUris.Count == 0) {
       reporter.Warning(MessageSource.Documentation, ErrorRegistry.NoneId, Token.NoToken,
@@ -235,22 +235,23 @@ public class CoverageReporter {
       return;
     }
     var coverageLabels = Enum.GetValues(typeof(CoverageLabel)).Cast<CoverageLabel>().ToList();
-    List<object> header = new() { "File", "Module" };
+    List<object> header = ["File", "Module"];
     header.AddRange(coverageLabels
       .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
       .Select(label => $"{report.Units} {CoverageLabelExtension.ToString(label)}"));
 
-    List<List<object>> body = new();
+    List<List<object>> body = [];
     foreach (var sourceFile in sourceFileToCoverageReportFile.Keys) {
       var desiredPath = sourceFileToCoverageReportFile[sourceFile] + $"{report.Suffix}.html";
       var relativePath = Path.GetRelativePath(baseDirectory, GetPath(report, desiredPath));
       var linkName = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
 
-      body.Add(new() {
+      body.Add([
         $"<a href = \"{relativePath}\"" +
         $"class = \"el_package\">{linkName}</a>",
+
         "All modules"
-      });
+      ]);
 
       body.Last().AddRange(coverageLabels
         .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
@@ -258,12 +259,12 @@ public class CoverageReporter {
                                .Count(span => span.Label == label)).OfType<object>());
 
       foreach (var module in report.ModulesInFile(sourceFile).OrderBy(m => m.FullName)) {
-        body.Add(new() {
+        body.Add([
           "",
           module.FullName
-        });
+        ]);
 
-        var moduleRange = module.RangeToken.ToDafnyRange();
+        var moduleRange = module.ToDafnyRange();
         body.Last().AddRange(coverageLabels
           .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
           .Select(label => report.CoverageSpansForFile(sourceFile)
@@ -275,7 +276,7 @@ public class CoverageReporter {
       }
     }
 
-    List<object> footer = new() { "Total", "" };
+    List<object> footer = ["Total", ""];
     footer.AddRange(coverageLabels
       .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
       .Select(label => report.AllFiles().Select(sourceFile =>
@@ -339,8 +340,8 @@ public class CoverageReporter {
     var files = await DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance,
         new ConsoleErrorReporter(options), options, uri, Token.Cli).ToListAsync();
     var dafnyFile = files[0];
-    var source = await dafnyFile.GetContent().ReadToEndAsync();
-    var lines = source.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+    var source = await dafnyFile.GetContent().Reader.ReadToEndAsync();
+    var lines = source.Split([Environment.NewLine], StringSplitOptions.None);
     var characterLabels = new CoverageLabel[lines.Length][];
     for (int i = 0; i < lines.Length; i++) {
       characterLabels[i] = new CoverageLabel[lines[i].Length];
@@ -350,6 +351,9 @@ public class CoverageReporter {
     foreach (var span in report.CoverageSpansForFile(uri)) {
       var line = span.Span.StartToken.line - 1;
       var column = span.Span.StartToken.col - 1;
+      var endToken = span.Span.EndToken;
+      var endColumnExclusive = endToken.col - 1 + (span.Span.InclusiveEnd ? endToken.val.Length : 0);
+      var endLineExclusive = endToken.line;
       while (true) {
         if (characterLabels[line].Length <= column) {
           do { line++; }
@@ -359,7 +363,8 @@ public class CoverageReporter {
             break;
           }
         }
-        if (line > span.Span.EndToken.line - 1 || (line == span.Span.EndToken.line - 1 && column > span.Span.EndToken.col - 1)) {
+
+        if (line >= endLineExclusive || (line == endToken.line - 1 && column >= endColumnExclusive)) {
           break;
         }
         characterLabels[line][column] = CoverageLabelExtension.Combine(characterLabels[line][column], span.Label);

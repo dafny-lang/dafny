@@ -59,3 +59,11 @@ done
  true true false false true false false false false
 done
 true false true false
+false 25 30
+false true | true
+5
+0.0
+7
+2.0 3.0
+102 103 104
+'c' (99, 99), 'd' (100, 100)

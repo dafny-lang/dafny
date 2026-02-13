@@ -2,40 +2,40 @@ Coinductive.dfy(13,11): Warning: because of cyclic dependencies among constructo
 Coinductive.dfy(16,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
 Coinductive.dfy(38,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'K' can be constructed
 Coinductive.dfy(64,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'NotFiniteEnough_Dt' can be constructed
-Coinductive.dfy(93,8): Error: a greatest predicate can be called recursively only in positive positions
-Coinductive.dfy(94,8): Error: a greatest predicate can be called recursively only in positive positions
-Coinductive.dfy(95,8): Error: a greatest predicate can be called recursively only in positive positions
-Coinductive.dfy(95,21): Error: a greatest predicate can be called recursively only in positive positions
-Coinductive.dfy(101,5): Error: a greatest predicate can be called recursively only in positive positions
-Coinductive.dfy(104,27): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
-Coinductive.dfy(105,28): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
-Coinductive.dfy(106,17): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
-Coinductive.dfy(116,24): Error: a greatest predicate can be called recursively only in positive positions
-Coinductive.dfy(122,15): Error: a greatest predicate can be called recursively only in positive positions
-Coinductive.dfy(123,10): Error: a greatest predicate can be called recursively only in positive positions
+Coinductive.dfy(93,11): Error: a greatest predicate can be called recursively only in positive positions
+Coinductive.dfy(94,12): Error: a greatest predicate can be called recursively only in positive positions
+Coinductive.dfy(95,12): Error: a greatest predicate can be called recursively only in positive positions
+Coinductive.dfy(95,25): Error: a greatest predicate can be called recursively only in positive positions
+Coinductive.dfy(101,7): Error: a greatest predicate can be called recursively only in positive positions
+Coinductive.dfy(104,29): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
+Coinductive.dfy(105,30): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
+Coinductive.dfy(106,19): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
+Coinductive.dfy(116,26): Error: a greatest predicate can be called recursively only in positive positions
+Coinductive.dfy(122,17): Error: a greatest predicate can be called recursively only in positive positions
+Coinductive.dfy(123,12): Error: a greatest predicate can be called recursively only in positive positions
 Coinductive.dfy(148,21): Error: a recursive call from a greatest predicate can go only to other greatest predicates
-Coinductive.dfy(204,8): Error: a least predicate can be called recursively only in positive positions
-Coinductive.dfy(205,8): Error: a least predicate can be called recursively only in positive positions
-Coinductive.dfy(206,8): Error: a least predicate can be called recursively only in positive positions
-Coinductive.dfy(206,21): Error: a least predicate can be called recursively only in positive positions
-Coinductive.dfy(219,15): Error: a greatest predicate can be called recursively only in positive positions
-Coinductive.dfy(226,16): Error: a least predicate can be called recursively only in positive positions
-Coinductive.dfy(238,5): Error: a least predicate can be called recursively only in positive positions
-Coinductive.dfy(241,28): Error: a least predicate can be called recursively only in positive positions and cannot sit inside an unbounded universal quantifier
-Coinductive.dfy(242,29): Error: a least predicate can be called recursively only in positive positions and cannot sit inside an unbounded universal quantifier
-Coinductive.dfy(243,17): Error: a least predicate can be called recursively only in positive positions and cannot sit inside an unbounded universal quantifier
-Coinductive.dfy(253,12): Error: a least predicate can be called recursively only in positive positions
-Coinductive.dfy(259,15): Error: a least predicate can be called recursively only in positive positions
-Coinductive.dfy(260,10): Error: a least predicate can be called recursively only in positive positions
+Coinductive.dfy(204,11): Error: a least predicate can be called recursively only in positive positions
+Coinductive.dfy(205,12): Error: a least predicate can be called recursively only in positive positions
+Coinductive.dfy(206,12): Error: a least predicate can be called recursively only in positive positions
+Coinductive.dfy(206,25): Error: a least predicate can be called recursively only in positive positions
+Coinductive.dfy(219,28): Error: a greatest predicate can be called recursively only in positive positions
+Coinductive.dfy(226,34): Error: a least predicate can be called recursively only in positive positions
+Coinductive.dfy(238,7): Error: a least predicate can be called recursively only in positive positions
+Coinductive.dfy(241,30): Error: a least predicate can be called recursively only in positive positions and cannot sit inside an unbounded universal quantifier
+Coinductive.dfy(242,31): Error: a least predicate can be called recursively only in positive positions and cannot sit inside an unbounded universal quantifier
+Coinductive.dfy(243,19): Error: a least predicate can be called recursively only in positive positions and cannot sit inside an unbounded universal quantifier
+Coinductive.dfy(253,14): Error: a least predicate can be called recursively only in positive positions
+Coinductive.dfy(259,17): Error: a least predicate can be called recursively only in positive positions
+Coinductive.dfy(260,12): Error: a least predicate can be called recursively only in positive positions
 Coinductive.dfy(280,21): Error: a recursive call from a least predicate can go only to other least predicates
-Coinductive.dfy(296,4): Error: this call does not type check, because the context uses a _k parameter of type ORDINAL whereas the callee uses a _k parameter of type nat
-Coinductive.dfy(299,4): Error: this call does not type check, because the context uses a _k parameter of type nat whereas the callee uses a _k parameter of type ORDINAL
-Coinductive.dfy(307,13): Error: this call does not type check, because the context uses a _k parameter of type nat whereas the callee uses a _k parameter of type ORDINAL
-Coinductive.dfy(313,13): Error: this call does not type check, because the context uses a _k parameter of type ORDINAL whereas the callee uses a _k parameter of type nat
-Coinductive.dfy(323,5): Error: incorrect argument type at index 0 for prefix lemma in-parameter (expected nat, found ORDINAL)
-Coinductive.dfy(329,5): Error: incorrect argument type at index 0 for prefix lemma in-parameter (expected ORDINAL, found int)
-Coinductive.dfy(355,19): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
-Coinductive.dfy(355,44): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
-Coinductive.dfy(358,19): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
-Coinductive.dfy(358,46): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
+Coinductive.dfy(296,5): Error: this call does not type check, because the context uses a _k parameter of type ORDINAL whereas the callee uses a _k parameter of type nat
+Coinductive.dfy(299,5): Error: this call does not type check, because the context uses a _k parameter of type nat whereas the callee uses a _k parameter of type ORDINAL
+Coinductive.dfy(307,14): Error: this call does not type check, because the context uses a _k parameter of type nat whereas the callee uses a _k parameter of type ORDINAL
+Coinductive.dfy(313,14): Error: this call does not type check, because the context uses a _k parameter of type ORDINAL whereas the callee uses a _k parameter of type nat
+Coinductive.dfy(320,14): Error: incorrect argument type at index 0 for prefix lemma in-parameter (expected nat, found ORDINAL)
+Coinductive.dfy(326,14): Error: incorrect argument type at index 0 for prefix lemma in-parameter (expected ORDINAL, found int)
+Coinductive.dfy(355,29): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
+Coinductive.dfy(355,54): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
+Coinductive.dfy(358,29): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
+Coinductive.dfy(358,56): Error: a greatest predicate can be called recursively only in positive positions and cannot sit inside an unbounded existential quantifier
 36 resolution/type errors detected in Coinductive.dfy

@@ -13,7 +13,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // A trait for objects with a Valid() predicate. Necessary in order to
   // generalize some proofs, but also useful for reducing the boilerplate
   // that most such objects need to include.
-  trait Validatable {
+  trait Validatable extends object {
     // Ghost state tracking the common set of objects most
     // methods need to read.
     ghost var Repr: set<object>
@@ -148,13 +148,18 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires forall i | 0 <= i < size :: values[i].Set?
       // Explicitly doesn't ensure Valid()!
       ensures ret.Valid()
-      // This is imporant, because it's tempting to just return this when possible
+      // This is important, because it's tempting to just return this when possible
       // to save allocations, but that leads to inconsistencies.
       ensures ret as object != this as object
       ensures |ret.values| as size_t == size
       ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
 
     static method {:axiom} {:extern} Make<T>(length: size_t) returns (ret: NativeArray<T>)
+      ensures ret.Valid()
+      ensures fresh(ret.Repr)
+      ensures ret.Length() == length
+
+    static method {:axiom} {:extern} MakeWithPrototype<T>(length: size_t, prototype: ImmutableArray<T>) returns (ret: NativeArray<T>)
       ensures ret.Valid()
       ensures fresh(ret.Repr)
       ensures ret.Length() == length
@@ -177,7 +182,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // This could easily be implemented by the same native type as NativeArray.
   // TODO: Need to make sure NativeArray.Freeze() never returns the same object,
   // as a.Freeze() == a will lead to unsoundness. Write a Dafny test first!
-  trait {:extern} ImmutableArray<T> {
+  trait {:extern} ImmutableArray<T> extends object {
 
     ghost const values: seq<T>
 
@@ -222,9 +227,9 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       && storage.Repr <= Repr
       && this !in storage.Repr
       && storage.Valid()
-         // TODO: This is equivalent to the above four clauses
-         // but I believe it doesn't get unrolled enough.
-         // && ValidComponent(storage)
+      // TODO: This is equivalent to the above four clauses
+      // but I believe it doesn't get unrolled enough.
+      // && ValidComponent(storage)
       && 0 <= size <= storage.Length()
       && forall i | 0 <= i < size :: storage.values[i].Set?
     }
@@ -235,6 +240,20 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures fresh(Repr)
     {
       var storage := NativeArray<T>.Make(length);
+      this.storage := storage;
+      size := 0;
+      Repr := {this} + storage.Repr;
+    }
+
+    // Note it is important to use this constructor
+    // if T may be compiled to a primitive type we want to avoid boxing,
+    // such as bytes or characters!
+    constructor WithPrototype(length: size_t, prototype: ImmutableArray<T>)
+      ensures Valid()
+      ensures Value() == []
+      ensures fresh(Repr)
+    {
+      var storage := NativeArray<T>.MakeWithPrototype(length, prototype);
       this.storage := storage;
       size := 0;
       Repr := {this} + storage.Repr;
@@ -297,8 +316,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
         newCapacity := Max(newCapacity, storage.Length() * TWO_SIZE);
       }
 
-      var newStorage := NativeArray<T>.Make(newCapacity);
       var values := storage.Freeze(size);
+      var newStorage := NativeArray<T>.MakeWithPrototype(newCapacity, values);
       newStorage.UpdateSubarray(0, values);
       storage := newStorage;
 
@@ -376,7 +395,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires inv(t)
   }
 
-  trait {:extern} Sequence<T> {
+  trait {:extern} Sequence<T> extends object {
 
     // This is only here to support the attempts some runtimes make to
     // track what sequence values are actually sequences of characters.
@@ -403,6 +422,21 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires Valid()
       decreases NodeCount, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
+
+    // Returns an array of the same element type as this sequence.
+    // Used to ensure when we create more arrays of T elements
+    // that we optimize for common types like bytes and characters,
+    // even though in several Dafny backends we don't have enough type information
+    // at runtime from Dafny itself.
+    // TypeDescriptors would be the more general solution,
+    // but they are not present where we need them
+    // in most backends.
+    //
+    // Note this is very similar to the DafnySequence.newCopier(int length)
+    // method in the Java runtime.
+    method PrototypeArray() returns (ret: ImmutableArray<T>)
+      requires Valid()
+      decreases NodeCount, 1
 
     method Select(index: size_t) returns (ret: T)
       requires Valid()
@@ -501,24 +535,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     // Sequence methods that must be static because they require T to be equality-supporting
 
-    static method EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: size_t) returns (ret: bool)
+    static method {:axiom} {:extern} EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: size_t) returns (ret: bool)
       requires left.Valid()
       requires right.Valid()
       requires index <= left.Cardinality()
       requires index <= right.Cardinality()
       ensures ret == (left.Value()[..index] == right.Value()[..index])
-    {
-      for i := 0 to index
-        invariant left.Value()[..i] == right.Value()[..i]
-      {
-        var leftElement := left.Select(i);
-        var rightElement := right.Select(i);
-        if leftElement != rightElement {
-          return false;
-        }
-      }
-      return true;
-    }
 
     static method Equal<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool)
       requires left.Valid()
@@ -616,6 +638,13 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   class ArraySequence<T> extends Sequence<T> {
     const values: ImmutableArray<T>
 
+    method PrototypeArray() returns (ret: ImmutableArray<T>)
+      requires Valid()
+      decreases NodeCount, 1
+    {
+      return values;
+    }
+
     ghost predicate Valid()
       decreases NodeCount, 0
       ensures Valid() ==> 0 < NodeCount
@@ -664,6 +693,15 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     const left: Sequence<T>
     const right: Sequence<T>
     const length: size_t
+
+    method PrototypeArray() returns (ret: ImmutableArray<T>)
+      requires Valid()
+      decreases NodeCount, 1
+    {
+      // This is arbitrary but should work well for the majority of cases,
+      // and is consistent with how the Java runtime currently handles the same problem.
+      ret := left.PrototypeArray();
+    }
 
     ghost predicate Valid()
       decreases NodeCount, 0
@@ -714,7 +752,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
-      var builder := new Vector<T>(length);
+      var prototype := PrototypeArray();
+      var builder := new Vector<T>.WithPrototype(length, prototype);
       var stack := new Vector<Sequence<T>>(TEN_SIZE);
       AppendOptimized(builder, this, stack);
       ret := builder.Freeze();
@@ -826,6 +865,14 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     const box: AtomicBox<Sequence<T>>
     const length: size_t
 
+    method PrototypeArray() returns (ret: ImmutableArray<T>)
+      requires Valid()
+      decreases NodeCount, 1
+    {
+      var expr : Sequence<T> := box.Get();
+      ret := expr.PrototypeArray();
+    }
+
     ghost predicate Valid()
       decreases NodeCount, 0
       ensures Valid() ==> 0 < NodeCount
@@ -884,7 +931,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
-      var expr := box.Get();
+      var expr : Sequence<T> := box.Get();
+      if expr is ArraySequence<T> {
+        return (expr as ArraySequence<T>).values;
+      }
       ret := expr.ToArray();
 
       var arraySeq := new ArraySequence(ret);

@@ -23,7 +23,7 @@ module AutoInitRegressions {
     const InstanceField: Y
   }
 
-  trait Trait {
+  trait Trait extends object {
     static const StaticField: Y  // error: Y is not auto-init
     const InstanceField: Y
   }
@@ -60,7 +60,7 @@ module NonemptyRegressions {
     ghost const InstanceField: Y
   }
 
-  trait Trait {
+  trait Trait extends object {
     ghost static const StaticField: Y  // error: Y is not nonempty
     ghost const InstanceField: Y
   }

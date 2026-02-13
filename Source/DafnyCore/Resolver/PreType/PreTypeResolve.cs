@@ -22,46 +22,29 @@ namespace Microsoft.Dafny {
 
     protected int ErrorCount => resolver.Reporter.Count(ErrorLevel.Error);
 
-    protected void ReportError(Declaration d, string msg, params object[] args) {
-      Contract.Requires(d != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      ReportError(d.tok, msg, args);
+    protected void ReportError(INode node, params object[] messageParts) {
+      Contract.Requires(node != null);
+      ReportError(node.Origin, messageParts);
     }
 
-    protected void ReportError(Statement stmt, string msg, params object[] args) {
-      Contract.Requires(stmt != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      ReportError(stmt.Tok, msg, args);
-    }
-
-    protected void ReportError(Expression expr, string msg, params object[] args) {
-      Contract.Requires(expr != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      ReportError(expr.tok, msg, args);
-    }
-
-    public void ReportError(IToken tok, string msg, params object[] args) {
+    public void ReportError(IOrigin tok, params object[] messageParts) {
       Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      resolver.Reporter.Error(MessageSource.Resolver, tok, msg, args);
+      Contract.Requires(messageParts != null);
+      resolver.Reporter.Error(MessageSource.Resolver, tok, messageParts);
     }
 
-    public void ReportWarning(IToken tok, string msg, params object[] args) {
-      Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      resolver.Reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tok, msg, args);
+    public void ReportError(ResolutionErrors.ErrorId errorId, IOrigin tok, params object[] messageParts) {
+      resolver.Reporter.Error(MessageSource.Resolver, errorId, tok, messageParts);
     }
 
-    protected void ReportInfo(IToken tok, string msg, params object[] args) {
+    public void ReportWarning(IOrigin tok, params object[] messageParts) {
       Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      resolver.Reporter.Info(MessageSource.Resolver, tok, msg, args);
+      resolver.Reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tok, messageParts);
+    }
+
+    protected void ReportInfo(IOrigin tok, params object[] messageParts) {
+      Contract.Requires(tok != null);
+      resolver.Reporter.Info(MessageSource.Resolver, tok, messageParts);
     }
   }
 
@@ -72,7 +55,7 @@ namespace Microsoft.Dafny {
     public Scope<IVariable> Scope => scope;
 
     TopLevelDeclWithMembers currentClass;
-    Method currentMethod;
+    MethodOrConstructor currentMethod;
 
     private readonly Dictionary<string, TopLevelDecl> preTypeBuiltins = new();
     public readonly PreTypeConstraints Constraints;
@@ -85,7 +68,7 @@ namespace Microsoft.Dafny {
       if (IsArrayName(name, out var dims)) {
         // make sure the array class has been created
         SystemModuleManager.ArrayType(Token.NoToken, dims,
-          new List<Type> { new InferredTypeProxy() }, true).ModifyBuiltins(resolver.SystemModuleManager);
+          [new InferredTypeProxy()], true).ModifyBuiltins(resolver.SystemModuleManager);
         decl = resolver.SystemModuleManager.arrayTypeDecls[dims];
       } else if (IsBitvectorName(name, out var width)) {
         var bvDecl = (ValuetypeDecl)resolver.SystemModuleManager.SystemModule.SourceDecls.Find(topLevelDecl => topLevelDecl.Name == name);
@@ -99,9 +82,29 @@ namespace Microsoft.Dafny {
         }
         return bvDecl;
       } else {
+        // If looking for fp32 or fp64, ensure it's in the preTypeBuiltins cache
+        if (name is "fp32" or "fp64") {
+          if (!preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey(name)) {
+            var variety = name == "fp32" ? ValuetypeVariety.Fp32 : ValuetypeVariety.Fp64;
+            var floatDecl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)variety];
+
+            if (name == "fp32") {
+              resolver.ProgramResolver.SystemModuleManager.EnsureFloatTypesInitialized(resolver.ProgramResolver);
+            } else {
+              resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
+            }
+
+            preTypeInferenceModuleState.PreTypeBuiltins.Add(name, floatDecl);
+            FillInPreTypesInSignature(floatDecl);
+            foreach (var member in floatDecl.Members) {
+              FillInPreTypesInSignature(member);
+            }
+          }
+          return preTypeInferenceModuleState.PreTypeBuiltins.GetValueOrDefault(name);
+        }
         decl = null;
         foreach (var valueTypeDecl in resolver.ProgramResolver.SystemModuleManager.valuetypeDecls) {
-          if (valueTypeDecl.Name == name) {
+          if (valueTypeDecl != null && valueTypeDecl.Name == name) {
             // bool, int, real, ORDINAL, map, imap
             decl = valueTypeDecl;
             break;
@@ -109,46 +112,63 @@ namespace Microsoft.Dafny {
         }
         if (decl == null) {
           if (name is PreType.TypeNameSet or PreType.TypeNameSeq or PreType.TypeNameMultiset) {
-            var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict };
+            var variances = new List<TPVarianceSyntax>() { TPVarianceSyntax.Covariant_Strict };
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
           } else if (name == PreType.TypeNameIset) {
-            var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive };
+            var variances = new List<TPVarianceSyntax>() { TPVarianceSyntax.Covariant_Permissive };
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
           } else if (name == PreType.TypeNameObjectQ) {
             decl = resolver.SystemModuleManager.ObjectDecl;
+          } else if (name == PreType.TypeNameString) {
+            decl = resolver.SystemModuleManager.StringDecl;
           } else {
             decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, _ => false, null);
           }
         }
       }
-      preTypeInferenceModuleState.PreTypeBuiltins.Add(name, decl);
-      return decl;
-    }
-
-    TopLevelDecl BuiltInArrowTypeDecl(int arity) {
-      Contract.Requires(0 <= arity);
-      var name = ArrowType.ArrowTypeName(arity);
-      if (!preTypeInferenceModuleState.PreTypeBuiltins.TryGetValue(name, out var decl)) {
-        // the arrow type declaration should already have been created by the parser
-        decl = resolver.SystemModuleManager.ArrowTypeDecls[arity];
+      if (decl != null && !preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey(name)) {
         preTypeInferenceModuleState.PreTypeBuiltins.Add(name, decl);
       }
       return decl;
     }
 
-    DPreType BuiltInArrowType(List<PreType> inPreTypes, PreType resultPreType) {
-      return new DPreType(BuiltInArrowTypeDecl(inPreTypes.Count), Util.Snoc(inPreTypes, resultPreType));
+    DPreType BuiltInArrowType(List<PreType> inPreTypes, PreType resultPreType, bool hasReads, bool hasReq) {
+      var generalArrowTypeDecl = BuiltInArrowTypeDecl(inPreTypes.Count);
+      var preTypeArguments = Util.Snoc(inPreTypes, resultPreType);
+      var printablePreType = hasReads ? null : new DPreType(BuiltInArrowTypeDecl(inPreTypes.Count, hasReads, hasReq), preTypeArguments);
+      return new DPreType(generalArrowTypeDecl, preTypeArguments, printablePreType);
+    }
+
+    TopLevelDecl BuiltInArrowTypeDecl(int arity, bool hasReads = true, bool hasReq = true) {
+      Contract.Requires(0 <= arity);
+      if (hasReads) {
+        return BuiltInArrowTypeDeclAny(arity, ArrowType.ArrowTypeName(arity), resolver.SystemModuleManager.ArrowTypeDecls);
+      } else if (hasReq) {
+        return BuiltInArrowTypeDeclAny(arity, ArrowType.PartialArrowTypeName(arity), resolver.SystemModuleManager.PartialArrowTypeDecls);
+      } else {
+        return BuiltInArrowTypeDeclAny(arity, ArrowType.TotalArrowTypeName(arity), resolver.SystemModuleManager.TotalArrowTypeDecls);
+      }
+    }
+
+    private TopLevelDecl BuiltInArrowTypeDeclAny<TD>(int arity, string arrowTypeName, Dictionary<int, TD> arrowTypeDecls) where TD : TopLevelDecl {
+      Contract.Requires(0 <= arity);
+      if (!preTypeInferenceModuleState.PreTypeBuiltins.TryGetValue(arrowTypeName, out var decl)) {
+        // the arrow type declaration should already have been created by the parser
+        decl = arrowTypeDecls[arity];
+        preTypeInferenceModuleState.PreTypeBuiltins.Add(arrowTypeName, decl);
+      }
+      return decl;
     }
 
     DPreType BuiltInArrayType(int dims, PreType elementPreType) {
       Contract.Requires(1 <= dims);
       var arrayName = dims == 1 ? PreType.TypeNameArray : $"{PreType.TypeNameArray}{dims}";
-      return new DPreType(BuiltInTypeDecl(arrayName), new List<PreType>() { elementPreType });
+      return new DPreType(BuiltInTypeDecl(arrayName), [elementPreType]);
     }
 
     private int typeProxyCount = 0; // used to give each PreTypeProxy a unique ID
 
-    public readonly List<(PreTypeProxy, string)> allPreTypeProxies = new();
+    public readonly List<(PreTypeProxy, string)> allPreTypeProxies = [];
 
     public PreType CreatePreTypeProxy(string description = null) {
       var proxy = new PreTypeProxy(typeProxyCount++);
@@ -175,7 +195,7 @@ namespace Microsoft.Dafny {
           typeSynonymDecl.IsRevealedInScope(Type.GetScope())) {
         // Compute a pre-type for the non-instantiated ("raw") RHS type (that is, for the RHS of the type-synonym declaration with the
         // formal type parameters of the type-synonym declaration).
-        var rawRhsType = UserDefinedType.FromTopLevelDecl(typeSynonymDecl.tok, typeSynonymDecl);
+        var rawRhsType = UserDefinedType.FromTopLevelDecl(typeSynonymDecl.Origin, typeSynonymDecl);
         var preTypeArguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForBoth));
 
         // The printable pre-type is the original type synonym, but with preTypeArguments as arguments
@@ -230,6 +250,12 @@ namespace Microsoft.Dafny {
         decl = BuiltInTypeDecl(PreType.TypeNameInt);
       } else if (type is RealType) {
         decl = BuiltInTypeDecl(PreType.TypeNameReal);
+      } else if (type is Fp32Type) {
+        decl = BuiltInTypeDecl(PreType.TypeNameFp32);
+      } else if (type is Fp64Type) {
+        decl = BuiltInTypeDecl(PreType.TypeNameFp64);
+      } else if (type is FieldType) {
+        decl = BuiltInTypeDecl(PreType.TypeNameField);
       } else if (type is BigOrdinalType) {
         decl = BuiltInTypeDecl(PreType.TypeNameORDINAL);
       } else if (type is BitvectorType bitvectorType) {
@@ -247,41 +273,40 @@ namespace Microsoft.Dafny {
         decl = udt.ResolvedClass;
         Contract.Assert(decl != null);
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
       return decl;
     }
 
-    /// <summary>
-    /// Returns the non-newtype ancestor of "decl".
-    /// This method assumes that the ancestors of "decl" do not form any cycles. That is, any such cycle detection must already
-    /// have been done.
-    /// </summary>
-    public static TopLevelDecl AncestorDecl(TopLevelDecl decl) {
-      while (decl is NewtypeDecl newtypeDecl) {
-        var parent = newtypeDecl.BasePreType.Normalize();
-        decl = ((DPreType)parent).Decl;
+    public IEnumerable<DPreType> TypeParameterBounds2PreTypes(TypeParameter typeParameter) {
+      foreach (var typeBound in typeParameter.TypeBounds) {
+        var preTypeBound = Type2PreType(typeBound, $"type bound for type parameter '{typeParameter.Name}'");
+        yield return (DPreType)preTypeBound;
       }
-      return decl;
     }
 
     /// <summary>
     /// Returns the non-newtype ancestor pre-type of "preType".
     /// This method assumes that the ancestors of "preType.Decl" do not form any cycles. That is, any such cycle detection must already
     /// have been done.
+    /// If the base type is a type parameter (of the newtype's) and that type parameter is not determined, then this method returns null.
     /// </summary>
+    [CanBeNull]
     public static DPreType AncestorPreType(DPreType preType) {
       while (preType.Decl is NewtypeDecl newtypeDecl) {
         var subst = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, preType.Arguments);
-        preType = (DPreType)newtypeDecl.BasePreType.Substitute(subst);
+        if (newtypeDecl.BasePreType.Substitute(subst).Normalize() is DPreType baseWithSubstitution) {
+          preType = baseWithSubstitution;
+        } else {
+          return null;
+        }
       }
       return preType;
     }
 
     [CanBeNull]
     public static string AncestorName(PreType preType) {
-      var dp = preType.Normalize() as DPreType;
-      return dp == null ? null : AncestorDecl(dp.Decl).Name;
+      return preType.Normalize() is not DPreType dp ? null : AncestorPreType(dp)?.Decl.Name;
     }
 
     /// <summary>
@@ -299,13 +324,19 @@ namespace Microsoft.Dafny {
           break;
         }
         visited.Add(newtypeDecl);
-        var parent = newtypeDecl.BasePreType.Normalize() as DPreType;
-        if (parent == null) {
+        if (newtypeDecl.BasePreType.Normalize() is not DPreType parent) {
           // The parent type of this newtype apparently hasn't been inferred yet, so stop traversal here
           break;
         }
         var subst = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, preType.Arguments);
-        preType = (DPreType)parent.Substitute(subst);
+        if (parent.Substitute(subst) is not DPreType parentWithSubstitutions) {
+          // The head type of result of the substitution into the parent is not yet inferred. This must have been because
+          // the parent is a type parameter of the newtype and the actual type argument hasn't been inferred yet. So, we
+          // stop here and return the type-parameter parent.
+          Contract.Assert(parent.Decl is TypeParameter);
+          break;
+        }
+        preType = parentWithSubstitutions;
       }
       return preType;
     }
@@ -317,7 +348,7 @@ namespace Microsoft.Dafny {
        *         return dp.Decl is TopLevelDeclWithMembers md && md.ParentTraits.Count != 0;
        * For now, every reference type except "object" has trait supertypes.
        */
-      if (dp.Decl is TopLevelDeclWithMembers md && md.ParentTraits.Count != 0) {
+      if (dp.Decl is TopLevelDeclWithMembers md && md.Traits.Count != 0) {
         // this type has explicitly declared parent traits
         return true;
       }
@@ -330,7 +361,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Add to "ancestors" every TopLevelDecl that is a reflexive, transitive parent of "d",
+    /// Add to "ancestors" every TopLevelDecl that is a reflexive, transitive parent of "decl",
     /// but not exploring past any TopLevelDecl that is already in "ancestors".
     /// </summary>
     public static void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors, SystemModuleManager systemModuleManager) {
@@ -338,7 +369,12 @@ namespace Microsoft.Dafny {
         ancestors.Add(decl);
         if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           topLevelDeclWithMembers.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors, systemModuleManager));
+        } else if (decl is TypeParameter typeParameter) {
+          typeParameter.TypeBoundHeads.ToList().ForEach(parent => ComputeAncestors(parent, ancestors, systemModuleManager));
+        } else if (decl is TypeSynonymDecl { Rhs: UserDefinedType { ResolvedClass: TopLevelDecl rhs } }) {
+          ComputeAncestors(rhs, ancestors, systemModuleManager);
         }
+
         if (decl is TraitDecl { IsObjectTrait: true }) {
           // we're done
         } else if (DPreType.IsReferenceTypeDecl(decl)) {
@@ -354,6 +390,18 @@ namespace Microsoft.Dafny {
     /// Note, if either "super" or "sub" contains a type proxy, then "false" is returned.
     /// </summary>
     public bool IsSuperPreTypeOf(DPreType super, DPreType sub) {
+      if (sub.Decl is TypeParameter typeParameter) {
+        if (PreType.Same(super, sub)) {
+          return true;
+        }
+        foreach (var preTypeBound in TypeParameterBounds2PreTypes(typeParameter)) {
+          if (IsSuperPreTypeOf(super, preTypeBound)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
       var subAncestors = new HashSet<TopLevelDecl>();
       ComputeAncestors(sub.Decl, subAncestors, resolver.SystemModuleManager);
       if (!subAncestors.Contains(super.Decl)) {
@@ -427,8 +475,10 @@ namespace Microsoft.Dafny {
       this.preTypeInferenceModuleState = preTypeInferenceModuleState;
 
       scope = new Scope<IVariable>(resolver.Options);
-      EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-      dominatingStatementLabels = new Scope<Label>(resolver.Options);
+      EnclosingStatementLabels = new Scope<LabeledStatement>(resolver.Options);
+      DominatingStatementLabels = new Scope<Label>(resolver.Options);
+      EnclosingInputParameterFormals = new Scope<Formal>(resolver.Options);
+      EnclosingMethodCall = null;
       Constraints = new PreTypeConstraints(this);
     }
 
@@ -443,7 +493,7 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(v.PreType != null);
       }
-      ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
+      ScopePushAndReport(scope, v.Name, v, v.Origin, kind);
     }
 
     void ScopePushExpectSuccess(IVariable v, string kind, bool assignPreType = true) {
@@ -456,11 +506,11 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(v.PreType != null);
       }
-      var r = ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
+      var r = ScopePushAndReport(scope, v.Name, v, v.Origin, kind);
       Contract.Assert(r == Scope<IVariable>.PushResult.Success);
     }
 
-    private Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok, string kind) where Thing : class {
+    public Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IOrigin tok, string kind) where Thing : class {
       Contract.Requires(scope != null);
       Contract.Requires(name != null);
       Contract.Requires(thing != null);
@@ -480,21 +530,39 @@ namespace Microsoft.Dafny {
       return r;
     }
 
-    void AddSubtypeConstraint(PreType super, PreType sub, IToken tok, string errorFormatString) {
+    void AddSubtypeConstraint(PreType super, PreType sub, IOrigin tok, string errorFormatString) {
       Constraints.AddSubtypeConstraint(super, sub, tok, errorFormatString);
     }
 
-    void AddConfirmation(PreTypeConstraints.CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction = null) {
+    void AddConfirmation(PreTypeConstraints.CommonConfirmationBag check, PreType preType, IOrigin tok, string errorFormatString, Action onProxyAction = null) {
       Constraints.AddConfirmation(check, preType, tok, errorFormatString, onProxyAction);
     }
 
-    void AddComparableConstraint(PreType a, PreType b, IToken tok, bool allowBaseTypeCast, string errorFormatString) {
+    void AddComparableConstraint(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, string errorFormatString) {
+      AddComparableConstraint(a, b, tok, allowBaseTypeCast, () => string.Format(errorFormatString, a, b));
+    }
+
+    void AddComparableConstraint(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, Func<string> errorMessage) {
       // A "comparable types" constraint involves a disjunction. This can get gnarly for inference, so the full disjunction
       // is checked post inference. The constraint can, however, be of use during inference, so we also add an approximate
       // constraint (which is set up NOT to generate any error messages by itself, since otherwise errors would be duplicated).
       Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(a, b, tok, allowBaseTypeCast,
-        "(Duplicate error message) " + errorFormatString, false));
-      Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, allowBaseTypeCast), () => string.Format(errorFormatString, a, b));
+        "(Duplicate error message) " + errorMessage(), false));
+      if (!allowBaseTypeCast) {
+        AddComparableTypesDefault(a, b);
+      }
+      Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, allowBaseTypeCast), errorMessage);
+    }
+
+    private void AddComparableTypesDefault(PreType a, PreType b) {
+      // The "comparable types" constraint may be useful as a bound if nothing else is known about a proxy.
+      if (a.Normalize() is PreTypeProxy aPreTypeProxy) {
+        Constraints.AddCompatibleBounds(aPreTypeProxy, b);
+      }
+
+      if (b.Normalize() is PreTypeProxy bPreTypeProxy) {
+        Constraints.AddCompatibleBounds(bPreTypeProxy, a);
+      }
     }
 
     /// <summary>
@@ -539,6 +607,9 @@ namespace Microsoft.Dafny {
     bool IsConversionCompatible(DPreType fromType, DPreType toType) {
       var fromAncestor = AncestorPreType(fromType);
       var toAncestor = AncestorPreType(toType);
+      if (fromAncestor == null || toAncestor == null) {
+        return false;
+      }
 
       if (PreType.Same(fromAncestor, toAncestor)) {
         return true;
@@ -551,6 +622,9 @@ namespace Microsoft.Dafny {
         return true;
       }
       if (fromFamily == PreType.TypeNameInt && toName is PreType.TypeNameChar or PreType.TypeNameReal or PreType.TypeNameORDINAL) {
+        return true;
+      }
+      if (fromFamily == PreType.TypeNameChar && (toFamily is PreType.TypeNameInt or PreType.TypeNameORDINAL || IsBitvectorName(toFamily))) {
         return true;
       }
 
@@ -569,10 +643,30 @@ namespace Microsoft.Dafny {
         }
       }
 
+      // fp32 conversions
+      if (toFamily == PreType.TypeNameFp32) {
+        // Conversions TO fp32 are allowed from int, real, fp32, and fp64
+        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
+      }
+      if (fromFamily == PreType.TypeNameFp32) {
+        // Conversions FROM fp32 are allowed to int, real, fp32, and fp64
+        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
+      }
+
+      // fp64 conversions
+      if (toFamily == PreType.TypeNameFp64) {
+        // Conversions TO fp64 are allowed from int, real, fp32, and fp64
+        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
+      }
+      if (fromFamily == PreType.TypeNameFp64) {
+        // Conversions FROM fp64 are allowed to int, real, fp32, and fp64
+        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
+      }
+
       return false;
     }
 
-    bool ApproximateComparableConstraints(PreType a, PreType b, IToken tok, bool allowBaseTypeCast, string errorFormatString, bool reportErrors = true) {
+    bool ApproximateComparableConstraints(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, string errorFormatString, bool reportErrors = true) {
       // See CheckComparableTypes for the meaning of "comparable type".
       // To decide between these two possibilities, enough information must be available about A and/or B.
       var normalizedA = a.Normalize() as DPreType;
@@ -582,7 +676,7 @@ namespace Microsoft.Dafny {
         if (subArguments != null) {
           // use B :> A
           var aa = new DPreType(normalizedB.Decl, subArguments, normalizedA.PrintablePreType);
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {aa}");
+          Constraints.DebugPrint($"    turning ~~ into {b} :> {aa}");
           Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString, null, reportErrors);
           return true;
         }
@@ -590,7 +684,7 @@ namespace Microsoft.Dafny {
         if (subArguments != null) {
           // use A :> B
           var bb = new DPreType(normalizedA.Decl, subArguments, normalizedB.PrintablePreType);
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {bb}");
+          Constraints.DebugPrint($"    turning ~~ into {a} :> {bb}");
           Constraints.AddSubtypeConstraint(a, bb, tok, errorFormatString, null, reportErrors);
           return true;
         }
@@ -609,12 +703,12 @@ namespace Microsoft.Dafny {
       if (!allowBaseTypeCast) {
         if ((normalizedA != null && normalizedA.IsLeafType()) || (normalizedB != null && normalizedB.IsRootType())) {
           // use B :> A
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
+          Constraints.DebugPrint($"    turning ~~ into {b} :> {a}");
           Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString, null, reportErrors);
           return true;
         } else if ((normalizedA != null && normalizedA.IsRootType()) || (normalizedB != null && normalizedB.IsLeafType())) {
           // use A :> B
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {b}");
+          Constraints.DebugPrint($"    turning ~~ into {a} :> {b}");
           Constraints.AddSubtypeConstraint(a, b, tok, errorFormatString, null, reportErrors);
           return true;
         }
@@ -637,6 +731,7 @@ namespace Microsoft.Dafny {
             Constraints.AddEqualityConstraint(aa, bb, tok, msgFormat, null, reportErrors);
           } else {
             Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(aa, bb, tok, false, msgFormat, reportErrors));
+            AddComparableTypesDefault(aa, bb);
           }
         }
 
@@ -713,7 +808,7 @@ namespace Microsoft.Dafny {
       } else {
         var memberDecl = (MemberDecl)d;
         preTypeResolver.ResolveTypeParameters(memberDecl.EnclosingClass.TypeArgs, false, memberDecl.EnclosingClass);
-        if (memberDecl is Method method) {
+        if (memberDecl is MethodOrConstructor method) {
           preTypeResolver.ResolveTypeParameters(method.TypeArgs, false, method);
         } else if (memberDecl is Function function) {
           preTypeResolver.ResolveTypeParameters(function.TypeArgs, false, function);
@@ -763,8 +858,8 @@ namespace Microsoft.Dafny {
       }
 
       if (preTypeInferenceModuleState.InFirstPhase.Contains(d)) {
-        var cycle = Util.Comma(" -> ", preTypeInferenceModuleState.InFirstPhase, d => d.ToString());
-        ReportError(d, $"Cyclic dependency among declarations: {d} -> {cycle}");
+        var cycle = Util.Comma(" -> ", preTypeInferenceModuleState.InFirstPhase, d => d.GetNameRelativeToModule());
+        ReportError(d, $"Cyclic dependency among declarations: {d.GetNameRelativeToModule()} -> {cycle}");
       } else {
         preTypeInferenceModuleState.InFirstPhase.Push(d);
         FillInPreTypesInSignature(d);
@@ -817,7 +912,7 @@ namespace Microsoft.Dafny {
         function.ResultPreType = Type2PreType(function.ResultType);
       }
 
-      void ComputePreTypeMethod(Method method) {
+      void ComputePreTypeMethod(MethodOrConstructor method) {
         method.Ins.ForEach(ComputePreTypeFormal);
         method.Outs.ForEach(ComputePreTypeFormal);
       }
@@ -837,15 +932,15 @@ namespace Microsoft.Dafny {
           nd.Var.PreType = nd.BasePreType;
         }
         var onProxyAction = () => {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, nd.tok,
+          resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, nd.Origin,
             $"base type of {nd.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{nd.Var.Name}'");
         };
         if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
-          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.Origin,
             $"a newtype ('{nd.Name}') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got {{0}})",
             onProxyAction);
         } else {
-          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.tok,
+          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.Origin,
             $"a newtype ('{nd.Name}') must be based on some numeric type (got {{0}})", onProxyAction);
         }
         ResolveConstraintAndWitness(nd, true);
@@ -882,7 +977,7 @@ namespace Microsoft.Dafny {
             ComputePreTypeFunction(prefixPredicate);
           }
         }
-      } else if (declaration is Method method) {
+      } else if (declaration is MethodOrConstructor method) {
         ComputePreTypeMethod(method);
         if (method is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
           ComputePreTypeMethod(prefixLemma);
@@ -966,7 +1061,7 @@ namespace Microsoft.Dafny {
           if (r == Scope<TypeParameter>.PushResult.Duplicate) {
             ReportError(tp, "Duplicate type-parameter name: {0}", tp.Name);
           } else if (r == Scope<TypeParameter>.PushResult.Shadow) {
-            ReportWarning(tp.tok, "Shadowed type-parameter name: {0}", tp.Name);
+            ReportWarning(tp.Origin, "Shadowed type-parameter name: {0}", tp.Name);
           }
         }
       }
@@ -978,15 +1073,14 @@ namespace Microsoft.Dafny {
 
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attributeHost.Attributes.AsEnumerable()) {
-        if (attributeHost != null && attr is UserSuppliedAttributes usa) {
-#if TODO          
-          usa.Recognized = resolver.IsRecognizedAttribute(usa, attributeHost); // TODO: this could be done in a later resolution pass
-#endif
+        if (attr is UserSuppliedAtAttribute { Builtin: true } usaa) {
+          Contract.Assert(usaa.Arg.Type != null); // Already resolved
+          continue;
         }
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             if (Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name is "revealedFunction" && arg is NameSegment nameSegment) {
-              ResolveNameSegment(nameSegment, true, null, opts, false, specialOpaqueHackAllowance: true);
+              ResolveNameSegment(nameSegment, true, null, opts, false, out _, complain: true, specialOpaqueHackAllowance: true);
             } else {
               ResolveExpression(arg, opts);
             }
@@ -1026,7 +1120,8 @@ namespace Microsoft.Dafny {
         scope.AllowInstance = false;
         ResolveExpression(dd.Witness, new ResolutionContext(codeContext, false));
         scope.PopMarker();
-        AddSubtypeConstraint(dd.Var.PreType, dd.Witness.PreType, dd.Witness.tok, "witness expression must have type '{0}' (got '{1}')");
+        Contract.Assert(dd.BasePreType != null);
+        AddSubtypeConstraint(dd.BasePreType, dd.Witness.PreType, dd.Witness.Origin, "witness expression must have type '{0}' (got '{1}')");
         Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' witness");
       }
     }
@@ -1044,7 +1139,7 @@ namespace Microsoft.Dafny {
         }
         ResolveExpression(cfield.Rhs, opts);
         scope.PopMarker();
-        AddSubtypeConstraint(cfield.PreType, cfield.Rhs.PreType, cfield.Tok, "RHS (of type {1}) not assignable to LHS (of type {0})");
+        AddSubtypeConstraint(cfield.PreType, cfield.Rhs.PreType, cfield.Origin, "RHS (of type {1}) not assignable to LHS (of type {0})");
         Constraints.SolveAllTypeConstraints($"{cfield.WhatKind} '{cfield.Name}' constraint");
       }
     }
@@ -1053,33 +1148,61 @@ namespace Microsoft.Dafny {
       Contract.Requires(formals != null);
       Contract.Requires(codeContext != null);
 
+      // Formal parameters have three ways to indicate how they are to be passed in:
+      //   * nameonly: the only way to give a specific argument value is to name the parameter
+      //   * positional only: these are nameless parameters (which are allowed only for datatype constructor parameters)
+      //   * either positional or by name: this is the most common parameter
+      // A parameter is either required or optional:
+      //   * required: a caller has to supply an argument
+      //   * optional: the parameter has a default value that is used if a caller omits passing a specific argument
+      //
+      // The syntax for giving a positional-only (i.e., nameless) parameter does not allow a default-value expression, so
+      // a positional-only parameter is always required.
+      //
+      // At a call site, positional arguments are not allowed to follow named arguments. Therefore, if "x" is
+      // a nameonly parameter, then there is no way to supply the parameters after "x" by position. Thus, any
+      // parameter that follows "x" must either be passed by name or have a default value. That is, if a later
+      // parameter does not have a default value, it is _effectively_ nameonly. We impose the rule that
+      //   * an effectively nameonly parameter must be declared as nameonly
+      //
+      // For a positional-only parameter "x", every parameter preceding "x" is _effectively_ required. We impose
+      // the rule that
+      //   * an effectively required parameter must not have a default-value expression
       var dependencies = new Graph<IVariable>();
-      var allowMoreRequiredParameters = true;
-      var allowNamelessParameters = true;
+      string nameOfMostRecentNameonlyParameter = null;
+      var previousParametersWithDefaultValue = new HashSet<Formal>();
       foreach (var formal in formals) {
+        if (!formal.HasName) {
+          foreach (var previousFormal in previousParametersWithDefaultValue) {
+            ReportError(previousFormal.DefaultValue.Origin,
+              "because of a later nameless parameter, which is a required parameter, this default value is never used; remove it or name all subsequent parameters");
+          }
+          previousParametersWithDefaultValue.Clear();
+        }
+
         var d = formal.DefaultValue;
         if (d != null) {
-          allowMoreRequiredParameters = false;
-          ResolveExpression(d, new ResolutionContext(codeContext, codeContext is TwoStateFunction || codeContext is TwoStateLemma));
-          AddSubtypeConstraint(Type2PreType(formal.Type), d.PreType, d.tok, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
+          ResolveExpression(d, new ResolutionContext(codeContext, codeContext is TwoStateFunction or TwoStateLemma));
+          AddSubtypeConstraint(Type2PreType(formal.Type), d.PreType, d.Origin, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
           foreach (var v in ModuleResolver.FreeVariables(d)) {
             dependencies.AddEdge(formal, v);
           }
-        } else if (!allowMoreRequiredParameters) {
-          ReportError(formal.tok, "a required parameter must precede all optional parameters");
-        }
-        if (!allowNamelessParameters && !formal.HasName) {
-          ReportError(formal.tok, "a nameless parameter must precede all nameonly parameters");
+          previousParametersWithDefaultValue.Add(formal);
+        } else if (nameOfMostRecentNameonlyParameter != null && !formal.IsNameOnly) {
+          // "formal" is preceded by a nameonly parameter, but itself is neither nameonly nor has a default value
+          ReportError(formal.Origin,
+            $"this parameter has to be nameonly, because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'; " +
+            "declare it as nameonly or give it a default-value expression");
         }
         if (formal.IsNameOnly) {
-          allowNamelessParameters = false;
+          nameOfMostRecentNameonlyParameter = formal.Name;
         }
       }
       Constraints.SolveAllTypeConstraints($"parameter default values of {codeContext.FullSanitizedName}");
 
       foreach (var cycle in dependencies.AllCycles()) {
         var cy = Util.Comma(" -> ", cycle, v => v.Name) + " -> " + cycle[0].Name;
-        ReportError(cycle[0].Tok, $"default-value expressions for parameters contain a cycle: {cy}");
+        ReportError(cycle[0].Origin, $"default-value expressions for parameters contain a cycle: {cy}");
       }
     }
 
@@ -1122,7 +1245,7 @@ namespace Microsoft.Dafny {
           resolver.allTypeParameters.PopMarker();
         }
 
-      } else if (member is Method m) {
+      } else if (member is MethodOrConstructor m) {
         var ec = ErrorCount;
         resolver.allTypeParameters.PushMarker();
         ResolveTypeParameters(m.TypeArgs, false, m);
@@ -1138,7 +1261,7 @@ namespace Microsoft.Dafny {
         }
 
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected member type
       }
     }
 
@@ -1149,6 +1272,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(iter != null);
       Contract.Requires(currentClass != null);
       Contract.Ensures(currentClass == null);
+
+      if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
+        Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_iterators_are_not_deterministic, iter.Origin,
+          "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option");
+      }
 
       var initialErrorCount = ErrorCount;
 
@@ -1173,7 +1301,7 @@ namespace Microsoft.Dafny {
         // any type is fine, but associate this type with the corresponding _decreases<n> field
         var d = iter.DecreasesFields[i];
         // If the following type constraint does not hold, then: Bummer, there was a use--and a bad use--of the field before, so this won't be the best of error messages
-        AddSubtypeConstraint(d.PreType, e.PreType, e.tok, "type of field '" + d.Name + "' is {1}, but has been constrained elsewhere to be of type {0}");
+        AddSubtypeConstraint(d.PreType, e.PreType, e.Origin, "type of field '" + d.Name + "' is {1}, but has been constrained elsewhere to be of type {0}");
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
         ResolveFrameExpression(fe, FrameExpressionUse.Reads, iter);
@@ -1217,19 +1345,19 @@ namespace Microsoft.Dafny {
 
       // Resolve body
       if (iter.Body != null) {
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         foreach (var req in iter.Requires) {
           if (req.Label != null) {
-            if (dominatingStatementLabels.Find(req.Label.Name) != null) {
+            if (DominatingStatementLabels.Find(req.Label.Name) != null) {
               ReportError(req.Label.Tok, "assert label shadows a dominating label");
             } else {
-              var rr = dominatingStatementLabels.Push(req.Label.Name, req.Label);
+              var rr = DominatingStatementLabels.Push(req.Label.Name, req.Label);
               Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
             }
           }
         }
         ResolveBlockStatement(iter.Body, ResolutionContext.FromCodeContext(iter));
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         Constraints.SolveAllTypeConstraints($"body of iterator '{iter.Name}'");
       }
 
@@ -1310,16 +1438,23 @@ namespace Microsoft.Dafny {
       if (f.Body != null) {
         var prevErrorCount = ErrorCount;
         ResolveExpression(f.Body, new ResolutionContext(f, f is TwoStateFunction));
-        AddSubtypeConstraint(Type2PreType(f.ResultType), f.Body.PreType, f.tok, "Function body type mismatch (expected {0}, got {1})");
+        AddSubtypeConstraint(Type2PreType(f.ResultType), f.Body.PreType, f.Origin, "Function body type mismatch (expected {0}, got {1})");
         Constraints.SolveAllTypeConstraints($"body of {f.WhatKind} '{f.Name}'");
       }
 
       scope.PopMarker();
 
       if (f.ByMethodBody != null) {
+        Contract.Assert(f.Body != null && !f.IsGhost); // assured by the parser and other callers of the Function constructor
         var method = f.ByMethodDecl;
-        Contract.Assert(method != null); // this should have been filled in by now
-        ResolveMethod(method);
+        if (method != null) {
+          ResolveMethod(method);
+        } else {
+          // method should have been filled in by now,
+          // unless there was a function by method and a method of the same name
+          // but then this error must have been reported.
+          Contract.Assert(resolver.Reporter.HasErrors);
+        }
       }
 
       resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
@@ -1329,7 +1464,7 @@ namespace Microsoft.Dafny {
     /// Assumes type parameters have already been pushed.
     /// Also assumes that "currentClass" has been set to the parent of "m".
     /// </summary>
-    void ResolveMethod(Method m) {
+    void ResolveMethod(MethodOrConstructor m) {
       Contract.Requires(m != null);
 
       m.ResolveNewOrOldPart(this);
@@ -1390,7 +1525,7 @@ namespace Microsoft.Dafny {
         // Don't care about any duplication errors among the out-parameters, since they have already been reported
         scope.PushMarker();
         if (m is ExtremeLemma && m.Outs.Count != 0) {
-          ReportError(m.Outs[0].tok, "{0}s are not allowed to have out-parameters", m.WhatKind);
+          ReportError(m.Outs[0].Origin, "{0}s are not allowed to have out-parameters", m.WhatKind);
         } else {
           foreach (Formal p in m.Outs) {
             ScopePushAndReport(p, "out-parameter", false);
@@ -1414,19 +1549,19 @@ namespace Microsoft.Dafny {
             ScopePushExpectSuccess(k, "_k parameter", false);
           }
 
-          dominatingStatementLabels.PushMarker();
+          DominatingStatementLabels.PushMarker();
           foreach (var req in m.Req) {
             if (req.Label != null) {
-              if (dominatingStatementLabels.Find(req.Label.Name) != null) {
+              if (DominatingStatementLabels.Find(req.Label.Name) != null) {
                 ReportError(req.Label.Tok, "assert label shadows a dominating label");
               } else {
-                var rr = dominatingStatementLabels.Push(req.Label.Name, req.Label);
+                var rr = DominatingStatementLabels.Push(req.Label.Name, req.Label);
                 Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
               }
             }
           }
           ResolveBlockStatement(m.Body, ResolutionContext.FromCodeContext(m));
-          dominatingStatementLabels.PopMarker();
+          DominatingStatementLabels.PopMarker();
           Constraints.SolveAllTypeConstraints($"body of {m.WhatKind} '{m.Name}'");
         }
 
@@ -1440,6 +1575,11 @@ namespace Microsoft.Dafny {
       finally {
         currentMethod = null;
       }
+    }
+
+    public void ResolveFrameExpression(FrameExpression frameExpression, FrameExpressionUse frameExpressionUse,
+      ResolutionContext context) {
+      ResolveFrameExpression(frameExpression, frameExpressionUse, context.CodeContext);
     }
 
     void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
@@ -1472,37 +1612,53 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (dp.UrAncestor(this) is DPreType {
-          Decl.Name: PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset
-        } dpAncestor) {
-          hasCollectionType = true;
-          var elementType = dpAncestor.Arguments[0].Normalize();
-          dp = elementType as DPreType;
-          if (dp == null) {
-            // element type not yet known
-            Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
-            return false;
+        if (dp.UrAncestor(this) is DPreType dpAncestor) {
+          if (dpAncestor is {
+            Decl.Name: PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq
+                or PreType.TypeNameMultiset
+          }) {
+            hasCollectionType = true;
+            var elementType = dpAncestor.Arguments[0].Normalize();
+            dp = elementType as DPreType;
+            if (dp == null) {
+              // element type not yet known
+              Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
+              return false;
+            }
+          }
+
+          if (SystemModuleManager.IsTupleTypeName(dpAncestor.Decl.Name) && dp.Arguments.Count == 2) {
+            var elementType = dpAncestor.Arguments[0].Normalize();
+            hasCollectionType = true;
+            dp = elementType as DPreType;
+            if (dp == null) {
+              // element type not yet known
+              Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
+              return false;
+            }
           }
         }
 
-        if (!DPreType.IsReferenceTypeDecl(dp.Decl) || (hasArrowType && !hasCollectionType)) {
+        if (!((DPreType.IsReferenceTypeDecl(dp.Decl) ||
+               DPreType.IsFieldLocationType(dp)) && (!hasArrowType || hasCollectionType))) {
           var expressionMustDenoteObject = "expression must denote an object";
-          var collection = "a set/iset/multiset/seq of objects";
+          var fieldLocation = ModuleResolver.SingleFieldLocation;
+          var collection = ModuleResolver.CollectionOfFieldLocations;
           var instead = "(instead got {0})";
           var errorMsgFormat = use switch {
             FrameExpressionUse.Reads =>
-              $"a reads-clause {expressionMustDenoteObject}, {collection}, or a function to {collection} {instead}",
+              $"a reads-clause {expressionMustDenoteObject}, {fieldLocation}, {collection}, or a function to {collection} {instead}",
             FrameExpressionUse.Modifies =>
-              $"a modifies-clause {expressionMustDenoteObject} or {collection} {instead}",
+              $"a modifies-clause {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
             FrameExpressionUse.Unchanged =>
-              $"an unchanged {expressionMustDenoteObject} or {collection} {instead}",
+              $"an unchanged {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
             _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
           };
-          ReportError(fe.E.tok, errorMsgFormat, fe.E.PreType);
+          ReportError(fe.E.Origin, errorMsgFormat, fe.E.PreType);
         }
 
         if (fe.FieldName != null) {
-          var (member, tentativeReceiverType) = FindMember(fe.E.tok, dp, fe.FieldName, resolutionContext);
+          var (member, tentativeReceiverType) = FindMember(fe.E.Origin, dp, fe.FieldName, resolutionContext);
           Contract.Assert((member == null) == (tentativeReceiverType == null)); // follows from contract of FindMember
           if (member == null) {
             // error has already been reported by FindMember
@@ -1565,7 +1721,7 @@ namespace Microsoft.Dafny {
               if (f is ExtremePredicate extremePredicate) {
                 visitor.Visit(extremePredicate.PrefixPredicate);
               }
-            } else if (member is Method m) {
+            } else if (member is MethodOrConstructor m) {
               visitor.Visit(m);
               if (m is ExtremeLemma extremeLemma) {
                 visitor.Visit(extremeLemma.PrefixLemma);
@@ -1586,15 +1742,15 @@ namespace Microsoft.Dafny {
       protected override void VisitOneExpr(Expression expr) {
         // compare expr.PreType and expr.Type
         if (expr.PreType == null) {
-          preTypeResolver.ReportWarning(expr.tok, $"sanity check WARNING: no pre-type was computed");
+          preTypeResolver.ReportWarning(expr.Origin, $"sanity check WARNING: no pre-type was computed");
         } else if (expr.Type == null) {
-          preTypeResolver.ReportError(expr.tok, $"SANITY CHECK FAILED: .PreType is '{expr.PreType}' but .Type is null");
+          preTypeResolver.ReportError(expr.Origin, $"SANITY CHECK FAILED: .PreType is '{expr.PreType}' but .Type is null");
         } else if (PreType.Same(expr.PreType, preTypeResolver.Type2PreType(expr.Type))) {
           // all is cool
         } else if (expr.PreType is MethodPreType && expr.Type is TypeProxy) {
           // this is expected
         } else {
-          preTypeResolver.ReportError(expr.tok, $"SANITY CHECK FAILED: pre-type '{expr.PreType}' does not correspond to type '{expr.Type}'");
+          preTypeResolver.ReportError(expr.Origin, $"SANITY CHECK FAILED: pre-type '{expr.PreType}' does not correspond to type '{expr.Type}'");
         }
       }
     }

@@ -11,11 +11,11 @@ public static class DiagnosticUtil {
       Code = dafnyDiagnostic.ErrorId,
       Severity = ToSeverity(dafnyDiagnostic.Level),
       Message = dafnyDiagnostic.Message,
-      Range = dafnyDiagnostic.Token.GetLspRange(),
+      Range = dafnyDiagnostic.Range.ToLspRange(),
       Source = dafnyDiagnostic.Source.ToString(),
       RelatedInformation = dafnyDiagnostic.RelatedInformation.Select(r =>
         new DiagnosticRelatedInformation {
-          Location = CreateLocation(r.Token),
+          Location = CreateLocation(r.Range),
           Message = r.Message
         }).ToList(),
       CodeDescription = dafnyDiagnostic.ErrorId == null
@@ -24,7 +24,17 @@ public static class DiagnosticUtil {
     };
   }
 
-  public static Location CreateLocation(IToken token) {
+  public static Location CreateLocation(TokenRange range) {
+    var uri = DocumentUri.Parse(range.Uri.AbsoluteUri);
+    return new Location {
+      Range = range.ToLspRange(),
+      // During parsing, we store absolute paths to make reconstructing the Uri easier
+      // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
+      Uri = uri
+    };
+  }
+
+  public static Location CreateLocation(IOrigin token) {
     var uri = DocumentUri.Parse(token.Uri.AbsoluteUri);
     return new Location {
       Range = token.GetLspRange(),

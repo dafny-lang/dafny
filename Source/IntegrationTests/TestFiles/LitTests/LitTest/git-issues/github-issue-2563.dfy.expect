@@ -1,4 +1,3 @@
-github-issue-2563.dfy(1,0): Warning: File contains no code
 CLI: Error: unknown parameter to `/verificationLogger:csv`: log.csv
 
 Dafny program verifier finished with 0 verified, 0 errors

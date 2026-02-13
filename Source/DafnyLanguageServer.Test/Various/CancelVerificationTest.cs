@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         options.Set(ProjectManager.Verification, VerifyOnMode.Save);
       });
       var documentItem = CreateAndOpenTestDocument(SlowToVerify2, "ChangingTheDocumentStopsManualVerification.dfy");
-      Assert.True(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
+      Assert.True(await client.RunSymbolVerification(documentItem, new Position(11, 34), CancellationToken));
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(0, 23), CancellationToken));
 
       await WaitForStatus(new Range(11, 32, 11, 36), PublishedVerificationStatus.Running, CancellationToken);
@@ -66,7 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       // Should cancel the previous request.
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
 
-      Assert.True(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
+      Assert.True(await client.RunSymbolVerification(documentItem, new Position(11, 34), CancellationToken));
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(0, 23), CancellationToken));
       await AssertNothingIsQueued(documentItem);
     }

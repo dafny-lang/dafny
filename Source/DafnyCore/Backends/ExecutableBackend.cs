@@ -58,14 +58,14 @@ public abstract class ExecutableBackend : IExecutableBackend {
     foreach (var compiledModule in dafnyProgram.Modules()) {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
         if (compiledModule.IsExtern(Options, out _, out var name) && name != null) {
-          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Origin,
             "inside a module that replaces another, {:extern} attributes may only be used without arguments");
         }
       }
 
       if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && dafnyProgram.Replacements.GetValueOrDefault(compiledModule) == null) {
         if (compiledModule.ShouldCompile(dafnyProgram.Compilation)) {
-          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Origin,
             $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
         }
       }
@@ -108,7 +108,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
     ModuleDefinition module = null;
     foreach (var outerModule in outerModules) {
-      var thisModule = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
+      var thisModule = new ModuleDefinition(SourceOrigin.NoToken, new Name(outerModule), [],
         ModuleKindEnum.Concrete, false,
         null, null, null) {
         EnclosingModule = module
@@ -134,9 +134,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
     }
   }
 
-  public override Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
-    CodeGenerator.Coverage.WriteLegendFile();
-    return Task.FromResult(true);
+  public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, IDafnyOutputWriter outputWriter) {
+    await CodeGenerator.Coverage.WriteLegendFile();
+    return true;
   }
 
   protected abstract SinglePassCodeGenerator CreateCodeGenerator();
@@ -155,13 +155,13 @@ public abstract class ExecutableBackend : IExecutableBackend {
       CreateNoWindow = false, // https://github.com/dotnet/runtime/issues/68259
       RedirectStandardOutput = true,
     };
-    foreach (var arg in args ?? Enumerable.Empty<string>()) {
+    foreach (var arg in args ?? []) {
       psi.ArgumentList.Add(arg);
     }
     return psi;
   }
 
-  public Task<int> RunProcess(ProcessStartInfo psi,
+  public async Task<int> RunProcess(ProcessStartInfo psi,
     TextWriter outputWriter,
     TextWriter errorWriter,
     string errorMessage = null) {
@@ -169,17 +169,22 @@ public abstract class ExecutableBackend : IExecutableBackend {
       psi.StandardOutputEncoding = OutputWriterEncoding;
     }
 
-    return StartProcess(psi, outputWriter) is { } process ?
-      WaitForExit(process, outputWriter, errorWriter, errorMessage) : Task.FromResult(-1);
+    if (StartProcess(psi, outputWriter) is { } process) {
+      return await WaitForExit(process, outputWriter, errorWriter, errorMessage);
+    }
+
+    return -1;
   }
 
   public virtual Encoding OutputWriterEncoding => null;
 
   public async Task<int> WaitForExit(Process process, TextWriter outputWriter, TextWriter errorWriter, string errorMessage = null) {
 
-    await PassthroughBuffer(process.StandardError, errorWriter);
-    await PassthroughBuffer(process.StandardOutput, outputWriter);
+    var errorTask = PassthroughBuffer(process.StandardError, errorWriter);
+    var outputTask = PassthroughBuffer(process.StandardOutput, outputWriter);
     await process.WaitForExitAsync();
+    await errorTask;
+    await outputTask;
     if (process.ExitCode != 0 && errorMessage != null) {
       await outputWriter.WriteLineAsync($"{errorMessage} Process exited with exit code {process.ExitCode}");
     }
@@ -216,7 +221,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     string targetProgramText,
     string callToMain /*?*/, string targetFilename, /*?*/
     ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter) {
+    bool runAfterCompile, IDafnyOutputWriter outputWriter) {
     Contract.Requires(dafnyProgramName != null);
     Contract.Requires(targetProgramText != null);
     Contract.Requires(otherFileNames != null);
@@ -231,12 +236,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
   public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
     string callToMain, /*?*/
     string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+    object compilationResult, IDafnyOutputWriter outputWriter) {
     Contract.Requires(dafnyProgramName != null);
     Contract.Requires(targetProgramText != null);
     Contract.Requires(otherFileNames != null);
     Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
-    Contract.Requires(outputWriter != null);
     return Task.FromResult(true);
   }
 
@@ -253,7 +257,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     SinglePassCodeGenerator.WriteFromStream(rd, outputWriter);
   }
 
-  protected async Task<bool> RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, TextWriter errorWriter, bool verify) {
+  protected async Task<bool> RunTargetDafnyProgram(string targetFilename, IDafnyOutputWriter outputWriter, bool verify) {
 
     /*
      * In order to work for the continuous integration, we need to call the Dafny compiler using dotnet
@@ -301,21 +305,21 @@ public abstract class ExecutableBackend : IExecutableBackend {
       process.CancelErrorRead();
 
       for (int i = 2; i < outputBuilder.Count - 1; i++) {
-        await outputWriter.WriteLineAsync(outputBuilder[i]);
+        await outputWriter.Status(outputBuilder[i]);
       }
 
       for (int i = 0; i < errorBuilder.Count - 1; i++) {
-        await errorWriter.WriteLineAsync(errorBuilder[i]);
+        await outputWriter.Error(errorBuilder[i]);
       }
 
       if (process.ExitCode != 0) {
-        await outputWriter.WriteLineAsync($"Process exited with exit code {process.ExitCode}");
+        await outputWriter.Status($"Process exited with exit code {process.ExitCode}");
         return false;
       }
 
     } catch (System.ComponentModel.Win32Exception e) {
       string additionalInfo = $": {e.Message}";
-      await outputWriter.WriteLineAsync($"Error: Unable to start {psi.FileName}{additionalInfo}");
+      await outputWriter.Status($"Error: Unable to start {psi.FileName}{additionalInfo}");
       return false;
     }
 

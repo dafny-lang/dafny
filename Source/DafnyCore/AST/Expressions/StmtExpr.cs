@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 /// executing S (which itself must be well-formed) and then checking the well-formedness of E.
 /// </summary>
 public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
-  public readonly Statement S;
-  public readonly Expression E;
+  public Statement S;
+  public Expression E;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(S != null);
@@ -24,9 +24,9 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
 
   public override IEnumerable<INode> Children => new Node[] { S, E };
 
-  public StmtExpr(IToken tok, Statement stmt, Expression expr)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public StmtExpr(IOrigin origin, Statement stmt, Expression expr)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(stmt != null);
     Contract.Requires(expr != null);
     S = stmt;
@@ -53,20 +53,27 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
   /// S is executed.
   /// This method should be called only after successful resolution of the expression.
   /// </summary>
-  public Expression GetSConclusion() {
-    // this is one place where we actually investigate what kind of statement .S is
-    if (S is PredicateStmt) {
-      var s = (PredicateStmt)S;
-      return s.Expr;
-    } else if (S is CalcStmt) {
-      var s = (CalcStmt)S;
-      return s.Result;
-    } else if (S is RevealStmt) {
-      return CreateBoolLiteral(tok, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
-    } else if (S is UpdateStmt) {
-      return CreateBoolLiteral(tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
-    } else {
-      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+  public Expression GetStatementConclusion() {
+    return GetStatementConclusion(S);
+  }
+
+  private Expression GetStatementConclusion(Statement statement) {
+    switch (statement) {
+      // this is one place where we actually investigate what kind of statement .S is
+      case PredicateStmt stmt:
+        return stmt.Expr;
+      case CalcStmt stmt:
+        return stmt.Result;
+      case ForallStmt:
+        return CreateBoolLiteral(Origin, true);  // one could wrap a `forall` expression around the `ensures` clause, but "true" is conservative and much simpler :)
+      case HideRevealStmt:
+        return CreateBoolLiteral(Origin, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
+      case AssignStatement:
+        return CreateBoolLiteral(Origin, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
+      case BlockByProofStmt stmt:
+        return GetStatementConclusion(stmt.Body);
+      default:
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected statement
     }
   }
 

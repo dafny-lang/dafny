@@ -9,6 +9,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public override string WhatKind { get { return "newtype"; } }
   public override bool CanBeRevealed() { return true; }
   public PreType BasePreType;
+  PreType RedirectingTypeDecl.BasePreType => BasePreType;
   public Type BaseType { get; set; } // null when refining
   public BoundVar Var { get; set; }  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
   public Expression Constraint { get; set; }  // is null iff Var is
@@ -31,40 +32,54 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   [FilledInDuringResolution] public bool TargetTypeCoversAllBitPatterns; // "target complete" -- indicates that any bit pattern that can fill the target type is a value of the newtype
 
-  public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, Type baseType, List<Type> parentTraits,
-    List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
-    Contract.Requires(isRefining ^ (baseType != null));
+  public NewtypeDecl(IOrigin origin, Name nameNode, List<TypeParameter> typeParameters, ModuleDefinition enclosingModule,
+    Type baseType,
+    SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(origin, nameNode, enclosingModule, typeParameters, members, attributes, parentTraits) {
+    Contract.Requires(origin != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModule != null);
+    Contract.Requires((witnessKind == SubsetTypeDecl.WKind.Compiled || witnessKind == SubsetTypeDecl.WKind.Ghost) == (witness != null));
     Contract.Requires(members != null);
     BaseType = baseType;
+    Witness = witness;
+    IsRefining = isRefining;
+    WitnessKind = witnessKind;
     this.NewSelfSynonym();
   }
-  public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, BoundVar bv, Expression constraint,
-    SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining) : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining, parentTraits) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
+  public NewtypeDecl(IOrigin origin, Name nameNode, List<TypeParameter> typeParameters, ModuleDefinition enclosingModule,
+    BoundVar bv, Expression constraint,
+    SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(origin, nameNode, enclosingModule, typeParameters, members, attributes, parentTraits) {
+    Contract.Requires(origin != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(bv != null && bv.Type != null);
     Contract.Requires((witnessKind == SubsetTypeDecl.WKind.Compiled || witnessKind == SubsetTypeDecl.WKind.Ghost) == (witness != null));
     Contract.Requires(members != null);
     BaseType = bv.Type;
     Var = bv;
+    IsRefining = isRefining;
     Constraint = constraint;
     Witness = witness;
     WitnessKind = witnessKind;
     this.NewSelfSynonym();
   }
 
+  public override bool IsRefining { get; }
+
   public Type ConcreteBaseType(List<Type> typeArguments) {
     Contract.Requires(TypeArgs.Count == typeArguments.Count);
+    if (typeArguments.Count == 0) {
+      // this optimization seems worthwhile
+      return BaseType;
+    }
     var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArguments);
     return BaseType.Subst(subst);
   }
 
-  /// <summary>  /// Return .BaseType instantiated with "typeArgs", but only look at the part of .BaseType that is in scope.
+  /// <summary>
+  /// Return .BaseType instantiated with "typeArgs", but only look at the part of .BaseType that is in scope.
   /// </summary>
   public Type RhsWithArgument(List<Type> typeArgs) {
     Contract.Requires(typeArgs != null);
@@ -78,65 +93,65 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
         return rtd.SelfSynonym(typeArgs);
       }
     }
-    return RhsWithArgumentIgnoringScope(typeArgs);
-  }
-  /// <summary>
-  /// Returns the declared .BaseType but with formal type arguments replaced by the given actuals.
-  /// </summary>
-  public Type RhsWithArgumentIgnoringScope(List<Type> typeArgs) {
-    Contract.Requires(typeArgs != null);
-    Contract.Requires(typeArgs.Count == TypeArgs.Count);
-    // Instantiate with the actual type arguments
-    if (typeArgs.Count == 0) {
-      // this optimization seems worthwhile
-      return BaseType;
-    } else {
-      return ConcreteBaseType(typeArgs);
-    }
+    return ConcreteBaseType(typeArgs);
   }
 
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public TypeParameter.EqualitySupportValue EqualitySupport {
+  private IndDatatypeDecl.ES equalitySupport = IndDatatypeDecl.ES.NotYetComputed;
+
+  public IndDatatypeDecl.ES EqualitySupport {
     get {
-      if (this.BaseType.SupportsEquality) {
-        return TypeParameter.EqualitySupportValue.Required;
-      } else {
-        return TypeParameter.EqualitySupportValue.Unspecified;
+      if (equalitySupport == IndDatatypeDecl.ES.NotYetComputed) {
+        var thingsChanged = false;
+        if (ModuleResolver.SurelyNeverSupportEquality(BaseType)) {
+          equalitySupport = IndDatatypeDecl.ES.Never;
+        } else {
+          ModuleResolver.DetermineEqualitySupportType(BaseType, ref thingsChanged);
+          equalitySupport = IndDatatypeDecl.ES.ConsultTypeArguments;
+        }
       }
+
+      return equalitySupport;
     }
   }
 
   string RedirectingTypeDecl.Name { get { return Name; } }
-  IToken RedirectingTypeDecl.tok { get { return tok; } }
+  IOrigin RedirectingTypeDecl.Tok { get { return Origin; } }
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return Var; } }
   Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
   SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
   Expression RedirectingTypeDecl.Witness { get { return Witness; } }
-  FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
+  VerificationIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
+
+  public bool ContainsHide {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
 
   bool ICodeContext.IsGhost {
     get { throw new NotSupportedException(); }  // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
   }
-  List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
-  List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
+  List<TypeParameter> ICodeContext.TypeArgs => TypeArgs;
+  List<Formal> ICodeContext.Ins => [];
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {
       // The resolver checks that a NewtypeDecl sits in its own SSC in the call graph.  Therefore,
       // the question of what its Decreases clause is should never arise.
-      throw new cce.UnreachableException();
+      throw new Cce.UnreachableException();
     }
   }
   bool ICallable.InferredDecreases {
-    get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
-    set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    get { throw new Cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    set { throw new Cce.UnreachableException(); }  // see comment above about ICallable.Decreases
   }
 
   public override bool AcceptThis => true;
@@ -147,21 +162,23 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
 
   public string GetTriviaContainingDocstring() {
-    IToken candidate = null;
+    if (GetStartTriviaDocstring(out var triviaFound)) {
+      return triviaFound;
+    }
+
     foreach (var token in OwnedTokens) {
-      if (token.val == "{") {
-        candidate = token.Prev;
-        if (candidate.TrailingTrivia.Trim() != "") {
-          return candidate.TrailingTrivia;
+      if (token.val == "=") {
+        if ((token.Prev.TrailingTrivia + token.LeadingTrivia).Trim() is { } tentativeTrivia1 and not "") {
+          return tentativeTrivia1;
         }
       }
     }
 
-    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
-      return EndToken.TrailingTrivia;
+    if (EndToken.TrailingTrivia.Trim() is { } tentativeTrivia and not "") {
+      return tentativeTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokenOrNull();
+    return null;
   }
 
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
@@ -170,12 +187,12 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 }
 
 public class NativeType {
-  public readonly string Name;
-  public readonly BigInteger LowerBound;
-  public readonly BigInteger UpperBound;
-  public readonly int Bitwidth;  // for unassigned types, this shows the number of bits in the type; else is 0
+  public string Name;
+  public BigInteger LowerBound;
+  public BigInteger UpperBound;
+  public int Bitwidth;  // for unassigned types, this shows the number of bits in the type; else is 0
   public enum Selection { Byte, SByte, UShort, Short, UInt, Int, Number, ULong, Long, UDoubleLong, DoubleLong }
-  public readonly Selection Sel;
+  public Selection Sel;
   public NativeType(string Name, BigInteger LowerBound, BigInteger UpperBound, int bitwidth, Selection sel) {
     Contract.Requires(Name != null);
     Contract.Requires(0 <= bitwidth && (bitwidth == 0 || LowerBound == 0));

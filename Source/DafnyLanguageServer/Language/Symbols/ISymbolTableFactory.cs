@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading;
-using Microsoft.Dafny.LanguageServer.Workspace;
-using Compilation = Microsoft.CodeAnalysis.Compilation;
+﻿using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>

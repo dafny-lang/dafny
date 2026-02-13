@@ -135,7 +135,7 @@ greatest lemma {:induction false} Compare<T>(h: T)
   Compare(Next(h));
   if {
     case true =>
-      assert FF(h).tail == GG(h).tail;  // error: full equality is not known here
+      assert FF(h).tail == GG(h).tail;  // yes, this full equality is a focal predicate, so it's rewritten into ==#[_k - 1]
     case true =>
       assert FF(h) ==#[_k] GG(h);  // yes, this is the postcondition to be proved, and it is known to hold
     case true =>
@@ -202,9 +202,9 @@ module PrefixEquality {
     calc {
       s;
       ==#[_k-1]
-      t;  // error: this step might not hold
+      t;  // error: could not prove that the calculation of this step holds
       ==#[if 2 <= _k.Offset then _k-2 else _k-1]
-      s;  // error: this step might not hold
+      s;  // error: could not prove that the calculation of this step holds
       ==#[0]
       t;
     }

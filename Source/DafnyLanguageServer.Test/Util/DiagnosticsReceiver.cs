@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,14 +33,16 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
 
   public Diagnostic[] GetLatestAndClearQueue(TextDocumentIdentifier document, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
     var last = GetLatestAndClearQueue(d => d.Uri == document.Uri);
-    return last.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray();
+    return last?.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray() ?? [];
   }
 
   public async Task<Diagnostic[]> AwaitNextDiagnosticsAsync(CancellationToken cancellationToken,
     TextDocumentItem textDocumentItem = null) {
     var result = await AwaitNextNotificationAsync(cancellationToken);
     if (textDocumentItem != null) {
-      AssertM.Equal(textDocumentItem.Version, result.Version,
+      // Before parsing finishes, the version can be null even for open files.
+      var resultVersion = result.Version ?? textDocumentItem.Version;
+      AssertM.Equal(textDocumentItem.Version, resultVersion,
         $"received incorrect version, diagnostics were: [{string.Join(", ", result.Diagnostics)}]");
       Assert.Equal(textDocumentItem.Uri, result.Uri);
     }

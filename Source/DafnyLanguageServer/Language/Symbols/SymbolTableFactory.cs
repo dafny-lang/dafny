@@ -92,14 +92,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         this.cancellationToken = cancellationToken;
       }
 
-      public override void VisitUnknown(object node, IToken token) {
+      public override void VisitUnknown(object node, IOrigin token) {
         logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
 
       public override void Visit(ModuleDefinition moduleDefinition) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(moduleDefinition, moduleDefinition.tok, () => base.Visit(moduleDefinition));
+        ProcessNestedScope(moduleDefinition, moduleDefinition.Origin, () => base.Visit(moduleDefinition));
       }
 
       public override void Visit(TopLevelDeclWithMembers classDeclaration) {
@@ -112,15 +112,15 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private void VisitTopLevelDeclarationWithMembers(TopLevelDeclWithMembers declaration, System.Action visit) {
         cancellationToken.ThrowIfCancellationRequested();
-        foreach (var parentTrait in declaration.ParentTraits) {
+        foreach (var parentTrait in declaration.Traits) {
           RegisterTypeDesignator(currentScope, parentTrait);
         }
-        ProcessNestedScope(declaration, declaration.tok, visit);
+        ProcessNestedScope(declaration, declaration.Origin, visit);
       }
 
-      public override void Visit(Method method) {
+      public override void Visit(MethodOrConstructor method) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(method, method.tok, () => base.Visit(method));
+        ProcessNestedScope(method, method.Origin, () => base.Visit(method));
       }
 
       public override void Visit(Function function) {
@@ -128,33 +128,33 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         if (function.Result == null) {
           RegisterTypeDesignator(currentScope, function.ResultType);
         }
-        ProcessNestedScope(function, function.tok, () => base.Visit(function));
+        ProcessNestedScope(function, function.Origin, () => base.Visit(function));
       }
 
       public override void Visit(LambdaExpr lambdaExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(lambdaExpression, lambdaExpression.tok, () => base.Visit(lambdaExpression));
+        ProcessNestedScope(lambdaExpression, lambdaExpression.Origin, () => base.Visit(lambdaExpression));
       }
       public override void Visit(ForallExpr forallExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(forallExpression, forallExpression.tok, () => base.Visit(forallExpression));
+        ProcessNestedScope(forallExpression, forallExpression.Origin, () => base.Visit(forallExpression));
       }
       public override void Visit(ExistsExpr existsExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(existsExpression, existsExpression.tok, () => base.Visit(existsExpression));
+        ProcessNestedScope(existsExpression, existsExpression.Origin, () => base.Visit(existsExpression));
       }
       public override void Visit(SetComprehension setComprehension) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(setComprehension, setComprehension.tok, () => base.Visit(setComprehension));
+        ProcessNestedScope(setComprehension, setComprehension.Origin, () => base.Visit(setComprehension));
       }
       public override void Visit(MapComprehension mapComprehension) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(mapComprehension, mapComprehension.tok, () => base.Visit(mapComprehension));
+        ProcessNestedScope(mapComprehension, mapComprehension.Origin, () => base.Visit(mapComprehension));
       }
 
       public override void Visit(LetExpr letExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(letExpression, letExpression.tok, () => base.Visit(letExpression));
+        ProcessNestedScope(letExpression, letExpression.Origin, () => base.Visit(letExpression));
       }
 
       public override void Visit(Field field) {
@@ -165,50 +165,57 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(Formal formal) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, formal, formal.tok, formal.Name);
+        RegisterDesignator(currentScope, formal, formal.Origin, formal.Name);
         RegisterTypeDesignator(currentScope, formal.Type);
         base.Visit(formal);
       }
 
       public override void Visit(NonglobalVariable variable) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, variable, variable.tok, variable.Name);
+        RegisterDesignator(currentScope, variable, variable.Origin, variable.Name);
         RegisterTypeDesignator(currentScope, variable.Type);
         base.Visit(variable);
       }
 
-      public override void Visit(BlockStmt blockStatement) {
+      public override void Visit(BlockLikeStmt blockStatement) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(blockStatement, blockStatement.Tok, () => base.Visit(blockStatement));
+        ProcessNestedScope(blockStatement, blockStatement.Origin, () => base.Visit(blockStatement));
       }
 
       public override void Visit(ExprDotName expressionDotName) {
         cancellationToken.ThrowIfCancellationRequested();
         base.Visit(expressionDotName);
         if (typeResolver.TryGetTypeSymbol(expressionDotName.Lhs, out var leftHandSideType)) {
-          RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.tok, expressionDotName.SuffixName);
+          RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.Center, expressionDotName.SuffixName);
         }
       }
 
       public override void Visit(NameSegment nameSegment) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, nameSegment, nameSegment.tok, nameSegment.Name);
+        RegisterDesignator(currentScope, nameSegment, nameSegment.Origin, nameSegment.Name);
       }
 
       public override void Visit(TypeRhs typeRhs) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterTypeDesignator(currentScope, typeRhs.EType);
+        if (typeRhs is AllocateArray allocateArray && allocateArray.ExplicitType != null) {
+          RegisterTypeDesignator(currentScope, allocateArray.ExplicitType);
+        }
+        if (typeRhs is AllocateClass allocateClass) {
+          RegisterTypeDesignator(currentScope, allocateClass.Type);
+        }
         base.Visit(typeRhs);
       }
 
       public override void Visit(FrameExpression frameExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, frameExpression, frameExpression.tok, frameExpression.FieldName);
+        if (frameExpression.FieldName != null) {
+          RegisterDesignator(currentScope, frameExpression, frameExpression.Origin, frameExpression.FieldName);
+        }
       }
 
       public override void Visit(IdentifierExpr identifierExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, identifierExpression, identifierExpression.tok, identifierExpression.Name);
+        RegisterDesignator(currentScope, identifierExpression, identifierExpression.Origin, identifierExpression.Name);
         base.Visit(identifierExpression);
       }
 
@@ -225,14 +232,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         //      The "typeRhs" only points to the "new" keyword with its token.
         //      Find an alternative to get the type designator without requiring the resolver.
         if (type is UserDefinedType userDefinedType) {
-          RegisterDesignator(scope, type, userDefinedType.NamePath.tok, userDefinedType.Name);
+          RegisterDesignator(scope, type, userDefinedType.NamePath.Origin, userDefinedType.Name);
         }
       }
 
       private void RegisterDesignator(ILegacySymbol scope, AstElement node, Boogie.IToken token, string identifier) {
         var symbol = GetSymbolDeclarationByName(scope, identifier);
         if (symbol != null) {
-          if (token == Token.NoToken) {
+          if (ReferenceEquals(token, Token.NoToken)) {
             return;
           }
           // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializating a variable
@@ -241,7 +248,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           // abstract syntax tree). We just ignore such duplicates until more information is availabe in the AST.
           var range = token.GetLspRange();
 
-          var dafnyToken = (IToken)token;
+          var dafnyToken = (IOrigin)token;
           var symbolLookupForUri =
             SymbolLookup.GetValueOrDefault(dafnyToken.Uri) ?? new IntervalTree<Position, ILocalizableSymbol>();
           SymbolLookup = SymbolLookup.SetItem(dafnyToken.Uri, symbolLookupForUri);
@@ -310,9 +317,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           moduleSymbol,
-          moduleSymbol.Declaration.tok,
-          moduleSymbol.Declaration.tok.GetLspRange(),
-          moduleSymbol.Declaration.RangeToken.ToLspRange()
+          moduleSymbol.Declaration.Origin,
+          moduleSymbol.Declaration.NavigationToken.GetLspRange(),
+          moduleSymbol.Declaration.EntireRange.ToLspRange()
         );
         VisitChildren(moduleSymbol);
         return Unit.Value;
@@ -330,9 +337,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           typeSymbol,
-          typeSymbol.Declaration.tok,
-          typeSymbol.Declaration.tok.GetLspRange(),
-          new Range(typeSymbol.Declaration.RangeToken.StartToken.GetLspPosition(), typeSymbol.Declaration.RangeToken.EndToken.GetLspPosition())
+          typeSymbol.Declaration.Origin,
+          typeSymbol.Declaration.NavigationRange.ToLspRange(),
+          new Range(typeSymbol.Declaration.StartToken.GetLspPosition(), typeSymbol.Declaration.EndToken.GetLspPosition())
         );
         VisitChildren(typeSymbol);
         return Unit.Value;
@@ -342,9 +349,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           valueTypeSymbol,
-          valueTypeSymbol.Declaration.tok,
-          valueTypeSymbol.Declaration.tok.GetLspRange(),
-          new Range(valueTypeSymbol.Declaration.RangeToken.StartToken.GetLspPosition(), valueTypeSymbol.Declaration.RangeToken.EndToken.GetLspPosition())
+          valueTypeSymbol.Declaration.Origin,
+          valueTypeSymbol.Declaration.NavigationRange.ToLspRange(),
+          new Range(valueTypeSymbol.Declaration.StartToken.GetLspPosition(), valueTypeSymbol.Declaration.EndToken.GetLspPosition())
         );
         VisitChildren(valueTypeSymbol);
         return Unit.Value;
@@ -354,10 +361,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           fieldSymbol,
-          fieldSymbol.Declaration.tok,
-          fieldSymbol.Declaration.tok.GetLspRange(),
+          fieldSymbol.Declaration.Origin,
+          fieldSymbol.Declaration.NavigationRange.ToLspRange(),
           // BodyEndToken always returns Token.NoToken
-          fieldSymbol.Declaration.tok.GetLspRange()
+          fieldSymbol.Declaration.EntireRange.ToLspRange()
         );
         VisitChildren(fieldSymbol);
         return Unit.Value;
@@ -367,8 +374,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           functionSymbol,
-          functionSymbol.Declaration.tok,
-          functionSymbol.Declaration.tok.GetLspRange(),
+          functionSymbol.Declaration.Origin,
+          functionSymbol.Declaration.NavigationRange.ToLspRange(),
           GetDeclarationRange(functionSymbol.Declaration)
         );
         VisitChildren(functionSymbol);
@@ -379,8 +386,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           methodSymbol,
-          methodSymbol.Declaration.tok,
-          methodSymbol.Declaration.tok.GetLspRange(),
+          methodSymbol.Declaration.Origin,
+          methodSymbol.Declaration.NavigationRange.ToLspRange(),
           GetDeclarationRange(methodSymbol.Declaration)
         );
         VisitChildren(methodSymbol);
@@ -388,18 +395,16 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private static Range GetDeclarationRange(Declaration declaration) {
-        return declaration.RangeToken == RangeToken.NoToken
-          ? declaration.tok.GetLspRange()
-          : new Range(declaration.RangeToken.StartToken.GetLspPosition(), declaration.RangeToken.EndToken.GetLspPosition());
+        return declaration.EntireRange.ToLspRange();
       }
 
       public Unit Visit(VariableSymbol variableSymbol) {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           variableSymbol,
-          variableSymbol.Declaration.Tok,
-          variableSymbol.Declaration.Tok.GetLspRange(),
-          variableSymbol.Declaration.Tok.GetLspRange()
+          variableSymbol.Declaration.Origin,
+          variableSymbol.Declaration.NavigationRange.ToLspRange(),
+          variableSymbol.Declaration.Origin.GetLspRange()
         );
         VisitChildren(variableSymbol);
         return Unit.Value;
@@ -424,7 +429,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private void RegisterLocation(ILegacySymbol symbol, IToken token, Range name, Range declaration) {
+      private void RegisterLocation(ILegacySymbol symbol, IOrigin token, Range name, Range declaration) {
         if (token.Filepath != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           var locationsForUri =

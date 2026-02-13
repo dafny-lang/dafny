@@ -1,4 +1,4 @@
-// RUN: %verify --manual-triggers "%s" > "%t"
+// RUN: %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino
@@ -144,6 +144,11 @@ function merge(xs: List<G>, ys: List<G>): List<G>
     case Nil => xs
     case Cons(b, ys') =>
       if Below(a, b) then Cons(a, merge(xs', ys)) else Cons(b, merge(xs, ys'))
+}
+
+lemma MultisetOfMerge(xs: List<G>, ys: List<G>)
+  ensures multiset_of(merge(xs, ys)) <= multiset_of(xs) + multiset_of(ys)
+{
 }
 
 // the specification
@@ -382,8 +387,10 @@ lemma sorted_reverse(xs: List<G>, ys: List<G>)
 {
   match xs
   case Nil =>
-  case Cons(x, rest) =>
+  case Cons(x, rest) => {
     sorted_reverse(rest, Cons(x, ys));
+    assert forall a,b :: a in multiset_of(xs) && b in multiset_of(ys) ==> Below(a, b);
+  }
 }
 
 lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
@@ -445,6 +452,29 @@ lemma sorted_merge(xs: List<G>, ys: List<G>)
   requires sorted(xs) && sorted(ys)
   ensures sorted(merge(xs, ys))
 {
+  match xs
+  case Nil =>
+    assert merge(xs, ys) == ys;
+  case Cons(a, xs') =>
+    assert (forall z :: z in multiset_of(xs') ==> Below(a, z));
+    match ys
+    case Nil =>
+      assert merge(xs, ys) == xs;
+    case Cons(b, ys') =>
+      assert (forall z :: z in multiset_of(ys') ==> Below(b, z));
+      if Below(a, b) {
+        assert merge(xs, ys) == Cons(a, merge(xs', ys));
+        var rest := merge(xs', ys);
+        MultisetOfMerge(xs', ys);
+        assert (forall z :: z in multiset_of(rest) ==> Below(a, z));
+        sorted_merge(xs', ys);
+      } else {
+        assert merge(xs, ys) == Cons(b, merge(xs, ys'));
+        var rest := merge(xs, ys');
+        MultisetOfMerge(xs, ys');
+        assert (forall z :: z in multiset_of(rest) ==> Below(b, z));
+        sorted_merge(xs, ys');
+      }
 }
 
 // -- stability lemmas
@@ -472,6 +502,17 @@ lemma stable_sequences(g: G, xs: List<G>)
     case Cons(a, ys) =>
       match ys {
         case Nil =>
+          calc {
+            flatten(sequences(xs));
+            // def. sequences, since xs == Cons(a, Nil)
+            flatten(Cons(xs, Nil));
+            // def. flatten
+            append(xs, flatten(Nil));
+            // def. flatten
+            append(xs, Nil);
+            { append_Nil(xs); }
+            xs;
+          }
         case Cons(b, zs) =>
           if !Below(a, b) {
             calc {
@@ -654,11 +695,34 @@ lemma filter_append(g: G, xs: List<G>, ys: List<G>)
 {
 }
 
+lemma filter_append_notInXs(g: G, b: G, xs: List<G>, ys: List<G>)
+  requires forall z <- multiset_of(xs) :: key(g) != key(z)
+  ensures filter(g, Cons(b, append(xs, ys))) == filter(g, append(xs, Cons(b, ys)))
+{
+}
+
+lemma filter_append_notSame(g: G, b: G, xs: List<G>, ys: List<G>)
+  requires key(g) != key(b)
+  ensures filter(g, append(xs, ys)) == filter(g, append(xs, Cons(b, ys)))
+{
+}
+
 lemma filter_append_notBelow(g: G, b: G, xs: List<G>, ys: List<G>)
   requires sorted(xs)
   requires xs.Cons? ==> !Below(xs.head, b)
   ensures filter(g, Cons(b, append(xs, ys))) == filter(g, append(xs, Cons(b, ys)))
 {
+  if key(g) == key(b) {
+    filter_append_notInXs(g, b, xs, ys);
+  } else {
+    calc {
+      filter(g, Cons(b, append(xs, ys)));
+      // def. filter
+      filter(g, append(xs, ys));
+      { filter_append_notSame(g, b, xs, ys); }
+      filter(g, append(xs, Cons(b, ys)));
+    }
+  }
 }
 
 lemma filter_Cons_notBelow(g: G, b: G, a: G, ys: List<G>)

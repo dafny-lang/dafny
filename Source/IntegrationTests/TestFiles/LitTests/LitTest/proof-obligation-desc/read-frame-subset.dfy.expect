@@ -3,16 +3,16 @@ read-frame-subset.dfy(15,7): Error: insufficient reads clause to read field; Con
 read-frame-subset.dfy(15,22): Error: insufficient reads clause to read field; Consider adding 'reads s[1]' or 'reads s[1]`y' in the enclosing function specification for resolution
  Asserted expression: s[1] == s[2] || s[1] in {s[3]} || s[1] in {s[4]}
 read-frame-subset.dfy(23,30): Error: insufficient reads clause to read array element; Consider adding 'reads s[0]' in the enclosing function specification for resolution
- Asserted expression: s[0] == s[1] || s[0] in set a: array<int> {:trigger a in s[2..]} | a in s[2..]
+ Asserted expression: s[0] == s[1] || s[0] in set a: array?<int> {:trigger a in s[2..]} | a in s[2..]
 read-frame-subset.dfy(31,30): Error: insufficient reads clause to read the indicated range of array elements; Consider adding 'reads s[0]' in the enclosing function specification for resolution
- Asserted expression: s[0] == s[1] || s[0] in set a: array<int> {:trigger a in s[2..]} | a in s[2..]
+ Asserted expression: s[0] == s[1] || s[0] in set a: array?<int> {:trigger a in s[2..]} | a in s[2..]
 read-frame-subset.dfy(39,51): Error: insufficient reads clause to read array element; Consider adding 'reads s[0]' in the enclosing function specification for resolution
- Asserted expression: s[0] == s[1] || s[0] in set a: array2<int> {:trigger a in s[2..]} | a in s[2..]
+ Asserted expression: s[0] == s[1] || s[0] in set a: array2?<int> {:trigger a in s[2..]} | a in s[2..]
 read-frame-subset.dfy(54,2): Error: insufficient reads clause to invoke function
  Asserted expression: forall obj: object? | obj in lam.reads(s) :: obj == s[3] || obj in {s[4]} || obj in {s[5]}
-read-frame-subset.dfy(72,2): Error: insufficient reads clause to invoke function
+read-frame-subset.dfy(72,17): Error: insufficient reads clause to invoke function
  Asserted expression: (s[0] == s[3] || s[0] in {s[4]} || s[0] in {s[5]}) && (forall obj: C | obj in {s[1]} :: obj == s[3] || obj in {s[4]}) && forall obj: C | obj in {s[2]} :: obj == s[3] || obj in {s[5]}
-read-frame-subset.dfy(81,33): Error: insufficient reads clause to invoke function
+read-frame-subset.dfy(81,38): Error: insufficient reads clause to invoke function
  Asserted expression: (s[0] == s[3] || s[0] in {s[4]} || s[0] in {s[5]}) && (forall obj: C | obj in {s[1]} :: obj == s[3] || obj in {s[4]}) && forall obj: C | obj in {s[2]} :: obj == s[3] || obj in {s[5]}
 read-frame-subset.dfy(91,20): Error: insufficient reads clause to read state of 'unchanged' object
  Asserted expression: s[0] == s[3] || s[0] in {s[4]} || s[0] in {s[5]}

@@ -13,5 +13,5 @@ public abstract class GenericCompilationInstrumenter {
   // <summary>
   // Invoked just before outputting the code for a Dafny method.
   // </summary>
-  public virtual void BeforeMethod(Method m, ConcreteSyntaxTree wr) { }
+  public virtual void BeforeMethod(MethodOrConstructor m, ConcreteSyntaxTree wr) { }
 }

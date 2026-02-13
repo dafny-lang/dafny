@@ -9,6 +9,6 @@ namespace Microsoft.Dafny {
   /// Any implementation has to guarantee thread-safety of its public members.
   /// </remarks>
   public interface IDafnyParser {
-    Task<Program> Parse(Compilation compilation, CancellationToken cancellationToken);
+    Task<ProgramParseResult> Parse(Compilation compilation, CancellationToken cancellationToken);
   }
 }

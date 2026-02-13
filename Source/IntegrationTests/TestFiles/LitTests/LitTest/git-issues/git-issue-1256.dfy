@@ -15,8 +15,8 @@ method False()
   ensures false
 {
   var x: int := f();
-  var y: low_int := f();
-  var z: high_int := f();
+  var y: low_int := f<low_int>();
+  var z: high_int := f<high_int>();
   // Regression: the following assertions were once provable
   assert x == y; // error
   assert x == z; // error

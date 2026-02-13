@@ -1,11 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-public class EmptyNode : Node {
-  public override RangeToken RangeToken { get; set; } = new(new Token(), new Token());
-  public override IToken Tok => new Token();
+public class EmptyNode() : NodeWithoutOrigin() {
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
 }

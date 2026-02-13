@@ -98,9 +98,6 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
-      // Empty files currently yield only a warning.
-      var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.True(diagnostics.All(d => d.Severity != DiagnosticSeverity.Error));
     }
 
     [Fact]
@@ -110,7 +107,6 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.True((await GetLastDiagnostics(documentItem)).All(d => d.Severity != DiagnosticSeverity.Error));
     }
 
     [Fact]

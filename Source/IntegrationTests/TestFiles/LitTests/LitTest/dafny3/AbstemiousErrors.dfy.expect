@@ -1,7 +1,7 @@
-AbstemiousErrors.dfy(39,6): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context; perhaps try declaring function 'voraciousAdd' with '{:abstemious}')
-AbstemiousErrors.dfy(47,6): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context; perhaps try declaring function 'voraciousAdd' with '{:abstemious}')
-AbstemiousErrors.dfy(53,2): Error: cannot prove termination; try supplying a decreases clause (note that the call is not sufficiently guarded to be used co-recursively)
-AbstemiousErrors.dfy(60,6): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
-AbstemiousErrors.dfy(68,6): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context; perhaps try declaring function 'voraciousAdd' with '{:abstemious}')
+AbstemiousErrors.dfy(39,9): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context; perhaps try declaring function 'voraciousAdd' with '{:abstemious}')
+AbstemiousErrors.dfy(47,15): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context; perhaps try declaring function 'voraciousAdd' with '{:abstemious}')
+AbstemiousErrors.dfy(53,21): Error: cannot prove termination; try supplying a decreases clause (note that the call is not sufficiently guarded to be used co-recursively)
+AbstemiousErrors.dfy(60,12): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
+AbstemiousErrors.dfy(68,19): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context; perhaps try declaring function 'voraciousAdd' with '{:abstemious}')
 
 Dafny program verifier finished with 0 verified, 5 errors

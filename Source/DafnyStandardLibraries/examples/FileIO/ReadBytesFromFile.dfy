@@ -6,7 +6,8 @@
 module ReadBytesFromFile {
   import Std.FileIO
 
-  method {:test} Test() {
+  @Test
+  method Test() {
     // TODO: extern function for the expected error prefix
     theMain("examples/FileIO/../FileIO/data.txt", "");
   }

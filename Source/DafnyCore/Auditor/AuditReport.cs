@@ -16,8 +16,8 @@ public class AuditReport {
   private Dictionary<Declaration, IEnumerable<Assumption>> allAssumptionsByDecl = new();
 
   // All three fields below are filtered by AddAssumptions()
-  private HashSet<Declaration> declsWithEntries = new();
-  private HashSet<ModuleDefinition> modulesWithEntries = new();
+  private HashSet<Declaration> declsWithEntries = [];
+  private HashSet<ModuleDefinition> modulesWithEntries = [];
   private Dictionary<Declaration, IEnumerable<Assumption>> assumptionsByDecl = new();
 
   public AuditReport(DafnyOptions options) {
@@ -50,7 +50,7 @@ public class AuditReport {
 
   public IEnumerable<Assumption> AllAssumptionsForDecl(Declaration decl) {
     return allAssumptionsByDecl.TryGetValue(decl, out var assumptions)
-      ? assumptions : Enumerable.Empty<Assumption>();
+      ? assumptions : [];
   }
 
   private string RenderRow(string beg, string sep, string end, IEnumerable<string> cells) {
@@ -167,7 +167,7 @@ public class AuditReport {
 
     foreach (var (decl, assumptions) in assumptionsByDecl) {
       foreach (var assumption in assumptions) {
-        text.AppendLine($"{decl.tok.TokenToString(options)}:{assumption.Warning()}");
+        text.AppendLine($"{decl.Origin.OriginToString(options)}:{assumption.Warning()}");
       }
     }
 
@@ -190,7 +190,7 @@ public class AuditReport {
           continue;
         }
         foreach (var decl in topLevelDeclWithMembers.Members) {
-          if (decl.tok.FromIncludeDirective(program)) {
+          if (decl.Origin.FromIncludeDirective(program)) {
             // Don't audit included code
             continue;
           }

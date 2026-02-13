@@ -17,11 +17,11 @@ public class JavaBenchmarkCompilationInstrumenter : GenericCompilationInstrument
     }
   }
 
-  public override void BeforeMethod(Method m, ConcreteSyntaxTree wr) {
+  public override void BeforeMethod(MethodOrConstructor m, ConcreteSyntaxTree wr) {
     if (Attributes.Contains(m.EnclosingClass.Attributes, "benchmarks")) {
       if (m is Constructor) {
         if (m.Ins.Any()) {
-          Reporter.Error(MessageSource.Compiler, ResolutionErrors.ErrorId.none, m.tok,
+          Reporter.Error(MessageSource.Compiler, ResolutionErrors.ErrorId.none, m.Origin,
             $"Classes with {{:benchmarks}} can not accept parameters in their constructors");
         }
 
@@ -34,7 +34,7 @@ public class JavaBenchmarkCompilationInstrumenter : GenericCompilationInstrument
         wr.WriteLine("@org.openjdk.jmh.annotations.Setup(org.openjdk.jmh.annotations.Level.Iteration)");
       } else if (Attributes.Contains(m.Attributes, "benchmarkTearDown")) {
         if (m.Ins.Any()) {
-          Reporter.Error(MessageSource.Compiler, ResolutionErrors.ErrorId.none, m.tok,
+          Reporter.Error(MessageSource.Compiler, ResolutionErrors.ErrorId.none, m.Origin,
             $"Methods with {{:benchmarkTearDown}} can not accept parameters");
         }
         wr.WriteLine("@org.openjdk.jmh.annotations.TearDown(org.openjdk.jmh.annotations.Level.Iteration)");

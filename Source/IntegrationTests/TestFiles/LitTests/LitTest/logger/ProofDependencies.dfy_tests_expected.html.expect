@@ -392,8 +392,8 @@ function {:testEntry} ObviouslyUnreachableIfExpressionBranchFunc(x: int): (r:int
   ensures r > 0
 {
   if x < 0
-</span><span class="nc" id="378:1">  then x - 1 // unreachable
-</span><span class="fc" id="379:1">  else x + 1
+</span><span class="fc" id="378:1">  then x - 1 // unreachable
+  else x + 1
 }
 
 </span><span class="na" id="382:1">method {:testEntry} ObviouslyUnreachableIfStatementBranchMethod(x: int) returns (r:int)
@@ -414,8 +414,8 @@ function {:testEntry} ObviouslyUnreachableIfExpressionBranchFunc(x: int): (r:int
   ensures r > 1 // alt: r > 0
 {
   match t {
-</span><span class="nc" id="400:1">    case A => 1 // unreachable
-</span><span class="fc" id="401:1">    case B => 2
+</span><span class="fc" id="400:1">    case A => 1 // unreachable
+    case B => 2
   }
 }
 
@@ -454,12 +454,13 @@ method {:testEntry} CalcStatementWithSideConditions(x: int) {
 
 </span><span class="na" id="438:1">class C {
   var x: int
+  constructor() {}
 }
 
-</span><span class="fc" id="442:1">function {:testEntry} GetX(c: C): int
-</span><span class="na" id="443:1">  reads c
+</span><span class="fc" id="443:1">function {:testEntry} GetX(c: C): int
+</span><span class="na" id="444:1">  reads c
 {
-</span><span class="fc" id="445:1">  c.x
+</span><span class="fc" id="446:1">  c.x
 }
 
 method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
@@ -467,7 +468,7 @@ method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
   assert 1 + x == x + 1;
 }
 
-</span><span class="na" id="453:1">}
+</span><span class="na" id="454:1">}
 
 </span></pre>
 <div class="footer">

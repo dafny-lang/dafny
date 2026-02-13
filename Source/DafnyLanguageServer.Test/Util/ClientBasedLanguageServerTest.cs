@@ -201,7 +201,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public async Task<bool> WaitUntilResolutionFinished(TextDocumentItem documentId,
-    CancellationToken cancellationToken = default) {
+    CancellationToken cancellationToken = default, bool allowException = false) {
 
     CompilationStatusParams compilationStatusParams = compilationStatusReceiver.GetLatestAndClearQueue(s => s.Uri == documentId.Uri);
     while (compilationStatusParams == null || compilationStatusParams.Version != documentId.Version || compilationStatusParams.Uri != documentId.Uri ||
@@ -209,6 +209,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       compilationStatusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
     }
 
+    if (!allowException && compilationStatusParams.Status == CompilationStatus.InternalException) {
+      throw new Exception("Encountered internal exception");
+    }
     return compilationStatusParams.Status == CompilationStatus.ResolutionSucceeded;
   }
 
@@ -250,7 +253,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     telemetryReceiver = new(logger);
     verificationStatusReceiver = new(logger);
     ghostnessReceiver = new(logger);
-    (client, Server) = await Initialize(InitialiseClientHandler, modifyOptions);
+    // Use the new resolver, plus any test-specific options
+    var modifyOptionsWithDefault = (DafnyOptions options) => {
+      options.Set(CommonOptionBag.TypeSystemRefresh, true);
+      options.Set(CommonOptionBag.GeneralTraits, CommonOptionBag.GeneralTraitsOptions.Datatype);
+      options.Set(CommonOptionBag.GeneralNewtypes, true);
+      modifyOptions?.Invoke(options);
+    };
+    (client, Server) = await Initialize(InitialiseClientHandler, modifyOptionsWithDefault);
   }
 
   protected virtual void InitialiseClientHandler(LanguageClientOptions options) {

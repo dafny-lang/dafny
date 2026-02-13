@@ -1,7 +1,5 @@
-// RUN: %verify --progress --isolate-assertions --cores=1 %s > %t
-// RUN: %OutputCheck --file-to-check %t "%S/Inputs/progressFirstSequence.check"
-// RUN: %OutputCheck --file-to-check %t "%S/Inputs/progressSecondSequence.check"
-
+// RUN: %verify --cores=1 --progress Symbol --isolate-assertions %s > %t
+// RUN: %diff "%s.expect" "%t"
 
 method Foo() 
 {

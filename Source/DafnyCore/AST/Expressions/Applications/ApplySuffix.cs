@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -8,11 +9,11 @@ namespace Microsoft.Dafny;
 /// An ApplySuffix desugars into either an ApplyExpr or a FunctionCallExpr
 /// </summary>
 public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
-  public readonly IToken/*?*/ AtTok;
-  public readonly IToken CloseParen;
-  public readonly ActualBindings Bindings;
-  public List<Expression> Args => Bindings.Arguments;
-  [FilledInDuringResolution] public MethodCallInformation MethodCallInfo = null; // resolution will set to a non-null value if ApplySuffix makes a method call
+  public IOrigin? AtTok;
+  public Token? CloseParen;
+  public ActualBindings Bindings;
+  public List<Expression>? Args => Bindings.Arguments;
+  [FilledInDuringResolution] public MethodCallInformation? MethodCallInfo = null; // resolution will set to a non-null value if ApplySuffix makes a method call
 
   public override IEnumerable<INode> Children => ResolvedExpression == null
     ? base.Children.Concat(Bindings == null ? new List<Node>() : Args ?? Enumerable.Empty<Node>()) : new[] { ResolvedExpression };
@@ -29,23 +30,22 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
 
   public ApplySuffix(Cloner cloner, ApplySuffix original) :
     base(cloner, original) {
-    AtTok = original.AtTok == null ? null : cloner.Tok(original.AtTok);
-    CloseParen = cloner.Tok(original.CloseParen);
-    FormatTokens = original.FormatTokens;
+    AtTok = original.AtTok == null ? null : cloner.Origin(original.AtTok);
+    CloseParen = original.CloseParen;
     Bindings = new ActualBindings(cloner, original.Bindings);
   }
 
-  public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args, IToken closeParen)
-    : base(tok, lhs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(lhs != null);
-    Contract.Requires(cce.NonNullElements(args));
-    AtTok = atLabel;
+
+  [SyntaxConstructor]
+  public ApplySuffix(IOrigin origin, IOrigin? atTok, Expression lhs, ActualBindings bindings, Token? closeParen)
+    : base(origin, lhs) {
+    AtTok = atTok;
     CloseParen = closeParen;
-    Bindings = new ActualBindings(args);
-    if (closeParen != null) {
-      FormatTokens = new[] { closeParen };
-    }
+    Bindings = bindings;
+  }
+
+  public ApplySuffix(IOrigin origin, IOrigin? atTok, Expression lhs, List<ActualBinding> args, Token? closeParen)
+    : this(origin, atTok, lhs, new ActualBindings(args), closeParen) {
   }
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
@@ -66,10 +66,10 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
   /// <param name="name">The name of the target function or method.</param>
   /// <param name="args">The arguments to apply the function or method to.</param>
   /// <returns></returns>
-  public static Expression MakeRawApplySuffix(IToken tok, string name, List<Expression> args) {
+  public static Expression MakeRawApplySuffix(IOrigin tok, string name, List<Expression> args) {
     var nameExpr = new NameSegment(tok, name, null);
     var argBindings = args.ConvertAll(arg => new ActualBinding(null, arg));
-    return new ApplySuffix(tok, null, nameExpr, argBindings, tok);
+    return new ApplySuffix(tok, null, nameExpr, argBindings, Token.NoToken);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

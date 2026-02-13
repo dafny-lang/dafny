@@ -2,7 +2,6 @@
 // Dafny class nat compiled into Java
 package _System;
 
-
 @SuppressWarnings({"unchecked", "deprecation"})
 public class nat {
   public nat() {

@@ -7,7 +7,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Gets the method node representing the declaration of this symbol.
     /// </summary>
-    public Method Declaration { get; }
+    public MethodOrConstructor Declaration { get; }
     public INode Node => Declaration;
 
     /// <summary>
@@ -24,11 +24,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// Gets the block
     /// </summary>
     public ScopeSymbol? Block { get; set; }
-    public List<ScopeSymbol> Ensures { get; } = new();
-    public List<ScopeSymbol> Requires { get; } = new();
-    public List<ScopeSymbol> Reads { get; } = new();
-    public List<ScopeSymbol> Modifies { get; } = new();
-    public List<ScopeSymbol> Decreases { get; } = new();
+    public List<ScopeSymbol> Ensures { get; } = [];
+    public List<ScopeSymbol> Requires { get; } = [];
+    public List<ScopeSymbol> Reads { get; } = [];
+    public List<ScopeSymbol> Modifies { get; } = [];
+    public List<ScopeSymbol> Decreases { get; } = [];
 
     public override IEnumerable<ILegacySymbol> Children =>
       Block.AsEnumerable<ILegacySymbol>()
@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         .Concat(Modifies)
         .Concat(Decreases);
 
-    public MethodSymbol(ILegacySymbol? scope, Method method) : base(scope, method) {
+    public MethodSymbol(ILegacySymbol? scope, MethodOrConstructor method) : base(scope, method) {
       Declaration = method;
     }
 

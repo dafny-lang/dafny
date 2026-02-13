@@ -7,32 +7,32 @@ namespace Microsoft.Dafny;
 public static class FuelAdjustment {
 
   public static void CheckForFuelAdjustments(ErrorReporter reporter, ModuleDefinition module) {
-    CheckForFuelAdjustments(reporter, module.tok, module.Attributes, module);
+    CheckForFuelAdjustments(reporter, module.Origin, module.Attributes, module);
     foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
       Statement body = null;
-      if (clbl is Method method) {
+      if (clbl is MethodOrConstructor method) {
         body = method.Body;
-        CheckForFuelAdjustments(reporter, clbl.Tok, method.Attributes, module);
+        CheckForFuelAdjustments(reporter, clbl.Origin, method.Attributes, module);
       } else if (clbl is IteratorDecl iteratorDecl) {
         body = iteratorDecl.Body;
-        CheckForFuelAdjustments(reporter, clbl.Tok, iteratorDecl.Attributes, module);
+        CheckForFuelAdjustments(reporter, clbl.Origin, iteratorDecl.Attributes, module);
       } else if (clbl is Function function) {
-        CheckForFuelAdjustments(reporter, clbl.Tok, function.Attributes, module);
-        var c = new FuelAdjustment_Visitor(reporter);
+        CheckForFuelAdjustments(reporter, clbl.Origin, function.Attributes, module);
+        var c = new FuelAdjustmentVisitor(reporter);
         var bodyExpr = function.Body;
         if (bodyExpr != null) {
-          c.Visit(bodyExpr, new FuelAdjustment_Context(module));
+          c.Visit(bodyExpr, new FuelAdjustmentContext(module));
         }
       }
 
       if (body != null) {
-        var c = new FuelAdjustment_Visitor(reporter);
-        c.Visit(body, new FuelAdjustment_Context(module));
+        var c = new FuelAdjustmentVisitor(reporter);
+        c.Visit(body, new FuelAdjustmentContext(module));
       }
     }
   }
 
-  public static void CheckForFuelAdjustments(ErrorReporter reporter, IToken tok, Attributes attrs, ModuleDefinition currentModule) {
+  public static void CheckForFuelAdjustments(ErrorReporter reporter, IOrigin tok, Attributes attrs, ModuleDefinition currentModule) {
     List<List<Expression>> results = Attributes.FindAllExpressions(attrs, "fuel");
 
     if (results == null) {
@@ -68,22 +68,22 @@ public static class FuelAdjustment {
   }
 }
 
-class FuelAdjustment_Visitor : ResolverTopDownVisitor<FuelAdjustment_Context> {
+class FuelAdjustmentVisitor : ResolverTopDownVisitor<FuelAdjustmentContext> {
 
-  public FuelAdjustment_Visitor(ErrorReporter reporter)
+  public FuelAdjustmentVisitor(ErrorReporter reporter)
     : base(reporter) {
   }
 
-  protected override bool VisitOneStmt(Statement stmt, ref FuelAdjustment_Context st) {
-    FuelAdjustment.CheckForFuelAdjustments(reporter, stmt.Tok, stmt.Attributes, st.currentModule);
+  protected override bool VisitOneStmt(Statement stmt, ref FuelAdjustmentContext st) {
+    FuelAdjustment.CheckForFuelAdjustments(reporter, stmt.Origin, stmt.Attributes, st.currentModule);
     return true;
   }
 }
 
 
-public class FuelAdjustment_Context {
+public class FuelAdjustmentContext {
   public ModuleDefinition currentModule;
-  public FuelAdjustment_Context(ModuleDefinition currentModule) {
+  public FuelAdjustmentContext(ModuleDefinition currentModule) {
     this.currentModule = currentModule;
   }
 }

@@ -1,7 +1,6 @@
-parser_combinators.dfy(38,27): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-parser_combinators.dfy(39,33): Error: cannot prove termination; try supplying a decreases clause
+parser_combinators.dfy(39,35): Error: cannot prove termination; try supplying a decreases clause
 
-Dafny program verifier finished with 8 verified, 2 errors
+Dafny program verifier finished with 9 verified, 1 error
 
 Dafny program verifier did not attempt verification
 "((()))": 3 nested parentheses

@@ -47,12 +47,12 @@ namespace Microsoft.Dafny {
     }
 
     internal static async Task SelfTest(DafnyOptions options, ExecutionEngine engine) {
-      var task = new VerificationTask(new string[] { }, "<none>", "method selftest() { assert true; }", false);
+      var task = new VerificationTask([], "<none>", "method selftest() { assert true; }", false);
       try {
         await task.Run(options, engine);
-        Interaction.Eom(options.OutputWriter, Interaction.SUCCESS, (string)null);
+        Interaction.Eom(options.BaseOutputWriter, Interaction.SUCCESS, (string)null);
       } catch (Exception ex) {
-        Interaction.Eom(options.OutputWriter, Interaction.FAILURE, ex);
+        Interaction.Eom(options.BaseOutputWriter, Interaction.FAILURE, ex);
       }
     }
 

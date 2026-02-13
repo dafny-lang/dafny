@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -116,7 +117,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
   }
 
   public class RevealStmtWithDepth {
-    public RevealStmtWithDepth(RevealStmt RevealStmt, int Depth) {
+    public RevealStmtWithDepth(HideRevealStmt RevealStmt, int Depth) {
       this.RevealStmt = RevealStmt;
       this.Depth = Depth;
     }
@@ -130,7 +131,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
       return HashCode.Combine(RevealStmt.ToString());
     }
 
-    public RevealStmt RevealStmt { get; }
+    public HideRevealStmt RevealStmt { get; }
     public int Depth { get; }
   };
 
@@ -263,7 +264,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
           if (func.IsMadeImplicitlyOpaque(Options)) {
 
             var revealStmt0 = BuildRevealStmt(func,
-              expr.Tok, enclosingModule);
+              expr.Origin, enclosingModule);
 
             if (revealStmt0 is not null) {
               revealStmtList.Add(new RevealStmtWithDepth(revealStmt0, 1));
@@ -273,7 +274,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
           foreach (var newFunc in GetEnumerator(func, func.EnclosingClass, new List<Expression> { expr },
                      enclosingModule)) {
 
-            var revealStmt1 = BuildRevealStmt(newFunc.Function, expr.Tok, enclosingModule);
+            var revealStmt1 = BuildRevealStmt(newFunc.Function, expr.Origin, enclosingModule);
 
             if (revealStmt1 is not null) {
               revealStmtList.Add(new RevealStmtWithDepth(revealStmt1, newFunc.Depth));
@@ -293,7 +294,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     foreach (var revealStmt in revealStmtList) {
       var oldExpr = finalExpr;
 
-      finalExpr = new StmtExpr(expr.Tok, revealStmt.RevealStmt, oldExpr) {
+      finalExpr = new StmtExpr(expr.Origin, revealStmt.RevealStmt, oldExpr) {
         Type = oldExpr.Type
       };
     }
@@ -301,8 +302,8 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return finalExpr;
   }
 
-  public static RevealStmt BuildRevealStmt(Function func, IToken tok, ModuleDefinition rootModule) {
-    List<Type> args = new List<Type>();
+  public static HideRevealStmt BuildRevealStmt(Function func, IOrigin tok, ModuleDefinition rootModule) {
+    List<Type> args = [];
     foreach (var _ in func.EnclosingClass.TypeArgs) {
       args.Add(new IntType());
     }
@@ -313,7 +314,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
 
     var callableClass = ((TopLevelDeclWithMembers)func.EnclosingClass);
 
-    var callableName = RevealStmt.RevealLemmaPrefix + func.Name;
+    var callableName = HideRevealStmt.RevealLemmaPrefix + func.Name;
     var member = callableClass.Members.Find(decl => decl.Name == callableName);
 
     Type.PushScope(callableClass.EnclosingModuleDefinition.VisibilityScope);
@@ -325,27 +326,27 @@ public class AutoRevealFunctionDependencies : IRewriter {
     }
 
     callableName = ((ICallable)member).NameRelativeToModule;
-    var rr = new MemberSelectExpr(func.Tok, receiver, callableName);
+    var rr = new MemberSelectExpr(func.Origin, receiver, new Name(callableName));
     rr.Type = new InferredTypeProxy();
     rr.Member = member;
-    rr.TypeApplication_JustMember = new List<Type>();
-    rr.TypeApplication_AtEnclosingClass = args;
+    rr.TypeApplicationJustMember = [];
+    rr.TypeApplicationAtEnclosingClass = args;
 
-    var call = new CallStmt(func.RangeToken, new List<Expression>(), rr, new List<ActualBinding>(),
-      func.Tok);
+    var call = new CallStmt(func.Origin, [], rr, (List<Expression>)[],
+      func.ReportingRange);
     call.IsGhost = true;
-    call.Bindings.AcceptArgumentExpressionsAsExactParameterList(new List<Expression>());
+    call.Bindings.AcceptArgumentExpressionsAsExactParameterList([]);
 
     resolveExpr.Type = new InferredTypeProxy();
     ((ConcreteSyntaxExpression)resolveExpr).ResolvedExpression = rr;
 
-    List<Expression> expressionList = new List<Expression> {
+    List<Expression> expressionList = [
       new ApplySuffix(tok, null,
         resolveExpr,
-        new List<ActualBinding>(), tok)
-    };
+        [], Token.NoToken)
+    ];
 
-    var revealStmt = new RevealStmt(func.RangeToken, expressionList);
+    var revealStmt = new HideRevealStmt(func.Origin, expressionList, HideRevealCmd.Modes.Reveal);
     revealStmt.ResolvedStatements.Add(call);
     revealStmt.IsGhost = true;
 
@@ -357,11 +358,11 @@ public class AutoRevealFunctionDependencies : IRewriter {
     var topLevelDeclsList = accessibleMember.AccessPath;
     var nameList = topLevelDeclsList.Where(decl => decl.Name != "_default").ToList();
 
-    nameList.Add(new NameSegment(func.tok, func.Name, new List<Type>()));
+    nameList.Add(new NameSegment(func.Origin, func.Name, []));
 
     Expression nameSeed = nameList[0];
     var resolveExpr = nameList.Skip(1)
-    .Aggregate(nameSeed, (acc, name) => new ExprDotName(func.tok, acc, name.Name, name.OptTypeArguments));
+    .Aggregate(nameSeed, (acc, name) => new ExprDotName(func.Origin, acc, name.NameNode, name.OptTypeArguments));
 
     return resolveExpr;
   }

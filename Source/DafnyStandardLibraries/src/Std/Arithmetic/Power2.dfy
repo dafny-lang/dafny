@@ -15,10 +15,9 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
   import opened MulInternals
   import opened Power
 
-  function {:opaque} Pow2(e: nat): nat
+  function Pow2(e: nat): nat
     ensures Pow2(e) > 0
   {
-    reveal Pow();
     LemmaPowPositive(2, e);
     Pow(2, e)
   }
@@ -27,8 +26,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
   lemma LemmaPow2(e: nat)
     ensures Pow2(e) == Pow(2, e)
   {
-    reveal Pow();
-    reveal Pow2();
 
     if e != 0 {
       LemmaPow2(e - 1);
@@ -38,8 +35,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
   lemma LemmaPow2Auto()
     ensures forall e: nat {:trigger Pow2(e)} :: Pow2(e) == Pow(2, e)
   {
-    reveal Pow();
-    reveal Pow2();
 
     forall e: nat {:trigger Pow2(e)}
       ensures Pow2(e) == Pow(2, e)
@@ -66,7 +61,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
     ensures forall e: nat {:trigger Pow2(e)} :: 0 < e ==>
                                                   (Pow2(e) - 1) / 2 == Pow2(e - 1) - 1
   {
-    reveal Pow2();
     forall e: nat {:trigger Pow2(e)} | 0 < e
       ensures (Pow2(e) - 1) / 2 == Pow2(e - 1) - 1
     {
@@ -110,8 +104,12 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
     ensures Pow2(32) == 0x100000000
     ensures Pow2(64) == 0x10000000000000000
   {
-    reveal Pow2();
-    reveal Pow();
+    assert Pow2(0) == 0x1;
+    assert Pow2(8) == 0x100;
+    assert Pow2(16) == 0x10000;
+    assert Pow2(24) == 0x1000000;
+    assert Pow2(32) == 0x100000000;
+    assert Pow(2, 32 + 32) == Pow(2, 32) * Pow(2, 32) by { LemmaPowAuto(); }
   }
 
 }

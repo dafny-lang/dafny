@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %baredafny verify --show-snippets:false --allow-axioms --allow-deprecation --use-basename-for-filename "%s" > "%t".raw
-// RUN: %sed 's/after \d+ seconds/after <redacted> seconds/' %t.raw > "%t"
+// RUN: %exits-with 4 %baredafny verify --show-snippets:false --allow-axioms --allow-deprecation --use-basename-for-filename --type-system-refresh=false --general-newtypes=false "%s" > "%t".raw
+// RUN: %sed 's/after [0-9]+ seconds/after <redacted> seconds/' %t.raw > "%t"
 // RUN: %diff "%s.expect" "%t"
 // Nearly verbatim copy of the text case given in the issue
 //SIMULADA 
@@ -467,8 +467,6 @@ assert heapExternalsZeroOrOneEdges(xedges);
       o.fields := o.fields[f := t];   ///who designed this fucking syntax?
 
       assert ObjectsAreValid({o});
-
-      assert edges(objects) == old( edges(objects) ) + {Edge(o,f,t)};
           
       var zedges := edges(objects);  //or could hand in if necessary?
       var zisos := justTheIsos(objects);

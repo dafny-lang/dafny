@@ -14,8 +14,7 @@ public static class CompilerTypeExtensions {
   /// </summary>
   public static Type GetRuntimeType(this Type typ) {
     while (typ.AsNewtype is { NativeType: null } newtypeDecl) {
-      var subst = TypeParameter.SubstitutionMap(newtypeDecl.TypeArgs, typ.TypeArgs);
-      typ = newtypeDecl.BaseType.Subst(subst);
+      typ = newtypeDecl.ConcreteBaseType(typ.TypeArgs);
     }
     return typ.NormalizeExpand();
   }

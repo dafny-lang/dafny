@@ -17,12 +17,6 @@ func (obj *Class) Get() dafny.Int {
 	return obj.n
 }
 
-// have to implement this because the Go backend can't mix Dafny and Go code :-\
-
-func (obj *Class) Print() {
-	fmt.Printf("My value is %d\n", obj.n)
-}
-
 type CompanionStruct_Class_ struct{}
 var Companion_Class_ = CompanionStruct_Class_{}
 

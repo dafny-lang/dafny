@@ -1,0 +1,18 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
+Tooltips.dfy(4,7): Info: (==)
+Tooltips.dfy(6,8): Info: (==)
+Tooltips.dfy(7,8): Info: (==)
+Tooltips.dfy(9,12): Info: (==)
+Tooltips.dfy(12,12): Info: (==)
+Tooltips.dfy(10,13): Info: (==)
+Tooltips.dfy(13,15): Info: (==)
+Tooltips.dfy(15,9): Info: (==)
+Tooltips.dfy(16,9): Info: (==)
+Tooltips.dfy(17,11): Info: (==)
+Tooltips.dfy(18,11): Info: (==)
+Tooltips.dfy(20,7): Info: <_T0(==)>
+Tooltips.dfy(21,7): Info: <_T0(==)>
+Tooltips.dfy(22,9): Info: <_T0(==)>
+Tooltips.dfy(23,9): Info: <_T0(==)>
+
+Dafny program verifier finished with 2 verified, 0 errors

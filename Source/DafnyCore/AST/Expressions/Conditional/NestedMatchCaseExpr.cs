@@ -1,6 +1,6 @@
-using System;
+#nullable enable
+
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 
@@ -8,16 +8,20 @@ namespace Microsoft.Dafny;
 
 public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration {
   public Expression Body;
-  public Attributes Attributes { get; set; }
+  public Attributes? Attributes { get; set; }
 
-  public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body, Attributes attrs) : base(tok, pat) {
-    Contract.Requires(body != null);
-    this.Body = body;
-    this.Attributes = attrs;
+  string IAttributeBearingDeclaration.WhatKind => "match expression case";
+
+  [SyntaxConstructor]
+  public NestedMatchCaseExpr(IOrigin origin, ExtendedPattern pat, Expression body, Attributes? attributes = null)
+    : base(origin, pat) {
+    Body = body;
+    Attributes = attributes;
   }
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new Node[] { Attributes } : Enumerable.Empty<Node>()).Concat(new Node[] { Body, Pat });
+    Attributes.AsEnumerable().
+      Concat(new Node[] { Body, Pat });
 
   public override IEnumerable<INode> PreResolveChildren => Children;
 
@@ -33,7 +37,7 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     var afterResolveErrorCount = resolver.reporter.ErrorCount;
     if (beforeResolveErrorCount == afterResolveErrorCount) {
       resolver.ResolveExpression(Body, resolutionContext);
-      resolver.ConstrainSubtypeRelation(resultType, Body.Type, Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", Body.Type, resultType);
+      resolver.ConstrainSubtypeRelation(resultType, Body.Type, Body.Origin, "type of case bodies do not agree (found {0}, previous types {1})", Body.Type, resultType);
     }
   }
 

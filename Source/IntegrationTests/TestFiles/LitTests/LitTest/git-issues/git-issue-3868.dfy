@@ -9,6 +9,9 @@ method Main() {
   print WoahThat'sDeepToo(AA("i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"), "555"), "\n";
   print "Recur: ", recur.Follow0(A, 12, 80), "\n"; // 116 (that is, 80 + 12*(2 + 1)
   print "Recur: ", recur.Follow1(A, 12, 80), "\n"; // 116 (that is, 80 + 12*(2 + 1)
+  var w := DeepAssignment(25);
+  print w, "\n"; // 25
+  MatchExpressions.Test();
 }
 
 method NotOptimized(s: string) returns (r: int) {
@@ -161,5 +164,130 @@ datatype Option<+T> = None | Some(value: T) {
     requires Some?
   {
     value
+  }
+}
+
+method DeepAssignment(x: int) returns (r: int) {
+  r :=
+    var x0 := x;
+    var x1 := x0;
+    var x2 := x1;
+    var x3 := x2;
+    var x4 := x3;
+    var x5 := x4;
+    var x6 := x5;
+    var x7 := x6;
+    if x0 == x7 then
+      var y0 := x;
+      var y1 := y0;
+      y1
+    else
+      var y2 := x;
+      var y3 := y2;
+      y3;
+  return r;
+}
+
+module MatchExpressions {
+  datatype Color = Red | Green | Blue
+  datatype AB = A | B
+  datatype ABC = AA | BB | CC
+
+  method Test() {
+    M(Green);
+    N(Red);
+    var r := O(Blue, 10);
+    print r, "\n"; // 12
+    P(7, 2);
+    label L: {
+      var abc := 0;
+      break L;
+    }
+    print TailRecursive(A, 19), " ", AutoAccumulator(A, 19), "\n"; // 6 25
+    print LastCaseIsDisjunctive(BB), "\n"; // 22
+    print F(A, 12, 80), "\n"; // 80
+    print "It's done\n";
+  }
+
+  method M(c: Color) {
+    var x := match c
+      case Red => 5
+      case Green => 7
+      case Blue => 11;
+    print x, "\n"; // 5
+  }
+
+  method N(c: Color)
+    requires c == Red
+  {
+    var x := match c
+      case Red => 5;
+    print x, "\n"; // 5
+  }
+
+  method O(c: Color, y: int) returns (r: int)
+    requires 0 <= y
+  {
+    if y < 0 {
+      // unreachable
+      var x: int := match c;
+    }
+    r := 12;
+  }
+
+  method P(s: int, t: int)
+    requires t == 0 || t == 2
+  {
+    var x: int := match s
+      case 0 => 100
+      case 2 => 200
+      case _ => 400;
+    var y: int := match t
+      case 0 => 60
+      case 2 => 80;
+    if t == 1 {
+      // unreachable
+      var z: int := match s + t;
+    }
+    print x, " ", y, "\n"; // 400 80
+  }
+
+  function TailRecursive(o: AB, n: nat): int {
+    if n == 0 then 6 else
+      match o
+      case A | B => TailRecursive(o, n - 1)
+  }
+
+  function AutoAccumulator(o: AB, n: nat): int {
+    if n == 0 then 6 else
+      match o
+      case A | B => AutoAccumulator(o, n - 1) + 1
+  }
+
+  function LastCaseIsDisjunctive(o: ABC): int {
+    match o
+    case CC =>
+      777
+    case AA | BB =>
+      22
+  }
+
+  function F(o: AB, n: nat, m: int): int
+  {
+    if n == 0 then
+      m
+    else if n == 1 then
+      var ff := () => match o { // for Java, make sure o is copied
+        case A => 20
+        case B => 999
+      };
+      var s := ff();
+      F(o, n - 1, m)
+    else
+      var u := match o {
+        case A => 20
+        case B => 999
+      };
+      F(o, n - 1, m)
   }
 }

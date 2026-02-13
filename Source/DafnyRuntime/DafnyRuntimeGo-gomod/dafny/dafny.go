@@ -9,6 +9,7 @@ import (
 	"os"
 	refl "reflect"
 	"runtime"
+	"slices"
 	"unicode/utf8"
 )
 
@@ -63,6 +64,26 @@ func AreEqual(x, y interface{}) bool {
 	default:
 		return refl.DeepEqual(x, y)
 	}
+}
+
+// Checking for `Comparable` doesn't work, because it matches things for which == fails.
+// This is a non-exhaustive list of types, but should include the things that are most performance critical
+func IsEqualityComparable(i interface{}) bool {
+	switch i.(type) {
+	case uint8, Char, CodePoint:
+		return true
+	default:
+		return false
+	}
+}
+
+func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequence, index uint32) bool {
+	if index == 0 {
+		return true
+	}
+
+	leftArr, rightArr := left.ToArray(), right.ToArray()
+	return leftArr.(GoNativeArray).underlying.arrayEqualUpTo(rightArr.(GoNativeArray).underlying, int(index))
 }
 
 func IsDafnyNull(x interface{}) bool {
@@ -305,6 +326,11 @@ func (cp CodePoint) String() string {
 	return fmt.Sprintf("'%s'", cp.Escape())
 }
 
+func IsCodePoint(i Int) bool {
+	return ((i.Sign() != -1 && i.Cmp(IntOfInt32(0xD800)) < 0) ||
+		(IntOfInt32(0xE000).Cmp(i) <= 0 && i.Cmp(IntOfInt32(0x11_0000)) < 0))
+}
+
 // AllUnicodeChars returns an iterator that returns all Unicode scalar values.
 func AllUnicodeChars() Iterator {
 	c := int32(0)
@@ -500,39 +526,30 @@ func SeqCreate(n uint32, init func(Int) interface{}) Sequence {
 	})
 }
 
+// WARNING: This function uses the given array directly without making a defensive copy.
+// This is only safe if the array never changes afterward.
 func SeqFromArray(contents []interface{}, isString bool) Sequence {
-	arr := GoNativeArray{
-		contents: contents,
-	}
-	result := New_ArraySequence_()
-	result.Ctor__(arr, isString)
-	return result
+	return unsafeSeqWrappingDafnyArray(unsafeWrapArray(contents), isString)
 }
 
 // SeqOf returns a sequence containing the given values.
 func SeqOf(values ...interface{}) Sequence {
-	// Making a defensive copy here because variadic functions can get hinky
-	// if someone says SeqOf(slice...) and then mutates slice.
-	arr := make([]interface{}, len(values))
-	copy(arr, values)
-	return SeqFromArray(arr, false)
+	return unsafeSeqWrappingDafnyArray(newArrayWithValues(values...), false)
 }
 
 // SeqOfChars returns a sequence containing the given character values.
 func SeqOfChars(values ...Char) Sequence {
-	arr := make([]interface{}, len(values))
-	for i, v := range values {
-		arr[i] = v
-	}
-	return SeqFromArray(arr, true)
+	return unsafeSeqWrappingDafnyArray(newArrayFromCharArray(values), true)
 }
 
 func SeqOfBytes(values []byte) Sequence {
-	arr := make([]interface{}, len(values))
-	for i, v := range values {
-		arr[i] = v
-	}
-	return SeqFromArray(arr, false)
+	return unsafeSeqWrappingDafnyArray(newArrayFromByteArray(values), false)
+}
+
+func unsafeSeqWrappingDafnyArray(array Array, isString bool) Sequence {
+	result := New_ArraySequence_()
+	result.Ctor__(GoNativeArray{underlying: array}, isString)
+	return result
 }
 
 // SeqOfString converts the given string into a sequence of characters.
@@ -698,80 +715,94 @@ func (seq *LazySequence) ToByteArray() []byte {
 }
 
 func ToByteArray(x Sequence) []byte {
-	nativeArray := x.ToArray().(GoNativeArray)
-	arr := make([]byte, len(nativeArray.contents))
-	for i, v := range nativeArray.contents {
-		arr[i] = v.(byte)
+	result := make([]byte, x.Cardinality())
+	stack := []Sequence{x}
+	pos := uint32(0)
+
+	for len(stack) > 0 {
+		current := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		switch seq := current.(type) {
+		case *LazySequence:
+			stack = append(stack, seq.Box().Get().(Sequence))
+		case *ConcatSequence:
+			stack = append(stack, seq._right, seq._left)
+		default:
+			arr := seq.ToArray()
+			length := arr.Length()
+			if arrayByte, ok := arr.(GoNativeArray).underlying.(*arrayForByte); ok {
+				copy(result[pos:], arrayByte.contents)
+			} else {
+				for i := uint32(0); i < length; i++ {
+					result[pos+i] = arr.Select(i).(byte)
+				}
+			}
+			pos += length
+		}
 	}
-	return arr
+	return result
 }
 
 /******************************************************************************
  * Arrays
  ******************************************************************************/
 
-// A GoNativeArray is a single dimensional Go slice,
+// A GoNativeArray is a single dimensional Array,
 // wrapped up for the benefit of dafnyRuntime.dfy.
-// We should refactor to wrap an Array interface as defined below
-// to get the same optimization benefits for sequences of bytes and chars/CodePoints.
+// GoNativeArray wraps the Array interface for external compatibility
+// while allowing optimized implementations internally.
 type GoNativeArray struct {
-	contents []interface{}
+	underlying Array
 }
 
 func (CompanionStruct_NativeArray_) Make(length uint32) NativeArray {
-	contents := make([]interface{}, length)
-	return GoNativeArray{
-		contents: contents,
+	underlying := &arrayStruct{
+		contents: make([]interface{}, length),
+		dims:     []int{int(length)},
 	}
+	return GoNativeArray{underlying: underlying}
+}
+
+func (CompanionStruct_NativeArray_) MakeWithPrototype(length uint32, prototype ImmutableArray) NativeArray {
+	underlying := prototype.(GoNativeArray).underlying.arrayNewOfSameType(int(length))
+	return GoNativeArray{underlying: underlying}
 }
 
 func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32) interface{}) NativeArray {
-	contents := make([]interface{}, length)
-	for i := uint32(0); i < length; i++ {
-		contents[i] = init(i)
-	}
-	return GoNativeArray{
-		contents: contents,
-	}
+	underlying := newArrayWithInitFn(init, int(length))
+	return GoNativeArray{underlying: underlying}
 }
 
 func (CompanionStruct_NativeArray_) Copy(other ImmutableArray) NativeArray {
-	otherArray := other.(GoNativeArray)
-	contents := make([]interface{}, otherArray.Length())
-	copy(contents, otherArray.contents)
-	return GoNativeArray{
-		contents: contents,
-	}
+	return GoNativeArray{underlying: other.(GoNativeArray).underlying.arrayCopy()}
 }
 
-func (array GoNativeArray) Length() uint32 {
-	return uint32(len(array.contents))
+func (g GoNativeArray) Length() uint32 {
+	return uint32(g.underlying.dimensionLength(0))
 }
 
-func (array GoNativeArray) Select(i uint32) interface{} {
-	return array.contents[i]
+func (g GoNativeArray) Select(i uint32) interface{} {
+	return g.underlying.ArrayGet1(int(i))
 }
 
-func (array GoNativeArray) Update(i uint32, t interface{}) {
-	array.contents[i] = t
+func (g GoNativeArray) Update(i uint32, t interface{}) {
+	g.underlying.ArraySet1(t, int(i))
 }
 
-func (array GoNativeArray) UpdateSubarray(i uint32, other ImmutableArray) {
-	otherArray := other.(GoNativeArray)
-	copy(array.contents[i:(i+otherArray.Length())], otherArray.contents)
+func (g GoNativeArray) UpdateSubarray(i uint32, other ImmutableArray) {
+	g.underlying.arraySetRange1(int(i), other.(GoNativeArray).underlying)
 }
 
-func (array GoNativeArray) Freeze(size uint32) ImmutableArray {
-	return array.Subarray(0, size)
+func (g GoNativeArray) Freeze(size uint32) ImmutableArray {
+	return g.Subarray(0, size)
 }
 
-func (array GoNativeArray) Subarray(lo uint32, hi uint32) ImmutableArray {
-	return GoNativeArray{
-		contents: array.contents[lo:hi],
-	}
+func (g GoNativeArray) Subarray(lo, hi uint32) ImmutableArray {
+	return GoNativeArray{underlying: g.underlying.arrayGetRange1(IntOfUint32(lo), IntOfUint32(hi))}
 }
 
-func (array GoNativeArray) String() string {
+func (g GoNativeArray) String() string {
 	return "dafny.GoNativeArray"
 }
 
@@ -789,7 +820,12 @@ type Array interface {
 	dimensionLength(dim int) int
 	ArrayGet1(index int) interface{}
 	ArraySet1(value interface{}, index int)
+	arrayGetRange1(lo, hi Int) Array
+	arraySetRange1(index int, other Array)
 	anySlice(lo, hi Int) []interface{}
+	arrayCopy() Array
+	arrayEqualUpTo(other Array, index int) bool
+	arrayNewOfSameType(length int) Array
 	// specializations
 	ArrayGet1Byte(index int) byte
 	ArraySet1Byte(value byte, index int)
@@ -799,10 +835,31 @@ type Array interface {
 	ArraySet1CodePoint(value CodePoint, index int)
 }
 
+func defaultArrayEqualUpTo(left Array, right Array, index uint32) bool {
+	lSlice := left.anySlice(Zero, IntOfUint32(index))
+	rSlice := right.anySlice(Zero, IntOfUint32(index))
+	if len(lSlice) > 0 && IsEqualityComparable(lSlice[0]) {
+		return slices.Equal(lSlice, rSlice)
+	}
+	for i := uint32(0); i < index; i++ {
+		if !AreEqual(lSlice[i], rSlice[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func defaultArraySetRange1(left Array, right Array, index int) {
+	rightLength := right.dimensionLength(0)
+	for j := 0; j < rightLength; j++ {
+		left.ArraySet1(right.ArrayGet1(j), int(index+j))
+	}
+}
+
 /***** newArray *****/
 
 // Multiply the numbers in "dims" and return the product as an "int".
-// If the produce doesn't fit in an "int", panic with the message that the
+// If the product doesn't fit in an "int", panic with the message that the
 // array-size limit has been exceeded.
 // It is expected that len(dims) is at least 1 and that each number in
 // dims is non-negative.
@@ -816,6 +873,34 @@ func computeTotalArrayLength(dims ...Int) int {
 	}
 	totalLength := product.Int()
 	return totalLength
+}
+
+func newArrayFromCharArray(values []Char) Array {
+	contents := make([]Char, len(values))
+	copy(contents, values)
+	return &arrayForChar{
+		contents: contents,
+		dims:     []int{len(values)},
+	}
+}
+
+func newArrayFromByteArray(values []byte) Array {
+	contents := make([]byte, len(values))
+	copy(contents, values)
+	return &arrayForByte{
+		contents: contents,
+		dims:     []int{len(values)},
+	}
+}
+
+// Uses the given array directly.
+// Only safe if this array is not used anywhere else afterwards!
+// Currently only used to support the existing publish SeqFromArray.
+func unsafeWrapArray(values []interface{}) Array {
+	return &arrayStruct{
+		contents: values,
+		dims:     []int{len(values)},
+	}
 }
 
 // NewArrayFromExample returns a new Array.
@@ -888,6 +973,7 @@ func NewArrayFromExample(example interface{}, init interface{}, dims ...Int) Arr
 			arr[i] = init
 		}
 	}
+
 	return &arrayStruct{
 		contents: arr,
 		dims:     intDims,
@@ -942,6 +1028,53 @@ func newArrayWithValues(values ...interface{}) Array {
 	}
 }
 
+// newArrayWithInitFn returns a new one-dimensional Array with the given initial values.
+// It is currently only used internally, by CompanionStruct_NativeArray_.MakeWithInit.
+// It could potentially be used in the translation of Dafny array instantiations with initializing lambdas,
+// but that is currently rewritten by the single-pass compiler instead.
+func newArrayWithInitFn(init func(uint32) interface{}, length int) Array {
+	intDims := []int{length}
+	if length == 0 {
+		return newZeroLengthArray(intDims)
+	}
+
+	// Inspect the type of the first initial value to consider Array specialization
+	value0 := init(0)
+	if _, ok := value0.(byte); ok {
+		arr := make([]byte, length)
+		arr[0] = value0.(byte)
+		for i := 1; i < length; i++ {
+			arr[i] = init(uint32(i)).(byte)
+		}
+		return &arrayForByte{
+			contents: arr,
+			dims:     intDims,
+		}
+	}
+	if _, ok := value0.(Char); ok {
+		arr := make([]Char, length)
+		arr[0] = value0.(Char)
+		for i := 1; i < length; i++ {
+			arr[i] = init(uint32(i)).(Char)
+		}
+		return &arrayForChar{
+			contents: arr,
+			dims:     intDims,
+		}
+	}
+
+	// Use the default representation
+	arr := make([]interface{}, length)
+	arr[0] = value0
+	for i := 1; i < length; i++ {
+		arr[i] = init(uint32(i))
+	}
+	return &arrayStruct{
+		contents: arr,
+		dims:     intDims,
+	}
+}
+
 // NewArrayWithValue returns a new Array full of the given initial value.
 func NewArrayWithValue(init interface{}, dims ...Int) Array {
 	return NewArrayFromExample(init, init, dims...)
@@ -973,6 +1106,57 @@ func (_this arrayStruct) ArrayGet1(index int) interface{} {
 
 func (_this arrayStruct) ArraySet1(value interface{}, index int) {
 	_this.contents[index] = value
+}
+
+func (_this arrayStruct) arrayGetRange1(lo, hi Int) Array {
+	if lo.IsNilInt() {
+		lo = Zero
+	}
+	if hi.IsNilInt() {
+		hi = IntOf(len(_this.contents))
+	}
+	iLo := lo.Int()
+	iHi := hi.Int()
+	newContents := _this.contents[iLo:iHi]
+	return &arrayStruct{
+		contents: newContents,
+		dims:     []int{int(iHi - iLo)},
+	}
+}
+
+func (_this arrayStruct) arraySetRange1(index int, other Array) {
+	// Optimize for the same type of content array
+	if otherStruct, ok := other.(arrayStruct); ok {
+		copy(_this.contents[index:], otherStruct.contents)
+	} else {
+		defaultArraySetRange1(_this, other, index)
+	}
+}
+
+func (_this arrayStruct) arrayCopy() Array {
+	newContents := make([]interface{}, len(_this.contents))
+	copy(newContents, _this.contents)
+	newDims := make([]int, len(_this.dims))
+	copy(newDims, _this.dims)
+	return &arrayStruct{
+		contents: newContents,
+		dims:     newDims,
+	}
+}
+
+func (_this arrayStruct) arrayEqualUpTo(other Array, index int) bool {
+	// Not much point in optimizing for the same type of content array
+	// since anySlice is cheap on arrayStructs.
+	return defaultArrayEqualUpTo(_this, other, uint32(index))
+}
+
+func (_this arrayStruct) arrayNewOfSameType(length int) Array {
+	conents := make([]interface{}, length)
+	dims := []int{length}
+	return &arrayStruct{
+		contents: conents,
+		dims:     dims,
+	}
 }
 
 func (_this arrayStruct) ArrayGet1Byte(index int) byte {
@@ -1043,6 +1227,60 @@ func (_this arrayForByte) ArrayGet1(index int) interface{} {
 
 func (_this arrayForByte) ArraySet1(value interface{}, index int) {
 	_this.contents[index] = value.(byte)
+}
+
+func (_this arrayForByte) arrayGetRange1(lo, hi Int) Array {
+	if lo.IsNilInt() {
+		lo = Zero
+	}
+	if hi.IsNilInt() {
+		hi = IntOf(len(_this.contents))
+	}
+	iLo := lo.Int()
+	iHi := hi.Int()
+	newContents := _this.contents[iLo:iHi]
+	return &arrayForByte{
+		contents: newContents,
+		dims:     []int{int(iHi - iLo)},
+	}
+}
+
+func (_this arrayForByte) arraySetRange1(index int, other Array) {
+	// Optimize for the same type of content array
+	if otherByte, ok := other.(arrayForByte); ok {
+		copy(_this.contents[index:], otherByte.contents)
+	} else {
+		defaultArraySetRange1(_this, other, index)
+	}
+}
+
+func (_this arrayForByte) arrayCopy() Array {
+	newContents := make([]byte, len(_this.contents))
+	copy(newContents, _this.contents)
+	newDims := make([]int, len(_this.dims))
+	copy(newDims, _this.dims)
+	return &arrayForByte{
+		contents: newContents,
+		dims:     newDims,
+	}
+}
+
+func (_this arrayForByte) arrayEqualUpTo(other Array, index int) bool {
+	// Optimize for the same type of content array
+	if otherByte, ok := other.(arrayForByte); ok {
+		return slices.Equal(_this.contents[:index], otherByte.contents[:index])
+	} else {
+		return defaultArrayEqualUpTo(_this, other, uint32(index))
+	}
+}
+
+func (_this arrayForByte) arrayNewOfSameType(length int) Array {
+	conents := make([]byte, length)
+	dims := []int{length}
+	return &arrayForByte{
+		contents: conents,
+		dims:     dims,
+	}
 }
 
 func (_this arrayForByte) ArrayGet1Byte(index int) byte {
@@ -1117,6 +1355,60 @@ func (_this arrayForChar) ArraySet1(value interface{}, index int) {
 	_this.contents[index] = value.(Char)
 }
 
+func (_this arrayForChar) arrayGetRange1(lo, hi Int) Array {
+	if lo.IsNilInt() {
+		lo = Zero
+	}
+	if hi.IsNilInt() {
+		hi = IntOf(len(_this.contents))
+	}
+	iLo := lo.Int()
+	iHi := hi.Int()
+	newContents := _this.contents[iLo:iHi]
+	return &arrayForChar{
+		contents: newContents,
+		dims:     []int{int(iHi - iLo)},
+	}
+}
+
+func (_this arrayForChar) arraySetRange1(index int, other Array) {
+	// Optimize for the same type of content array
+	if otherByte, ok := other.(arrayForChar); ok {
+		copy(_this.contents[index:], otherByte.contents)
+	} else {
+		defaultArraySetRange1(_this, other, index)
+	}
+}
+
+func (_this arrayForChar) arrayCopy() Array {
+	newContents := make([]Char, len(_this.contents))
+	copy(newContents, _this.contents)
+	newDims := make([]int, len(_this.dims))
+	copy(newDims, _this.dims)
+	return &arrayForChar{
+		contents: newContents,
+		dims:     newDims,
+	}
+}
+
+func (_this arrayForChar) arrayEqualUpTo(other Array, index int) bool {
+	// Optimize for the same type of content array
+	if otherChar, ok := other.(arrayForChar); ok {
+		return slices.Equal(_this.contents[:index], otherChar.contents[:index])
+	} else {
+		return defaultArrayEqualUpTo(_this, other, uint32(index))
+	}
+}
+
+func (_this arrayForChar) arrayNewOfSameType(length int) Array {
+	conents := make([]Char, length)
+	dims := []int{length}
+	return &arrayForChar{
+		contents: conents,
+		dims:     dims,
+	}
+}
+
 func (_this arrayForChar) ArrayGet1Byte(index int) byte {
 	panic("Expected specialized array type that contains bytes, but found general-purpose array of interface{}")
 }
@@ -1187,6 +1479,59 @@ func (_this arrayForCodePoint) ArrayGet1(index int) interface{} {
 
 func (_this arrayForCodePoint) ArraySet1(value interface{}, index int) {
 	_this.contents[index] = value.(CodePoint)
+}
+
+func (_this arrayForCodePoint) arrayGetRange1(lo, hi Int) Array {
+	if lo.IsNilInt() {
+		lo = Zero
+	}
+	if hi.IsNilInt() {
+		hi = IntOf(len(_this.contents))
+	}
+	iLo := lo.Int()
+	iHi := hi.Int()
+	newContents := _this.contents[iLo:iHi]
+	return &arrayForCodePoint{
+		contents: newContents,
+		dims:     []int{int(iHi - iLo)},
+	}
+}
+
+func (_this arrayForCodePoint) arraySetRange1(index int, other Array) {
+	// Optimize for the same type of content array
+	if otherCodePoint, ok := other.(arrayForCodePoint); ok {
+		copy(_this.contents[index:], otherCodePoint.contents)
+	} else {
+		defaultArraySetRange1(_this, other, index)
+	}
+}
+
+func (_this arrayForCodePoint) arrayCopy() Array {
+	newContents := make([]CodePoint, len(_this.contents))
+	copy(newContents, _this.contents)
+	return &arrayForCodePoint{
+		contents: newContents,
+		// TODO: Does dims have to be copied as well?
+		dims: _this.dims,
+	}
+}
+
+func (_this arrayForCodePoint) arrayEqualUpTo(other Array, index int) bool {
+	// Optimize for the same type of content array
+	if otherCodePoint, ok := other.(arrayForCodePoint); ok {
+		return slices.Equal(_this.contents[:index], otherCodePoint.contents[:index])
+	} else {
+		return defaultArrayEqualUpTo(_this, other, uint32(index))
+	}
+}
+
+func (_this arrayForCodePoint) arrayNewOfSameType(length int) Array {
+	conents := make([]CodePoint, length)
+	dims := []int{length}
+	return &arrayForCodePoint{
+		contents: conents,
+		dims:     dims,
+	}
 }
 
 func (_this arrayForCodePoint) ArrayGet1Byte(index int) byte {
@@ -1293,8 +1638,9 @@ func ArrayRangeToSeq(array Array, lo, hi Int) Sequence {
 		_, isString = array.ArrayGet1(0).(Char)
 	}
 
-	anySlice := array.anySlice(lo, hi)
-	seq := SeqOf(anySlice...)
+	seq := New_ArraySequence_()
+	underlying := array.arrayGetRange1(lo, hi).arrayCopy()
+	seq.Ctor__(GoNativeArray{underlying: underlying}, false)
 	seq.IsString_set_(isString)
 	return seq
 }
@@ -2741,6 +3087,10 @@ func (x Real) Int() Int {
 	}
 }
 
+func (x Real) IsInteger() bool {
+	return RealOfFrac(x.Int(), One).Cmp(x) == 0
+}
+
 // Num returns the given Real's numerator as an Int
 func (x Real) Num() Int {
 	return intOf(x.impl.Num())
@@ -3153,20 +3503,20 @@ type GoAtomicBox struct {
 	value interface{}
 }
 
-func (box GoAtomicBox) Get() interface{} {
+func (box *GoAtomicBox) Get() interface{} {
 	return box.value
 }
 
-func (box GoAtomicBox) Put(value interface{}) {
+func (box *GoAtomicBox) Put(value interface{}) {
 	box.value = value
 }
 
-func (box GoAtomicBox) String() string {
+func (box *GoAtomicBox) String() string {
 	return "dafny.GoAtomicBox"
 }
 
 func (CompanionStruct_AtomicBox_) Make(value interface{}) AtomicBox {
-	return GoAtomicBox{
+	return &GoAtomicBox{
 		value: value,
 	}
 }

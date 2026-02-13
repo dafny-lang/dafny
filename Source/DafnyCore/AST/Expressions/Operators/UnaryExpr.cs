@@ -1,20 +1,21 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
 public abstract class UnaryExpr : Expression, ICanFormat {
-  public readonly Expression E;
+  public Expression E;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E != null);
   }
 
-  public UnaryExpr(IToken tok, Expression e)
-    : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(e != null);
-    this.E = e;
+  [SyntaxConstructor]
+  public UnaryExpr(IOrigin origin, Expression e)
+    : base(origin) {
+    E = e;
   }
 
   public UnaryExpr(Cloner cloner, UnaryExpr original) : base(cloner, original) {

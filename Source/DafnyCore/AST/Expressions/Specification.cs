@@ -1,34 +1,32 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class Specification<T> : TokenNode, IAttributeBearingDeclaration
+public class Specification<T> : NodeWithoutOrigin, IAttributeBearingDeclaration
   where T : Node {
-  public readonly List<T> Expressions;
-
-  [ContractInvariantMethod]
-  private void ObjectInvariant() {
-    Contract.Invariant(Expressions == null || cce.NonNullElements<T>(Expressions));
-  }
+  public List<T>? Expressions;
 
   public Specification() {
-    Expressions = new List<T>();
+    Expressions = [];
     Attributes = null;
   }
 
-  public Specification(List<T> exprs, Attributes attrs) {
-    Contract.Requires(exprs == null || cce.NonNullElements<T>(exprs));
-    Expressions = exprs;
-    Attributes = attrs;
+
+  [SyntaxConstructor]
+  public Specification(List<T>? expressions, Attributes? attributes) {
+    Expressions = expressions;
+    Attributes = attributes;
   }
 
-  public Attributes Attributes { get; set; }
+  public Attributes? Attributes { get; set; }
+  string IAttributeBearingDeclaration.WhatKind => "specification clause";
 
   public bool HasAttributes() {
     return Attributes != null;
   }
 
-  public override IEnumerable<INode> Children => Expressions;
+  public override IEnumerable<INode> Children => Expressions!;
   public override IEnumerable<INode> PreResolveChildren => Children;
 }

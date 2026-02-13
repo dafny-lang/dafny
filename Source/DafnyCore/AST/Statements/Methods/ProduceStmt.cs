@@ -1,12 +1,13 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
 public abstract class ProduceStmt : Statement {
-  public List<AssignmentRhs> Rhss;
+  public List<AssignmentRhs>? Rhss;
   [FilledInDuringResolution]
-  public UpdateStmt HiddenUpdate;
+  public AssignStatement? HiddenUpdate;
 
   protected ProduceStmt(Cloner cloner, ProduceStmt original) : base(cloner, original) {
     if (original.Rhss != null) {
@@ -14,13 +15,14 @@ public abstract class ProduceStmt : Statement {
     }
     if (cloner.CloneResolvedFields) {
       if (original.HiddenUpdate != null) {
-        HiddenUpdate = new UpdateStmt(cloner, original.HiddenUpdate);
+        HiddenUpdate = new AssignStatement(cloner, original.HiddenUpdate);
       }
     }
   }
 
-  public ProduceStmt(RangeToken rangeToken, List<AssignmentRhs> rhss)
-    : base(rangeToken) {
+  [SyntaxConstructor]
+  protected ProduceStmt(IOrigin origin, List<AssignmentRhs>? rhss, Attributes? attributes)
+    : base(origin, attributes) {
     this.Rhss = rhss;
     HiddenUpdate = null;
   }
@@ -68,5 +70,18 @@ public abstract class ProduceStmt : Statement {
         }
       }
     }
+  }
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext,
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    var kind = this is YieldStmt ? "yield" : "return";
+    if (mustBeErasable && !codeContext.IsGhost) {
+      reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_produce_statement_not_allowed_in_ghost, this,
+        "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
+    }
+
+    this.HiddenUpdate?.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext,
+      allowAssumptionVariables, inConstructorInitializationPhase);
   }
 }

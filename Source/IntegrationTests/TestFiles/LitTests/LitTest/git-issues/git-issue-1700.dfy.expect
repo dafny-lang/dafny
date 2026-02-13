@@ -1,2 +1,2 @@
-git-issue-1700.dfy(15,13): Error: incorrect argument type for datatype constructor parameter 'e' (expected B.E, found A.E)
+git-issue-1700.dfy(15,21): Error: incorrect argument type for datatype constructor parameter 'e' (expected E, found E)
 1 resolution/type errors detected in git-issue-1700.dfy

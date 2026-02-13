@@ -8,11 +8,13 @@
    * has the intended branch checked out (usually `master`,
      but may be another mainline branch such as `main-3.x`).
 
-1. Select a version number `$VER` (e.g., "3.0.0" or "3.0.0-alpha"). 
-   The `major`.`minor`.`patch` numbers may already have been
-   incremented since the last release, so they do not necessarily need
-   to be updated. However, you may want to increment them further
-   depending the types of changes that are in the release.
+1. Get the version number from `Source/Directory.Build.props`.
+   It should look like "3.0.0" (or "3.0.0-alpha"). It's referred to as
+   `$VER` in the following. 
+   The `major`.`minor`.`patch` numbers should already have been
+   incremented since the last release, so they do not need
+   to be updated. However, you may want to increment the minor
+   or major version depending the types of changes that are in the release.
 
 1. Run `Scripts/prepare_release.py $VER prepare --source-branch <this
    branch>` (`--source-branch` is optional and defaults to 'master')
@@ -20,13 +22,9 @@
    repository is in a good state, create and check out a new release
    branch, update `Source/Directory.Build.props` and `RELEASE_NOTES.md`.
 
-1. Ensure that all `.doo` files use the new version. Start by running
-   `make -C Source/DafnyStandardLibraries update-binary`. Then search
-   for any `.doo` files outside of `Source/DafnyStandardLibraries` and
-   re-build them manually. Note: this is currently way too manual!
-
-1. Prepare a release commit containing the changes from the last two
-   steps and push it.
+1. You don't need to update the version number as the patch number
+   is already set for the next release. However, if you wish to change the
+   minor or major version, see [VERSIONBUMP.md](VERSIONBUMP.md)
 
 1. Run `./Scripts/prepare_release.py $VER
    release` from the root of the repository. The script will tag the
@@ -48,14 +46,14 @@
    on multiple platforms. Again you can watch for this workflow at
    <https://github.com/dafny-lang/dafny/actions>.
 
-1. Create a pull request to merge the newly created branch into the source branch (the
-   script will give you a link to do so).  Get it approved and merged.
-
-1. Check out the source branch and run `./Scripts/prepare_release.py
+1. We are going to merge the release branch into master to take into account
+   any fix that was implemented there, and also update the version number.
+   With the release branch checked out, run `./Scripts/prepare_release.py
    $NEXT_VER set-next version` to set the version number for the next
    release, where `$NEXT_VER` is `$VER` with the patch incremented.
-   Create a new pull request for this change. Get it approved and
-   merged.
+   Then follow the instructions [VERSIONBUMP.md](VERSIONBUMP.md) to keep Dafny
+   up-to-date with the new version number.
+   Create a new pull request for this change, have it approved and merged.
 
 1. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`
    to create a new release of the VSCode plugin.

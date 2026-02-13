@@ -6,9 +6,6 @@ using System.Threading.Tasks;
 using Bpl = Microsoft.Boogie;
 using Xunit;
 using Microsoft.Dafny;
-using Microsoft.Dafny.ProofObligationDescription;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DafnyPipeline.Test;
 
@@ -151,15 +148,16 @@ method Test(m: map<int, int>, x: int) {
     options = options ?? new DafnyOptions(TextReader.Null, TextWriter.Null, TextWriter.Null);
     var uri = new Uri("virtual:///virtual");
     BatchErrorReporter reporter = new BatchErrorReporter(options);
-    var dafnyProgram = await new ProgramParser().Parse(program, uri, reporter);
+    var parseResult = await ProgramParser.Parse(program, uri, reporter);
+    var dafnyProgram = parseResult.Program;
     if (reporter.HasErrors) {
       var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
-      Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
+      Assert.False(true, $"{error.Message}: line {error.Range.StartToken.line} col {error.Range.StartToken.col}");
     }
     DafnyMain.Resolve(dafnyProgram);
     if (reporter.HasErrors) {
       var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
-      Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
+      Assert.False(true, $"{error.Message}: line {error.Range.StartToken.line} col {error.Range.StartToken.col}");
     }
 
     var boogiePrograms = SynchronousCliCompilation.Translate(options, dafnyProgram).ToList();
@@ -169,7 +167,7 @@ method Test(m: map<int, int>, x: int) {
     var found = false;
     foreach (var implementation in boogieProgram.Implementations) {
       foreach (var block in implementation.Blocks) {
-        foreach (var cmd in block.cmds) {
+        foreach (var cmd in block.Cmds) {
           if (cmd is Bpl.AssertCmd { tok: { line: var line } } assertCmd && line == expectedLine) {
             if (assertCmd.Description is ProofObligationDescription description) {
               var assertedExpr = description.GetAssertedExpr(options);

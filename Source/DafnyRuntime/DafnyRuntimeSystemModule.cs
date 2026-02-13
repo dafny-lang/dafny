@@ -1,7 +1,7 @@
 // Dafny program systemModulePopulator.dfy compiled into C#
 // To recompile, you will need the libraries
 //     System.Runtime.Numerics.dll System.Collections.Immutable.dll
-// but the 'dotnet' tool in net6.0 should pick those up automatically.
+// but the 'dotnet' tool in .NET should pick those up automatically.
 // Optionally, you may want to include compiler switches like
 //     /debug /nowarn:162,164,168,183,219,436,1717,1718
 
@@ -504,11 +504,11 @@ namespace Dafny {
   }
 } // end of namespace Dafny
 internal static class FuncExtensions {
-  public static Func<U, UResult> DowncastClone<T, TResult, U, UResult>(this Func<T, TResult> F, Func<U, T> ArgConv, Func<TResult, UResult> ResConv) {
-    return arg => ResConv(F(ArgConv(arg)));
-  }
   public static Func<UResult> DowncastClone<TResult, UResult>(this Func<TResult> F, Func<TResult, UResult> ResConv) {
     return () => ResConv(F());
+  }
+  public static Func<U, UResult> DowncastClone<T, TResult, U, UResult>(this Func<T, TResult> F, Func<U, T> ArgConv, Func<TResult, UResult> ResConv) {
+    return arg => ResConv(F(ArgConv(arg)));
   }
   public static Func<U1, U2, UResult> DowncastClone<T1, T2, TResult, U1, U2, UResult>(this Func<T1, T2, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<TResult, UResult> ResConv) {
     return (arg1, arg2) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2)));
@@ -556,6 +556,7 @@ internal static class FuncExtensions {
     return (arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2), ArgConv3(arg3), ArgConv4(arg4), ArgConv5(arg5), ArgConv6(arg6), ArgConv7(arg7), ArgConv8(arg8), ArgConv9(arg9), ArgConv10(arg10), ArgConv11(arg11), ArgConv12(arg12), ArgConv13(arg13), ArgConv14(arg14), ArgConv15(arg15), ArgConv16(arg16)));
   }
 }
+// end of class FuncExtensions
 #endif
 namespace _System {
 

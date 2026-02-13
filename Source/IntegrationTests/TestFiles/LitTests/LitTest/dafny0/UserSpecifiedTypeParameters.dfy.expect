@@ -1,13 +1,13 @@
 UserSpecifiedTypeParameters.dfy(26,10): Error: the type of this variable is underspecified
 UserSpecifiedTypeParameters.dfy(26,16): Error: type of type parameter could not be determined; please specify the type explicitly
 UserSpecifiedTypeParameters.dfy(26,16): Error: type of type parameter could not be determined; please specify the type explicitly
-UserSpecifiedTypeParameters.dfy(26,24): Error: type parameter 'T' (inferred to be '?') in the function call to 'H' could not be determined
-UserSpecifiedTypeParameters.dfy(26,24): Error: type parameter 'U' (inferred to be '?') in the function call to 'H' could not be determined
+UserSpecifiedTypeParameters.dfy(26,25): Error: type parameter 'T' (inferred to be '?') in the function call to 'H' could not be determined
+UserSpecifiedTypeParameters.dfy(26,25): Error: type parameter 'U' (inferred to be '?') in the function call to 'H' could not be determined
 UserSpecifiedTypeParameters.dfy(46,16): Error: wrong number of arguments (got 1, but function 'F' expects 2: (x: bool, y: bool))
 UserSpecifiedTypeParameters.dfy(46,22): Error: Type or type parameter is not declared in this scope: b (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
 UserSpecifiedTypeParameters.dfy(46,26): Error: Type or type parameter is not declared in this scope: c (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
 UserSpecifiedTypeParameters.dfy(46,18): Error: variable 'a' does not take any type parameters
 UserSpecifiedTypeParameters.dfy(46,30): Error: non-function expression (of type int) is called with parameters
-UserSpecifiedTypeParameters.dfy(77,15): Error: incorrect argument type for lemma in-parameter 'y' (expected A, found int)
-UserSpecifiedTypeParameters.dfy(89,14): Error: incorrect argument type for function parameter 'y' (expected A, found int)
+UserSpecifiedTypeParameters.dfy(77,16): Error: incorrect argument type for lemma in-parameter 'y' (expected A, found int)
+UserSpecifiedTypeParameters.dfy(89,15): Error: incorrect argument type for function parameter 'y' (expected A, found int)
 12 resolution/type errors detected in UserSpecifiedTypeParameters.dfy

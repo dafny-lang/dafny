@@ -10,7 +10,8 @@
 former takes arguments and may be more stable and less reliant on Z3
 heuristics. The latter includes automation and its use requires less effort*/
 
-module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
+@DisableNonlinearArithmetic
+module Std.Arithmetic.DivMod {
 
   import opened DivInternals
   import DivINL = DivInternalsNonlinear
@@ -29,16 +30,12 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     requires 0 < d
     ensures DivRecursive(x, d) == x / d
   {
-    reveal DivPos();
-    reveal DivRecursive();
     LemmaDivInductionAuto(d, x, u => DivRecursive(u, d) == u / d);
   }
 
   lemma LemmaDivIsDivRecursiveAuto()
     ensures forall x: int, d: int {:trigger x / d} :: d > 0 ==> DivRecursive(x, d) == x / d
   {
-    reveal DivPos();
-    reveal DivRecursive();
     forall x: int, d: int | d > 0
       ensures DivRecursive(x, d) == x / d
     {
@@ -69,7 +66,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     ensures x / 1 == x
     ensures x != 0 ==> x / x == 1
   {
-    if (x != 0) {
+    if x != 0 {
       LemmaDivBySelf(x);
       LemmaDivOf0(x);
     }
@@ -132,18 +129,13 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     ensures x / y >= x / z
     decreases x
   {
-    reveal DivPos();
-    reveal DivRecursive();
     LemmaDivIsDivRecursiveAuto();
     assert forall u: int, d: int {:trigger u / d} {:trigger DivRecursive(u, d)}
         :: d > 0 ==> DivRecursive(u, d) == u / d;
 
-    if (x < z)
-    {
+    if x < z {
       LemmaDivIsOrdered(0, x, y);
-    }
-    else
-    {
+    } else {
       LemmaDivIsOrdered(x - z, x - y, y);
       LemmaDivIsOrderedByDenominator(x - z, y, z);
     }
@@ -152,7 +144,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   lemma LemmaDivIsOrderedByDenominatorAuto()
     ensures forall x: int, y: int, z: int {:trigger x / y, x / z} :: 0 <= x && 1 <= y <= z ==> x / y >= x / z
   {
-    forall (x: int, y: int, z: int | 0 <= x && 1 <= y <= z)
+    forall x: int, y: int, z: int | 0 <= x && 1 <= y <= z
       ensures x / y >= x / z
     {
       LemmaDivIsOrderedByDenominator(x, y, z);
@@ -173,7 +165,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   lemma LemmaDivIsStrictlyOrderedByDenominatorAuto()
     ensures forall x: int, d: int {:trigger x / d} :: 0 < x && 1 < d ==> x / d < x
   {
-    forall (x: int, d: int | 0 < x && 1 < d )
+    forall x: int, d: int | 0 < x && 1 < d
       ensures x / d < x
     {
       LemmaDivIsStrictlyOrderedByDenominator(x, d);
@@ -204,7 +196,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
               :: 0 < d &&  R == a%d + b%d - (a+b)%d ==> d*((a+b)/d) - R == d*(a/d) + d*(b/d)
   {
     // https://github.com/dafny-lang/dafny/issues/4771
-    forall (a: int, b: int, d: int, R: int {:trigger d * ((a + b) / d) - R, d*(a/d) + d*(b/d)} | 0< d &&  R == a%d + b%d - (a+b)%d)
+    forall a: int, b: int, d: int, R: int {:trigger d * ((a + b) / d) - R, d*(a/d) + d*(b/d)} | 0< d &&  R == a%d + b%d - (a+b)%d
       ensures d*((a+b)/d) - R == d*(a/d) + d*(b/d)
     {
       LemmaDividingSums(a, b, d, R);
@@ -224,7 +216,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   lemma LemmaDivPosIsPosAuto()
     ensures forall x: int, d: int {:trigger x / d} :: 0 <= x && 0 < d ==> 0 <= x / d
   {
-    forall (x: int, d: int | 0 <= x && 0 < d)
+    forall x: int, d: int | 0 <= x && 0 < d
       ensures 0 <= x / d
     {
       LemmaDivPosIsPos(x, d);
@@ -243,7 +235,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   lemma LemmaDivPlusOneAuto()
     ensures forall x: int, d: int {:trigger 1 + x / d, (d + x) / d} :: 0 < d ==> 1 + x / d == (d + x) / d
   {
-    forall (x: int, d: int | 0 < d)
+    forall x: int, d: int | 0 < d
       ensures 1 + x / d == (d + x) / d
     {
       LemmaDivPlusOne(x, d);
@@ -262,7 +254,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   lemma LemmaDivMinusOneAuto()
     ensures forall x: int, d: int {:trigger -1 + x / d, (-d + x) / d} :: 0 < d ==> -1 + x / d == (-d + x) / d
   {
-    forall (x: int, d: int | 0 < d)
+    forall x: int, d: int | 0 < d
       ensures -1 + x / d == (-d + x) / d
     {
       LemmaDivMinusOne(x, d);
@@ -280,7 +272,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   lemma LemmaBasicDivAuto()
     ensures forall x: int, d: int {:trigger x / d} :: 0 <= x < d ==> x / d == 0
   {
-    forall (x: int, d: int | 0 <= x < d)
+    forall x: int, d: int | 0 <= x < d
       ensures x / d == 0
     {
       LemmaBasicDiv(d);
@@ -299,7 +291,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   lemma LemmaDivIsOrderedAuto()
     ensures forall x: int, y: int, z: int {:trigger x / z, y / z} :: x <= y && 0 < z ==> x / z <= y / z
   {
-    forall (x: int, y: int, z: int | x <= y && 0 < z)
+    forall x: int, y: int, z: int | x <= y && 0 < z
       ensures x / z <= y / z
     {
       LemmaDivIsOrdered(x, y, z);
@@ -319,7 +311,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   lemma LemmaDivDecreasesAuto()
     ensures forall x: int, d: int {:trigger x / d} :: 0 < x && 1 < d ==> x / d < x
   {
-    forall (x: int, d: int | 0 < x && 1 < d)
+    forall x: int, d: int | 0 < x && 1 < d
       ensures x / d < x
     {
       LemmaDivDecreases(x, d);
@@ -339,7 +331,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   lemma LemmaDivNonincreasingAuto()
     ensures forall x: int, d: int {:trigger x / d } :: 0 <= x && 0 < d ==> x / d <= x
   {
-    forall (x: int, d: int | 0 <= x && 0 < d)
+    forall x: int, d: int | 0 <= x && 0 < d
       ensures x / d <= x
     {
       LemmaDivNonincreasing(x, d);
@@ -409,7 +401,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     ensures forall x: int, y: int, z: int {:trigger y * z, x % (y * z), y * ((x / y) % z) + x % y}
               :: 0 <= x && 0 < y && 0 < z ==> 0 < y * z && x % (y * z) == y * ((x / y) % z) + x % y
   {
-    forall (x: int, y: int, z: int  | 0 <= x && 0 < y && 0 < z)
+    forall x: int, y: int, z: int  | 0 <= x && 0 < y && 0 < z
       ensures 0 < y * z && x % (y * z) == y * ((x / y) % z) + x % y
     {
       LemmaBreakdown(x, y, z);
@@ -428,7 +420,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   lemma LemmaRemainderUpperAuto()
     ensures forall x: int, d: int {:trigger x - d, d * d} :: 0 <= x && 0 < d ==> x - d < x / d * d
   {
-    forall (x: int, d: int | 0 <= x && 0 < d)
+    forall x: int, d: int | 0 <= x && 0 < d
       ensures x - d < x / d * d
     {
       LemmaRemainderUpper(x, d);
@@ -505,7 +497,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     LemmaModPropertiesAuto();
 
     LemmaDivPosIsPos(R, c);
-    if (R / c >= d) {
+    if R / c >= d {
       LemmaFundamentalDivMod(R, c);
       LemmaMulInequality(d, R / c, c);
       LemmaMulIsCommutativeAuto();
@@ -627,19 +619,22 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     ensures forall x: int, y: int, z: int {:trigger x * (y / z), (x * y) / z}
               :: 0 <= x && 0 < z ==> x * (y / z) <= (x * y) / z
   {
-    forall (x: int, y: int, z: int | 0 <= x && 0 < z)
+    forall x: int, y: int, z: int | 0 <= x && 0 < z
       ensures x * (y / z) <= (x * y) / z
     {
       LemmaMulHoistInequality(x, y, z);
     }
   }
 
-  lemma LemmaIndistinguishableQuotients(a: int, b: int, d: int)
+  lemma {:induction false} LemmaIndistinguishableQuotients(a: int, b: int, d: int)
     requires 0 < d
     requires 0 <= a - a % d <= b < a + d - a % d
     ensures a / d == b / d
   {
-    LemmaDivInductionAuto(d, a - b, ab => var u := ab + b; 0 <= u - u % d <= b < u + d - u % d ==> u / d == b / d);
+    var f := ab => var u := ab + b; 0 <= u - u % d <= b < u + d - u % d ==> u / d == b / d;
+    assert f(a - b) by {
+      LemmaDivInductionAuto(d, a - b, f);
+    }
   }
 
   lemma LemmaIndistinguishableQuotientsAuto()
@@ -752,15 +747,56 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   }
 
   /* this is the same as writing x + (b/d) == x when b is less than d; this is true because (b/d) == 0 */
+  @IsolateAssertions
   lemma LemmaDivMultiplesVanishFancy(x: int, b: int, d: int)
     requires 0 < d
     requires 0 <= b < d
     ensures (d * x + b) / d == x
   {
-    LemmaDivAuto(d);
+    assert b/d == 0 by { LemmaDivAuto(d); }
     var f := u => (d * u + b) / d == u;
+    assert f(0);
+    forall i
+      ensures IsLe(0, i) && f(i) ==> f(i + 1)
+    {
+      if f(i) {
+        var z := ((d * i) + b) % d + d % d;
+        assert 0 <= z < d;
+        assert f (i + 1) by {
+          calc {
+            i + 1;
+            ((d * i) + b)/d + d/d; {
+              assert DivPlus (d, d * i + b, d) by {LemmaDivAuto(d);}
+            }
+            ((d * i) + b + d)/d; {
+              LemmaMulAuto();
+            }
+            (d * (i + 1) + b)/d;
+          }
+        }
+      }
+    }
+    forall i
+      ensures IsLe(i, 0) && f(i) ==> f(i - 1)
+    {
+      if f(i) {
+        var z := ((d * i) + b) % d - d % d;
+        assert 0 <= z < d;
+        assert f (i - 1) by {
+          calc {
+            i - 1;
+            ((d * i) + b)/d - d/d; {
+              assert DivMinus (d, d * i + b, d) by {LemmaDivAuto(d);}
+            }
+            ((d * i) + b - d)/d; {
+              LemmaMulAuto();
+            }
+            (d * (i - 1) + b)/d;
+          }
+        }
+      }
+    }
     LemmaMulInductionAuto(x, f);
-    assert f(x);
   }
 
   lemma LemmaDivMultiplesVanishFancyAuto()
@@ -954,7 +990,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     ensures ModRecursive(x, m) == x % m
     decreases if x < 0 then -x + m else x
   {
-    reveal ModRecursive();
     if x < 0 {
       calc {
         ModRecursive(x, m);
@@ -989,7 +1024,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   lemma LemmaModIsModRecursiveAuto()
     ensures forall x: int, d: int {:trigger x % d}:: d > 0 ==> ModRecursive(x, d) == x % d
   {
-    reveal ModRecursive();
     forall x: int, d: int | d > 0
       ensures ModRecursive(x, d) == x % d
     {
@@ -1281,7 +1315,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     }
   }
 
-  lemma {:isolate_assertions} LemmaModNegNeg(x: int, d: int)
+  @IsolateAssertions
+  lemma LemmaModNegNeg(x: int, d: int)
     requires 0 < d
     ensures x % d == (x * (1 - d)) % d
   {
@@ -1298,7 +1333,9 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
   }
 
   /* proves the validity of the quotient and remainder */
-  lemma {:timeLimitMultiplier 5} LemmaFundamentalDivModConverse(x: int, d: int, q: int, r: int)
+  @ResourceLimit("2200000")
+  @TimeLimitMultiplier(10)
+  lemma LemmaFundamentalDivModConverse(x: int, d: int, q: int, r: int)
     requires d != 0
     requires 0 <= r < d
     requires x == q * d + r
@@ -1310,7 +1347,8 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivMod {
     LemmaMulInductionAuto(q, u => r == (u * d + r) % d);
   }
 
-  lemma {:timeLimitMultiplier 5} LemmaFundamentalDivModConverseAuto()
+  @TimeLimitMultiplier(5)
+  lemma LemmaFundamentalDivModConverseAuto()
     ensures forall x: int, d: int, q: int, r: int {:trigger q * d + r, x % d}
               :: d != 0 && 0 <= r < d && x == q * d + r ==> q == x / d && r == x % d
   {

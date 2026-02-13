@@ -23,6 +23,12 @@ namespace XUnitExtensions.Lit {
       TextWriter outputWriter, TextWriter errorWriter) {
       using var process = new Process();
 
+      if (shellCommand.Contains('/') && Path.GetFileName(shellCommand) is var command and ("python3" or "cargo")) {
+        var workingDir = Path.GetDirectoryName(shellCommand);
+        process.StartInfo.WorkingDirectory = workingDir;
+        shellCommand = command;
+      }
+
       process.StartInfo.FileName = shellCommand;
       foreach (var argument in Arguments) {
         process.StartInfo.ArgumentList.Add(argument);

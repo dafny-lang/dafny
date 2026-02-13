@@ -8,14 +8,13 @@
     <OutputPath>..\..\Binaries\</OutputPath>
     <IsPackable>true</IsPackable>
     <DefineConstants>TRACE</DefineConstants>
-    <TargetFramework>net6.0</TargetFramework>
+      <RollForward>Major</RollForward>
     <Nullable>enable</Nullable>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
     <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
   </ItemGroup>
 

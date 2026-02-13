@@ -1,0 +1,13 @@
+Fp32Wellformedness.dfy(6,13): Error: fp32 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(6,15): Error: fp32 arithmetic requires that operands are not NaN
+Fp32Wellformedness.dfy(7,13): Error: fp32 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(8,13): Error: fp32 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(9,13): Error: possible division by zero
+Fp32Wellformedness.dfy(15,15): Error: fp32 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(23,11): Error: fp32 comparison requires that operands are not NaN
+Fp32Wellformedness.dfy(23,15): Error: fp32 comparison requires that operands are not NaN
+Fp32Wellformedness.dfy(30,22): Error: fp32 Floor requires that operands are not NaN
+Fp32Wellformedness.dfy(34,20): Error: fp32.Sqrt requires a non-negative argument (negative values produce NaN)
+Fp32Wellformedness.dfy(35,20): Error: fp32.Sqrt requires a non-negative argument (negative values produce NaN)
+
+Dafny program verifier finished with 1 verified, 11 errors

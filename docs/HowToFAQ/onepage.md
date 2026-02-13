@@ -2809,7 +2809,7 @@ To declare `formula` as _contravariant_ use `formula<-T>`. Then `formula<U>` is 
 
 Type parameter characteristics are discussed in [the reference manual](../DafnyRef/DafnyRef.html#sec-type-parameter-variance)
 
-# "Error: function precondition might not hold"
+# "Error: function precondition could not be proved"
 
 
 This error can occur when trying to write a sequence comprehension expression like
@@ -2935,13 +2935,6 @@ The correct way to include a lemma with the postcondition is to use parentheses:
 This error is caused by a bug in the Z3 backend tool used by Dafny. 
 As of v3.9.0 there is work underway to update Z3 to a more recent version.
 Until then, the best you can do is to try to change the verification condition sent to Z3 by splitting it up, using various Dafny options and attributes like `{:split_here}`, `{:focus}`, `/vcsSplitOnEveryAssert`, `/vcsMaxSplits`, and `/randomSeed`.
-
-
-# "Warning: file contains no code"
-
-
-This warning can occur if a file being compiled by Dafny is completely empty.
-Previous other occurrences of this warning were bugs.
 
 
 # "Duplicate name of import: ..."

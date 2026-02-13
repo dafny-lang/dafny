@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh --general-newtypes --general-traits=datatype --reads-clauses-on-methods
+// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=true --general-newtypes=true --general-traits=datatype --reads-clauses-on-methods
 
 method Main() {
   Set.Test();

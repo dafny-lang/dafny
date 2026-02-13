@@ -45,7 +45,7 @@ namespace DafnyServer {
       var beginIndex = output.IndexOf(begin, StringComparison.Ordinal);
       var endIndex = output.IndexOf(end, StringComparison.Ordinal);
       if (beginIndex == -1 || endIndex == -1) {
-        return new List<Model>();
+        return [];
       }
 
       var modelString = output.Substring(beginIndex, endIndex + end.Length - beginIndex);
@@ -115,7 +115,7 @@ namespace DafnyServer {
       public List<CounterExampleState> States { get; set; }
 
       public CounterExample() {
-        States = new List<CounterExampleState>();
+        States = [];
       }
     }
 
@@ -131,7 +131,7 @@ namespace DafnyServer {
       [DataMember]
       public int Column { get; set; }
       public CounterExampleState() {
-        Variables = new List<CounterExampleVariable>();
+        Variables = [];
       }
     }
 

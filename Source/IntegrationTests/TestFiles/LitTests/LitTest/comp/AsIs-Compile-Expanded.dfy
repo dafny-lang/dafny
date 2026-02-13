@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh
+// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=true --general-newtypes=false
 
 method Main() {
   Is.Test();

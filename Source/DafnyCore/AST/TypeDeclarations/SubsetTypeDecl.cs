@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -7,11 +8,11 @@ namespace Microsoft.Dafny;
 
 public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "subset type";
-  public readonly BoundVar Var;
-  public readonly Expression Constraint;
+  public BoundVar Var;
+  public Expression Constraint;
   public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
-  public readonly WKind WitnessKind;
-  public Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
+  public WKind WitnessKind;
+  public Expression? Witness;  // non-null iff WitnessKind is Compiled or Ghost
 
   private bool? constraintIsCompilable = null;
   [FilledInDuringResolution]
@@ -26,22 +27,22 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
     }
   }
 
-  public SubsetTypeDecl(RangeToken rangeToken, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
-    BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
-    Attributes attributes)
-    : base(rangeToken, name, characteristics, typeArgs, module, id.Type, attributes) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
+  [SyntaxConstructor]
+  public SubsetTypeDecl(IOrigin origin, Name nameNode, TypeParameterCharacteristics characteristics,
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
+    BoundVar var, Expression constraint, WKind witnessKind, Expression? witness,
+    Attributes? attributes)
+    : base(origin, nameNode, characteristics, typeArgs, enclosingModuleDefinition, attributes) {
+    Contract.Requires(origin != null);
     Contract.Requires(typeArgs != null);
-    Contract.Requires(module != null);
-    Contract.Requires(id != null && id.Type != null);
-    Contract.Requires(constraint != null);
     Contract.Requires((witnessKind == WKind.Compiled || witnessKind == WKind.Ghost) == (witness != null));
-    Var = id;
+    Var = var;
     Constraint = constraint;
     Witness = witness;
     WitnessKind = witnessKind;
   }
+
+  public override Type Rhs => Var.Type;
 
   public override IEnumerable<INode> Children =>
     base.Children.Concat(new[] { Constraint }).Concat(
@@ -50,15 +51,17 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
       );
 
   BoundVar RedirectingTypeDecl.Var => Var;
+  PreType? RedirectingTypeDecl.BasePreType => Var.PreType;
+  Type RedirectingTypeDecl.BaseType => Var.Type;
   Expression RedirectingTypeDecl.Constraint => Constraint;
   WKind RedirectingTypeDecl.WitnessKind => WitnessKind;
-  Expression RedirectingTypeDecl.Witness => Witness;
+  Expression? RedirectingTypeDecl.Witness => Witness;
 
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
-    return new List<Type> { RhsWithArgument(typeArgs) };
+  public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
+    return [RhsWithArgument(typeArgs)];
   }
-  public bool ShouldVerify => true; // This could be made more accurate
-  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public override bool ShouldVerify => true; // This could be made more accurate
+  public override ModuleDefinition ContainingModule => EnclosingModuleDefinition;
   public override SymbolKind? Kind => SymbolKind.Class;
   public override string GetDescription(DafnyOptions options) {
     return "subset type";
@@ -82,10 +85,10 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
       }
 
       if (func.IsMadeImplicitlyOpaque(Options)) {
-        var revealStmt0 = AutoRevealFunctionDependencies.BuildRevealStmt(func, Witness.Tok, EnclosingModuleDefinition);
+        var revealStmt0 = AutoRevealFunctionDependencies.BuildRevealStmt(func, Witness.Origin, EnclosingModuleDefinition);
 
         if (revealStmt0 is not null) {
-          var newExpr = new StmtExpr(Witness.Tok, revealStmt0, Witness) {
+          var newExpr = new StmtExpr(Witness.Origin, revealStmt0, Witness) {
             Type = Witness.Type
           };
           Witness = newExpr;
@@ -94,13 +97,13 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
 
       foreach (var newFunc in Rewriter.GetEnumerator(func, func.EnclosingClass, new List<Expression>(), EnclosingModuleDefinition)) {
         var origExpr = Witness;
-        var revealStmt = AutoRevealFunctionDependencies.BuildRevealStmt(newFunc.Function, Witness.Tok, EnclosingModuleDefinition);
+        var revealStmt = AutoRevealFunctionDependencies.BuildRevealStmt(newFunc.Function, Witness.Origin, EnclosingModuleDefinition);
 
         if (revealStmt is null) {
           continue;
         }
 
-        var newExpr = new StmtExpr(Witness.Tok, revealStmt, origExpr) {
+        var newExpr = new StmtExpr(Witness.Origin, revealStmt, origExpr) {
           Type = origExpr.Type
         };
         Witness = newExpr;

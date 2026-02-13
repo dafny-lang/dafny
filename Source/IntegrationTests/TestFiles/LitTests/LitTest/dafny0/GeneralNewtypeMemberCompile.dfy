@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh --general-newtypes
+// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=true --general-newtypes=true
 
 
 method Main() {

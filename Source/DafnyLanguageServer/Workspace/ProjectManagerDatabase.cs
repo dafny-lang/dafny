@@ -200,6 +200,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public static DafnyProject ImplicitProject(Uri uri) {
       var implicitProject = new DafnyProject(
+        null,
         uri, null,
         new[] { uri.LocalPath }.ToHashSet(),
         new HashSet<string>(),

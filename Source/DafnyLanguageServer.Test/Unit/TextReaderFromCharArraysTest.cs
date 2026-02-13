@@ -9,7 +9,7 @@ public class TextReaderFromCharArraysTest {
   [Fact]
   public void ReadBlockEmptyMiddle() {
     var fourAs = new[] { 'a', 'a', 'a', 'a' };
-    var chunks = new[] { fourAs, new char[] { }, fourAs };
+    var chunks = new[] { fourAs, [], fourAs };
     var emptyMiddleReader = new TextReaderFromCharArrays(chunks);
     var end = emptyMiddleReader.ReadToEnd();
     Assert.Equal("aaaaaaaa", end);
@@ -17,7 +17,7 @@ public class TextReaderFromCharArraysTest {
 
   [Fact]
   public void ReadPeekEmptyStart() {
-    var emptyStart = new[] { new char[] { }, new[] { 'a', 'b', 'c', 'd' } };
+    var emptyStart = new[] { [], new[] { 'a', 'b', 'c', 'd' } };
     var emptyStartReader = new TextReaderFromCharArrays(emptyStart);
     var firstPeek = emptyStartReader.Peek();
     var firstRead = emptyStartReader.Read();
@@ -27,7 +27,7 @@ public class TextReaderFromCharArraysTest {
 
   [Fact]
   public void ReadEmptyMiddle() {
-    var emptyMiddleReader = new TextReaderFromCharArrays(new[] { new[] { 'a' }, new char[] { }, new[] { 'b' } });
+    var emptyMiddleReader = new TextReaderFromCharArrays(new[] { ['a'], [], new[] { 'b' } });
     var a = emptyMiddleReader.Read();
     var b = emptyMiddleReader.Read();
     Assert.Equal('a', a);

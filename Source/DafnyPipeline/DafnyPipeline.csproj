@@ -7,11 +7,11 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <TargetFramework>net6.0</TargetFramework>
+    <RollForward>Major</RollForward>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0|AnyCPU'">
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
@@ -56,23 +56,23 @@
       <LogicalName>DafnyStandardLibraries-py.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.cs">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.cs">
       <LinkBase>DafnyStandardLibraries_cs</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.java">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.java">
       <LinkBase>DafnyStandardLibraries_java</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.js">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.js">
       <LinkBase>DafnyStandardLibraries_js</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.go">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.go">
       <LinkBase>DafnyStandardLibraries_go</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\src\**\*.py">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.py">
       <LinkBase>DafnyStandardLibraries_py</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
@@ -89,7 +89,7 @@
       <LinkBase>DafnyRuntimeJava</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime-4.6.0.jar">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime-4.11.1.jar">
       <LogicalName>DafnyRuntime.jar</LogicalName>
       <Link>DafnyRuntime.jar</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

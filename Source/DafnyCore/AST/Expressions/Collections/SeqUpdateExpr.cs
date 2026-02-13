@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -14,15 +16,9 @@ namespace Microsoft.Dafny;
 /// Datatype updates are represented by <c>DatatypeUpdateExpr</c> nodes.
 /// </summary>
 public class SeqUpdateExpr : Expression, ICloneable<SeqUpdateExpr> {
-  public readonly Expression Seq;
-  public readonly Expression Index;
-  public readonly Expression Value;
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(Seq != null);
-    Contract.Invariant(Index != null);
-    Contract.Invariant(Value != null);
-  }
+  public Expression Seq;
+  public Expression Index;
+  public Expression Value;
 
   public SeqUpdateExpr(Cloner cloner, SeqUpdateExpr original) : base(cloner, original) {
     Seq = cloner.CloneExpr(original.Seq);
@@ -30,15 +26,12 @@ public class SeqUpdateExpr : Expression, ICloneable<SeqUpdateExpr> {
     Value = cloner.CloneExpr(original.Value);
   }
 
-  public SeqUpdateExpr(IToken tok, Expression seq, Expression index, Expression val)
-    : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(seq != null);
-    Contract.Requires(index != null);
-    Contract.Requires(val != null);
+  [SyntaxConstructor]
+  public SeqUpdateExpr(IOrigin origin, Expression seq, Expression index, Expression value)
+    : base(origin) {
     Seq = seq;
     Index = index;
-    Value = val;
+    Value = value;
   }
 
   public override IEnumerable<Expression> SubExpressions {

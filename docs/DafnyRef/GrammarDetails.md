@@ -103,7 +103,7 @@ reservedword =
     "const" | "constructor" | "continue" |
     "datatype" | "decreases" |
     "else" | "ensures" | "exists" | "expect" | "export" | "extends" |
-    "false" | "for" | "forall" | "fresh" | "function" | "ghost" |
+    "false" | "for" | "forall" | "fp32" | "fp64" | "fresh" | "function" | "ghost" |
     "if" | "imap" | "import" | "in" | "include" |
     "int" | "invariant" | "is" | "iset" | "iterator" |
     "label" | "lemma" | "map" | "match" | "method" |
@@ -129,7 +129,10 @@ digits = digit {["_"] digit}
 
 hexdigits = "0x" hexdigit {["_"] hexdigit}
 
-decimaldigits = digit {["_"] digit} '.' digit {["_"] digit}
+realnumber = digit {["_"] digit}
+             ( '.' digit {["_"] digit} ['e' ['-'] digit {["_"] digit}]
+             | 'e' ['-'] digit {["_"] digit}
+             )
 
 escapedChar =
     ( "\'" | "\"" | "\\" | "\0" | "\n" | "\r" | "\t"
@@ -293,7 +296,7 @@ ExportSignature = TypeNameOrCtorSuffix [ "." TypeNameOrCtorSuffix ]
 Type = DomainType_ | ArrowType_
 
 DomainType_ =
-  ( BoolType_ | CharType_ | IntType_ | RealType_
+  ( BoolType_ | CharType_ | IntType_ | RealType_ | FloatType_
   | OrdinalType_ | BitVectorType_ | ObjectType_
   | FiniteSetType_ | InfiniteSetType_
   | MultisetType_
@@ -319,6 +322,7 @@ NameSegmentForTypeName = Ident [ GenericInstantiation ]
 BoolType_ = "bool"
 IntType_ = "int"
 RealType_ = "real"
+FloatType_ = "fp32" | "fp64"
 BitVectorType_ = bvToken
 OrdinalType_ = "ORDINAL"
 CharType_ = "char"
@@ -1142,6 +1146,19 @@ CalcOp =
   )
 ````
 
+#### 17.2.6.24. Opaque block {#g-opaque-block}
+
+([discussion](#sec-opaque-block))
+
+````grammar
+OpaqueBlock = "opaque" OpaqueSpec BlockStmt
+  
+OpaqueSpec = {
+  | ModifiesClause(allowLambda: false)
+  | EnsuresClause(allowLambda: false)
+}
+````
+
 ### 17.2.7. Expressions
 
 #### 17.2.7.1. Top-level expression {#g-top-level-expression}
@@ -1396,12 +1413,14 @@ ConstAtomExpression =
 
 ````grammar
 LiteralExpression =
- ( "false" | "true" | "null" | Nat | Dec |
+ ( "false" | "true" | "null" | Nat | Dec | ApproxLiteral |
    charToken | stringToken )
+
+ApproxLiteral = "~" [ "-" ] Dec
 
 Nat = ( digits | hexdigits )
 
-Dec = decimaldigits
+Dec = ( realnumber | digits "." | "." ( digits | realnumber ) )
 ````
 
 #### 17.2.7.21. This expression {#g-this-expression}
@@ -1618,7 +1637,7 @@ MapComprehensionExpr(allowLemma, allowLambda) =
 
 ````grammar
 StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
-             | RevealStmt | CalcStmt
+             | RevealStmt | CalcStmt | ForallStmt
              )
 ````
 

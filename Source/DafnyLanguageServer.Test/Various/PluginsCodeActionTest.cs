@@ -14,7 +14,7 @@ public class PluginsDafnyCodeActionTest : PluginsTestBase {
     "PluginsDafnyCodeActionTest";
 
   protected override string[] CommandLineArgument =>
-    new[] { $"{LibraryPath}" };
+    [$"{LibraryPath}"];
 
   [Fact]
   public async Task EnsureDafnyCodeActionProviderWorks() {

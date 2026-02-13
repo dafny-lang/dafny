@@ -190,7 +190,8 @@ method ImplicitAssertions(x: int) {
     var document = CreateAndOpenTestDocument(source, "ErrorLimitReached.dfy");
     var diagnostics = await GetLastDiagnostics(document, DiagnosticSeverity.Hint);
     Assert.Contains(diagnostics, d => d.Message.Contains("Implicit assertion: non-zero divisor"));
-    Assert.Contains(diagnostics, d => d.Message.Contains("Explicit assertion: assert statement") && d.Range == new Range(2, 11, 2, 16));
+    Assert.Contains(diagnostics, d => d.Message.Contains("Explicit assertion: assert statement")
+                                      && d.Range == new Range(2, 4, 2, 10));
   }
 
   public VerificationDiagnostics(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel) {

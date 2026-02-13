@@ -27,7 +27,7 @@ A reference manual is available both [online](https://dafny-lang.github.io/dafny
 
 ## Community
 
-You can ask questions about Dafny on [Stack Overflow](https://stackoverflow.com/questions/tagged/dafny) or participate in general discussion on Dafny's [![Gitter](https://badges.gitter.im/dafny-lang/community.svg)](https://gitter.im/dafny-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge).
+Feel free to report issues here on GitHub or to ask for questions on our :speech_balloon: [Zulip](https://dafny.zulipchat.com/) channel. 
 
 ## Try Dafny
 
@@ -79,4 +79,4 @@ Information and instructions for potential contributors are provided [here](CONT
 
 Dafny itself is licensed under the MIT license. (See `LICENSE.txt` in the root
 directory for details.) The subdirectory `Source/Dafny/Coco` contains third
-party material; see `Source/Dafny/Coco/LICENSE.txt` for more details.
+party material; see `Source/DafnyCore/Coco/LICENSE.txt` for more details.

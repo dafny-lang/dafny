@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Linq;
 
 namespace Microsoft.Dafny;
@@ -29,14 +30,23 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
     this.systemModuleManager = systemModuleManager;
   }
 
-  private readonly List<Flow> flows = new();
+  private readonly List<Flow> flows = [];
 
   public void DebugPrint() {
-    systemModuleManager.Options.OutputWriter.WriteLine($"--------------------------- type-refinement flows, {moduleDescription}:");
+    var sw = new StringWriter();
+    sw.WriteLine($"--------------------------- type-refinement flows, {moduleDescription}:");
     foreach (var flow in flows) {
-      flow.DebugPrint(systemModuleManager.Options.OutputWriter);
+      flow.DebugPrint(sw);
     }
-    systemModuleManager.Options.OutputWriter.WriteLine($"------------------- (end of type-refinement flows, {moduleDescription})");
+    sw.WriteLine($"------------------- (end of type-refinement flows, {moduleDescription})");
+    systemModuleManager.Options.OutputWriter.Debug(sw.ToString());
+  }
+
+  public override void VisitField(Field field) {
+    base.VisitField(field);
+    if (field is ConstantField { Rhs: { } rhs } constantField) {
+      flows.Add(new FlowIntoVariable(constantField, rhs, field.Origin, ":="));
+    }
   }
 
   protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
@@ -61,7 +71,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
       var seqType = selectExpr.Seq.Type.NormalizeToAncestorType();
       if (!selectExpr.SelectOne) {
         var sinkType = selectExpr.Type.NormalizeToAncestorType().AsSeqType;
-        flows.Add(new FlowFromType(sinkType.Arg, seqType.TypeArgs[0], expr.tok));
+        flows.Add(new FlowFromTypeArgument(sinkType.Arg, unnormalizedSeqType, 0, expr.Origin));
       } else if (seqType.AsSeqType != null || seqType.IsArrayType) {
         flows.Add(new FlowFromTypeArgument(expr, unnormalizedSeqType, 0));
       } else if (seqType.IsMapType || seqType.IsIMapType) {
@@ -115,7 +125,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
         flows.Add(new FlowBetweenComputedTypes(() => {
           var typeMap = functionCallExpr.TypeArgumentSubstitutionsWithParents();
           return (TypeRefinementWrapper.NormalizeSansBottom(formal).Subst(typeMap), TypeRefinementWrapper.NormalizeSansBottom(actual));
-        }, functionCallExpr.tok, $"{functionCallExpr.Function.Name}({formal.Name} := ...)"));
+        }, functionCallExpr.Origin, $"{functionCallExpr.Function.Name}({formal.Name} := ...)"));
       }
 
       flows.Add(new FlowFromComputedType(expr, () => {
@@ -132,10 +142,10 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
         flows.Add(new FlowBetweenComputedTypes(() => {
           var typeMap = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, datatypeValue.InferredTypeArgs);
           return (TypeRefinementWrapper.NormalizeSansBottom(formal).Subst(typeMap), TypeRefinementWrapper.NormalizeSansBottom(actual));
-        }, datatypeValue.tok, $"{ctor.Name}({formal.Name} := ...)"));
+        }, datatypeValue.Origin, $"{ctor.Name}({formal.Name} := ...)"));
       }
       flows.Add(new FlowFromComputedType(expr,
-        () => new UserDefinedType(expr.tok, datatypeDecl.Name, datatypeDecl, datatypeValue.InferredTypeArgs),
+        () => new UserDefinedType(expr.Origin, datatypeDecl.Name, datatypeDecl, datatypeValue.InferredTypeArgs),
         ctor.Name));
 
     } else if (expr is ApplyExpr applyExpr) {
@@ -161,6 +171,21 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
         flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new MapType(mapDisplayExpr.Finite,
             TypeRefinementWrapper.NormalizeSansBottom(element.A), TypeRefinementWrapper.NormalizeSansBottom(element.B)),
           "map display"));
+      }
+
+    } else if (expr is SeqUpdateExpr seqUpdateExpr) {
+      if (expr.Type is MultiSetType multiSetType) {
+        flows.Add(new FlowBetweenExpressions(expr, seqUpdateExpr.Seq, "multiset update (source)"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr,
+          () => new MultiSetType(TypeRefinementWrapper.NormalizeSansBottom(seqUpdateExpr.Index)),
+          "multiset update (element)"));
+      } else if (expr.Type is MapType mapType) {
+        flows.Add(new FlowBetweenExpressions(expr, seqUpdateExpr.Seq, "map update (source)"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new MapType(mapType.Finite,
+            TypeRefinementWrapper.NormalizeSansBottom(seqUpdateExpr.Index), TypeRefinementWrapper.NormalizeSansBottom(seqUpdateExpr.Value)),
+          "map update (element)"));
+      } else {
+        // nothing to do for sequences
       }
 
     } else if (expr is SetComprehension setComprehension) {
@@ -286,7 +311,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
 
     } else if (expr is LambdaExpr lambdaExpr) {
       flows.Add(new FlowFromComputedType(expr, () => {
-        return ModuleResolver.SelectAppropriateArrowType(lambdaExpr.tok,
+        return ModuleResolver.SelectAppropriateArrowType(lambdaExpr.Origin,
           lambdaExpr.BoundVars.ConvertAll(v => TypeRefinementWrapper.NormalizeSansBottom(v)),
           TypeRefinementWrapper.NormalizeSansBottom(lambdaExpr.Body),
           lambdaExpr.Reads.Expressions.Count != 0, lambdaExpr.Range != null, systemModuleManager);
@@ -301,7 +326,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
     VisitExpression(casePattern.Expr, context);
 
     if (casePattern.Var != null) {
-      flows.Add(new FlowIntoVariableFromComputedType(casePattern.Var, getPatternRhsType, casePattern.tok, ":="));
+      flows.Add(new FlowIntoVariableFromComputedType(casePattern.Var, getPatternRhsType, casePattern.Origin, ":="));
       Contract.Assert(casePattern.Arguments == null);
     } else if (casePattern.Arguments != null) {
       var ctor = casePattern.Ctor;
@@ -328,11 +353,11 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
   protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
     if (stmt is VarDeclPattern varDeclPattern) {
       VisitPattern(varDeclPattern.LHS, () => TypeRefinementWrapper.NormalizeSansBottom(varDeclPattern.RHS), context);
-    } else if (stmt is AssignStmt { Lhs: IdentifierExpr lhsIdentifierExpr } assignStmt) {
+    } else if (stmt is SingleAssignStmt { Lhs: IdentifierExpr lhsIdentifierExpr } assignStmt) {
       if (assignStmt is { Rhs: ExprRhs exprRhs }) {
-        flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.tok, ":="));
+        flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.Origin, $"{lhsIdentifierExpr.Var.Name} :="));
       } else if (assignStmt is { Rhs: TypeRhs tRhs }) {
-        flows.Add(new FlowFromType(lhsIdentifierExpr.Var.UnnormalizedType, tRhs.Type, assignStmt.tok, ":= new"));
+        flows.Add(new FlowFromType(lhsIdentifierExpr.Var.UnnormalizedType, tRhs.Type, assignStmt.Origin, ":= new"));
       }
 
     } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
@@ -348,7 +373,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
         flows.Add(new FlowBetweenComputedTypes(() => {
           var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
           return (TypeRefinementWrapper.NormalizeSansBottom(formal).Subst(typeMap), TypeRefinementWrapper.NormalizeSansBottom(actual));
-        }, callStmt.tok, $"{callStmt.Method.Name}({formal.Name} := ...)"));
+        }, callStmt.Origin, $"{callStmt.Method.Name}({formal.Name} := ...)"));
       }
 
       Contract.Assert(callStmt.Lhs.Count == callStmt.Method.Outs.Count);
@@ -358,7 +383,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
           flows.Add(new FlowIntoVariableFromComputedType(actualIdentifierExpr.Var, () => {
             var typeMap = callStmt.MethodSelect.TypeArgumentSubstitutionsWithParents();
             return TypeRefinementWrapper.NormalizeSansBottom(formal).Subst(typeMap);
-          }, callStmt.tok, $"{actualIdentifierExpr.Var.Name} := {callStmt.Method.Name}(...)"));
+          }, callStmt.Origin, $"{actualIdentifierExpr.Var.Name} := {callStmt.Method.Name}(...)"));
         }
       }
 

@@ -15,7 +15,7 @@ namespace Microsoft.Dafny {
     public PreType A;
     public PreType B;
 
-    public EqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat, PreTypeConstraint baseError = null, bool reportErrors = true)
+    public EqualityConstraint(PreType a, PreType b, IOrigin tok, string msgFormat, PreTypeConstraint baseError = null, bool reportErrors = true)
       : base(tok, msgFormat, baseError, reportErrors) {
       A = a;
       B = b;
@@ -36,9 +36,9 @@ namespace Microsoft.Dafny {
       var b = B.NormalizeWrtScope();
       if (a == b) {
         // we're already there
-      } else if (a is PreTypeProxy pa && !b.Contains(pa, 1, new HashSet<PreTypeProxy>(), constraints, 0)) {
+      } else if (a is PreTypeProxy pa && !b.Contains(pa, 1, [], constraints, 0)) {
         pa.Set(b);
-      } else if (b is PreTypeProxy pb && !a.Contains(pb, 1, new HashSet<PreTypeProxy>(), constraints, 0)) {
+      } else if (b is PreTypeProxy pb && !a.Contains(pb, 1, [], constraints, 0)) {
         pb.Set(a);
       } else if (a is DPreType da && b is DPreType db && da.Decl == db.Decl) {
         Contract.Assert(da.Arguments.Count == db.Arguments.Count);

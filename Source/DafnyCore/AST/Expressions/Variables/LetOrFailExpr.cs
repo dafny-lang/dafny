@@ -1,14 +1,17 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
 public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr>, ICanFormat {
-  public readonly CasePattern<BoundVar>/*?*/ Lhs; // null means void-error handling: ":- E; F", non-null means "var pat :- E; F"
-  public readonly Expression Rhs;
-  public readonly Expression Body;
+  public CasePattern<BoundVar>? Lhs; // null means void-error handling: ":- E; F", non-null means "var pat :- E; F"
+  public Expression Rhs;
+  public Expression Body;
 
-  public LetOrFailExpr(IToken tok, CasePattern<BoundVar>/*?*/ lhs, Expression rhs, Expression body) : base(tok) {
+  [SyntaxConstructor]
+  public LetOrFailExpr(IOrigin origin, CasePattern<BoundVar>? lhs, Expression rhs, Expression body) : base(origin) {
     Lhs = lhs;
     Rhs = rhs;
     Body = body;

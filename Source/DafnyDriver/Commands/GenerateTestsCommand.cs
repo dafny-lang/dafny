@@ -18,6 +18,7 @@ static class GenerateTestsCommand {
   public static IEnumerable<Option> Options {
     get {
       return new Option[] {
+        IgnoreWarnings,
         LoopUnroll,
         SequenceLengthLimit,
         BoogieOptionBag.SolverLog,
@@ -80,7 +81,7 @@ Path - Generate tests targeting path-coverage.");
 
     if (dafnyFiles.Count > 1 &&
         options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-      await options.OutputWriter.WriteLineAsync(
+      await options.OutputWriter.Status(
         "*** Error: Only one .dfy file can be specified for testing");
       return ExitValue.PREPROCESSING_ERROR;
     }
@@ -92,11 +93,11 @@ Path - Generate tests targeting path-coverage.");
     var coverageReport = new CoverageReport(name: "Expected Test Coverage", units: "Lines", suffix: "_tests_expected", program: null);
     if (options.TestGenOptions.WarnDeadCode) {
       await foreach (var line in TestGenerator.GetDeadCodeStatistics(source, uri, options, coverageReport)) {
-        await options.OutputWriter.WriteLineAsync(line);
+        await options.OutputWriter.Status(line);
       }
     } else {
       await foreach (var line in TestGenerator.GetTestClassForProgram(source, uri, options, coverageReport)) {
-        await options.OutputWriter.WriteLineAsync(line);
+        await options.OutputWriter.Status(line);
       }
     }
     if (options.TestGenOptions.CoverageReport != null) {
@@ -123,6 +124,9 @@ Path - Generate tests targeting path-coverage.");
     dafnyOptions.TestGenOptions.Mode = mode;
   }
 
+  public static readonly Option<bool> IgnoreWarnings = new("--ignore-warnings",
+    "Ignore warnings when generating tests.");
+
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
     "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.");
 
@@ -133,13 +137,18 @@ Path - Generate tests targeting path-coverage.");
     "Print the Boogie code used during test generation.") {
     ArgumentHelpName = "filename"
   };
-  public static readonly Option<string> ExpectedCoverageReport = new(new[] { "--expected-coverage-report", "--coverage-report" },
+  public static readonly Option<string> ExpectedCoverageReport = new(["--expected-coverage-report",
+    "--coverage-report"
+    ],
     "Emit expected test coverage report to a given directory.") {
     ArgumentHelpName = "directory"
   };
   public static readonly Option<bool> ForcePrune = new("--force-prune",
     "Enable axiom pruning that Dafny uses to speed up verification. This may negatively affect the quality of tests.");
   static GenerateTestsCommand() {
+    DafnyOptions.RegisterLegacyBinding(IgnoreWarnings, (options, value) => {
+      options.TestGenOptions.IgnoreWarnings = value;
+    });
     DafnyOptions.RegisterLegacyBinding(LoopUnroll, (options, value) => {
       options.LoopUnrollCount = value;
     });
@@ -156,10 +165,11 @@ Path - Generate tests targeting path-coverage.");
       options.TestGenOptions.ForcePrune = value;
     });
 
-    DooFile.RegisterNoChecksNeeded(LoopUnroll, false);
-    DooFile.RegisterNoChecksNeeded(SequenceLengthLimit, false);
-    DooFile.RegisterNoChecksNeeded(PrintBpl, false);
-    DooFile.RegisterNoChecksNeeded(ExpectedCoverageReport, false);
-    DooFile.RegisterNoChecksNeeded(ForcePrune, false);
+    OptionRegistry.RegisterOption(LoopUnroll, OptionScope.Cli);
+    OptionRegistry.RegisterOption(SequenceLengthLimit, OptionScope.Cli);
+    OptionRegistry.RegisterOption(PrintBpl, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ExpectedCoverageReport, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ForcePrune, OptionScope.Cli);
+    OptionRegistry.RegisterOption(IgnoreWarnings, OptionScope.Cli);
   }
 }

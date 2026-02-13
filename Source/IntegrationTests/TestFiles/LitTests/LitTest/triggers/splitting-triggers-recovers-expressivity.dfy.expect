@@ -1,19 +1,19 @@
 splitting-triggers-recovers-expressivity.dfy(12,10): Info: Selected triggers:
-   {P(_t#0), Q(i)}, {P(_t#0), P(i)}
+   {P(_t#0), Q(i)}, {P(_t#0), P(i)} where _t#0 := i + 1
 splitting-triggers-recovers-expressivity.dfy(17,11): Info: Selected triggers:
-   {P(_t#0), Q(j)}, {P(_t#0), P(j)}
+   {P(_t#0), Q(j)}, {P(_t#0), P(j)} where _t#0 := j + 1
 splitting-triggers-recovers-expressivity.dfy(26,10): Info: Selected triggers: {Q(i)}
  Rejected triggers: {P(i)} (may loop with "P(i + 1)")
 splitting-triggers-recovers-expressivity.dfy(33,11): Info: Selected triggers: {Q(j)}
  Rejected triggers: {P(j)} (may loop with "P(j + 1)")
-splitting-triggers-recovers-expressivity.dfy(44,10): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section quantifier instantiation rules in the reference manual.
+splitting-triggers-recovers-expressivity.dfy(44,10): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
 splitting-triggers-recovers-expressivity.dfy(44,10): Info: Part #0 is 'P(i) || !Q(i)'
  Selected triggers:
    {Q(i)}, {P(i)}
 splitting-triggers-recovers-expressivity.dfy(44,10): Info: Part #1 is 'P(i + 1)'
  Selected triggers: {Q(i)}
  Rejected triggers: {P(i)} (may loop with "P(i + 1)")
-splitting-triggers-recovers-expressivity.dfy(49,11): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section quantifier instantiation rules in the reference manual.
+splitting-triggers-recovers-expressivity.dfy(49,11): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
 splitting-triggers-recovers-expressivity.dfy(49,11): Info: Part #0 is 'j >= 0 ==> P(j)'
  Selected triggers:
    {Q(j)}, {P(j)}
@@ -25,6 +25,6 @@ splitting-triggers-recovers-expressivity.dfy(58,11): Info: Selected triggers:
 splitting-triggers-recovers-expressivity.dfy(12,63): Error: a postcondition could not be proved on this return path
 splitting-triggers-recovers-expressivity.dfy(12,10): Related location: this is the postcondition that could not be proved
 splitting-triggers-recovers-expressivity.dfy(19,15): Error: a postcondition could not be proved on this return path
-splitting-triggers-recovers-expressivity.dfy(19,10): Related location: this is the postcondition that could not be proved
+splitting-triggers-recovers-expressivity.dfy(19,11): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 5 verified, 2 errors

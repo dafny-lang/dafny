@@ -1,6 +1,6 @@
-ResolutionErrors3.dfy(53,13): Error: type parameter 'PT' (inferred to be '?') in the function call to 'P' could not be determined
+ResolutionErrors3.dfy(53,14): Error: type parameter 'PT' (inferred to be '?') in the function call to 'P' could not be determined
 ResolutionErrors3.dfy(54,14): Error: the type of this variable is underspecified
-ResolutionErrors3.dfy(54,19): Error: type parameter 'QT' (inferred to be '?') in the function call to 'Q' could not be determined
+ResolutionErrors3.dfy(54,20): Error: type parameter 'QT' (inferred to be '?') in the function call to 'Q' could not be determined
 ResolutionErrors3.dfy(54,20): Error: the type of this expression is underspecified
 ResolutionErrors3.dfy(55,4): Error: type parameter 'MT' (inferred to be '?') to the method 'M' could not be determined
 ResolutionErrors3.dfy(56,8): Error: the type of this variable is underspecified

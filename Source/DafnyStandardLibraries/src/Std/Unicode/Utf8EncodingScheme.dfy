@@ -53,14 +53,16 @@ module Std.Unicode.Utf8EncodingScheme {
   /**
     * Deserializing a byte sequence and then serializing the result, yields the original byte sequence.
     */
-  lemma
-    {:resource_limit "30e6"}
-  LemmaDeserializeSerialize(b: seq<byte>)
+  @ResourceLimit("30e7")
+  lemma LemmaDeserializeSerialize(b: seq<byte>)
     ensures Serialize(Deserialize(b)) == b
   {
+    hide *;
+    reveal BoundedInts.TWO_TO_THE_8;
     calc {
       Serialize(Deserialize(b));
     == // Definitions of Serialize, Deserialize
+      { reveal Serialize; reveal Deserialize; }
       Seq.Map(c => c as byte, Seq.Map(b => b as Utf8EncodingForm.CodeUnit, b));
     == // Compositionality of Map
       Seq.Map(b => (b as Utf8EncodingForm.CodeUnit) as byte, b);

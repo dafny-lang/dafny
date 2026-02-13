@@ -14,7 +14,7 @@ internal class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
     block = rootBlock;
   }
 
-  public void Resolve(BlockStmt blockStatement) {
+  public void Resolve(BlockLikeStmt blockStatement) {
     // The base is directly visited to avoid doubly nesting the root block of the method.
     base.Visit(blockStatement);
   }
@@ -24,12 +24,12 @@ internal class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
     base.Visit(bodyExpression);
   }
 
-  public override void VisitUnknown(object node, IToken token) {
+  public override void VisitUnknown(object node, IOrigin token) {
     logger.LogTrace("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
       node.GetType(), token.GetDocumentFileName(), token.line, token.col);
   }
 
-  public override void Visit(BlockStmt blockStatement) {
+  public override void Visit(BlockLikeStmt blockStatement) {
     var oldBlock = block;
     block = new ScopeSymbol(block, blockStatement);
     oldBlock.Symbols.Add(block);

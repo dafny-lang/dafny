@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -18,7 +19,14 @@ public class EditDocumentTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task SlowlyTypeFile() {
-    var source = @"module NoTypeArgs0 {
+    var source = @"
+module Bla {
+  method Foo() { assume (0 decreases to 0);  }
+}
+
+module NoTypeArgs0 {
+
+
   datatype List<+T> = Nil | Cons(T, List)
   datatype Tree<+A,+B> = Leaf(A, B) | Node(Tree, Tree<B,A>)
 
@@ -199,7 +207,7 @@ module MiscLemma {
   }
 }
 ";
-    await SlowlyTypeInSource(source, 1000);
+    await SlowlyTypeInSource(source, 200);
   }
 
   private async Task<TextDocumentItem> SlowlyTypeInSource(string source, int steps) {
@@ -208,13 +216,30 @@ module MiscLemma {
     });
     var document = CreateAndOpenTestDocument("");
 
-
+    var sourceParts = Regex.Split(source, @"(?<=[\}])");
     var stepSize = (int)Math.Ceiling(source.Length / (double)steps);
-    for (var index = 0; index < source.Length; index += stepSize) {
-      var part = source.Substring(index, Math.Min(source.Length, index + stepSize) - index);
-      ApplyChange(ref document, new Range(0, index, 0, index), part);
-      var completionItems = await RequestCompletionAsync(document, new Position(0, index + stepSize));
-      var hover = await RequestHover(document, new Position(0, index + stepSize));
+
+    var index = 0;
+    var buffer = new TextBuffer("");
+    foreach (var midPart in sourceParts) {
+      for (var midIndex = 0; midIndex < midPart.Length; midIndex += stepSize) {
+        var length = Math.Min(midPart.Length, midIndex + stepSize) - midIndex;
+        var part = midPart.Substring(midIndex, length);
+        var cursorIndex = index + part.Length;
+
+        var position = buffer.FromIndex(index);
+        buffer = buffer.ApplyTextChange(new TextDocumentContentChangeEvent() {
+          Range = new Range(position, position),
+          Text = part
+        });
+        ApplyChange(ref document, new Range(position, position), part);
+
+        await WaitUntilResolutionFinished(document);
+        var position2 = buffer.FromIndex(midIndex + length);
+        var completionItems = await RequestCompletionAsync(document, position2);
+        var hover = await RequestHover(document, position2);
+        index = cursorIndex;
+      }
     }
 
     return document;

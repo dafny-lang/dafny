@@ -250,6 +250,7 @@ It is only allowed to add members to the body of the datatype.
 
 ## **Error: datatype extending traits is not yet enabled by default; use --general-traits=datatype to enable it** {#p_general_traits_datatype}
 
+<!-- %check-resolve %options --general-traits=legacy -->
 ```dafny
 trait Trait { }
 datatype D extends Trait = A | B
@@ -1541,17 +1542,6 @@ The Dafny scanner saw a pragma -- the first character of the line is a # charact
 scanner recognizes. The only pragma ever recognized was `#line`.
 
 <!-- ./DafnyCore/AST/Grammar/ProgramParser.cs -->
-
-## **Warning: File contains no code** {#p_file_has_no_code}
-
-<!-- %check-resolve-warn -->
-```dafny
-// const c := 42
-```
-
-The indicated file has no code. This can be because the file is empty, because some parse error
-left the top-level module with no well-formed declarations, or because a unclosed comment
-has commented-out the whole file.
 
 ## **Error: [internal error] Parser exception: _message_** {#p_internal_exception}
 

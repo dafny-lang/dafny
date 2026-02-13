@@ -2,4 +2,4 @@ ArrowTypeOptimizations.dfy(10,2): Error: function precondition could not be prov
 ArrowTypeOptimizations.dfy(10,2): Error: insufficient reads clause to invoke function
 ArrowTypeOptimizations.dfy(16,2): Error: function precondition could not be proved
 
-Dafny program verifier finished with 17 verified, 3 errors
+Dafny program verifier finished with 10 verified, 3 errors

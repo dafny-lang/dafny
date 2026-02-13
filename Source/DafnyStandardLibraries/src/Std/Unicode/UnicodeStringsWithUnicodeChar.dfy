@@ -14,7 +14,8 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
   import Utf8EncodingForm
   import Utf16EncodingForm
 
-  lemma {:isolate_assertions} CharIsUnicodeScalarValue(c: char)
+  @IsolateAssertions
+  lemma CharIsUnicodeScalarValue(c: char)
     ensures
       && var asBits := c as int as bv24;
       && asBits <= 0x10_FFFF
@@ -25,6 +26,7 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
     // but is clearly true given the above.
     assume {:axiom} c as int as bv24 < 0x11_0000 as bv24;
     var asBits := c as int as bv24;
+    assert asBits < 0x11_0000 as bv24;
     assert (asBits < Base.HIGH_SURROGATE_MIN || asBits > Base.LOW_SURROGATE_MAX);
     assert asBits <= 0x10_FFFF;
   }
@@ -59,11 +61,11 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
     Some(asBytes)
   }
 
-  function FromUTF8Checked(bs: seq<uint8>): Option<string> {
+  function FromUTF8Checked(bs: seq<uint8>): Result<string, string> {
     var asCodeUnits := Seq.Map(c => c as Utf8EncodingForm.CodeUnit, bs);
     var utf32 :- Utf8EncodingForm.DecodeCodeUnitSequenceChecked(asCodeUnits);
     var asChars := Seq.Map(CharFromUnicodeScalarValue, utf32);
-    Some(asChars)
+    Success(asChars)
   }
 
   function ToUTF16Checked(s: string): Option<seq<uint16>>
@@ -75,10 +77,10 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
     Some(asBytes)
   }
 
-  function FromUTF16Checked(bs: seq<uint16>): Option<string> {
+  function FromUTF16Checked(bs: seq<uint16>): Result<string, string> {
     var asCodeUnits := Seq.Map(c => c as Utf16EncodingForm.CodeUnit, bs);
     var utf32 :- Utf16EncodingForm.DecodeCodeUnitSequenceChecked(asCodeUnits);
     var asChars := Seq.Map(CharFromUnicodeScalarValue, utf32);
-    Some(asChars)
+    Success(asChars)
   }
 }

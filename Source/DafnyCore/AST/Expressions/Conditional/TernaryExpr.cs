@@ -1,13 +1,15 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
 public class TernaryExpr : Expression, ICloneable<TernaryExpr> {
-  public readonly Opcode Op;
-  public readonly Expression E0;
-  public readonly Expression E1;
-  public readonly Expression E2;
+  public Opcode Op;
+  public Expression E0;
+  public Expression E1;
+  public Expression E2;
   public enum Opcode { PrefixEqOp, PrefixNeqOp }
 
   public TernaryExpr(Cloner cloner, TernaryExpr original) : base(cloner, original) {
@@ -17,12 +19,9 @@ public class TernaryExpr : Expression, ICloneable<TernaryExpr> {
     E2 = cloner.CloneExpr(original.E2);
   }
 
-  public TernaryExpr(IToken tok, Opcode op, Expression e0, Expression e1, Expression e2)
-    : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(e0 != null);
-    Contract.Requires(e1 != null);
-    Contract.Requires(e2 != null);
+  [SyntaxConstructor]
+  public TernaryExpr(IOrigin origin, Opcode op, Expression e0, Expression e1, Expression e2)
+    : base(origin) {
     Op = op;
     E0 = e0;
     E1 = e1;

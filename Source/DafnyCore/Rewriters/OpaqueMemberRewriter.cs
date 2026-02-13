@@ -11,13 +11,13 @@ namespace Microsoft.Dafny;
 /// specifically asks to see it via the reveal_foo() lemma
 /// </summary>
 public class OpaqueMemberRewriter : IRewriter {
-  protected Dictionary<Method, Function> revealOriginal; // Map reveal_* lemmas (or two-state lemmas) back to their original functions
+  protected Dictionary<MethodOrConstructor, Function> revealOriginal; // Map reveal_* lemmas (or two-state lemmas) back to their original functions
 
   public OpaqueMemberRewriter(ErrorReporter reporter)
     : base(reporter) {
     Contract.Requires(reporter != null);
 
-    revealOriginal = new Dictionary<Method, Function>();
+    revealOriginal = new Dictionary<MethodOrConstructor, Function>();
   }
 
   internal override void PreResolve(ModuleDefinition m) {
@@ -32,8 +32,7 @@ public class OpaqueMemberRewriter : IRewriter {
     foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
       if (decl is Lemma or TwoStateLemma) {
         var lem = (Method)decl;
-        if (revealOriginal.ContainsKey(lem)) {
-          var fn = revealOriginal[lem];
+        if (revealOriginal.TryGetValue(lem, out var fn)) {
           AnnotateRevealFunction(lem, fn);
         }
       }
@@ -44,10 +43,10 @@ public class OpaqueMemberRewriter : IRewriter {
     Contract.Requires(lemma is Lemma || lemma is TwoStateLemma);
     Expression receiver;
     if (f.IsStatic) {
-      receiver = new StaticReceiverExpr(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass, true);
+      receiver = new StaticReceiverExpr(f.Origin, (TopLevelDeclWithMembers)f.EnclosingClass, true);
     } else {
-      receiver = new ImplicitThisExpr(f.tok);
-      //receiver.Type = GetThisType(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
+      receiver = new ImplicitThisExpr(f.Origin);
+      //receiver.Type = GetThisType(expr.Tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
     }
     var typeApplication = new List<Type>();
     var typeApplication_JustForMember = new List<Type>();
@@ -57,19 +56,19 @@ public class OpaqueMemberRewriter : IRewriter {
       typeApplication.Add(new IntType());
       typeApplication_JustForMember.Add(new IntType());
     }
-    var nameSegment = new NameSegment(f.tok, f.Name, f.TypeArgs.Count == 0 ? null : typeApplication);
-    var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
+    var nameSegment = new NameSegment(f.Origin, f.Name, f.TypeArgs.Count == 0 ? null : typeApplication);
+    var rr = new MemberSelectExpr(f.Origin, receiver, f.NameNode);
     rr.Member = f;
-    rr.TypeApplication_AtEnclosingClass = typeApplication;
-    rr.TypeApplication_JustMember = typeApplication_JustForMember;
-    List<Type> args = new List<Type>();
+    rr.TypeApplicationAtEnclosingClass = typeApplication;
+    rr.TypeApplicationJustMember = typeApplication_JustForMember;
+    List<Type> args = [];
     for (int i = 0; i < f.Ins.Count; i++) {
       args.Add(new IntType());
     }
-    rr.Type = new ArrowType(f.tok, args, new IntType());
+    rr.Type = new ArrowType(f.Origin, args, new IntType());
     nameSegment.ResolvedExpression = rr;
     nameSegment.Type = rr.Type;
-    lemma.Attributes = new Attributes("revealedFunction", new List<Expression>() { nameSegment }, lemma.Attributes);
+    lemma.Attributes = new Attributes("revealedFunction", [nameSegment], lemma.Attributes);
   }
 
 
@@ -82,7 +81,7 @@ public class OpaqueMemberRewriter : IRewriter {
         // Nothing to do
       } else if (member is Function { Body: null }) {
         // Nothing to do
-      } else if (!RefinementToken.IsInherited(member.tok, c.EnclosingModuleDefinition)) {
+      } else if (!member.Origin.IsInherited(c.EnclosingModuleDefinition)) {
         GenerateRevealLemma(member, newDecls);
       }
     }
@@ -114,8 +113,8 @@ public class OpaqueMemberRewriter : IRewriter {
 
       var cloner = new Cloner();
 
-      List<TypeParameter> typeVars = new List<TypeParameter>();
-      List<Type> optTypeArgs = new List<Type>();
+      List<TypeParameter> typeVars = [];
+      List<Type> optTypeArgs = [];
       foreach (var tp in f.TypeArgs) {
         typeVars.Add(cloner.CloneTypeParam(tp));
         // doesn't matter what type, just so we have it to make the resolver happy when resolving function member of
@@ -133,29 +132,30 @@ public class OpaqueMemberRewriter : IRewriter {
     // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
     Attributes lemma_attrs = null;
     if (m is Function) {
-      lemma_attrs = new Attributes("axiom", new List<Expression>(), lemma_attrs);
+      lemma_attrs = new Attributes("axiom", [], lemma_attrs);
     }
-    lemma_attrs = new Attributes("auto_generated", new List<Expression>(), lemma_attrs);
-    lemma_attrs = new Attributes("opaque_reveal", new List<Expression>(), lemma_attrs);
-    lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(m.tok, false) }, lemma_attrs);
+    lemma_attrs = new Attributes("auto_generated", [], lemma_attrs);
+    lemma_attrs = new Attributes("opaque_reveal", [], lemma_attrs);
+    lemma_attrs = new Attributes("verify", [new LiteralExpr(m.Origin, false)], lemma_attrs);
     var ens = new List<AttributedExpression>();
 
     var isStatic = true;
     if (m is ConstantField { Rhs: not null } c) {
-      ens.Add(new AttributedExpression(new BinaryExpr(c.tok, BinaryExpr.Opcode.Eq, new NameSegment(c.Tok, c.Name, null), c.Rhs)));
+      ens.Add(new AttributedExpression(new BinaryExpr(c.Origin, BinaryExpr.Opcode.Eq, new NameSegment(c.Origin, c.Name, null), c.Rhs)));
       isStatic = m.HasStaticKeyword;
     }
     Method reveal;
     if (m is TwoStateFunction) {
-      reveal = new TwoStateLemma(m.RangeToken.MakeAutoGenerated(), m.NameNode.Prepend(RevealStmt.RevealLemmaPrefix), isStatic,
-        new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
+      reveal = new TwoStateLemma(m.Origin.MakeAutoGenerated(), m.NameNode.Prepend(HideRevealStmt.RevealLemmaPrefix), isStatic,
+        [], [], [], [],
         new Specification<FrameExpression>(), new Specification<FrameExpression>(), ens,
-        new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
+        new Specification<Expression>([], null), null, lemma_attrs, null);
     } else {
-      reveal = new Lemma(m.RangeToken.MakeAutoGenerated(), m.NameNode.Prepend(RevealStmt.RevealLemmaPrefix), isStatic, new List<TypeParameter>(),
-        new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
+      reveal = new Lemma(m.Origin.MakeAutoGenerated(), m.NameNode.Prepend(HideRevealStmt.RevealLemmaPrefix), isStatic,
+        [],
+        [], [], [],
         new Specification<FrameExpression>(), new Specification<FrameExpression>(), ens,
-        new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
+        new Specification<Expression>([], null), null, lemma_attrs, null);
     }
     newDecls.Add(reveal);
     reveal.InheritVisibility(m, true);

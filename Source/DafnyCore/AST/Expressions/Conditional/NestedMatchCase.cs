@@ -1,15 +1,13 @@
-using System.Diagnostics.Contracts;
+#nullable enable
 
 namespace Microsoft.Dafny;
 
-public abstract class NestedMatchCase : TokenNode {
-  public readonly ExtendedPattern Pat;
+public abstract class NestedMatchCase : NodeWithOrigin {
+  public ExtendedPattern Pat;
 
-  public NestedMatchCase(IToken tok, ExtendedPattern pat) {
-    Contract.Requires(tok != null);
-    Contract.Requires(pat != null);
-    this.tok = tok;
-    this.Pat = pat;
+  [SyntaxConstructor]
+  protected NestedMatchCase(IOrigin origin, ExtendedPattern pat) : base(origin) {
+    Pat = pat;
   }
 
   public void CheckLinearNestedMatchCase(Type type, ResolutionContext resolutionContext, ModuleResolver resolver) {

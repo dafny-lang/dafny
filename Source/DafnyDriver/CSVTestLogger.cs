@@ -10,12 +10,12 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 namespace Microsoft.Dafny {
   public class CSVTestLogger : ITestLoggerWithParameters {
 
-    private readonly ConcurrentBag<TestResult> results = new();
+    private readonly ConcurrentBag<TestResult> results = [];
     private TextWriter writer;
-    private readonly TextWriter logWriter;
+    private readonly IDafnyOutputWriter logWriter;
     private string writerFilename;
 
-    public CSVTestLogger(TextWriter logWriter) {
+    public CSVTestLogger(IDafnyOutputWriter logWriter) {
       this.logWriter = logWriter;
     }
 
@@ -78,8 +78,7 @@ namespace Microsoft.Dafny {
       }
 
       writer.Flush();
-      logWriter.WriteLine("Results File: " + Path.GetFullPath(writerFilename));
-      logWriter.Flush();
+      _ = logWriter.Status("Results File: " + Path.GetFullPath(writerFilename));
     }
   }
 }

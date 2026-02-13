@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
     private void ActOnAdvice(PreTypeProxy proxy, PreTypeResolver preTypeResolver) {
       // Note, the following debug print may come out _before_ the "Type inference state ..." header, if ActOnAdvice is called
       // during what is only a partial constraint solving round.
-      preTypeResolver.Constraints.DebugPrint($"    DEBUG: acting on advice, setting {proxy} := {WhatString}");
+      preTypeResolver.Constraints.DebugPrint($"    acting on advice, setting {proxy} := {WhatString}");
 
       var adviceType = GetAdviceType(preTypeResolver);
       proxy.Set(adviceType);
@@ -91,6 +91,8 @@ namespace Microsoft.Dafny {
       Char,
       Int,
       Real,
+      Fp32,
+      Fp64,
       String,
       Object
     }
@@ -107,7 +109,7 @@ namespace Microsoft.Dafny {
     protected override PreType GetAdviceType(PreTypeResolver preTypeResolver) {
       Type StringDecl() {
         var s = preTypeResolver.resolver.moduleInfo.TopLevels["string"];
-        return new UserDefinedType(s.tok, s.Name, s, new List<Type>());
+        return new UserDefinedType(s.Origin, s.Name, s, []);
       }
 
       var target = what switch {
@@ -115,9 +117,11 @@ namespace Microsoft.Dafny {
         Target.Char => preTypeResolver.Type2PreType(Type.Char),
         Target.Int => preTypeResolver.Type2PreType(Type.Int),
         Target.Real => preTypeResolver.Type2PreType(Type.Real),
+        Target.Fp32 => preTypeResolver.Type2PreType(Type.Fp32),
+        Target.Fp64 => preTypeResolver.Type2PreType(Type.Fp64),
         Target.String => preTypeResolver.Type2PreType(StringDecl()),
         Target.Object => preTypeResolver.Type2PreType(preTypeResolver.resolver.SystemModuleManager.ObjectQ()),
-        _ => throw new cce.UnreachableException() // unexpected case
+        _ => throw new Cce.UnreachableException() // unexpected case
       };
       return target;
     }

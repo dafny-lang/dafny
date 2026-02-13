@@ -1,0 +1,9 @@
+git-issue-6043.dfy(5,13): Error: the decreases clause of function 'F' is not allowed to call 'G', because they are mutually recursive
+git-issue-6043.dfy(11,13): Error: the decreases clause of function 'G' is not allowed to call 'F', because they are mutually recursive
+git-issue-6043.dfy(17,39): Error: a decreases clause is not allowed to call the enclosing function
+git-issue-6043.dfy(30,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+git-issue-6043.dfy(35,5): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+git-issue-6043.dfy(35,11): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+git-issue-6043.dfy(40,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+git-issue-6043.dfy(40,19): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+8 resolution/type errors detected in git-issue-6043.dfy

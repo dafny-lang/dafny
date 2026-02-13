@@ -1,8 +1,8 @@
-ExpandedGuardednessNeg.dfy(8,17): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context)
-ExpandedGuardednessNeg.dfy(8,17): Error: decreases expression must be bounded below by 0
-ExpandedGuardednessNeg.dfy(6,20): Related location: this proposition could not be proved
-ExpandedGuardednessNeg.dfy(13,16): Error: cannot prove termination; try supplying a decreases clause
-ExpandedGuardednessNeg.dfy(13,16): Error: decreases expression must be bounded below by 0
-ExpandedGuardednessNeg.dfy(11,27): Related location: this proposition could not be proved
+ExpandedGuardednessNeg.dfy(8,27): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context)
+ExpandedGuardednessNeg.dfy(8,27): Error: decreases expression must be bounded below by 0
+ExpandedGuardednessNeg.dfy(6,20): Related location: this decreases clause was not satisfied
+ExpandedGuardednessNeg.dfy(13,27): Error: cannot prove termination; try supplying a decreases clause
+ExpandedGuardednessNeg.dfy(13,27): Error: decreases expression must be bounded below by 0
+ExpandedGuardednessNeg.dfy(11,27): Related location: this decreases clause was not satisfied
 
 Dafny program verifier finished with 0 verified, 4 errors

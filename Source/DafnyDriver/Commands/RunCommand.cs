@@ -32,9 +32,9 @@ public static class RunCommand {
       options.MainMethod = value;
     });
 
-    DooFile.RegisterNoChecksNeeded(Inputs, false);
-    DooFile.RegisterNoChecksNeeded(MainOverride, false);
-    DooFile.RegisterNoChecksNeeded(CommonOptionBag.BuildFile, false);
+    OptionRegistry.RegisterOption(Inputs, OptionScope.Cli);
+    OptionRegistry.RegisterOption(MainOverride, OptionScope.Cli);
+    OptionRegistry.RegisterOption(CommonOptionBag.BuildFile, OptionScope.Cli);
   }
 
   public static readonly Option<string> MainOverride =
@@ -85,7 +85,7 @@ public static class RunCommand {
       // so it's not possible to determine whether they occurred before the -- or not.
       var valueOfUserProgramArgument = userProgramArgumentTokens.Contains(token.Value);
       if (token.Value.StartsWith("--") && token.Type == TokenType.Argument && valueOfUserProgramArgument) {
-        await options.OutputWriter.WriteLineAsync($"Argument {token.Value} is not a Dafny option so it was interpreted as an argument to the user program, even though it starts with '--'. Move this argument to after a `--` token to silence this message.");
+        await options.OutputWriter.Status($"Argument {token.Value} is not a Dafny option so it was interpreted as an argument to the user program, even though it starts with '--'. Move this argument to after a `--` token to silence this message.");
       }
       if (token.Value == "--") {
         break;

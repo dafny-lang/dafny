@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
   public class TestNotificationReceiver<TNotification> {
 
     private readonly AsyncQueue<TNotification> notifications = new();
-    private readonly List<TNotification> notificationHistory = new();
+    private readonly List<TNotification> notificationHistory = [];
     private readonly ILogger logger;
 
     public TestNotificationReceiver(ILogger logger) {

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 
@@ -39,25 +41,26 @@ public static class DafnyBackwardsCompatibleCli {
     return Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args));
   }
 
-  private static Task<int> ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
-    Contract.Requires(cce.NonNullElements(args));
-    var legacyResult = TryLegacyArgumentParser(inputReader, outputWriter, errorWriter, args);
+  private static async Task<int> ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
+    Contract.Requires(Cce.NonNullElements(args));
+
+    var legacyResult = await TryLegacyArgumentParser(inputReader, outputWriter, errorWriter, args);
     if (legacyResult == null) {
       var console = new WritersConsole(inputReader, outputWriter, errorWriter);
-      return DafnyNewCli.Execute(console, args);
+      return await DafnyNewCli.Execute(console, args);
     }
 
     switch (legacyResult) {
       case ParsedOptions success:
         var options = success.DafnyOptions;
-        return SynchronousCliCompilation.Run(options);
+        return await SynchronousCliCompilation.Run(options);
       case ExitImmediately failure:
-        return Task.FromResult((int)failure.ExitValue);
+        return (int)failure.ExitValue;
       default: throw new Exception("unreachable");
     }
   }
 
-  private static ILegacyParseArguments TryLegacyArgumentParser(
+  private static async Task<ILegacyParseArguments> TryLegacyArgumentParser(
     TextReader inputReader,
     TextWriter outputWriter,
     TextWriter errorWriter,
@@ -75,12 +78,11 @@ public static class DafnyBackwardsCompatibleCli {
     if (!keywordForNewMode.Contains(first)) {
       if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) &&
           first.IndexOf('.') == -1) {
-        dafnyOptions.OutputWriter.WriteLine(
-          "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension",
-          first);
+        await dafnyOptions.OutputWriter.Status(
+          $"*** Error: '{first}': The first input must be a command or a legacy option or file with supported extension");
         return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
       } else {
-        var oldOptions = new DafnyOptions(dafnyOptions.Input, dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
+        var oldOptions = new DafnyOptions(dafnyOptions.Input, dafnyOptions.BaseOutputWriter, dafnyOptions.ErrorWriter);
         try {
           if (oldOptions.Parse(arguments)) {
             // If requested, print version number, help, attribute help, etc. and exit.
@@ -89,7 +91,7 @@ public static class DafnyBackwardsCompatibleCli {
             }
 
             if (oldOptions.DeprecationNoise != 0) {
-              oldOptions.OutputWriter.WriteLine(
+              await oldOptions.OutputWriter.Status(
                 "Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format");
             }
 
@@ -98,8 +100,7 @@ public static class DafnyBackwardsCompatibleCli {
 
           return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
         } catch (ProverException pe) {
-          new DafnyConsolePrinter(dafnyOptions).ErrorWriteLine(dafnyOptions.OutputWriter,
-            "*** ProverException: {0}", pe.Message);
+          await dafnyOptions.OutputWriter.Status($"*** ProverException: {pe.Message}");
           return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
         }
       }

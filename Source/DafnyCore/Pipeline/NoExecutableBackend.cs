@@ -26,7 +26,7 @@ public class NoExecutableBackend : IExecutableBackend {
     throw new NotSupportedException();
   }
 
-  public override Task<bool> OnPostGenerate(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
+  public override Task<bool> OnPostGenerate(string dafnyProgramName, string targetFilename, IDafnyOutputWriter outputWriter) {
     throw new NotSupportedException();
   }
 
@@ -37,14 +37,14 @@ public class NoExecutableBackend : IExecutableBackend {
   public override Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText, string callToMain,
     string targetFilename,
-    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter) {
+    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, IDafnyOutputWriter outputWriter) {
     throw new NotSupportedException();
   }
 
   public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
     string pathsFilename,
-    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
-    TextWriter errorWriter) {
+    ReadOnlyCollection<string> otherFileNames, object compilationResult,
+    IDafnyOutputWriter outputWriter) {
     throw new NotSupportedException();
   }
 

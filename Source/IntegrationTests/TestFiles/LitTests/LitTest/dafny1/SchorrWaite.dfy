@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s"
+// RUN: %testDafnyForEachResolver "%s" -- --performance-stats=1 --bprint=%t.bpl
 
 
 // Rustan Leino
@@ -166,7 +166,7 @@ ghost predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Nod
   case Extend(prefix, n) => n in S && sink in n.children && ReachableVia(source, prefix, n, S)
 }
 
-method SchorrWaite(root: Node, ghost S: set<Node>)
+method {:isolate_assertions} SchorrWaite(root: Node, ghost S: set<Node>)
   requires root in S
   // S is closed under 'children':
   requires forall n :: n in S ==>

@@ -12,7 +12,7 @@ public class StringifyTest {
 
   [Fact]
   public void StringifyThing() {
-    var outer = new Outer(new[] { new Inner(3, "Jan"), new Inner(4, "Jaap") },
+    var outer = new Outer([new Inner(3, "Jan"), new Inner(4, "Jaap")],
       new Dictionary<string, Inner>() {
         { "Marie", new Inner(5, "Antoinette") },
       });

@@ -13,7 +13,7 @@
 // CHECK: Outcome: Invalid
 // CHECK: Duration: .*
 // CHECK: Resource count: .*
-// CHECK: TextLogger.dfy\(35,9\): assertion always holds
+// CHECK: TextLogger.dfy\(35,3\): assertion always holds
 // CHECK: Overall outcome: Errors
 // CHECK: Overall time: .*
 // CHECK: Overall resource count: .*
@@ -26,7 +26,7 @@
 // CHECK: Outcome: Invalid
 // CHECK: Duration: .*
 // CHECK: Resource count: .*
-// CHECK: TextLogger.dfy\(35,9\): assertion always holds
+// CHECK: TextLogger.dfy\(35,3\): assertion always holds
 method M(x: int, y: int)
   requires y > 0
   requires x > 0

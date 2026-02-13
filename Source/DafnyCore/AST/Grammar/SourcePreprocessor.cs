@@ -46,7 +46,7 @@ public static class SourcePreprocessor {
   // "arg" is assumed to be trimmed
   private static bool IfdefConditionSaysToInclude(string arg, List<string> /*!*/ defines) {
     Contract.Requires(arg != null);
-    Contract.Requires(cce.NonNullElements(defines));
+    Contract.Requires(Cce.NonNullElements(defines));
     bool sense = true;
     while (arg.StartsWith("!")) {
       sense = !sense;
@@ -58,11 +58,11 @@ public static class SourcePreprocessor {
 
   public static string ProcessDirectives(TextReader reader, List<string> /*!*/ defines) {
     Contract.Requires(reader != null);
-    Contract.Requires(cce.NonNullElements(defines));
+    Contract.Requires(Cce.NonNullElements(defines));
     Contract.Ensures(Contract.Result<string>() != null);
     string newline = null;
     StringBuilder sb = new StringBuilder();
-    List<IfDirectiveState> /*!*/ ifDirectiveStates = new List<IfDirectiveState>(); // readState.Count is the current nesting level of #if's
+    List<IfDirectiveState> /*!*/ ifDirectiveStates = []; // readState.Count is the current nesting level of #if's
     int ignoreCutoff = -1; // -1 means we're not ignoring; for 0<=n, n means we're ignoring because of something at nesting level n
     while (true)
     //invariant -1 <= ignoreCutoff && ignoreCutoff < readState.Count;

@@ -187,7 +187,13 @@ public enum Feature {
   BuiltinsInRuntime,
 
   [FeatureDescription("Execution coverage report", "sec-dafny-test")]
-  RuntimeCoverageReport
+  RuntimeCoverageReport,
+
+  [FeatureDescription("Standard libraries", "sec-dafny-standard-libraries")]
+  StandardLibraries,
+
+  [FeatureDescription("Standard library ActionsExterns", "sec-dafny-standard-libraries")]
+  StandardLibrariesActionsExterns
 }
 
 public class UnsupportedFeatureException : Exception {
@@ -195,15 +201,15 @@ public class UnsupportedFeatureException : Exception {
   public const string MessagePrefix =
     "Feature not supported for this compilation target: ";
 
-  public readonly IToken Token;
+  public readonly IOrigin Token;
   public readonly Feature Feature;
 
-  public UnsupportedFeatureException(IToken token, Feature feature)
+  public UnsupportedFeatureException(IOrigin token, Feature feature)
     : this(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description) {
 
   }
 
-  public UnsupportedFeatureException(IToken token, Feature feature, string message) : base(message) {
+  public UnsupportedFeatureException(IOrigin token, Feature feature, string message) : base(message) {
     Token = token;
     Feature = feature;
   }
@@ -215,12 +221,16 @@ public class RecoverableUnsupportedFeatureException : UnsupportedFeatureExceptio
 
   public static readonly string MessageSuffix = ". To continue despite this issue, you can compile with the option --" +
                                        CommonOptionBag.EmitUncompilableCode.Name;
-  public RecoverableUnsupportedFeatureException(IToken token, Feature feature)
+  public RecoverableUnsupportedFeatureException(IOrigin token, Feature feature)
     : base(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description + MessageSuffix) {
   }
 }
 
-public class UnsupportedInvalidOperationException : InvalidOperationException {
-  public UnsupportedInvalidOperationException(string why) : base(typeof(UnsupportedInvalidOperationException).FullName! + ": " + why) {
+public class UnsupportedInvalidOperationException : Exception {
+
+  public readonly IOrigin Token;
+
+  public UnsupportedInvalidOperationException(IOrigin token, string why) : base("Unsupported Invalid Operation: " + why) {
+    Token = token;
   }
 }

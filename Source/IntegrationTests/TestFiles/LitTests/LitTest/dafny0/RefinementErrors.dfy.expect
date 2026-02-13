@@ -81,6 +81,8 @@ RefinementErrors.dfy(176,35): Error: type parameter 'Y' is not allowed to change
 RefinementErrors.dfy(176,40): Error: type parameter 'Z' is not allowed to change the requirement of supporting auto-initialization
 RefinementErrors.dfy(181,14): Error: iterator declarations only support non-variant type parameters
 RefinementErrors.dfy(181,20): Error: iterator declarations only support non-variant type parameters
-RefinementErrors.dfy[TpJ](181,14): Error: iterator declarations only support non-variant type parameters
-RefinementErrors.dfy[TpJ](181,20): Error: iterator declarations only support non-variant type parameters
+RefinementErrors.dfy(181,14): Error: iterator declarations only support non-variant type parameters
+RefinementErrors.dfy(185,7): Related location: refining module
+RefinementErrors.dfy(181,20): Error: iterator declarations only support non-variant type parameters
+RefinementErrors.dfy(185,7): Related location: refining module
 85 resolution/type errors detected in RefinementErrors.dfy

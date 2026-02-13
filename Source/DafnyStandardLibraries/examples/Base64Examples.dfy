@@ -8,23 +8,28 @@ module Base64Examples {
     expect DecodeBV(EncodeBV(bytes)) == Success(bytes);
   }
 
-  method {:test} TestRoundTripEmpty() {
+  @Test
+  method TestRoundTripEmpty() {
     CheckEncodeDecode([], []);
   }
 
-  method {:test} TestRoundTripOne() {
+  @Test
+  method TestRoundTripOne() {
     CheckEncodeDecode([0], [0]);
   }
 
-  method {:test} TestRoundTripTwo() {
+  @Test
+  method TestRoundTripTwo() {
     CheckEncodeDecode([1, 2], [3, 4]);
   }
 
-  method {:test} TestRoundTripThree() {
+  @Test
+  method TestRoundTripThree() {
     CheckEncodeDecode([112, 234], [43, 76]);
   }
 
-  method {:test} TestRoundTripMedium() {
+  @Test
+  method TestRoundTripMedium() {
     var medUints := seq(512, i => (i % 256) as uint8);
     var medBytes := seq(512, i => (i % 256) as bv8);
     CheckEncodeDecode(medUints, medBytes);
@@ -32,7 +37,8 @@ module Base64Examples {
 
   // TODO: even this size is too big to practically test for Go and JS
   /*
-  method {:test} TestRoundTripBig() {
+  @Test
+  method TestRoundTripBig() {
     // Larger sizes are unfortunately pretty slow. An
     // optimized implementation seems worthwhile.
     var bigUints := seq(438530, _ => 76);
@@ -41,7 +47,8 @@ module Base64Examples {
   }
   */
 
-  method {:test} TestDecodeFail() {
+  @Test
+  method TestDecodeFail() {
     expect Decode("$&^*(_)").Failure?;
   }
 }

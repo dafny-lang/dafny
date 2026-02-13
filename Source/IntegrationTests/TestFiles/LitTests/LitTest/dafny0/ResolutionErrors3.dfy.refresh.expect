@@ -1,7 +1,6 @@
-ResolutionErrors3.dfy(53,13): Error: type parameter 'PT' (inferred to be '?40') in the function call to 'P' could not be determined
+ResolutionErrors3.dfy(53,14): Error: type parameter 'PT' (inferred to be '?40') in the function call to 'P' could not be determined
 ResolutionErrors3.dfy(54,14): Error: the type of this variable is underspecified
-ResolutionErrors3.dfy(54,19): Error: type parameter 'QT' (inferred to be '?42') in the function call to 'Q' could not be determined
-ResolutionErrors3.dfy(54,20): Error: the type of this expression is underspecified
+ResolutionErrors3.dfy(54,20): Error: type parameter 'QT' (inferred to be '?42') in the function call to 'Q' could not be determined
 ResolutionErrors3.dfy(55,4): Error: type parameter 'MT' (inferred to be '?44') to the method 'M' could not be determined
 ResolutionErrors3.dfy(56,8): Error: the type of this variable is underspecified
 ResolutionErrors3.dfy(56,13): Error: type parameter 'NT' (inferred to be '?45') to the method 'N' could not be determined
@@ -27,8 +26,6 @@ ResolutionErrors3.dfy(208,11): Error: name of module (Y) is used as a variable
 ResolutionErrors3.dfy(208,16): Error: name of module (Y) is used as a variable
 ResolutionErrors3.dfy(209,11): Error: name of type (X) is used as a variable
 ResolutionErrors3.dfy(210,11): Error: name of module (Y) is used as a variable
-ResolutionErrors3.dfy(207,13): Error: arguments must have comparable types (got ?0 and ?1)
-ResolutionErrors3.dfy(208,13): Error: arguments must have comparable types (got ?3 and ?4)
 ResolutionErrors3.dfy(215,16): Error: name of type (X) is used as a variable
 ResolutionErrors3.dfy(216,16): Error: name of module (Y) is used as a variable
 ResolutionErrors3.dfy(217,4): Error: name of type (X) is used as a variable
@@ -83,8 +80,10 @@ ResolutionErrors3.dfy(535,27): Error: type of bound variable 'u' could not be de
 ResolutionErrors3.dfy(539,40): Error: type of bound variable 'u' could not be determined; please specify the type explicitly
 ResolutionErrors3.dfy(541,38): Error: type of bound variable 'u' could not be determined; please specify the type explicitly
 ResolutionErrors3.dfy(541,38): Error: type of bound variable 'u' could not be determined; please specify the type explicitly
-ResolutionErrors3.dfy(555,40): Error: arguments must have comparable types (got set<?25> and set<?5>)
-ResolutionErrors3.dfy(556,45): Error: arguments must have comparable types (got set<?11> and set<?16>)
+ResolutionErrors3.dfy(555,26): Error: the type ('set<?1>') of this variable is underspecified
+ResolutionErrors3.dfy(555,21): Error: type of bound variable 's' could not be determined ('set<?1>'); please specify the type explicitly
+ResolutionErrors3.dfy(556,31): Error: the type ('set<?12>') of this variable is underspecified
+ResolutionErrors3.dfy(556,21): Error: type of bound variable 's' could not be determined ('set<?12>'); please specify the type explicitly
 ResolutionErrors3.dfy(567,30): Error: the type ('C?<?0>') of this variable is underspecified
 ResolutionErrors3.dfy(567,21): Error: type of bound variable 'c' could not be determined ('C?<?0>'); please specify the type explicitly
-89 resolution/type errors detected in ResolutionErrors3.dfy
+88 resolution/type errors detected in ResolutionErrors3.dfy

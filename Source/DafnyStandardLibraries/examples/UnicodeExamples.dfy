@@ -25,7 +25,8 @@ module UnicodeExamples {
       reveal IsInAssignedPlane();
     }
 
-    method {:test} TestAssignedCodePoints() {
+    @Test
+    method TestAssignedCodePoints() {
       LemmaAssignedCodePoints();
       AssertAndExpect(forall p | p in TEST_ASSIGNED_PLANE_CODE_POINTS :: IsInAssignedPlane(p));
     }
@@ -37,7 +38,8 @@ module UnicodeExamples {
     import opened Std.Wrappers
     import opened Helpers
 
-    method {:test} TestEmptySequenceIsWellFormed() {
+    @Test
+    method TestEmptySequenceIsWellFormed() {
       expect IsWellFormedCodeUnitSequence([]);
     }
 
@@ -52,20 +54,23 @@ module UnicodeExamples {
       (0x1F4B0, [0xF0, 0x9F, 0x92, 0xB0])
     ]
 
-    method {:test} TestEncodeDecodeScalarValue() {
+    @Test
+    method TestEncodeDecodeScalarValue() {
       for i := 0 to |TEST_SCALAR_VALUES| {
         var pair := TEST_SCALAR_VALUES[i];
         AssertAndExpect(EncodeScalarValue(pair.0) == pair.1);
         AssertAndExpect(DecodeCodeUnitSequence(pair.1) == [pair.0]);
-        AssertAndExpect(DecodeCodeUnitSequenceChecked(pair.1) == Some([pair.0]));
+        AssertAndExpect(DecodeCodeUnitSequenceChecked(pair.1) == Success([pair.0]));
       }
     }
 
-    method {:test} TestEmptySequenceIsNotMinimalWellFormed() {
+    @Test
+    method TestEmptySequenceIsNotMinimalWellFormed() {
       expect !IsMinimalWellFormedCodeUnitSubsequence([]);
     }
 
-    method {:test} TestMinimalWellFormedCodeUnitSubsequences() {
+    @Test
+    method TestMinimalWellFormedCodeUnitSubsequences() {
       for i := 0 to |TEST_SCALAR_VALUES| {
         var pair := TEST_SCALAR_VALUES[i];
         expect IsMinimalWellFormedCodeUnitSubsequence(pair.1);
@@ -80,10 +85,12 @@ module UnicodeExamples {
       [0xE0, 0x9F, 0x80]
     ]
 
-    method {:test} TestDecodeIllFormedSequence() {
+    @Test
+    method TestDecodeIllFormedSequence() {
       for i := 0 to |TEST_ILL_FORMED_SEQUENCES| {
         var s := TEST_ILL_FORMED_SEQUENCES[i];
-        AssertAndExpect(DecodeCodeUnitSequenceChecked(s).None?);
+        AssertAndExpect(DecodeCodeUnitSequenceChecked(s).Failure?);
+        expect DecodeCodeUnitSequenceChecked(s).error == "Could not decode byte at index 0";
       }
     }
   }
@@ -94,7 +101,8 @@ module UnicodeExamples {
     import opened Std.Wrappers
     import opened Helpers
 
-    method {:test} TestEmptySequenceIsWellFormed() {
+    @Test
+    method TestEmptySequenceIsWellFormed() {
       expect IsWellFormedCodeUnitSequence([]);
     }
 
@@ -105,20 +113,23 @@ module UnicodeExamples {
       (0x1F4B0, [0xD83D, 0xDCB0])
     ]
 
-    method {:test} TestEncodeDecodeScalarValue() {
+    @Test
+    method TestEncodeDecodeScalarValue() {
       for i := 0 to |TEST_SCALAR_VALUES| {
         var pair := TEST_SCALAR_VALUES[i];
         AssertAndExpect(EncodeScalarValue(pair.0) == pair.1);
         AssertAndExpect(DecodeCodeUnitSequence(pair.1) == [pair.0]);
-        AssertAndExpect(DecodeCodeUnitSequenceChecked(pair.1) == Some([pair.0]));
+        AssertAndExpect(DecodeCodeUnitSequenceChecked(pair.1) == Success([pair.0]));
       }
     }
 
-    method {:test} TestEmptySequenceIsNotMinimalWellFormed() {
+    @Test
+    method TestEmptySequenceIsNotMinimalWellFormed() {
       expect !IsMinimalWellFormedCodeUnitSubsequence([]);
     }
 
-    method {:test} TestMinimalWellFormedCodeUnitSubsequences() {
+    @Test
+    method TestMinimalWellFormedCodeUnitSubsequences() {
       for i := 0 to |TEST_SCALAR_VALUES| {
         var pair := TEST_SCALAR_VALUES[i];
         expect IsMinimalWellFormedCodeUnitSubsequence(pair.1);
@@ -133,10 +144,12 @@ module UnicodeExamples {
       [0xDFFF]
     ]
 
-    method {:test} TestDecodeIllFormedSequence() {
+    @Test
+    method TestDecodeIllFormedSequence() {
       for i := 0 to |TEST_ILL_FORMED_SEQUENCES| {
         var s := TEST_ILL_FORMED_SEQUENCES[i];
-        AssertAndExpect(DecodeCodeUnitSequenceChecked(s).None?);
+        AssertAndExpect(DecodeCodeUnitSequenceChecked(s).Failure?);
+        expect DecodeCodeUnitSequenceChecked(s).error == "Could not decode byte at index 0";
       }
     }
   }
@@ -153,25 +166,30 @@ module UnicodeExamples {
     const currenciesUtf8: seq<uint8> := [0x24] + [0xC2, 0xA3] + [0xE2, 0x82, 0xAC] + [0xF0, 0x9F, 0x92, 0xB0]
     const currenciesUtf16: seq<uint16> := [0x0024] + [0x00A3] + [0x20AC] + [0xD83D, 0xDCB0]
 
-    method {:test} TestToUTF8Checked() {
+    @Test
+    method TestToUTF8Checked() {
       expect UnicodeStrings.ToUTF8Checked(currenciesStr) == Some(currenciesUtf8);
     }
 
-    method {:test} TestFromUTF8Checked() {
-      expect UnicodeStrings.FromUTF8Checked(currenciesUtf8) == Some(currenciesStr);
-      expect UnicodeStrings.FromUTF8Checked(currenciesUtf8[2..]) == None;
+    @Test
+    method TestFromUTF8Checked() {
+      expect UnicodeStrings.FromUTF8Checked(currenciesUtf8).ToOption() == Some(currenciesStr);
+      expect UnicodeStrings.FromUTF8Checked(currenciesUtf8[2..]).ToOption() == None;
     }
 
-    method {:test} TestToUTF16() {
+    @Test
+    method TestToUTF16() {
       expect UnicodeStrings.ToUTF16Checked(currenciesStr) == Some(currenciesUtf16);
     }
 
-    method {:test} TestFromUTF16Checked() {
-      expect UnicodeStrings.FromUTF16Checked(currenciesUtf16) == Some(currenciesStr);
-      expect UnicodeStrings.FromUTF16Checked(currenciesUtf16[..|currenciesUtf16| - 1]) == None;
+    @Test
+    method TestFromUTF16Checked() {
+      expect UnicodeStrings.FromUTF16Checked(currenciesUtf16) == Success(currenciesStr);
+      expect UnicodeStrings.FromUTF16Checked(currenciesUtf16[..|currenciesUtf16| - 1]).Failure?;
     }
 
-    method {:test} TestASCIIToUnicode() {
+    @Test
+    method TestASCIIToUnicode() {
       expect UnicodeStrings.ASCIIToUTF8("foobar") == [0x66, 0x6F, 0x6F, 0x62, 0x61, 0x72];
       expect UnicodeStrings.ASCIIToUTF16("foobar") == [0x66, 0x6F, 0x6F, 0x62, 0x61, 0x72];
     }
@@ -186,7 +204,8 @@ module UnicodeExamples {
 
     const currenciesUtf8: CodeUnitSeq := [0x24] + [0xC2, 0xA3] + [0xE2, 0x82, 0xAC] + [0xF0, 0x9F, 0x92, 0xB0]
 
-    method {:test} TestSerializeDeserialize() {
+    @Test
+    method TestSerializeDeserialize() {
       expect EncodingScheme.Deserialize(EncodingScheme.Serialize(currenciesUtf8)) == currenciesUtf8;
     }
   }

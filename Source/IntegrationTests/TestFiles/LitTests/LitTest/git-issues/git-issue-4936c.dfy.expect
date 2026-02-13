@@ -2,5 +2,5 @@ git-issue-4936c.dfy(32,18): Error: The name A ambiguously refers to a type in on
 git-issue-4936c.dfy(42,18): Error: The name A ambiguously refers to a type in one of the modules X1, X0 (try qualifying the type name with the module name)
 git-issue-4936c.dfy(53,18): Error: The name A ambiguously refers to a type in one of the modules X0, X1 (try qualifying the type name with the module name)
 git-issue-4936c.dfy(64,18): Error: The name A ambiguously refers to a type in one of the modules X1, X0 (try qualifying the type name with the module name)
-git-issue-4936c.dfy(95,12): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got B)
+git-issue-4936c.dfy(95,12): Error: a reads-clause expression must denote an object, a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`), a set/iset/multiset/seq of objects or single field locations (with `--referrers`), or a function to a set/iset/multiset/seq of objects or single field locations (with `--referrers`) (instead got B)
 5 resolution/type errors detected in git-issue-4936c.dfy

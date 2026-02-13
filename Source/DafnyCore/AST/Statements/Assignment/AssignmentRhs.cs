@@ -1,29 +1,25 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
-  private Attributes attributes;
+public abstract class AssignmentRhs : NodeWithOrigin, IAttributeBearingDeclaration {
+  public Attributes? Attributes { get; set; }
 
-  public Attributes Attributes {
-    get { return attributes; }
-    set { attributes = value; }
-  }
+  string IAttributeBearingDeclaration.WhatKind => "assignment right-hand-side";
 
   public bool HasAttributes() {
     return Attributes != null;
   }
 
-  internal AssignmentRhs(Cloner cloner, AssignmentRhs original) {
-    tok = cloner.Tok(original.tok);
+  internal AssignmentRhs(Cloner cloner, AssignmentRhs original) : base(cloner, original) {
     Attributes = cloner.CloneAttributes(original.Attributes);
-    RangeToken = cloner.Range(original.rangeToken);
   }
 
-  internal AssignmentRhs(IToken tok, Attributes attrs = null) {
-    this.tok = tok;
-    Attributes = attrs;
+  [SyntaxConstructor]
+  internal AssignmentRhs(IOrigin origin, Attributes? attributes = null) : base(origin) {
+    Attributes = attributes;
   }
 
   public abstract bool CanAffectPreviouslyKnownExpressions { get; }

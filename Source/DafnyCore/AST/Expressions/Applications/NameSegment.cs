@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -5,12 +6,13 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, ICanFormat {
-  public readonly string Name;
-  public readonly List<Type> OptTypeArguments;
-  public NameSegment(IToken tok, string name, List<Type> optTypeArguments)
-    : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
+  public string Name;
+  public Name NameNode => new Name(Origin, Name);
+  public List<Type>? OptTypeArguments;
+
+  [SyntaxConstructor]
+  public NameSegment(IOrigin origin, string name, List<Type>? optTypeArguments)
+    : base(origin) {
     Contract.Requires(optTypeArguments == null || optTypeArguments.Count > 0);
     Name = name;
     OptTypeArguments = optTypeArguments;
@@ -25,7 +27,7 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, IC
     return new NameSegment(cloner, this);
   }
 
-  public override IEnumerable<INode> PreResolveChildren => OptTypeArguments ?? new List<Type>();
+  public override IEnumerable<INode> PreResolveChildren => OptTypeArguments ?? [];
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetTypeLikeIndentation(indentBefore, OwnedTokens);
     foreach (var subType in PreResolveChildren.OfType<Type>()) {

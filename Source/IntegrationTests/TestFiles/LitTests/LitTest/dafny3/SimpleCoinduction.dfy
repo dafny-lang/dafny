@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation
+// RUN: %testDafnyForEachResolver "%s"
 
 
 codatatype Stream<T> = Cons(head: T, tail: Stream)
@@ -22,7 +22,7 @@ ghost function Inc(s: Stream<int>): Stream<int>
 }
 
 lemma {:induction false} UpLemma(k: nat, n: int)
-  ensures Inc(Up(n)) ==#[k] Up(n+1);
+  ensures Inc(Up(n)) ==#[k] Up(n+1)
 {
   if (k != 0) {
     UpLemma(k-1, n+1);
@@ -30,18 +30,18 @@ lemma {:induction false} UpLemma(k: nat, n: int)
 }
 
 greatest lemma {:induction false} CoUpLemma(n: int)
-  ensures Inc(Up(n)) == Up(n+1);
+  ensures Inc(Up(n)) == Up(n+1)
 {
   CoUpLemma(n+1);
 }
 
 lemma UpLemma_Auto(k: nat, n: int, nn: int)
-  ensures nn == n+1 ==> Inc(Up(n)) ==#[k] Up(nn);  // note: it would be nice to do an automatic rewrite (from "ensures Inc(Up(n)) ==#[k] Up(n+1)") to obtain the good trigger here
+  ensures nn == n+1 ==> Inc(Up(n)) ==#[k] Up(nn)  // note: it would be nice to do an automatic rewrite (from "ensures Inc(Up(n)) ==#[k] Up(n+1)") to obtain the good trigger here
 {
 }
 
 greatest lemma CoUpLemma_Auto(n: int, nn: int)
-  ensures nn == n+1 ==> Inc(Up(n)) == Up(nn);  // see comment above
+  ensures nn == n+1 ==> Inc(Up(n)) == Up(nn)  // see comment above
 {
 }
 
@@ -53,8 +53,9 @@ ghost function Repeat(n: int): Stream<int>
 }
 
 greatest lemma RepeatLemma(n: int)
-  ensures Inc(Repeat(n)) == Repeat(n+1);
+  ensures Inc(Repeat(n)) == Repeat(n+1)
 {
+  RepeatLemma(n);
 }
 
 // -----------------------------------------------------------------------
@@ -65,7 +66,7 @@ greatest predicate True(s: Stream)
 }
 
 greatest lemma AlwaysTrue(s: Stream)
-  ensures True(s);
+  ensures True(s)
 {
 }
 
@@ -75,7 +76,7 @@ greatest predicate AlsoTrue(s: Stream)
 }
 
 greatest lemma AlsoAlwaysTrue(s: Stream)
-  ensures AlsoTrue(s);
+  ensures AlsoTrue(s)
 {
 }
 
@@ -85,7 +86,7 @@ greatest predicate TT(y: int)
 }
 
 greatest lemma AlwaysTT(y: int)
-  ensures TT(y);
+  ensures TT(y)
 {
 }
 
@@ -116,11 +117,11 @@ greatest predicate AtMost(a: IList<int>, b: IList<int>)
 }
 
 greatest lemma ZerosAndOnes_Theorem0()
-  ensures AtMost(zeros(), ones());
+  ensures AtMost(zeros(), ones())
 {
 }
 
 greatest lemma ZerosAndOnes_Theorem1()
-  ensures Append(zeros(), ones()) == zeros();
+  ensures Append(zeros(), ones()) == zeros()
 {
 }

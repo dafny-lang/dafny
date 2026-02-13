@@ -31,6 +31,7 @@ public record IdeCanVerifyState(VerificationPreparationState PreparationProgress
 /// </summary>
 public record IdeState(
   ISet<Uri> OwnedUris,
+  IReadOnlyDictionary<Uri, int> VersionedFiles,
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
@@ -64,6 +65,7 @@ public record IdeState(
   public static IdeState InitialIdeState(CompilationInput input) {
     var program = new EmptyNode();
     return new IdeState(ImmutableHashSet<Uri>.Empty,
+      ImmutableDictionary<Uri, int>.Empty,
       input,
       CompilationStatus.Parsing,
       program,
@@ -163,7 +165,7 @@ public record IdeState(
       };
       result = new[] { new FileDiagnostic(Input.Project.Uri, diagnostic) };
     } else {
-      result = Enumerable.Empty<FileDiagnostic>();
+      result = [];
     }
 
     return result;
@@ -214,8 +216,13 @@ public record IdeState(
     }
     ownedUris.Add(determinedRootFiles.Project.Uri);
 
+    var versionedFiles = ImmutableDictionary<Uri, int>.Empty;
+    if (determinedRootFiles.Project.Version != null) {
+      versionedFiles = versionedFiles.Add(determinedRootFiles.Project.Uri, determinedRootFiles.Project.Version.Value);
+    }
     return this with {
       OwnedUris = ownedUris,
+      VersionedFiles = versionedFiles,
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
         file => file.Uri,
@@ -227,8 +234,8 @@ public record IdeState(
   private IdeState HandleScheduledVerification(ScheduledVerification scheduledVerification) {
     var previousState = this;
 
-    var uri = scheduledVerification.CanVerify.NavigationToken.Uri;
-    var range = scheduledVerification.CanVerify.NavigationToken.GetLspRange();
+    var uri = scheduledVerification.CanVerify.NavigationRange.Uri;
+    var range = scheduledVerification.CanVerify.NavigationRange.ToLspRange();
     var previousVerificationResult = previousState.CanVerifyStates[uri][range];
     var previousImplementations = previousVerificationResult.VerificationTasks;
     var preparationProgress = new[]
@@ -302,8 +309,8 @@ public record IdeState(
 
     var verificationResults = finishedResolution.Result.CanVerifies == null
       ? previousState.CanVerifyStates
-      : finishedResolution.Result.CanVerifies.GroupBy(l => l.NavigationToken.Uri).ToImmutableDictionary(k => k.Key,
-        k => k.GroupBy<ICanVerify, Range>(l => l.NavigationToken.GetLspRange()).ToImmutableDictionary(
+      : finishedResolution.Result.CanVerifies.ToImmutableDictionary(k => k.Key,
+        k => k.Value.Values.GroupBy<ICanVerify, Range>(l => l.NavigationRange.ToLspRange()).ToImmutableDictionary(
           l => l.Key,
           l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
     var signatureAndCompletionTable = legacySignatureAndCompletionTable.Resolved
@@ -339,8 +346,8 @@ public record IdeState(
   }
 
   private static IdeCanVerifyState MergeVerifiable(IdeState previousState, ICanVerify canVerify) {
-    var range = canVerify.NavigationToken.GetLspRange();
-    var previousIdeCanVerifyState = previousState.GetVerificationResults(canVerify.NavigationToken.Uri).GetValueOrDefault(range);
+    var range = canVerify.NavigationRange.ToLspRange();
+    var previousIdeCanVerifyState = previousState.GetVerificationResults(canVerify.NavigationRange.Uri).GetValueOrDefault(range);
     var previousImplementations =
       previousIdeCanVerifyState?.VerificationTasks ??
       ImmutableDictionary<string, IdeVerificationTaskState>.Empty;
@@ -356,7 +363,7 @@ public record IdeState(
     var trees = previousState.VerificationTrees;
     foreach (var uri in trees.Keys) {
       trees = trees.SetItem(uri,
-        new DocumentVerificationTree(finishedParsing.Program, uri) {
+        new DocumentVerificationTree(finishedParsing.ParseResult.Program, uri) {
           Children = trees[uri].Children
         });
     }
@@ -364,8 +371,12 @@ public record IdeState(
     var errors = CurrentFastDiagnostics.Where(d => d.Diagnostic.Severity == DiagnosticSeverity.Error);
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
 
+    foreach (var entry in previousState.VersionedFiles) {
+      finishedParsing.ParseResult.VersionedFiles.Add(entry.Key, entry.Value);
+    }
     return previousState with {
-      Program = finishedParsing.Program,
+      VersionedFiles = finishedParsing.ParseResult.VersionedFiles,
+      Program = finishedParsing.ParseResult.Program,
       Status = status,
       VerificationTrees = trees
     };
@@ -376,13 +387,12 @@ public record IdeState(
     var implementations = canVerifyPartsIdentified.Parts.Select(t => t.Split.Implementation).Distinct();
     var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
 
-    var uri = canVerifyPartsIdentified.CanVerify.Tok.Uri;
+    var uri = canVerifyPartsIdentified.CanVerify.Origin.Uri;
     gutterIconManager.ReportImplementationsBeforeVerification(previousState,
       canVerifyPartsIdentified.CanVerify, implementations.ToArray());
 
-    var range = canVerifyPartsIdentified.CanVerify.NavigationToken.GetLspRange();
+    var range = canVerifyPartsIdentified.CanVerify.NavigationRange.ToLspRange();
     var previousImplementations = previousState.CanVerifyStates[uri][range].VerificationTasks;
-    var names = canVerifyPartsIdentified.Parts.Select(Compilation.GetTaskName);
     var verificationResult = new IdeCanVerifyState(PreparationProgress: VerificationPreparationState.Done,
       VerificationTasks: canVerifyPartsIdentified.Parts.ToImmutableDictionary(Compilation.GetTaskName,
         k => {
@@ -401,8 +411,8 @@ public record IdeState(
     var previousState = this;
 
     var name = Compilation.GetTaskName(boogieException.Task);
-    var uri = boogieException.CanVerify.Tok.Uri;
-    var range = boogieException.CanVerify.NavigationToken.GetLspRange();
+    var uri = boogieException.CanVerify.Origin.Uri;
+    var range = boogieException.CanVerify.NavigationRange.ToLspRange();
 
     var previousVerificationResult = previousState.CanVerifyStates[uri][range];
     var previousImplementations = previousVerificationResult.VerificationTasks;
@@ -432,8 +442,8 @@ public record IdeState(
 
     var name = Compilation.GetTaskName(boogieUpdate.VerificationTask);
     var status = StatusFromBoogieStatus(boogieUpdate.BoogieStatus);
-    var uri = boogieUpdate.CanVerify.Tok.Uri;
-    var range = boogieUpdate.CanVerify.NavigationToken.GetLspRange();
+    var uri = boogieUpdate.CanVerify.Origin.Uri;
+    var range = boogieUpdate.CanVerify.NavigationRange.ToLspRange();
 
     var previousVerificationResult = previousState.CanVerifyStates[uri][range];
     var previousImplementations = previousVerificationResult.VerificationTasks;
@@ -472,7 +482,7 @@ public record IdeState(
     if (allTasksAreCompleted) {
 
       var errorReporter = new ObservableErrorReporter(options, uri);
-      List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
+      List<DafnyDiagnostic> verificationCoverageDiagnostics = [];
       errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
 
       ProofDependencyWarnings.ReportSuspiciousDependencies(options,

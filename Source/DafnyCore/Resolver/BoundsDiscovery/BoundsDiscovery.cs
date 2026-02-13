@@ -68,7 +68,7 @@ namespace Microsoft.Dafny {
         if (stmt is ForallStmt forallStmt) {
           forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true);
           if (forallStmt.Body == null) {
-            Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Tok, "this forall statement has no body");
+            Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Origin, "this forall statement has no body");
           }
         } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
           if (assignSuchThatStmt.AssumeToken == null) {
@@ -142,27 +142,27 @@ namespace Microsoft.Dafny {
         var boundVarUses = new List<Expression>();
         var i = 0;
         foreach (var functionArgumentType in arrowType.Args) {
-          var bv = new BoundVar(e.tok, $"_x{i}", functionArgumentType);
+          var bv = new BoundVar(e.Origin, $"_x{i}", functionArgumentType);
           boundVarDecls.Add(bv);
-          boundVarUses.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
+          boundVarUses.Add(new IdentifierExpr(e.Origin, bv.Name) { Type = bv.Type, Var = bv });
           i++;
         }
-        var objVar = new BoundVar(e.tok, "_obj", elementType.NormalizeExpand());
-        var objUse = new IdentifierExpr(e.tok, objVar.Name) { Type = objVar.Type, Var = objVar };
+        var objVar = new BoundVar(e.Origin, "_obj", elementType.NormalizeExpand());
+        var objUse = new IdentifierExpr(e.Origin, objVar.Name) { Type = objVar.Type, Var = objVar };
         boundVarDecls.Add(objVar);
 
-        var collection = new ApplyExpr(e.tok, e, boundVarUses, e.tok) {
+        var collection = new ApplyExpr(e.Origin, e, boundVarUses, Token.NoToken) {
           Type = collectionType
         };
         var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
 
-        var inCollection = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, objUse, collection) {
+        var inCollection = new BinaryExpr(e.Origin, BinaryExpr.Opcode.In, objUse, collection) {
           ResolvedOp = resolvedOpcode,
           Type = Type.Bool
         };
 
-        var attributes = new Attributes("_reads", new List<Expression>(), null);
-        return new SetComprehension(e.tok, e.RangeToken, true, boundVarDecls, inCollection, objUse, attributes) {
+        var attributes = new Attributes("_reads", [], null);
+        return new SetComprehension(e.Origin, true, boundVarDecls, inCollection, objUse, attributes) {
           Type = new SetType(true, elementType)
         };
       }
@@ -325,8 +325,8 @@ namespace Microsoft.Dafny {
     public static List<BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr,
       out bool constraintConsistsSolelyOfRangeConstraints) where VT : IVariable {
       expr = Expression.CreateAnd(GetImpliedTypeConstraint(v, v.Type), expr);
-      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true,
-        new List<BoundedPool>() { null }, out constraintConsistsSolelyOfRangeConstraints);
+      return DiscoverAllBounds_Aux_SingleVar([v], 0, expr, true,
+        [null], out constraintConsistsSolelyOfRangeConstraints);
     }
 
     /// <summary>
@@ -375,12 +375,11 @@ namespace Microsoft.Dafny {
           }
           continue;
         }
-        if (conjunct is UnaryOpExpr || conjunct is OldExpr) {
+        if (conjunct is UnaryOpExpr or OldExpr) {
           // we also consider a unary expression sitting immediately inside an old
-          var unary = conjunct as UnaryOpExpr ?? ((OldExpr)conjunct).E.Resolved as UnaryOpExpr;
+          var unary = conjunct as UnaryOpExpr ?? ((OldExpr)conjunct).Expr.Resolved as UnaryOpExpr;
           if (unary != null) {
-            var ide = unary.E.Resolved as IdentifierExpr;
-            if (ide != null && ide.Var == (IVariable)bv) {
+            if (unary.E.Resolved is IdentifierExpr ide && ide.Var == (IVariable)bv) {
               if (unary.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot) {
                 bounds.Add(new ExactBoundedPool(Expression.CreateBoolLiteral(Token.NoToken, false)));
               } else if (unary.ResolvedOp == UnaryOpExpr.ResolvedOpcode.Allocated) {
@@ -448,7 +447,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Gt:
           case BinaryExpr.ResolvedOpcode.Ge:
             Contract.Assert(false);
-            throw new cce.UnreachableException(); // promised by postconditions of NormalizedConjunct
+            throw new Cce.UnreachableException(); // promised by postconditions of NormalizedConjunct
           case BinaryExpr.ResolvedOpcode.Lt:
             if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
               conjunctsQualifyingAsRangeConstraints++;
@@ -629,7 +628,7 @@ namespace Microsoft.Dafny {
             goto JUST_RETURN_IT;
         }
         if (newROp != b.ResolvedOp || swapOperands) {
-          b = new BinaryExpr(b.tok, newOp, swapOperands ? b.E1 : b.E0, swapOperands ? b.E0 : b.E1);
+          b = new BinaryExpr(b.Origin, newOp, swapOperands ? b.E1 : b.E0, swapOperands ? b.E0 : b.E1);
           b.ResolvedOp = newROp;
           b.Type = Type.Bool;
           yield return b;
@@ -640,7 +639,7 @@ namespace Microsoft.Dafny {
       if (polarity) {
         yield return expr;
       } else {
-        expr = new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Not, expr);
+        expr = new UnaryOpExpr(expr.Origin, UnaryOpExpr.Opcode.Not, expr);
         expr.Type = Type.Bool;
         yield return expr;
       }
@@ -715,10 +714,10 @@ namespace Microsoft.Dafny {
               // Change "A+B op C" into either "A op C-B" or "B op C-A", depending on where we find bv among A and B.
               if (!FreeVariables(bin.E1).Contains(bv)) {
                 thisSide = bin.E0.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E1);
+                thatSide = new BinaryExpr(bin.Origin, BinaryExpr.Opcode.Sub, thatSide, bin.E1);
               } else if (!FreeVariables(bin.E0).Contains(bv)) {
                 thisSide = bin.E1.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E0);
+                thatSide = new BinaryExpr(bin.Origin, BinaryExpr.Opcode.Sub, thatSide, bin.E0);
               } else {
                 break; // done simplifying
               }
@@ -730,14 +729,14 @@ namespace Microsoft.Dafny {
               if (!FreeVariables(bin.E1).Contains(bv)) {
                 // change to "A op C+B"
                 thisSide = bin.E0.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Add, thatSide, bin.E1);
+                thatSide = new BinaryExpr(bin.Origin, BinaryExpr.Opcode.Add, thatSide, bin.E1);
                 ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
               } else if (!FreeVariables(bin.E0).Contains(bv)) {
                 // In principle, change to "-B op C-A" and then to "B dualOp A-C".  But since we don't want
                 // to change "op", we instead end with "A-C op B" and switch the mapping of thisSide/thatSide
                 // to e0/e1 (by inverting "whereIsBv").
                 thisSide = bin.E1.Resolved;
-                thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, bin.E0, thatSide);
+                thatSide = new BinaryExpr(bin.Origin, BinaryExpr.Opcode.Sub, bin.E0, thatSide);
                 ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
                 whereIsBv = 1 - whereIsBv;
               } else {

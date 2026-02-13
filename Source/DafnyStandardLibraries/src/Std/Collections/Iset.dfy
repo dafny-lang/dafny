@@ -27,7 +27,7 @@ module Std.Collections.Iset {
   }
 
   /* Map an injective function to each element of an iset. */
-  ghost function {:opaque} Map<X(!new), Y>(xs: iset<X>, f: X-->Y): (ys: iset<Y>)
+  ghost function Map<X(!new), Y>(xs: iset<X>, f: X-->Y): (ys: iset<Y>)
     reads f.reads
     requires forall x {:trigger f.requires(x)} :: f.requires(x)
     requires Injective(f)
@@ -39,7 +39,7 @@ module Std.Collections.Iset {
 
   /* Construct an iset using elements of another set for which a function
   returns true. */
-  ghost function {:opaque} Filter<X(!new)>(xs: iset<X>, f: X~>bool): (ys: iset<X>)
+  ghost function Filter<X(!new)>(xs: iset<X>, f: X~>bool): (ys: iset<X>)
     reads set x, o | x in xs && o in f.reads(x) :: o
     requires forall x {:trigger f.requires(x)} {:trigger x in xs} :: x in xs ==> f.requires(x)
     ensures forall y {:trigger f(y)}{:trigger y in xs} :: y in ys <==> y in xs && f(y)
