@@ -2,13 +2,13 @@ CompilationErrors.dfy(6,25): Warning: This ensures clause is part of a bodyless 
 CompilationErrors.dfy(7,19): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 CompilationErrors.dfy(19,32): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 CompilationErrors.dfy(20,26): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
-CompilationErrors.dfy(23,2): Warning: assume statement has no {:axiom} annotation
-CompilationErrors.dfy(27,2): Warning: assume statement has no {:axiom} annotation
-CompilationErrors.dfy(33,2): Warning: assume statement has no {:axiom} annotation
-CompilationErrors.dfy(43,6): Warning: assume statement has no {:axiom} annotation
+CompilationErrors.dfy(23,2): Warning: program contains an assume statement (to suppress this warning, annotate the statement with {:axiom})
+CompilationErrors.dfy(27,2): Warning: program contains an assume statement (to suppress this warning, annotate the statement with {:axiom})
+CompilationErrors.dfy(33,2): Warning: program contains an assume statement (to suppress this warning, annotate the statement with {:axiom})
+CompilationErrors.dfy(43,6): Warning: program contains an assume statement (to suppress this warning, annotate the statement with {:axiom})
 CompilationErrors.dfy(55,11): Warning: assume keyword in update-with-failure statement has no {:axiom} annotation
 CompilationErrors.dfy(60,16): Warning: assume keyword in assign-such-that statement has no {:axiom} annotation
-CompilationErrors.dfy(12,6): Warning: assume statement has no {:axiom} annotation
+CompilationErrors.dfy(12,6): Warning: program contains an assume statement (to suppress this warning, annotate the statement with {:axiom})
 CompilationErrors.dfy(71,2): Warning: this loop has no body (loop frame: x)
 CompilationErrors.dfy(73,2): Warning: this loop has no body (loop frame: i, x)
 CompilationErrors.dfy(83,4): Warning: this loop has no body (loop frame: x)

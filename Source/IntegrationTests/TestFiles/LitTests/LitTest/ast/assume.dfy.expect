@@ -1,4 +1,4 @@
-assume.dfy(7,1): Warning: assume statement has no {:axiom} annotation
+assume.dfy(7,1): Warning: program contains an assume statement (to suppress this warning, annotate the statement with {:axiom})
 assume.dfy(11,10): Warning: assume keyword in assign-such-that statement has no {:axiom} annotation
 assume.dfy(13,11): Warning: assume keyword in update-with-failure statement has no {:axiom} annotation
 
