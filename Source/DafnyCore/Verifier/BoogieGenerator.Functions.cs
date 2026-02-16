@@ -816,7 +816,7 @@ public partial class BoogieGenerator {
     Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
     Bpl.Expr heapSucc = HeapSucc(h0, h1);
     Bpl.Expr r0 = InRWClause(f.Origin, o, field, f.Reads.Expressions, etran1, null, null);
-    
+
     Bpl.Expr q0 = new Bpl.ForallExpr(f.Origin, [], [oVar, fieldVar],
       BplImp(BplAnd(oNotNullAlloced, r0), unchanged));
 
