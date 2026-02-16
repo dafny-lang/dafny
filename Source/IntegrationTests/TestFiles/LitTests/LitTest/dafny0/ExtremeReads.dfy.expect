@@ -1,192 +1,40 @@
 ExtremeReads.dfy(44,12): Error: assertion could not be proved
-   |
-44 |     assert P(c);  // a newly allocated object does not affect P(c)
-   |             ^
-
 ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
-   |
-13 |   c.next != null && P(c.next)
-   |                      ^
-
 ExtremeReads.dfy(47,12): Error: assertion could not be proved
-   |
-47 |     assert P(c);  // error: ... and we no longer know if P(c) holds
-   |             ^
-
 ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
-   |
-13 |   c.next != null && P(c.next)
-   |                      ^
-
 ExtremeReads.dfy(50,12): Error: assertion could not be proved
-   |
-50 |     assert P(c);  // error: same reason as above
-   |             ^
-
 ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
-   |
-13 |   c.next != null && P(c.next)
-   |                      ^
-
 ExtremeReads.dfy(69,12): Error: assertion could not be proved
-   |
-69 |     assert Q(c);  // error: can't tell it's still the same
-   |             ^
-
 ExtremeReads.dfy(20,21): Related location: this proposition could not be proved
-   |
-20 |   c.next != null && Q(c)
-   |                      ^
-
 ExtremeReads.dfy(83,12): Error: assertion could not be proved
-   |
-83 |     assert R(c);  // error: can't tell it's still the same
-   |             ^
-
 ExtremeReads.dfy(26,3): Related location: this proposition could not be proved
-   |
-26 |   R(c)
-   |    ^
-
 ExtremeReads.dfy(105,12): Error: assertion could not be proved
-    |
-105 |     assert V(c);  // error: can't tell if V(c) holds here
-    |             ^
-
 ExtremeReads.dfy(89,3): Related location: this proposition could not be proved
-   |
-89 |   V(c)
-   |    ^
-
 ExtremeReads.dfy(124,16): Error: assertion could not be proved
-    |
-124 |     assert P#[k](c);  // a newly allocated object does not affect P(c)
-    |                 ^
-
 ExtremeReads.dfy(9,19): Related location: this proposition could not be proved
-  |
-9 | greatest predicate P(c: C?)
-  |                    ^
-
 ExtremeReads.dfy(124,16): Error: assertion could not be proved
-    |
-124 |     assert P#[k](c);  // a newly allocated object does not affect P(c)
-    |                 ^
-
 ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
-   |
-13 |   c.next != null && P(c.next)
-   |                      ^
-
 ExtremeReads.dfy(127,16): Error: assertion could not be proved
-    |
-127 |     assert P#[k](c);  // error (x2): ... and we no longer know if P(c) holds
-    |                 ^
-
 ExtremeReads.dfy(9,19): Related location: this proposition could not be proved
-  |
-9 | greatest predicate P(c: C?)
-  |                    ^
-
 ExtremeReads.dfy(130,16): Error: assertion could not be proved
-    |
-130 |     assert P#[k](c);  // error (x2): same reason as above
-    |                 ^
-
 ExtremeReads.dfy(9,19): Related location: this proposition could not be proved
-  |
-9 | greatest predicate P(c: C?)
-  |                    ^
-
 ExtremeReads.dfy(130,16): Error: assertion could not be proved
-    |
-130 |     assert P#[k](c);  // error (x2): same reason as above
-    |                 ^
-
 ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
-   |
-13 |   c.next != null && P(c.next)
-   |                      ^
-
 ExtremeReads.dfy(149,16): Error: assertion could not be proved
-    |
-149 |     assert Q#[k](c);  // error (x2): can't tell it's still the same
-    |                 ^
-
 ExtremeReads.dfy(16,19): Related location: this proposition could not be proved
-   |
-16 | greatest predicate Q(c: C?)
-   |                    ^
-
 ExtremeReads.dfy(149,16): Error: assertion could not be proved
-    |
-149 |     assert Q#[k](c);  // error (x2): can't tell it's still the same
-    |                 ^
-
 ExtremeReads.dfy(20,21): Related location: this proposition could not be proved
-   |
-20 |   c.next != null && Q(c)
-   |                      ^
-
 ExtremeReads.dfy(168,16): Error: assertion could not be proved
-    |
-168 |     assert R#[k](c);  // error (x2): the lemma doesn't immediately tell us this
-    |                 ^
-
 ExtremeReads.dfy(23,19): Related location: this proposition could not be proved
-   |
-23 | greatest predicate R(c: C?)
-   |                    ^
-
 ExtremeReads.dfy(168,16): Error: assertion could not be proved
-    |
-168 |     assert R#[k](c);  // error (x2): the lemma doesn't immediately tell us this
-    |                 ^
-
 ExtremeReads.dfy(26,3): Related location: this proposition could not be proved
-   |
-26 |   R(c)
-   |    ^
-
 ExtremeReads.dfy(171,16): Error: assertion could not be proved
-    |
-171 |     assert R#[k](c);  // error (x2): can't tell it's still the same
-    |                 ^
-
 ExtremeReads.dfy(23,19): Related location: this proposition could not be proved
-   |
-23 | greatest predicate R(c: C?)
-   |                    ^
-
 ExtremeReads.dfy(171,16): Error: assertion could not be proved
-    |
-171 |     assert R#[k](c);  // error (x2): can't tell it's still the same
-    |                 ^
-
 ExtremeReads.dfy(26,3): Related location: this proposition could not be proved
-   |
-26 |   R(c)
-   |    ^
-
 ExtremeReads.dfy(181,16): Error: assertion could not be proved
-    |
-181 |     assert V#[k](c);  // error (x2): can't tell if V(c) holds here
-    |                 ^
-
 ExtremeReads.dfy(86,16): Related location: this proposition could not be proved
-   |
-86 | least predicate V(c: C?)
-   |                 ^
-
 ExtremeReads.dfy(181,16): Error: assertion could not be proved
-    |
-181 |     assert V#[k](c);  // error (x2): can't tell if V(c) holds here
-    |                 ^
-
 ExtremeReads.dfy(89,3): Related location: this proposition could not be proved
-   |
-89 |   V(c)
-   |    ^
-
 
 Dafny program verifier finished with 10 verified, 19 errors

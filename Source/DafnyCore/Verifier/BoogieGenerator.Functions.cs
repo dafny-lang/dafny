@@ -815,15 +815,7 @@ public partial class BoogieGenerator {
 
     Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
     Bpl.Expr heapSucc = HeapSucc(h0, h1);
-    Bpl.Expr r0 = InRWClause(f.Origin, o, field, f.Reads.Expressions, etran0, null, null);
-    
-    // For reads *, we need to ensure soundness by checking that objects allocated
-    // in either heap have unchanged fields. This prevents the function from depending
-    // on newly allocated objects in a way that would be unsound.
-    if (f.Reads.Expressions.Exists(fe => fe.E is WildcardExpr)) {
-      var r1 = InRWClause(f.Origin, o, field, f.Reads.Expressions, etran1, null, null);
-      r0 = BplOr(r0, r1);
-    }
+    Bpl.Expr r0 = InRWClause(f.Origin, o, field, f.Reads.Expressions, etran1, null, null);
     
     Bpl.Expr q0 = new Bpl.ForallExpr(f.Origin, [], [oVar, fieldVar],
       BplImp(BplAnd(oNotNullAlloced, r0), unchanged));
