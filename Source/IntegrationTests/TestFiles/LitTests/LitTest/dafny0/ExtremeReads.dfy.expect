@@ -1,5 +1,3 @@
-ExtremeReads.dfy(44,12): Error: assertion could not be proved
-ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
 ExtremeReads.dfy(47,12): Error: assertion could not be proved
 ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
 ExtremeReads.dfy(50,12): Error: assertion could not be proved
@@ -10,12 +8,10 @@ ExtremeReads.dfy(83,12): Error: assertion could not be proved
 ExtremeReads.dfy(26,3): Related location: this proposition could not be proved
 ExtremeReads.dfy(105,12): Error: assertion could not be proved
 ExtremeReads.dfy(89,3): Related location: this proposition could not be proved
-ExtremeReads.dfy(124,16): Error: assertion could not be proved
-ExtremeReads.dfy(9,19): Related location: this proposition could not be proved
-ExtremeReads.dfy(124,16): Error: assertion could not be proved
-ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
 ExtremeReads.dfy(127,16): Error: assertion could not be proved
 ExtremeReads.dfy(9,19): Related location: this proposition could not be proved
+ExtremeReads.dfy(127,16): Error: assertion could not be proved
+ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
 ExtremeReads.dfy(130,16): Error: assertion could not be proved
 ExtremeReads.dfy(9,19): Related location: this proposition could not be proved
 ExtremeReads.dfy(130,16): Error: assertion could not be proved
@@ -37,4 +33,4 @@ ExtremeReads.dfy(86,16): Related location: this proposition could not be proved
 ExtremeReads.dfy(181,16): Error: assertion could not be proved
 ExtremeReads.dfy(89,3): Related location: this proposition could not be proved
 
-Dafny program verifier finished with 10 verified, 19 errors
+Dafny program verifier finished with 10 verified, 17 errors

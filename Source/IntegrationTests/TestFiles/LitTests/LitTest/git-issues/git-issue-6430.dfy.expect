@@ -1,3 +1,5 @@
-git-issue-6430.dfy(43,4): Error: assertion could not be proved
+git-issue-6430.dfy(43,6): Error: assertion could not be proved
+git-issue-6430.dfy(86,6): Error: assertion could not be proved
+git-issue-6430.dfy(124,4): Error: assertion could not be proved
 
-Dafny program verifier finished with 3 verified, 1 error
+Dafny program verifier finished with 7 verified, 3 errors

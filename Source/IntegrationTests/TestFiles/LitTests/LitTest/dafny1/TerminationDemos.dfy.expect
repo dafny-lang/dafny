@@ -1,5 +1,2 @@
-TerminationDemos.dfy(100,2): Error: a postcondition could not be proved on this return path
-TerminationDemos.dfy(99,26): Related location: this is the postcondition that could not be proved
-TerminationDemos.dfy(85,20): Related location: this proposition could not be proved
 
-Dafny program verifier finished with 11 verified, 1 error
+Dafny program verifier finished with 12 verified, 0 errors
