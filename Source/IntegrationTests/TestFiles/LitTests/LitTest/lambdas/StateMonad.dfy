@@ -50,29 +50,29 @@ module State refines Monad {
       ==
           Bind(State(s => (x, s)), f);
       ==
-          State(s =>
-                match ((s => (x, s))(s))
+          State((s: int) =>
+                match (s => (x, s))(s)
                 case (a, newState) =>
                   match f(a) case State(g) =>
                     g(newState));
       == {
-            FunEq(s =>
-                    match ((s => (x, s))(s))
+            FunEq((s: int) =>
+                    match (s => (x, s))(s)
                     case (a, newState) =>
                       match f(a)
                       case State(g) => g(newState),
-                  s =>
+                  (s: int) =>
                     match (x, s)
                     case (a, newState) =>
                       match f(a)
                       case State(g) => g(newState));
          }
-          State(s =>
+          State((s: int) =>
                   match (x, s) case (a, newState) =>
                     match f(a) case State(g) =>
                       g(newState));
       == {
-            FunEq((s =>
+            FunEq(((s: int) =>
                     match (x, s) case (a, newState) =>
                       match f(a) case State(g) => g(newState)),
                   (s => match f(x) case State(g) => g(s)));

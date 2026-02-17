@@ -26,9 +26,9 @@ lemma Same(a: Matrix, b: Matrix)
   forall x: Index
     ensures a(x) == b(x)
   {
-    FunEq(a(x), b(x));
+    FunEq<Index, int>(a(x), b(x));
   }
-  FunEq(a, b);
+  FunEq<Index, Index -> int>(a, b);
 }
 
 /** Σ f(i) where i ranges from 0 to less than n */
@@ -103,10 +103,12 @@ lemma {:induction m, n1, n2} {:nowarn} sum_assoc_n(m: Matrix, n1: nat, n2: nat)
     == { distr_add_n(f2, g2, n1); }
         Sum_n((l: Index) => f2(l) + g2(l), n1);
     == { // substituting f2 and g2
-        FunEq((l: Index) => f2(l) + g2(l),
+      FunEq<Index, int>(
+                (l: Index) => f2(l) + g2(l),
                 (l: Index) => m(n2 - 1)(l) + Sum_n((k: Index) => m(k)(l), n2 - 1)); }
         Sum_n((l: Index) => m(n2 - 1)(l) + Sum_n((k: Index) => m(k)(l), n2 - 1), n1);
-    == { FunEq((l: Index) => m(n2 - 1)(l) + Sum_n((k: Index) => m(k)(l), n2 - 1),
+    == { FunEq<Index, int>(
+               (l: Index) => m(n2 - 1)(l) + Sum_n((k: Index) => m(k)(l), n2 - 1),
                (l: Index) => Sum_n((k: Index) => m(k)(l), n2)); }
         Sum_n((l: Index) => Sum_n((k: Index) => m(k)(l), n2), n1);
     }
@@ -121,12 +123,14 @@ lemma sum_assoc(m: Matrix)
 {
   calc {
       Sum((k: Index) => Sum((l: Index) => m(k)(l)));
-  == { FunEq((k: Index) => Sum((l: Index) => m(k)(l)),
+  == { FunEq<Index, int>(
+             (k: Index) => Sum((l: Index) => m(k)(l)),
              (k: Index) => Sum_n((l: Index) => m(k)(l), N)); }
       Sum_n((k: Index) => Sum_n((l: Index) => m(k)(l), N), N);
   == { sum_assoc_n(m, N, N); }
       Sum_n((l: Index) => Sum_n((k: Index) => m(k)(l), N), N);
-  == { FunEq((l: Index) => Sum((k: Index) => m(k)(l)),
+  == { FunEq<Index, int>(
+             (l: Index) => Sum((k: Index) => m(k)(l)),
              (l: Index) => Sum_n((k: Index) => m(k)(l), N)); }
       Sum((l: Index) => Sum((k: Index) => m(k)(l)));
   }
@@ -146,9 +150,11 @@ lemma sum_assoc_mult(a: Matrix, b: Matrix, c: Matrix, i: Index, j: Index)
           ensures ((l: Index) => a(i)(l) * b(l)(k) * c(k)(j))
                   ==
                   ((l: Index) => m(k)(l))
-      { FunEq((l: Index) => a(i)(l) * b(l)(k) * c(k)(j),
+      { FunEq<Index, int>(
+              (l: Index) => a(i)(l) * b(l)(k) * c(k)(j),
               (l: Index) => m(k)(l)); }
-      FunEq((k: Index) => Sum((l: Index) => a(i)(l) * b(l)(k) * c(k)(j)),
+       FunEq<Index, int>(
+            (k: Index) => Sum((l: Index) => a(i)(l) * b(l)(k) * c(k)(j)),
             (k: Index) => Sum((l: Index) => m(k)(l))); }
       Sum((k: Index) => Sum((l: Index) => m(k)(l)));
   == { sum_assoc(m); }
@@ -159,10 +165,12 @@ lemma sum_assoc_mult(a: Matrix, b: Matrix, c: Matrix, i: Index, j: Index)
                       ==
                       ((k: Index) => a(i)(l) * b(l)(k) * c(k)(j))
           {
-              FunEq((k: Index) => m(k)(l),
+            FunEq<Index, int>(
+                    (k: Index) => m(k)(l),
                     (k: Index) => a(i)(l) * b(l)(k) * c(k)(j));
           }
-          FunEq((l: Index) => Sum((k: Index) => m(k)(l)),
+          FunEq<Index, int>(
+                (l: Index) => Sum((k: Index) => m(k)(l)),
                 (l: Index) => Sum((k: Index) => a(i)(l) * b(l)(k) * c(k)(j)));
       }
       Sum((l: Index) => Sum((k: Index) => a(i)(l) * b(l)(k) * c(k)(j)));
@@ -178,7 +186,8 @@ lemma {:isolate_assertions} mult_assoc_ij(a: Matrix, b: Matrix, c: Matrix, i: In
   ==
       Sum((k: Index) => mult(a, b)(i)(k) * c(k)(j));
   == { assert forall k : Index :: mult(a, b)(i)(k) == Sum((l: Index) => a(i)(l) * b(l)(k));
-       FunEq((k: Index) => mult(a, b)(i)(k) * c(k)(j),
+      FunEq<Index, int>(
+             (k: Index) => mult(a, b)(i)(k) * c(k)(j),
              (k: Index) => Sum((l: Index) => a(i)(l) * b(l)(k)) * c(k)(j)); }
       Sum((k: Index) => Sum((l: Index) => a(i)(l) * b(l)(k)) * c(k)(j));
   == {
@@ -195,12 +204,14 @@ lemma {:isolate_assertions} mult_assoc_ij(a: Matrix, b: Matrix, c: Matrix, i: In
                   Sum(g) * x;
               == { distr_mult(g, x); }
                   Sum((l: Index) => g(l) * x);
-              == { FunEq((l: Index) => g(l) * x,
+              == { FunEq<Index, int>(
+                         (l: Index) => g(l) * x,
                          (l: Index) => a(i)(l) * b(l)(k) * c(k)(j)); }
                   Sum((l: Index) => a(i)(l) * b(l)(k) * c(k)(j));
               }
           }
-          FunEq((k: Index) => Sum((l: Index) => a(i)(l) * b(l)(k)) * c(k)(j),
+          FunEq<Index, int>(
+                (k: Index) => Sum((l: Index) => a(i)(l) * b(l)(k)) * c(k)(j),
                 (k: Index) => Sum((l: Index) => a(i)(l) * b(l)(k) * c(k)(j)));
          }
       Sum((k: Index) => Sum((l: Index) => a(i)(l) * b(l)(k) * c(k)(j)));
@@ -214,10 +225,12 @@ lemma {:isolate_assertions} mult_assoc_ij(a: Matrix, b: Matrix, c: Matrix, i: In
                       ==
                       Sum((l: Index) => b(k)(l) * c(l)(j) * a(i)(k))
           {
-              FunEq((l: Index) => a(i)(k) * b(k)(l) * c(l)(j),
+              FunEq<Index, int>(
+                    (l: Index) => a(i)(k) * b(k)(l) * c(l)(j),
                     (l: Index) => b(k)(l) * c(l)(j) * a(i)(k));
           }
-          FunEq((k: Index) => Sum((l: Index) => a(i)(k) * b(k)(l) * c(l)(j)),
+          FunEq<Index, int>(
+                (k: Index) => Sum((l: Index) => a(i)(k) * b(k)(l) * c(l)(j)),
                 (k: Index) => Sum((l: Index) => b(k)(l) * c(l)(j) * a(i)(k)));
       }
       Sum((k: Index) => Sum((l: Index) => b(k)(l) * c(l)(j) * a(i)(k)));
@@ -235,19 +248,23 @@ lemma {:isolate_assertions} mult_assoc_ij(a: Matrix, b: Matrix, c: Matrix, i: In
                   Sum(g) * x;
               == { distr_mult(g, x); }
                   Sum((l: Index) => g(l) * x);
-              == { FunEq((l: Index) => g(l) * x,
+              == { FunEq<Index, int>(
+                             (l: Index) => g(l) * x,
                              (l: Index) => b(k)(l) * c(l)(j) * a(i)(k)); }
                   Sum((l: Index) => b(k)(l) * c(l)(j) * a(i)(k));
               }
           }
-          FunEq((k: Index) => Sum((l: Index) => b(k)(l) * c(l)(j) * a(i)(k)),
+          FunEq<Index, int>(
+                (k: Index) => Sum((l: Index) => b(k)(l) * c(l)(j) * a(i)(k)),
                 (k: Index) => Sum((l: Index) => b(k)(l) * c(l)(j)) * a(i)(k));
       }
       Sum((k: Index) => Sum((l: Index) => b(k)(l) * c(l)(j)) * a(i)(k));
-  == { FunEq((k: Index) => Sum((l: Index) => b(k)(l) * c(l)(j)) * a(i)(k),
+  == { FunEq<Index, int>(
+             (k: Index) => Sum((l: Index) => b(k)(l) * c(l)(j)) * a(i)(k),
              (k: Index) => a(i)(k) * Sum((l: Index) => b(k)(l) * c(l)(j))); }
       Sum((k: Index) => a(i)(k) * Sum((l: Index) => b(k)(l) * c(l)(j)));
-  == { FunEq((k: Index) => a(i)(k) * Sum((l: Index) => b(k)(l) * c(l)(j)),
+  == { FunEq<Index, int>(
+             (k: Index) => a(i)(k) * Sum((l: Index) => b(k)(l) * c(l)(j)),
              (k: Index) => a(i)(k) * mult(b, c)(k)(j)); }
       Sum((k: Index) => a(i)(k) * mult(b, c)(k)(j));
   ==

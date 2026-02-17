@@ -271,6 +271,7 @@ namespace Microsoft.Dafny {
         decl = BuiltInArrowTypeDecl(at.Arity);
       } else if (type is UserDefinedType udt) {
         decl = udt.ResolvedClass;
+        Contract.Assert(decl != null);
       } else {
         Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
