@@ -487,7 +487,7 @@ able to give invariants to preserve it in this case, it gets even more
 complex when manipulating data structures, especially recursive data structures.
 Then, framing is essential to making the verification process feasible.
 
-Unlike functions, methods are by default not required to list the memory location they read.
+Unlike functions, methods are by default not required to list the memory locations they read.
 However, there are use cases for restricting what methods can read as well.
 In particular, if you want to verify that imperative code is safe to execute concurrently when compiled,
 you can specify that a method does not read or write any shared state,
