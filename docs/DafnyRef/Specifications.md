@@ -602,7 +602,7 @@ The `reads *` specification gives the function the ability to read anything in t
 heap, but the function is still not allowed to depend on the allocation state of
 the heap. An example of an expression that depends on the allocation state is
 `forall c: Cell :: c.data == 10`, where `Cell` is a `class` with a field `data`.
-Since such quantifiers quantify only over allocated `Cell` objects, the value
+Since such quantifiers only quantify over allocated `Cell` objects, the value
 of the expression can go from `true` to `false` if the program allocates a new `Cell`
 object. In cases like this, the best recourse is almost always to limit the
 range of the quantification, for example to something like
