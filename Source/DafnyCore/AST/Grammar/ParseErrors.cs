@@ -535,12 +535,12 @@ Otherwise, omit the `*` and list expressions containing all the objects that are
     Add(ErrorId.p_reads_star_star_must_be_alone,
       @"
 A reads clause lists the objects whose fields the function is allowed to read (or expressions 
-containing such objects). This gives gives the verifier a ""frame axiom"", which tells the verifier that heap
+containing such objects). This equips the verifier with the knowledge that any heap
 modifications outside the reads set do not affect the result value of the function.
-`reads **` suppresses the generation of the frame axiom and correspondingly removes any reads restrictions
-for the function.
+`reads **` declares that the function may depend on anything in the heap; it even allows the function
+to depend on which objects are allocated (that is, the function may even depend on the _allocation state_).
 It does not make sense to list `**` along with something more specific.
-If you mean that the function should have no read restrictions and no frame axiom, then just list `**`.
+If you mean that the function is allowed to depend on anything in the heap, including the allocation state, then just list `**`.
 Otherwise, omit the `**` and list expressions containing all the objects that are read.
 ".TrimStart(), range => [OneAction("remove **", IncludeComma(range), "", true)]);
 
@@ -764,8 +764,10 @@ Insert a specific reads expression.
 
     Add(ErrorId.p_no_double_wild_frame_expression,
       @"
-A `reads **` clause on a function says that no frame axiom will be generated for the function.
-This is not supported for anonymous function (aka lambda expressions) or iterators.
+A `reads **` clause on a function says that the function is allowed to depend on anything in
+the heap; it even allows the function to depend on which objects are allocated (this is called
+the heap's _allocation state_).
+This is not supported for anonymous functions (aka lambda expressions) or iterators.
 Insert a specific reads expression.
 ".TrimStart());
 
