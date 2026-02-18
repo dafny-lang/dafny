@@ -608,10 +608,10 @@ object. In cases like this, the best recourse is almost always to limit the
 range of the quantification, for example to something like
 `forall c: Cell :: c in myCellsOfInterest ==> c.data == 10` (see
 [Section 6.4.6](#sec-older-parameters) for more information). However, there is
-also another way to allow functions to depend on the allocation state, namely
-to suppress the generation of the "frame axiom" that tells the verifier what the
-function may depend on. To do that, declare the function with `reads **`.
-Note that, without the frame axiom for a function, the verifier will "forget" the
+also a way to allow a function to depend on the allocation state, namely
+to declare the function with `reads **`, which completely removes the verifier's
+knowledge about what the function depends on in the heap.
+Note that, without such knowledge for a function, the verifier will "forget" the
 value of the function whenever the heap changes in any way, including when another
 method is called, since all methods are allowed to allocate more objects. The only
 way the verifier can determine the value of such a function is to go back to the
@@ -619,8 +619,10 @@ function's body.
 
 The `reads **` specification is not supported on lambda expressions, but `reads *` is.
 
-If a `reads` clause uses `*` or `**`, then the `reads` clause is not allowed to
+If a `reads` clause uses `**`, then the `reads` clause is not allowed to
 mention anything else (since anything else would be irrelevant, anyhow).
+Similarly, if a `reads` clause uses `*`, then it is not allowed to
+mention anything else, either.
 
 Iterator specifications also allow `reads` clauses,
 with the same syntax and interpretation of arguments as above,

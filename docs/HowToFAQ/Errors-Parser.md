@@ -564,12 +564,12 @@ function f(): int
 ```
 
 A reads clause lists the objects whose fields the function is allowed to read (or expressions 
-containing such objects). This gives gives the verifier a "frame axiom", which tells the verifier that heap
+containing such objects). This equips the verifier with the knowledge that any heap
 modifications outside the reads set do not affect the result value of the function.
-`reads **` suppresses the generation of the frame axiom and correspondingly removes any reads restrictions
-for the function.
+`reads **` declares that the function may depend on anything in the heap; it even allows the function
+to depend on which objects are allocated (that is, the function may even depend on the _allocation state_).
 It does not make sense to list `**` along with something more specific.
-If you mean that the function should have no read restrictions and no frame axiom, then just list `**`.
+If you mean that the function is allowed to depend on anything in the heap, including the allocation state, then just list `**`.
 Otherwise, omit the `**` and list expressions containing all the objects that are read.
 
 ## **Error: out-parameters cannot have default-value expressions** {#p_no_defaults_for_out_parameters}
@@ -916,8 +916,10 @@ method Lambda() {
 }
 ```
 
-A `reads **` clause on a function says that no frame axiom will be generated for the function.
-This is not supported for anonymous function (aka lambda expressions) or iterators.
+A `reads **` clause on a function says that the function is allowed to depend on anything in
+the heap; it even allows the function to depend on which objects are allocated (this is called
+the heap's _allocation state_).
+This is not supported for anonymous functions (aka lambda expressions) or iterators.
 Insert a specific reads expression.
 
 ## **Warning: _kind_ refinement is deprecated** {#p_deprecated_statement_refinement}

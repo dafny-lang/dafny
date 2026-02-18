@@ -1552,12 +1552,12 @@ method inf(i: int)
 Eventually you should put an actual termination metric in place of the `*` and prove termination.
 The reference manual has more information about termination metrics [in the section on `decreases` clauses](../DafnyRef/DafnyRef#sec-decreases-clause).
 
-# What do {:termination false} and @AssumeCrossModuleTermination do? It looks one of them is required if I want to extend traits from other modules.
+# What do {:termination false} and @AssumeCrossModuleTermination do? It looks like one of them is required if I want to extend traits from other modules.
 
 
 ## Question
 
-What do `{:termination false}` and `@AssumeCrossModuleTermination` do? It looks one of them is required if I want to extend traits from other modules.
+What do `{:termination false}` and `@AssumeCrossModuleTermination` do? It looks like one of them is required if I want to extend traits from other modules.
 
 ## Answer
 

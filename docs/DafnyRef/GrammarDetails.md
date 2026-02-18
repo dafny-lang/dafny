@@ -708,7 +708,7 @@ LambdaSpec =
 ````grammar
 IteratorSpec =
   { ReadsClause(allowLemma: false, allowLambda: false,
-                allowWild: false, allowDoubleWild: true)
+                allowWild: false, allowDoubleWild: false)
   | ModifiesClause(allowLambda: false)
   | [ "yield" ] RequiresClause(allowLabel: !isYield)
   | [ "yield" ] EnsuresClause(allowLambda: false)
