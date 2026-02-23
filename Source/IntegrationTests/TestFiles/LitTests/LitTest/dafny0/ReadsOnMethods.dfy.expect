@@ -35,5 +35,9 @@ ReadsOnMethods.dfy(505,14): Error: assertion could not be proved
 ReadsOnMethods.dfy(516,11): Related location: this proposition could not be proved
 ReadsOnMethods.dfy(523,13): Error: insufficient reads clause to read field; Consider adding 'reads b' or 'reads b`x' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(530,50): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
+ReadsOnMethods.dfy(544,25): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(546,29): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(558,25): Error: insufficient reads clause to invoke function
+ReadsOnMethods.dfy(560,29): Error: insufficient reads clause to invoke function
 
-Dafny program verifier finished with 67 verified, 31 errors
+Dafny program verifier finished with 68 verified, 35 errors
