@@ -28,5 +28,5 @@ TailCalls.dfy(462,15): Error: a recursive call in this context is not recognized
 TailCalls.dfy(110,14): Error: the recursive call to '_ctor' is not tail recursive, because the assignment of the LHS happens after the call
 TailCalls.dfy(126,19): Error: the recursive call to 'Compute' is not tail recursive because the actual type argument is not the formal type parameter 'G'
 TailCalls.dfy(139,17): Error: the recursive call to 'Run' is not tail recursive because the actual type argument 1 is not the formal type parameter 'G'
-TailCalls.dfy(171,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+TailCalls.dfy(171,13): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
 31 resolution/type errors detected in TailCalls.dfy

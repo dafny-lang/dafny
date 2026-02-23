@@ -53,7 +53,7 @@ class DetectUnsoundFunctionReferencesVisitor : ResolverBottomUpVisitor {
       // Check 1
       if (whichChecks == Checks.Check0And1 && ModuleDefinition.InSameSCC(context, fn)) {
         resolver.reporter.Error(MessageSource.Resolver, expr.Origin,
-          "cannot use naked function in recursive setting. Possible solution: eta expansion.");
+          "in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.");
       }
     }
 

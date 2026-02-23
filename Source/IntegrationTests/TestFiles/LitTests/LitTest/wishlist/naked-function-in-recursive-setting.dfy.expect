@@ -1,3 +1,3 @@
 naked-function-in-recursive-setting.dfy(4,15): Info: auto-accumulator tail recursive
-naked-function-in-recursive-setting.dfy(10,11): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+naked-function-in-recursive-setting.dfy(10,11): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
 1 resolution/type errors detected in naked-function-in-recursive-setting.dfy
