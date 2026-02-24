@@ -7,7 +7,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class FrameExpression : NodeWithOrigin, IHasReferences {
-  public Expression OriginalExpression { get; } // may be a WildcardExpr
+  public Expression OriginalExpression { get; } // may be a WildcardExpr or DoubleWildcardExpr
   [FilledInDuringResolution] public Expression? DesugaredExpression; // may be null for modifies clauses, even after resolution
 
   /// <summary>
