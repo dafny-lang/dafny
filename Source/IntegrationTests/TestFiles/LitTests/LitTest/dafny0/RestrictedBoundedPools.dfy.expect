@@ -14,10 +14,10 @@ RestrictedBoundedPools.dfy(194,23): Error: a set comprehension involved in a fun
 RestrictedBoundedPools.dfy(206,9): Error: iset comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
 RestrictedBoundedPools.dfy(224,9): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
 RestrictedBoundedPools.dfy(228,9): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
-RestrictedBoundedPools.dfy(242,18): Error: a function definition is not allowed to depend on the set of allocated references
-RestrictedBoundedPools.dfy(247,4): Error: a function definition is not allowed to depend on the set of allocated references
-RestrictedBoundedPools.dfy(252,4): Error: a twostate function definition is not allowed to depend on the set of allocated references
-RestrictedBoundedPools.dfy(258,4): Error: a twostate function definition is not allowed to depend on the set of allocated references
+RestrictedBoundedPools.dfy(242,18): Error: a function definition is not allowed to depend on the set of allocated references; perhaps declare function 'F' with 'reads **'
+RestrictedBoundedPools.dfy(247,4): Error: a function definition is not allowed to depend on the set of allocated references; perhaps declare function 'A' with 'reads **'
+RestrictedBoundedPools.dfy(252,4): Error: a twostate function definition is not allowed to depend on the set of allocated references; perhaps declare twostate function 'TS0' with 'reads **'
+RestrictedBoundedPools.dfy(258,4): Error: a twostate function definition is not allowed to depend on the set of allocated references; perhaps declare twostate function 'TS1' with 'reads **'
 RestrictedBoundedPools.dfy(277,18): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
 RestrictedBoundedPools.dfy(278,18): Error: map comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
 RestrictedBoundedPools.dfy(292,4): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'zs' (of type 'List<X>') may contain references (see documentation for 'older' parameters)

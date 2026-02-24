@@ -57,12 +57,12 @@ ResolutionErrors5.dfy(346,35): Error: a const field definition is not allowed to
 ResolutionErrors5.dfy(343,37): Error: a const field definition is not allowed to depend on the set of allocated references
 ResolutionErrors5.dfy(348,49): Error: a newtype definition is not allowed to depend on the set of allocated references
 ResolutionErrors5.dfy(349,47): Error: a subset type definition is not allowed to depend on the set of allocated references
-ResolutionErrors5.dfy(356,32): Error: a predicate definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(356,32): Error: a predicate definition is not allowed to depend on the set of allocated references; perhaps declare predicate 'P' with 'reads **'
 ResolutionErrors5.dfy(365,39): Error: a const field definition is not allowed to depend on the set of allocated references
 ResolutionErrors5.dfy(362,41): Error: a const field definition is not allowed to depend on the set of allocated references
 ResolutionErrors5.dfy(367,53): Error: a newtype definition is not allowed to depend on the set of allocated references
 ResolutionErrors5.dfy(368,51): Error: a subset type definition is not allowed to depend on the set of allocated references
-ResolutionErrors5.dfy(375,36): Error: a predicate definition is not allowed to depend on the set of allocated references
+ResolutionErrors5.dfy(375,36): Error: a predicate definition is not allowed to depend on the set of allocated references; perhaps declare predicate 'P' with 'reads **'
 ResolutionErrors5.dfy(382,31): Error: the value returned by an abstemious function must come from invoking a co-constructor
 ResolutionErrors5.dfy(418,31): Error: the value returned by an abstemious function must come from invoking a co-constructor
 ResolutionErrors5.dfy(425,32): Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters
