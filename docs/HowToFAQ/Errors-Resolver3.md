@@ -379,7 +379,7 @@ The |...| operator is the _size_ operator and returns the integer that is the si
 Only finite collections (of type `seq`, `set`, `multiset`, `map`) may be the argument of the
 size operator -- not arrays, `iset`, or `imap`.
 
-## **Error: a _what_ definition is not allowed to depend on the set of allocated references**
+## **Error: a _what_ definition is not allowed to depend on the set of allocated references_hint_**
 
 ```dafny
 class B {}
