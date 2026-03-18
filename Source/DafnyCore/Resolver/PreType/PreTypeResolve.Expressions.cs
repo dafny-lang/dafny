@@ -1688,7 +1688,7 @@ namespace Microsoft.Dafny {
           // We have found a module name or a type name, neither of which is an expression. However, the NameSegment we're
           // looking at may be followed by a further suffix that makes this into an expression. We postpone the rest of the
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
-          // or verifier, just to have a placeholder where we can recorded what we have found.
+          // or verifier, just to have a placeholder where we can record what we have found.
           if (!isLastNameSegment) {
             if (decl is ClassLikeDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
               // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
@@ -1926,7 +1926,7 @@ namespace Microsoft.Dafny {
             // We have found a module name or a type name, neither of which is an expression. However, the ExprDotName we're
             // looking at may be followed by a further suffix that makes this into an expression. We postpone the rest of the
             // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
-            // or verifier, just to have a placeholder where we can recorded what we have found.
+            // or verifier, just to have a placeholder where we can record what we have found.
             if (!isLastNameSegment) {
               if (decl is ClassLikeDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
                 // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
@@ -2296,7 +2296,7 @@ namespace Microsoft.Dafny {
     /// case, "legalSourceConstructors" contains both ghost and compiled constructors.
     ///
     /// The reason for computing both desugarings here is that it's too early to tell if the DatatypeUpdateExpr is being used in
-    /// a ghost or compiled context. This is a consequence of doing the deguaring so early. But it's also convenient to do the
+    /// a ghost or compiled context. This is a consequence of doing the desugaring so early. But it's also convenient to do the
     /// desugaring during resolution, because then the desugaring can be constructed as a non-resolved expression on which ResolveExpression
     /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
@@ -2675,7 +2675,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Desugar the elphant-operator expression
+    /// Desugar the elephant-operator expression
     ///     var x: T :- E; Body
     /// into
     ///     var burrito := E;

@@ -27,7 +27,7 @@ but not if `dafny` is only doing translation.
 
 ## **Manually executing Dafny-generated Go code**
 
-Suppose a Dafny program is contained in a `.dfy` file, `A.dfy`, which containingthe Dafny `Main` method. One can build the corresponding Go program (without running it) using this command:
+Suppose a Dafny program is contained in a `.dfy` file, `A.dfy`, which contains the Dafny `Main` method. One can build the corresponding Go program (without running it) using this command:
 
 `dafny build --target:go A.dfy`
 

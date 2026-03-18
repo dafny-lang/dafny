@@ -324,7 +324,7 @@ method m(k: int, o: A)
 
 ## **Error: this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'** {#c_let_such_that_is_too_complex}
 
-<!-- TODO: needs example and explanataion -->
+<!-- TODO: needs example and explanation -->
 <!-- INSERT-TEXT -->
 
 <!-- DafnyCore/Compilers/CSharp/Synthesizer-Csharp.cs -->

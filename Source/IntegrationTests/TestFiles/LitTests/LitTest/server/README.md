@@ -34,6 +34,6 @@ $(DAFNY_SERVER) -encode plain.transcript > a.transcript
 Note, the base64 encoding actually contains more information than just a program. It also
 contains the path to the original program that created the transcript, and another couple
 of fields. This information is not output using `-decode` above, so even if you don't make
-any change to `plain.transcript`, you may not get back exactly what you stared with. (In
+any change to `plain.transcript`, you may not get back exactly what you started with. (In
 the unlikely event that you will actually need that information for a test, you're on your
 own. It may help to see the "unmarshal" and "marshal" commands in Server.cs.)

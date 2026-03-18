@@ -272,7 +272,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Replaced any escaped characters in s by the actual character that the escaping represents.
+    /// Replaces any escaped characters in s by the actual character that the escaping represents.
     /// Assumes s to be a well-parsed string.
     /// </summary>
     public static string RemoveEscaping(DafnyOptions options, string s, bool isVerbatimString) {

@@ -318,13 +318,13 @@ It is only allowed to add members to the body of the datatype.
     Add(ErrorId.p_module_level_function_always_static,
     @"
 All names declared in a module (outside a class-like entity) are implicitly `static`.
-Dafny does not allow them to be explictly, redundantly, declared `static`.
+Dafny does not allow them to be explicitly, redundantly, declared `static`.
 ".TrimStart(), Remove(true));
 
     Add(ErrorId.p_module_level_method_always_static,
     @"
 All names declared in a module (outside a class-like entity) are implicitly `static`.
-Dafny does not allow them to be explictly, redundantly, declared `static`.
+Dafny does not allow them to be explicitly, redundantly, declared `static`.
 ".TrimStart(), Remove(true));
 
     Add(ErrorId.p_const_decl_missing_identifier,
@@ -336,7 +336,7 @@ To correct the error, add an identifier and either or both a type and initializi
     Add(ErrorId.p_module_level_const_always_static,
     @"
 All names declared in a module (outside a class-like entity) are implicitly `static`.
-Dafny does not allow them to be explictly, redundantly, declared `static`.
+Dafny does not allow them to be explicitly, redundantly, declared `static`.
 ".TrimStart(), Remove(true));
 
     Add(ErrorId.p_bad_const_initialize_op,

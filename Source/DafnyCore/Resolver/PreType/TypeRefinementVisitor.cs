@@ -238,7 +238,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
           //
           // Note about intersection: In general, let set<C> be the result of combining the operands set<A> and set<B>
           // of intersection. To be precise, we would need C to be a type that conjoins the constraints of A and B.
-          // We don't have such a time, so we instead (approximate the other direction and) let C be the join of A and B.
+          // We don't have such a type, so we instead (approximate the other direction and) let C be the join of A and B.
           flows.Add(new FlowBetweenExpressions(expr, binaryExpr.E0, BinaryExpr.OpcodeString(binaryExpr.Op)));
           flows.Add(new FlowBetweenExpressions(expr, binaryExpr.E1, BinaryExpr.OpcodeString(binaryExpr.Op)));
           break;

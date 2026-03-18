@@ -31,7 +31,7 @@ module {:extern "DAST"} DAST {
   import opened Std.Wrappers
   import Std
 
-  // Prevents Dafny names to being direclty integrated into Rust without explicit conversion
+  // Prevents Dafny names to being directly integrated into Rust without explicit conversion
   // Make it a newtype once newtypes are compatible with standard library
   // See issue https://github.com/dafny-lang/dafny/issues/5345
   datatype Name = Name(dafny_name: string)
@@ -192,7 +192,7 @@ module {:extern "DAST"} DAST {
       }
     }
 
-    // Works well without diamond inheritance. If the case arise, we will need to memoize this function
+    // Works well without diamond inheritance. If the case arises, we will need to memoize this function
     // or ensure extendedTypes contains all supertypes.
     predicate Extends(other: Type)
       ensures this.Extends(other) ==> other < this

@@ -8,7 +8,7 @@ Dafny is an Open Source project and welcomes contributions.
 Before reporting an issue here, consider whether it would be better handled in one of the following places:
 
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/dafny), an online Q&A website, for help with writing and proving Dafny programs.
-- [`dafny-lang/ide-vscode`](https://github.com/dafny-lang/ide-vscode), Dafny's VSCode plugin, for issues or feature requests specific to the plugin itself. Issues with the LSP should be reported to [`dafny-lang/dafny](https://github.com/dafny-lang/dafny/issues).
+- [`dafny-lang/ide-vscode`](https://github.com/dafny-lang/ide-vscode), Dafny's VSCode plugin, for issues or feature requests specific to the plugin itself. Issues with the LSP should be reported to [`dafny-lang/dafny`](https://github.com/dafny-lang/dafny/issues).
 - [`boogie-org/boogie-friends`](https://github.com/boogie-org/boogie-friends/), Dafny's Emacs mode, for Emacs-specific problems.
 - [`boogie-org/boogie`](https://github.com/boogie-org/boogie), Dafny's intermediate verification language, for questions and issues specific to Boogie.
 
@@ -38,7 +38,7 @@ is properly working.
 
   - Dafny's integration tests are in [this directory](Source/IntegrationTests/TestFiles/LitTests/LitTest).  PRs that fix issues reported on GitHub should include a test under [`git-issues/`](Source/IntegrationTests/TestFiles/LitTests/LitTest/git-issues/).
 
-    Each `.dfy` file in this directory is a test, with a  [`lit`](https://llvm.org/docs/CommandGuide/lit.html) header describing how to run it and a `.expect` file indicating the expected output.  See [this README.md file](Source/IntegrationTests/TestFiles/LitTests/LitTest/README.md) for more info on running Dafny' integration tests.
+    Each `.dfy` file in this directory is a test, with a  [`lit`](https://llvm.org/docs/CommandGuide/lit.html) header describing how to run it and a `.expect` file indicating the expected output.  See [this README.md file](Source/IntegrationTests/TestFiles/LitTests/LitTest/README.md) for more info on running Dafny's integration tests.
 
   - Dafny's unit tests are in various `*.Test` directories in [`Source`](./Source).
 

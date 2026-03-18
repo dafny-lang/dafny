@@ -84,7 +84,7 @@ all the supporting runtime library routines are included as well.
 The second command then uses `python` to execute the `main()` method in
 `Demo2x.py`, which imports the module `M` from `Demo2` and calls `M.C.p()`.
 
-To call python from Dafny, one must edit the trnaslation of the `.dfy` file to 
+To call python from Dafny, one must edit the translation of the `.dfy` file to 
 add the needed imports.
 
 ## **Matching Dafny and Python types**

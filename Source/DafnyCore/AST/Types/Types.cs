@@ -2112,7 +2112,7 @@ public class SelfType : NonProxyType {
       return t;
     } else {
       // SelfType's are used only in certain restricted situations. In those situations, we need to be able
-      // to substitute for the the SelfType's TypeArg. That's the only case in which we expect to see a
+      // to substitute for the SelfType's TypeArg. That's the only case in which we expect to see a
       // SelfType being part of a substitution operation at all.
       Contract.Assert(false); throw new Cce.UnreachableException();
     }

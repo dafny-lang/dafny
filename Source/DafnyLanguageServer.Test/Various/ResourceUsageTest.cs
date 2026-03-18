@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
-[Collection("Sequential Collection")] // Because this a performance test, we can't run in in parallel with others
+[Collection("Sequential Collection")] // Because this a performance test, we can't run it in parallel with others
 public class ResourceUsageTest : ClientBasedLanguageServerTest {
 
   [Fact]

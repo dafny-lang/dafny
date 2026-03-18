@@ -64,7 +64,7 @@ public class ExpressionTester {
   /// conditions that decide whether or not to return the value of this expression. For example, if the
   /// expression
   ///     if E then F else 2 + G
-  /// is considered "insideBranchesOnly", then so if "F", but not "E" or "G".
+  /// is considered "insideBranchesOnly", then so is "F", but not "E" or "G".
   /// </summary>
   private bool CheckIsCompilable(Expression expr, ICodeContext codeContext, bool insideBranchesOnly = false) {
     Contract.Requires(expr != null);
@@ -374,7 +374,7 @@ public class ExpressionTester {
 
   /// <summary>
   /// This method determines if it's possible, at run time, to test if something whose static type is "fromType"
-  /// is of type "toType". This information is need for "is" expressions and comprehension expressions. By the
+  /// is of type "toType". This information is needed for "is" expressions and comprehension expressions. By the
   /// time that this method is called, it has already been determined that the use is legal by the type system;
   /// this method performs the additional check of compilability, which is needed in non-ghost contexts.
   ///
@@ -385,7 +385,7 @@ public class ExpressionTester {
   /// the run-time type tests consists simply of a non-null check. Else, if "toType" is a type parameter, then we
   /// never allow the check in compiled code.
   ///
-  /// If those simple cases don't apply, there the compilability of the type test comes down to two remaining parts:
+  /// If those simple cases don't apply, then the compilability of the type test comes down to two remaining parts:
   ///
   /// 1. If "toType" is a subset type or newtype that involves constraints, then those constraints have to be compilable.
   /// (Actually, this could be improved in a future version of Dafny, because we're given that any constraints of

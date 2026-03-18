@@ -204,7 +204,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     }
 
     /// Emit code editing instructions to insert the given statement before the given insertion node
-    /// Wraps everything with parentheses if it requires isolationn, which is the case in expressions notably
+    /// Wraps everything with parentheses if it requires isolation, which is the case in expressions notably
     protected static IEnumerable<DafnyCodeActionEdit> PrefixWithStatement(Token start, Token end, bool needsIsolation, string statement) {
       if (needsIsolation) {
         statement = "(" + statement;
@@ -221,7 +221,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     }
 
     /// Emit code editing instructions to insert the given statement before the given insertion node
-    /// Wraps everything with parentheses if it requires isolationn, which is the case in expressions notably
+    /// Wraps everything with parentheses if it requires isolation, which is the case in expressions notably
     protected static IEnumerable<DafnyCodeActionEdit> ReplaceWith(Token tokenToReplace, string block) {
       var suggestedEdits = new List<DafnyCodeActionEdit> {
         new (Replace(tokenToReplace), block)

@@ -311,7 +311,7 @@ Examples: `123_456.789_123`, `1.23e5`, `123e-2`, `5e10`, `1.`, `.5`, `.25e-3`.
 ### 2.6.4. Escaped Character {#sec-escaped-characters}
 
 The `escapedChar` token is a multi-character sequence that denotes a non-printable or non-ASCII character.
-Such tokens begin with a backslash characcter (`\`) and denote
+Such tokens begin with a backslash character (`\`) and denote
  a single- or double-quote character, backslash,
 null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.

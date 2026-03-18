@@ -242,7 +242,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           if (ReferenceEquals(token, Token.NoToken)) {
             return;
           }
-          // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializating a variable
+          // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializing a variable
           // at declaration) cause duplicated visits. These cannot be prevented at this time as it seems there's no way
           // to distinguish nodes from automatically created one (i.e. nodes of the original syntax tree vs. nodes of the
           // abstract syntax tree). We just ignore such duplicates until more information is availabe in the AST.

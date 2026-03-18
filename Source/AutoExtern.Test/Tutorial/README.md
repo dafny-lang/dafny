@@ -16,7 +16,7 @@ generator to save some modeling effort.
   semantic information from it.
 
   `LinkedLists.cs`
-  `LinkedLists.cs`
+  `GroceryLists.cs`
     C# type definitions used by `Interop/Main.cs`.  The Dafny model for this part is generated automatically.
 
   `ExactArithmetic.cs`

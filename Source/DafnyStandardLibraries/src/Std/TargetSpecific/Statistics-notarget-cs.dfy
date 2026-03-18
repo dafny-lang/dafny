@@ -100,7 +100,7 @@ module Std.Statistics {
       (sorted[|a|/2 - 1] + sorted[|a|/2]) / 2.0
   }
 
-  // The function to get a map to store the occurences of elements
+  // The function to get a map to store the occurrences of elements
   function {:tailrecursion} FrequencyTable(s: seq<real>, m: map<real, int> := map[]): map<real, int>
     ensures m.Keys <= FrequencyTable(s, m).Keys
     ensures forall x :: x in s ==> x in FrequencyTable(s, m)

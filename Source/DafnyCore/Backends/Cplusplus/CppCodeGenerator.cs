@@ -493,7 +493,7 @@ namespace Microsoft.Dafny.Compilers {
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
-                // This is a recursive destuctor, so we need to allocate space and copy the input in
+                // This is a recursive destructor, so we need to allocate space and copy the input in
                 wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", arg.CompileName,
                   DtT_protected);
               } else {
@@ -557,7 +557,7 @@ namespace Microsoft.Dafny.Compilers {
               if (!arg.IsGhost && arg.HasName) {
                 var returnType = TypeName(arg.Type, ws, arg.Origin);
                 if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
-                  // This is a recursive destuctor, so return a pointer
+                  // This is a recursive destructor, so return a pointer
                   returnType = String.Format("std::shared_ptr<{0}>", returnType);
                 }
 
@@ -1084,7 +1084,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else {
             // non-null (non-array) type
-            // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
+            // even though the type doesn't necessarily have a known initializer, it could be that the compiler needs to
             // lay down some bits to please the C++ compiler's different definite-assignment rules.
             return "nullptr";
           }

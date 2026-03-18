@@ -286,7 +286,7 @@ method m(i: int)
 ```
 
 The syntax `f(a,b,c)` is an example of a call of a function or method `f`, with, in this case,
-three actual arguments, which must correespond to the formal arguments in the definition of `f`.
+three actual arguments, which must correspond to the formal arguments in the definition of `f`.
 This syntax is only legal in an expression if the expression prior to the left parenthesis is a function,
 and not something else. It need not be just an identifier; it could be a expression, such
 as a lambda expression: `((f:int)=>42)(1)`.
@@ -732,7 +732,7 @@ collection of that type.
 function ff(j: map<int,int>): map<int,int> { j * j }
 ```
 
-The `*` operator is defined to either multiply numeric vales or take the interesection of sets and multisets.
+The `*` operator is defined to either multiply numeric values or take the intersection of sets and multisets.
 
 ## **Error: type of left argument to * (_type_) must agree with the result type (_type_)**
 

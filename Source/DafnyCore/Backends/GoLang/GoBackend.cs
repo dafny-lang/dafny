@@ -115,7 +115,7 @@ public class GoBackend : ExecutableBackend {
 
     // Dafny used to compile to the old Go package system only, but Go has moved on to a module
     // system. Although compiler has moved to new system, it still doesn't generate the go.mod file which
-    // is required by go run. It also supports backwards compatability with GOPATH hence those env variables
+    // is required by go run. It also supports backwards compatibility with GOPATH hence those env variables
     // are still being used while running in GOPATH mode.
     if (GoModuleMode) {
       Reporter.Info(MessageSource.Compiler, Token.Cli, "go build/run skipped in Go Module Mode");

@@ -172,7 +172,7 @@ public partial class BoogieGenerator {
           //     then everything will be provable if x' is of a known-empty type. Instead, the well-formedness
           //     check is wrapped inside an "if" whose guard is the type antecedent. After the existence
           //     check, the type antecedent is assumed of the original x, the RHS is assumed, and x is
-          //     marked off has having been definitely assigned.
+          //     marked off as having been definitely assigned.
           //
           // So, the Dafny statement
           //     E.f, x :| RHS(x);

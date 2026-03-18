@@ -602,7 +602,7 @@ namespace Microsoft.Dafny {
           if (e is ExistsExpr && BoogieGenerator.stmtContext == StmtType.ASSERT && BoogieGenerator.adjustFuelForExists) {
             // assert exists need decrease fuel by 1
             bodyEtran = bodyEtran.DecreaseFuel(1);
-            // set adjustFuelForExists to false so that we don't keep decrease the fuel in cases like the expr below.
+            // set adjustFuelForExists to false so that we don't keep decreasing the fuel in cases like the expr below.
             // assert exists p:int :: exists t:T :: ToInt(t) > 0;
             BoogieGenerator.adjustFuelForExists = false;
           } else if (e is ExistsExpr && BoogieGenerator.stmtContext == StmtType.ASSUME && BoogieGenerator.adjustFuelForExists) {
@@ -1406,7 +1406,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         // As a special case, when there are no cases at all (which, in a correct program, means the
         // match expression is unreachable), the translation is:
         //   t
-        // where is "t" is some value (in particular, the default value) of the expected type.
+        // where "t" is some value (in particular, the default value) of the expected type.
         Expression r = null;
         for (int i = e.Cases.Count; 0 <= --i;) {
           var mc = e.Cases[i];
