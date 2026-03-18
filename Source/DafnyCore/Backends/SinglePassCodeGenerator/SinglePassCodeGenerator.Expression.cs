@@ -369,7 +369,7 @@ namespace Microsoft.Dafny.Compilers {
               //        var x,y;
               //        // Embark on computation that fills in x,y according to Constraint; the computation stops when the first
               //        // such value is found, but since the verifier checks that x,y follows uniquely from Constraint, this is
-              //        // not a source of nondeterminancy.
+              //        // not a source of nondeterminacy.
               //        return E;
               //      })
               Contract.Assert(e.RHSs.Count == 1); // checked by resolution

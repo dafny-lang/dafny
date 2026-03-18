@@ -35,7 +35,7 @@ public class RunAllTestsMainMethod : IRewriter {
   /// </summary>
   internal override void PreResolve(Program program) {
 
-    // Verifying the method isn't yet possible since the translation of try/recover statments is not implemented,
+    // Verifying the method isn't yet possible since the translation of try/recover statements is not implemented,
     // and would be low-value anyway.
     var noVerifyAttribute = new Attributes("verify", [new LiteralExpr(Token.NoToken, false)], null);
 

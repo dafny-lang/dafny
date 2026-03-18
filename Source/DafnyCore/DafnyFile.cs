@@ -142,7 +142,7 @@ public class DafnyFile {
     if (!fileSystem.Exists(uri)) {
       if (0 < options.VerifySnapshots) {
         // For snapshots, we first create broken DafnyFile without content,
-        // then look for the real files and create DafnuFiles for them.
+        // then look for the real files and create DafnyFiles for them.
         return new DafnyFile(DafnyFileExtension, canonicalPath, baseName, null!, uri, origin, null!);
       }
 
@@ -171,7 +171,7 @@ public class DafnyFile {
   }
 
   /// <summary>
-  /// Technically only for C#, this is for backwards compatability
+  /// Technically only for C#, this is for backwards compatibility
   /// </summary>
   private static DafnyFile? HandleDll(DafnyOptions parseOptions, Uri uri, IOrigin origin) {
 

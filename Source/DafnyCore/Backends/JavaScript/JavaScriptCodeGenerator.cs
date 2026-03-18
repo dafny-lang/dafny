@@ -1031,7 +1031,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else {
             // non-null (non-array) type
-            // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
+            // even though the type doesn't necessarily have a known initializer, it could be that the compiler needs to
             // lay down some bits to please the C#'s compiler's different definite-assignment rules.
             return "null";
           }

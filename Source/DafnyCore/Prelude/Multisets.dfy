@@ -10,7 +10,7 @@ module {:extract_boogie} Multisets {
   // The reason for doing so was to obtain the Boogie map-update operation for free (in addition
   // to the map-select operation, of course). However, there are probably stronger reasons
   // to just define it as an uninterpreted type, which is what the effect of this
-  // :extract_boogie_name annotation will have. Instead of Boogie's map-select and map-udate operators,
+  // :extract_boogie_name annotation will have. Instead of Boogie's map-select and map-update operators,
   // the model here uses functions Multiplicity and UpdateMultiplicity, respectively.
   // See also Sets.dfy and the "IsMember" predicate in that file.
   type {:extract_boogie_name "MultiSet"} Multiset = m: List<Box> | Increasing(m) witness Nil

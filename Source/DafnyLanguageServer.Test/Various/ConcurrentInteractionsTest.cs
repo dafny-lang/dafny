@@ -168,7 +168,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
     public async Task CanLoadMultipleDocumentsConcurrently() {
       // The current implementation of DafnyLangParser, DafnyLangSymbolResolver, and DafnyProgramVerifier are only mutual
       // exclusive to themselves. This "stress test" ensures that loading multiple documents at once is possible.
-      // To be more specific, this test should ensure that there is no state discarded/overriden between the three steps within
+      // To be more specific, this test should ensure that there is no state discarded/overridden between the three steps within
       // the Dafny Compiler itself.
       int documentsToLoadConcurrently = 50;
       var source = @"

@@ -348,7 +348,7 @@ whether a trait value is of a particular class type. That is, the expression
 in effect checks the allocated type of a trait.
 
 The RHS type of an `is` expression can always be a supertype of the type of the LHS
-expression, in which case the result is trivally true. 
+expression, in which case the result is trivially true. 
 Other than that, the RHS must be based on a reference type and the
 LHS expression must be assignable to the RHS type. Furthermore, in order to be
 compilable, the RHS type must not be a subset type other than a non-null reference
@@ -1810,7 +1810,7 @@ a, b
 ```
 
 An expression list is a comma-separated sequence of expressions, used, for example,
-as actual araguments in a method or function call or in parallel assignment.
+as actual arguments in a method or function call or in parallel assignment.
 
 ## 9.36. Parameter Bindings ([grammar](#g-parameter-bindings)) {#sec-parameter-bindings}
 

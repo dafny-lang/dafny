@@ -183,7 +183,7 @@ improves readability but does not alter program semantics.
 `dafny` is a conventional command-line tool, operating just like other
 command-line tools in Windows and Unix-like systems.
 In general, the format of a command-line is determined by the shell program that is executing the command-line 
-(.e.g., bash, the windows shell, COMMAND, etc.), 
+(e.g., bash, the Windows shell, COMMAND, etc.), 
 but is expected to be a series of space-separated "words", each representing a command, option, option argument, file, or folder. 
 
 ### 13.6.1. dafny commands {#sec-dafny-commands}
@@ -365,7 +365,7 @@ As with `dafny translate`, all the previous phases are also executed, including 
 By default, the generated file is in the same directory and has the same name with a different extension as the first
 .dfy file on the command line. This location and name can be set by the `--output` option.
 
-The location of the `Main` entry point is described [here](#sec-user-guide-main}.
+The location of the `Main` entry point is described [here](#sec-user-guide-main).
 
 There are no additional options for `dafny build` beyond those for `dafny translate` and the previous compiler phases.
 
@@ -381,7 +381,7 @@ Note that `dafny run` is engineered to quickly compile and launch the program;
 
 The form of the `dafny run` command-line is slightly different than for other commands.
 - It permits just one `.dfy` file, which must be the file containing the `Main` entry point;
-the location of the `Main` entry point is described [here](#sec-user-guide-main}.
+the location of the `Main` entry point is described [here](#sec-user-guide-main).
 - Other files are included in the program either by `include` directives within that one file or by 
 the `--input` option on the command-line. 
 - Anything that is not an option and is not that one dfy file
@@ -513,7 +513,7 @@ In particular, it accepts the `--target` option that specifies the programming l
 - `--output` - gives the folder and filename root for compilation artifacts
 - `--methods-to-test` - the value is a (.NET) regular expression that is matched against the fully
   qualified name of the method; only those methods that match are tested
-- `--coverage-report` - the value is a directory in which Dafny will save an html coverage report highlighting parts of
+- `--coverage-report` - the value is a directory in which Dafny will save an HTML coverage report highlighting parts of
   the program that execution of the tests covered.
 
 The order in which the tests are run is not specified.
@@ -739,7 +739,7 @@ The following is a list of command-line-options supported by Dafny during test g
   maps and sets that test generation will consider as valid test inputs. This can sometimes be necessary to 
   prevent test generation from creating unwieldy tests with excessively long strings or large maps. This option is
   disabled by default
-- `--coverage-report` - the value is a directory in which Dafny will save an html coverage report highlighting parts of
+- `--coverage-report` - the value is a directory in which Dafny will save an HTML coverage report highlighting parts of
   the program that the generated tests are expected to cover.
 - `--print-bpl` - the value is the name of the file to which Dafny will save the Boogie code used for generating tests.
   This options is mostly useful for debugging test generation functionality itself.
@@ -883,7 +883,7 @@ In this section, we suggest a methodology to figure out [why Dafny cannot prove 
 ### 13.7.1. Verification debugging when verification fails {#sec-verification-debugging}
 
 Let's assume one assertion is failing ("assertion could not be proved" or "postcondition could not be proved"). What should you do next?
-First, it's good to know that if an assertion is failing, it means that the assertion might not hold or that Dafny would requires more proof hints, which can be found in a mechanical way.
+First, it's good to know that if an assertion is failing, it means that the assertion might not hold or that Dafny would require more proof hints, which can be found in a mechanical way.
 
 The following section is textual description of the animation below, which illustrates the principle of debugging an assertion by computing the weakest precondition:  
 ![weakestpreconditionDemo](https://user-images.githubusercontent.com/3601079/157976402-83fe4d37-8042-40fc-940f-bcfc235c7d2b.gif)
@@ -1048,7 +1048,7 @@ This list is not exhaustive but can definitely be useful to provide the next ste
 #### 13.7.1.4. Counterexamples {#sec-counterexamples}
 
 When verification fails, we can rerun Dafny with `--extract-counterexample` flag to get a counterexample that can potentially explain the proof failure.
-Note that Danfy cannot guarantee that the counterexample it reports provably violates the assertion it was generated for (see [^smt-encoding])
+Note that Dafny cannot guarantee that the counterexample it reports provably violates the assertion it was generated for (see [^smt-encoding])
 The counterexample takes the form of assumptions that can be inserted into the code to describe the potential conditions under which the given assertion is violated. 
 This output should be inspected manually and treated as a hint.
 
@@ -2345,13 +2345,13 @@ and what information it produces about the verification process.
   by placing the attribute [`{:disable-nonlinear-arithmetic}`](#sec-disable-nonlinear-arithmetic) after the module keyword.
   The attribute optionally takes the value `false` to enable nonlinear arithmetic.
 
-* `--manual-lemma-induction` - disables automatic inducntion for lemmas
+* `--manual-lemma-induction` - disables automatic induction for lemmas
 
 * `--isolate-assertions` - verify assertions individually
 
 * `--extract-counterexample` - if verification fails, report a potential
   counterexample as a set of assumptions that can be inserted into the code.
-  Note that Danfy cannot guarantee that the counterexample
+  Note that Dafny cannot guarantee that the counterexample
   it reports provably violates the assertion or that the assumptions are not
   mutually inconsistent (see [^smt-encoding]), so this output should be inspected manually and treated as a hint.
 
@@ -2673,7 +2673,7 @@ terminology.
 
 * `--solver-path` - specifies a custom SMT solver to use
 
-* `--solver-plugin` - specifies a plugin to use as the SMT solver, instead of an external pdafny translaterocess
+* `--solver-plugin` - specifies a plugin to use as the SMT solver, instead of an external process
 
 * `--boogie` - arguments to send to boogie
 

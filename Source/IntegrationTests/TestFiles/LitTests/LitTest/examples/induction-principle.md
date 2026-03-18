@@ -689,7 +689,7 @@ Assign(avar: string, aval: Expr)             -->   Assign(avars: seq<string>, av
 **Note:** In the [code development](induction-principle/AST.dfy), we actually rename `Expr` to `Expr_Raw` and define
 `Expr` as a subset type of `Expr_Raw` to enforce the fact that in the `Assign` and `Bind`
 cases, we have the same number of variables in the left-hand side as of expressions in
-the righ-hand side.
+the right-hand side.
 
 Updating the interpreter and the induction principle is then
 straightforward. Interestingly, the proofs using the induction principle (`VarUnchanged`,

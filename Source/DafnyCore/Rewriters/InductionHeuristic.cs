@@ -85,7 +85,7 @@ public static class InductionHeuristic {
           // The argument position is considered to be "variant" if the function is recursive and...
           // ... it has something to do with why the callee is well-founded, which happens when...
           if (f is ImplicitFormal) {
-            // ... it is the argument is the implicit _k parameter, which is always first in the effective decreases clause of a prefix lemma, or
+            // ... the argument is the implicit _k parameter, which is always first in the effective decreases clause of a prefix lemma, or
             variantArgument = true;
           } else if (decr.Exists(ee => FreeVariablesUtil.ContainsFreeVariable(ee, false, f))) {
             // ... it participates in the effective decreases clause of the function, which happens when it is

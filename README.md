@@ -14,7 +14,7 @@ Dafny also offers an extensive toolbox for mathematical proofs, such as [unbound
 
 ![Dafny](docs/images/dafny-logo-230.png)
 
-This github site contains these materials:
+This GitHub site contains these materials:
 
 * sources
 * [binary downloads](https://github.com/dafny-lang/dafny/releases) for Windows, macOS, GNU/Linux, and FreeBSD
@@ -27,7 +27,7 @@ A reference manual is available both [online](https://dafny-lang.github.io/dafny
 
 ## Community
 
-Feel free to report issues here on GitHub or to ask for questions on our :speech_balloon: [Zulip](https://dafny.zulipchat.com/) channel. 
+Feel free to report issues here on GitHub or to ask questions on our :speech_balloon: [Zulip](https://dafny.zulipchat.com/) channel. 
 
 ## Try Dafny
 
@@ -58,7 +58,7 @@ Here are some ways to get started with Dafny:
 
 The language itself draws pieces of influence from:
 
-* Euclid (from the mindset of a designing a language whose programs are to be verified),
+* Euclid (from the mindset of designing a language whose programs are to be verified),
 * Eiffel (like the built-in contract features),
 * CLU (like its iterators, and inspiration for the out-parameter syntax),
 * Java, C#, and Scala (like the classes and traits, and syntax for functions),
@@ -78,5 +78,5 @@ Information and instructions for potential contributors are provided [here](CONT
 ## License
 
 Dafny itself is licensed under the MIT license. (See `LICENSE.txt` in the root
-directory for details.) The subdirectory `Source/Dafny/Coco` contains third
+directory for details.) The subdirectory `Source/DafnyCore/Coco` contains third
 party material; see `Source/DafnyCore/Coco/LICENSE.txt` for more details.

@@ -92,7 +92,7 @@ module TestStatistics {
     expect Mode([1.0, 2.0, 2.0, 3.0]) == 2.0;
   }
 
-  // Testcase for checking mode with multiple occurences for multiple elements
+  // Testcase for checking mode with multiple occurrences for multiple elements
   method {:test} Test_Mode_Multiple() {
     expect Mode([5.0, 5.0, 7.0, 7.0, 7.0, 9.0]) == 7.0;
   }
@@ -102,7 +102,7 @@ module TestStatistics {
     expect Mode([42.0]) == 42.0;
   }
 
-  // Testcase for checking mode for equal occurences for 2 elements
+  // Testcase for checking mode for equal occurrences for 2 elements
   method {:test} Test_Mode_Equal() {
     expect Mode([ 6.0, 6.0, 4.0, 4.0]) == 6.0;
   }
