@@ -34,11 +34,16 @@ public abstract class TypeDescriptor<T> {
     public abstract TypeDescriptor<?> arrayType();
 
     public final Object newArray(int length) {
-        // Unlike most others, this Array operation is fast
+        if (!unboxedClass.isPrimitive()) {
+            return new Object[length];
+        }
         return java.lang.reflect.Array.newInstance(unboxedClass, length);
     }
 
     public final Object newArray(int ... dims) {
+        if (!unboxedClass.isPrimitive()) {
+            return new Object[dims[0]];
+        }
         return java.lang.reflect.Array.newInstance(unboxedClass, dims);
     }
 

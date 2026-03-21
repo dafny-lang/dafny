@@ -1,0 +1,1 @@
+Fix `TypeDescriptor.newArray()` to avoid reflection for reference types, fixing GraalVM native-image builds that use Dafny sequences
