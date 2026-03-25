@@ -381,7 +381,7 @@ namespace Microsoft.Dafny {
             // prefix lemmas end up as CallStmt's by the end of resolution and they may need to be printed here.
             var s = callStmt;
             PrintExpression(s.MethodSelect, false);
-            PrintActualArguments(s.Bindings, s.Method.Name, null);
+            PrintActualArguments(s.Bindings, s.Method.Name, null, parensAroundArgList: false);
             break;
           }
         case VarDeclStmt declStmt: {
