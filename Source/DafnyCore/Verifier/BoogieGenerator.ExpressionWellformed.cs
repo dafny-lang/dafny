@@ -535,6 +535,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(false);
             }
 
+            CheckResultToBeInType(e.Origin, e, e.Type, locals, builder, etran);
             break;
           }
         case ApplyExpr applyExpr: {
@@ -941,6 +942,7 @@ namespace Microsoft.Dafny {
             CheckWellformed(e.Initializer, wfOptions, locals, builder, etran);
             var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg;
             CheckElementInit(e.Origin, false, [e.N], eType, e.Initializer, null, builder, etran, wfOptions);
+            CheckResultToBeInType(e.Origin, e, e.Type, locals, builder, etran);
             break;
           }
         case MultiSetFormingExpr formingExpr: {
