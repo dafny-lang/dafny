@@ -319,6 +319,12 @@ namespace Microsoft.Dafny {
       } else if (!CloneResolvedFields && attrs.Name.StartsWith("_")) {
         // skip this attribute, since it would have been produced during resolution
         return CloneAttributes(attrs.Prev);
+      } else if (!CloneResolvedFields && attrs.IsResolverGenerated) {
+        // Skip attributes produced by the resolver or a rewriter (e.g. auto-generated
+        // {:trigger} attributes). Their args may contain post-resolution expression
+        // types that the refined module's re-resolution cannot handle. The trigger
+        // selection pass will re-generate them for the refined module.
+        return CloneAttributes(attrs.Prev);
       } else if (attrs is UserSuppliedAttributes usa) {
         return new UserSuppliedAttributes(Origin(usa.Origin), Origin(usa.OpenBrace), Origin(usa.CloseBrace),
           attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
@@ -332,7 +338,9 @@ namespace Microsoft.Dafny {
           Builtin = usaa.Builtin
         };
       } else {
-        var result = new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
+        var result = new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev)) {
+          IsResolverGenerated = attrs.IsResolverGenerated
+        };
         result.SetOrigin(Origin(attrs.Origin));
         return result;
       }
