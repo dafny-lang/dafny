@@ -1,0 +1,1 @@
+No longer crash when a class overrides a function from a generic trait whose `const` default value calls a static function
