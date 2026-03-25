@@ -91,7 +91,9 @@ Use '--print' to output the content of the formatted files instead of overwritin
       string tempFileName = null;
       if (dafnyFile.Uri.Scheme == "stdin") {
         tempFileName = Path.GetTempFileName() + ".dfy";
-        SynchronousCliCompilation.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
+        var stdinContent = dafnyFile.GetContent();
+        var stdinText = await stdinContent.Reader.ReadToEndAsync();
+        SynchronousCliCompilation.WriteFile(tempFileName, stdinText);
         dafnyFile = DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance, new ConsoleErrorReporter(options), options, new Uri(tempFileName), Token.NoToken);
       }
 
@@ -106,11 +108,11 @@ Use '--print' to output the content of the formatted files instead of overwritin
         await errorWriter.WriteLineAsync(err);
         failedToParseFiles.Add(dafnyFile.BaseName);
       } else {
-        var firstToken = dafnyProgram.GetFirstTokenForUri(file.Uri);
+        var firstToken = dafnyProgram.GetFirstTokenForUri(dafnyFile.Uri);
         var result = originalText;
         if (firstToken != null) {
           result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
-            IndentationFormatter.ForProgram(dafnyProgram, file.Uri));
+            IndentationFormatter.ForProgram(dafnyProgram, dafnyFile.Uri));
           if (result != originalText) {
             neededFormatting += 1;
             if (doCheck) {
