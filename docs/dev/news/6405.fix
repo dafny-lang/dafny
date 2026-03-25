@@ -1,0 +1,1 @@
+`ensures false` can no longer be proved via a `match` or `var` expression in the ensures clause of a recursive function (soundness)
