@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// When Dafny reaches a bad state, this can be used to provide debugging information.  
+    /// When Dafny reaches a bad state, this can be used to provide debugging information.
     /// </summary>
     void Exception(string message);
 
@@ -456,7 +456,7 @@ namespace Microsoft.Dafny {
 
     public bool AuditProgram = false;
 
-    public static string DefaultZ3Version = "4.12.1";
+    public static string DefaultZ3Version = "4.15.4";
     // Not directly user-configurable, only recorded once we discover it
     public string SolverIdentifier { get; private set; }
     public Version SolverVersion { get; set; }
@@ -948,7 +948,7 @@ namespace Microsoft.Dafny {
     public override string AttributeHelp =>
       @"Dafny: The documentation about attributes is best viewed here:
       https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-attributes
-      
+
      The following attributes are supported by this version.
     {:extern}
     {:extern <s1:string>}
@@ -977,7 +977,7 @@ namespace Microsoft.Dafny {
     {:compile}
       The {:compile} attribute takes a boolean argument. It may be applied to any top-level declaration.
       If that argument is false, then that declaration will not be compiled at all.
-      
+
       The difference with {:extern} is that {:extern} will still emit declaration code if necessary,
       whereas {:compile false} will just ignore the declaration for compilation purposes.
 
@@ -1089,7 +1089,7 @@ namespace Microsoft.Dafny {
 
       Caution: This loophole is unsound; that is, if a cross-module dynamic
       dispatch fails to terminate, then this and other errors in the program
-      may have been overlooked by the verifier.       
+      may have been overlooked by the verifier.
 
       The meaning of `{:termination false}` is defined only on trait declarations.
       It has no meaning if applied to other declarations.
@@ -1151,11 +1151,11 @@ namespace Microsoft.Dafny {
       Hence, sometimes, if allowed to do so (e.g. no `{:opaque}`),
       Dafny will inline the predicate, resulting in, for example,
       `assert 6 % 2 == 0`.
-      
+
       Adding the attribute `{:no_inline}` to a function will prevent
       the Dafny verifier from inlining it, but unless the function is
       `{:opaque}` its definition will still be available.
-      
+
       This trick can be helpful, for a huge conjunct predicate `P`,
       assuming that `P(x)` already hold, if we don't want `P`
       to be opaque, and we `assert P(x)` again. Inlining might result
