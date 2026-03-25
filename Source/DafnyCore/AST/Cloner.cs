@@ -319,6 +319,13 @@ namespace Microsoft.Dafny {
       } else if (!CloneResolvedFields && attrs.Name.StartsWith("_")) {
         // skip this attribute, since it would have been produced during resolution
         return CloneAttributes(attrs.Prev);
+      } else if (!CloneResolvedFields && attrs.Name == "trigger" &&
+                 attrs.Args.Exists(a => a is ParensExpression pe && pe.E is FunctionCallExpr or MemberSelectExpr)) {
+        // skip resolver-generated trigger attributes whose arguments contain
+        // post-resolution expression types that can't be properly cloned.
+        // User-written {:trigger} attributes have ApplySuffix/NameSegment args.
+        // The trigger selection pass will re-generate triggers for the refined module.
+        return CloneAttributes(attrs.Prev);
       } else if (attrs is UserSuppliedAttributes usa) {
         return new UserSuppliedAttributes(Origin(usa.Origin), Origin(usa.OpenBrace), Origin(usa.CloseBrace),
           attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
