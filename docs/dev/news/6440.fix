@@ -1,1 +1,1 @@
-Fix `TypeDescriptor.newArray()` to avoid reflection for reference types, fixing GraalVM native-image builds that use Dafny sequences
+TypeDescriptor.newArray() no longer uses reflection for reference types, removing the need for array type registration in some Java runtimes
