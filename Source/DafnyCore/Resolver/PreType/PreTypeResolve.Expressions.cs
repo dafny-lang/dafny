@@ -1127,7 +1127,10 @@ namespace Microsoft.Dafny {
       var resolved = new SetComprehension(tok, true, [bv],
         new BinaryExpr(tok, BinaryExpr.Opcode.In, termExpr, collection),
         term);
-      resolved.Attributes = new Attributes("trigger", [term], new Attributes("trigger", [trigger], null));
+      resolved.Attributes = new Attributes("trigger", [term],
+        new Attributes("trigger", [trigger], null) { IsResolverGenerated = true }) {
+        IsResolverGenerated = true
+      };
       return resolved;
     }
 

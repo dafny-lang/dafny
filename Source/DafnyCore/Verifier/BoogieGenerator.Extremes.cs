@@ -288,7 +288,7 @@ public partial class BoogieGenerator {
       ppCall.TypeApplication_AtEnclosingClass = pp.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       ppCall.TypeApplication_JustFunction = pp.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
 
-      Attributes triggerAttr = new Attributes("trigger", [ppCall], null);
+      Attributes triggerAttr = new Attributes("trigger", [ppCall], null) { IsResolverGenerated = true };
       Expression limitCalls;
       if (pp.ExtremePred is GreatestPredicate) {
         // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)

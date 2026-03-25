@@ -178,7 +178,7 @@ public class InferDecreasesClause {
           Type = Type.Bool
         };
         var s = new SetComprehension(e.Origin, true, [bvDecl], bvInE, bv,
-          new Attributes("trigger", [bvInE], null)) {
+          new Attributes("trigger", [bvInE], null) { IsResolverGenerated = true }) {
           Type = resolver.SystemModuleManager.ObjectSetType(),
           Bounds = [boundedPool]
         };
