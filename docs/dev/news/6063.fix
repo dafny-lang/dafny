@@ -1,0 +1,1 @@
+No longer crash when using `assigned()` with `--relax-definite-assignment`
