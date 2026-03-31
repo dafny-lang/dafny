@@ -755,7 +755,9 @@ namespace Microsoft.Dafny {
             if (name == null) {
               return Expr.True;
             }
-            BoogieGenerator.DefiniteAssignmentTrackers.TryGetValue(name, out var defass);
+            if (!BoogieGenerator.DefiniteAssignmentTrackers.TryGetValue(name, out var defass)) {
+              return Expr.True;
+            }
             return defass;
           default:
             Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
