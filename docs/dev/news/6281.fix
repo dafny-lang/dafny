@@ -1,0 +1,1 @@
+`--log-format text` no longer throws `OverflowException` on programs with very large resource counts
