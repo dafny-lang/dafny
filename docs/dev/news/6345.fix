@@ -1,0 +1,1 @@
+No longer crash when using a named class constructor (e.g. `new C.Init(x)`) inside a `match` case
