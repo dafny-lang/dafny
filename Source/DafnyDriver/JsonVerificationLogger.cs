@@ -89,7 +89,7 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
       ["name"] = scope.Name,
       ["outcome"] = SerializeOutcome(results.Aggregate(VcOutcome.Correct, (o, r) => MergeOutcomes(o, r.Result.Outcome))),
       ["runTime"] = SerializeTimeSpan(TimeSpan.FromSeconds(results.Sum(r => r.Result.RunTime.Seconds))),
-      ["resourceCount"] = results.Sum(r => r.Result.ResourceCount),
+      ["resourceCount"] = results.Sum(r => (long)r.Result.ResourceCount),
       ["vcResults"] = new JsonArray(results.Select(r => SerializeVcResult(dependencyManager, potentialDependencies, r)).ToArray())
     };
     if (potentialDependencies is not null) {
