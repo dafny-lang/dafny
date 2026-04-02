@@ -1,0 +1,1 @@
+No longer crash when a `forall` expression contains a single-constructor `match` whose bound variable is used as a sequence index
