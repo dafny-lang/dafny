@@ -89,6 +89,12 @@ class Release:
             for i in range(len(Z3_VERSIONS)):
                 if "4.8." in z3_zips[i]:
                     z3_zips[i] = z3_zips[i].replace("arm64", "x64")
+        # There are no arm windows builds until 4.12.6; specifically, there is none for 4.12.1
+        # x64 one will work just fine though
+        if self.platform == "arm64" and "windows" in self.os:
+            for i in range(len(Z3_VERSIONS)):
+                if "4.12.1" in z3_zips[i]:
+                    z3_zips[i] = z3_zips[i].replace("arm64", "x64")
 
         return z3_zips
 
@@ -290,7 +296,8 @@ def main():
     releases = [ Release("macos-14",       "x64", args.version, args.out),
                  Release("macos-14",     "arm64", args.version, args.out),
                  Release("ubuntu-22.04",   "x64", args.version, args.out),
-                 Release("windows-2022",   "x64", args.version, args.out) ]
+                 Release("windows-2022",   "x64", args.version, args.out),
+                 Release("windows-2022", "arm64", args.version, args.out) ]
     if args.os:
         releases = list(filter(lambda release: release.os_name == args.os, releases))
     if args.platform:
