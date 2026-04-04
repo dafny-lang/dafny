@@ -20,7 +20,7 @@ import ntpath
 # Configuration
 
 Z3_VERSIONS = [ "4.12.1", "4.14.1" ]
-Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02"
+Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2026-04-03"
 
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
@@ -83,18 +83,14 @@ class Release:
     def get_z3_zips(self):
         z3_zips = [ "z3-{}-{}-{}-bin.zip".format(z3_version, self.platform, self.os) for z3_version in Z3_VERSIONS ]
 
-        # There are no arm macOS builds for Z3 4.8.*
-        # x64 one will work just fine though
-        if self.platform == "arm64" and "macos" in self.os:
-            for i in range(len(Z3_VERSIONS)):
-                if "4.8." in z3_zips[i]:
-                    z3_zips[i] = z3_zips[i].replace("arm64", "x64")
-        # There are no arm windows builds until 4.12.6; specifically, there is none for 4.12.1
-        # x64 one will work just fine though
+        # Z3 4.12.1 has no arm64 windows build; use x64 (works under emulation)
+        # Z3 4.14.1 has a native arm64 build from windows-11-arm runner
         if self.platform == "arm64" and "windows" in self.os:
             for i in range(len(Z3_VERSIONS)):
                 if "4.12.1" in z3_zips[i]:
                     z3_zips[i] = z3_zips[i].replace("arm64", "x64")
+                else:
+                    z3_zips[i] = z3_zips[i].replace("windows-2022", "windows-11-arm")
 
         return z3_zips
 

@@ -26,7 +26,7 @@ jobs:
         - os:  'macos-14'
           osn: 'x64-macos-14'
         - os:  'windows-2022'
-          osn: 'windows-2022'
+          osn: 'x64-windows-2022'
     # There is no hosted environment for Ubuntu 14.04 or for debian
 
     # Java is installed by default, but we need to select 18
