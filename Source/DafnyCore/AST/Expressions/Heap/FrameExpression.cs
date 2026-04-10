@@ -7,7 +7,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class FrameExpression : NodeWithOrigin, IHasReferences {
-  public Expression OriginalExpression { get; } // may be a WildcardExpr
+  public Expression OriginalExpression { get; } // may be a WildcardExpr or DoubleWildcardExpr
   [FilledInDuringResolution] public Expression? DesugaredExpression; // may be null for modifies clauses, even after resolution
 
   /// <summary>
@@ -17,7 +17,7 @@ public class FrameExpression : NodeWithOrigin, IHasReferences {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(!(E is WildcardExpr) || (FieldName == null && Field == null));
+    Contract.Invariant(!(E is WildcardExpr or DoubleWildcardExpr) || (FieldName == null && Field == null));
   }
 
   public string? FieldName;
@@ -29,7 +29,7 @@ public class FrameExpression : NodeWithOrigin, IHasReferences {
   /// </summary>
   [SyntaxConstructor]
   public FrameExpression(IOrigin origin, Expression originalExpression, string? fieldName) : base(origin) {
-    Contract.Requires(!(originalExpression is WildcardExpr) || fieldName == null);
+    Contract.Requires(!(originalExpression is WildcardExpr or DoubleWildcardExpr) || fieldName == null);
     OriginalExpression = originalExpression;
     FieldName = fieldName;
   }

@@ -17,7 +17,7 @@ dependencies {
 }
 
 group = 'org.dafny'
-version = '4.10.1'
+version = '4.11.1'
 sourceCompatibility = '1.8'
 
 java {

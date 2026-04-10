@@ -88,13 +88,19 @@ on the command-line or referenced, recursively, by `include` directives
 within those files. It does not matter if files are repeated either as
 includes or on the command-line.[^fn-duplicate-files]
 
-All files recursively included are always parsed and type-checked.
-However, which files are verified, built, run, or processed by other
-dafny commands depends on the individual command. 
-These commands are described in [Section 13.6.1](#sec-dafny-commands).
+Note however that although the complete set of files, command-line plus
+included files, make up the program, by default, only those files listed on
+the command-line are verified. To do a complete verification, each file
+must be verified; it may well happen that a verification failure in one
+file (which is not on the command-line and thus not checked) may hide a
+verification failure in a file that is being checked.
+Thus it is important to eventually check all files, preferably in an order
+in which the files without dependencies are checked first, then those that
+depend on them, etc., until all files are checked.
+The `--verify-included-files` option (`-verifyAllModules` in legacy mode) will cause all modules, whether the result of include directives or not,
+to be verified.
 
-[^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
-For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
+[^fn-duplicate-files]: File names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
 ### 13.3.1. Dafny Verification Artifacts: the Library Backend and .doo Files {#sec-doo-files}
 
@@ -270,8 +276,8 @@ The options relevant to this command are
 - those that affect the syntax of Dafny, such as
    - `--prelude`
    - `--unicode-char`
-   - `--function-syntax` <version>
-   - `--quantifier-syntax` <version>
+   - `--function-syntax`
+   - `--quantifier-syntax`
    - `--track-print-effects`
    - `--warn-shadowing`
    - `--warn-missing-constructor-parentheses`
@@ -279,7 +285,8 @@ The options relevant to this command are
 
 #### 13.6.1.3. `dafny verify` {#sec-dafny-verify}
 
-The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each declaration in the program.
+The `dafny verify` command performs the [`dafny resolve`](#sec-dafny-resolve) checks and then attempts to verify each method in the files listed on the command line. Although the Dafny program being considered
+consists of the listed files and any included files (recursively), by default only listed files are verified.
 
 A guide to controlling and aiding the verification process is given in [a later section](#sec-verification).
 
@@ -310,10 +317,8 @@ Various options control the verification process, in addition to all those descr
    - `--filter-symbol`
 
 - Control of the proof engine
-   - `--manual-lemma-induction`
    - `--verification-time-limit`
    - `--boogie`
-   - `--solver-path`
 
 
 #### 13.6.1.4. `dafny translate <language>` {#sec-dafny-translate}
@@ -792,9 +797,8 @@ _This command is under development and not yet functional._
 #### 13.6.1.17. Plugins
 
 This execution mode is not a command, per se, but rather a command-line option that enables executing plugins to the dafny tool.
-Plugins may be either standalone tools or be additions to existing commands.
 
-The form of the command-line is `dafny --plugin:<path-to-one-assembly[,argument]*>` or `dafny <command> --plugin:<path-to-one-assembly[,argument]*>`
+The form of the command-line is `dafny --plugin:<path-to-one-assembly[,argument]*>`
 where the argument to `--plugin` gives the path to the compiled assembly of the plugin and the arguments to be provided to the plugin.
 
 More on writing and building plugins can be found [in this section](#sec-plugins).
@@ -874,11 +878,12 @@ It's not possible to use Dafny project files in combination with the legacy CLI 
 
 ## 13.7. Verification {#sec-verification}
 
-In this section, we suggest a methodology to figure out [why a single assertion might not hold](#sec-verification-debugging), we propose techniques to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches), and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
+In this section, we suggest a methodology to figure out [why Dafny cannot prove a single assertion](#sec-verification-debugging), we propose techniques to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches), and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
 
 ### 13.7.1. Verification debugging when verification fails {#sec-verification-debugging}
 
-Let's assume one assertion is failing ("assertion might not hold" or "postcondition might not hold"). What should you do next?
+Let's assume one assertion is failing ("assertion could not be proved" or "postcondition could not be proved"). What should you do next?
+First, it's good to know that if an assertion is failing, it means that the assertion might not hold or that Dafny would requires more proof hints, which can be found in a mechanical way.
 
 The following section is textual description of the animation below, which illustrates the principle of debugging an assertion by computing the weakest precondition:  
 ![weakestpreconditionDemo](https://user-images.githubusercontent.com/3601079/157976402-83fe4d37-8042-40fc-940f-bcfc235c7d2b.gif)
@@ -893,7 +898,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   var j := if !b then 3 else 1;
   if b {
     return j;
-  }//^^^^^^^ a postcondition might not hold on this return path.
+  }//^^^^^^^ a postcondition could not be proved on this return path
   i := 2;
 }
 ```
@@ -907,7 +912,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   if b {
     i := j;
     return;
-  }//^^^^^^^ a postcondition might not hold on this return path.
+  }//^^^^^^^ a postcondition could not be proved on this return path
   i := 2;
 }
 ```
@@ -920,7 +925,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   var j := if !b then 3 else 1;
   if b {
     i := j;
-    assert 2 <= i; // This assertion might not hold
+    assert 2 <= i; // could not prove this assertion
     return;
   }
   i := 2;
@@ -939,14 +944,14 @@ method FailingPostcondition(b: bool) returns (i: int)
   var j := if !b then 3 else 1;
   if b {
     i := j;
-    assert 2 <= i; // This assertion might not hold
+    assert 2 <= i; // could not prove this assertion
     return;
   }
   i := 2;
 }
 ```
-To debug why this assert might not hold, we need to _move this assert up_, which is similar to [_computing the weakest precondition_](https://en.wikipedia.org/wiki/Predicate_transformer_semantics#Weakest_preconditions).
-For example, if we have `x := Y; assert F;` and the `assert F;` might not hold, the weakest precondition for it to hold before `x := Y;` can be written as the assertion `assert F[x:= Y];`, where we replace every occurrence of `x` in `F` into `Y`.
+To debug why Dafny cannot prove this assert, we need to _move this assert up_, which is similar to [_computing the weakest precondition_](https://en.wikipedia.org/wiki/Predicate_transformer_semantics#Weakest_preconditions).
+For example, if we have `x := Y; assert F;` and Dafny cannot prove `assert F;`, the weakest precondition for it to hold before `x := Y;` can be written as the assertion `assert F[x:= Y];`, where we replace every occurrence of `x` in `F` into `Y`.
 Let's do it in our example:
 <!-- %check-verify UserGuide.5.expect -->
 ```dafny
@@ -955,7 +960,7 @@ method FailingPostcondition(b: bool) returns (i: int)
 {
   var j := if !b then 3 else 1;
   if b {
-    assert 2 <= j; // This assertion might not hold
+    assert 2 <= j; // could not prove this assertion
     i := j;
     assert 2 <= i;
     return;
@@ -972,7 +977,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
   var j := if !b then 3 else 1;
-  assert b  ==>  2 <= j;  // This assertion might not hold
+  assert b  ==>  2 <= j;  // could not prove this assertion
   if b {
     assert 2 <= j;
     i := j;
@@ -989,7 +994,7 @@ Now, either the error is obvious, or we can one more time replace `j` by its val
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
 {
-  assert b  ==>  2 <= (if !b then 3 else 1);  // This assertion might not hold
+  assert b  ==>  2 <= (if !b then 3 else 1);  // could not prove this assertion
   var j := if !b then 3 else 1;
   assert b  ==>  2 <= j;
   if b {

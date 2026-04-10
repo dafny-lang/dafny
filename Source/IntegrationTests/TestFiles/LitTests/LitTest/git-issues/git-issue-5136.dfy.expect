@@ -1,8 +1,8 @@
 git-issue-5136.dfy(12,9): Error: value does not satisfy the subset constraints of 'Empty'
 git-issue-5136.dfy(16,16): Error: possible division by zero
-git-issue-5136.dfy(37,4): Error: field 'x', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+git-issue-5136.dfy(37,4): Error: field 'x', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
 git-issue-5136.dfy(49,9): Error: value does not satisfy the subset constraints of 'Empty'
 git-issue-5136.dfy(54,16): Error: possible division by zero
-git-issue-5136.dfy(75,4): Error: field 'x', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+git-issue-5136.dfy(75,4): Error: field 'x', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
 
 Dafny program verifier finished with 8 verified, 6 errors

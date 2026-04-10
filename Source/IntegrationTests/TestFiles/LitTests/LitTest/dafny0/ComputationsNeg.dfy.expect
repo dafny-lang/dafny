@@ -1,10 +1,10 @@
-ComputationsNeg.dfy(7,5): Error: decreases clause might not decrease
+ComputationsNeg.dfy(7,5): Error: decreases clause could not be proved to decrease
 ComputationsNeg.dfy(11,0): Error: a postcondition could not be proved on this return path
 ComputationsNeg.dfy(10,16): Related location: this is the postcondition that could not be proved
 ComputationsNeg.dfy(23,0): Error: a postcondition could not be proved on this return path
 ComputationsNeg.dfy(22,20): Related location: this is the postcondition that could not be proved
 ComputationsNeg.dfy(19,28): Related location: this proposition could not be proved
-ComputationsNeg.dfy(36,2): Error: assertion might not hold
-ComputationsNeg.dfy(45,2): Error: assertion might not hold
+ComputationsNeg.dfy(36,2): Error: assertion could not be proved
+ComputationsNeg.dfy(45,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 5 verified, 5 errors

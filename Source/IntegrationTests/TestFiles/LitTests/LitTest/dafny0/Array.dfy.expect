@@ -2,12 +2,12 @@ Array.dfy(142:22-142:23): Warning: deprecated style: a semi-colon is not needed 
 Array.dfy(163:19-163:20): Warning: deprecated style: a semi-colon is not needed here
 Array.dfy(317:29-317:30): Warning: deprecated style: a semi-colon is not needed here
 Array.dfy(318:64-318:65): Warning: deprecated style: a semi-colon is not needed here
-Array.dfy(13:7-13:8): Error: assignment might update an array element not in the enclosing context's modifies clause
-Array.dfy(20:15-20:21): Error: target object might be null
+Array.dfy(13:7-13:8): Error: modified array location could not be proved to be in the current modifies clause
+Array.dfy(20:15-20:21): Error: target object could not be proved to be non-null
 Array.dfy(26:5-26:6): Error: index out of range
-Array.dfy(50:4-50:10): Error: assertion might not hold
-Array.dfy(58:7-58:8): Error: assignment might update an array element not in the enclosing context's modifies clause
-Array.dfy(65:7-65:8): Error: assignment might update an array element not in the enclosing context's modifies clause
+Array.dfy(50:4-50:10): Error: assertion could not be proved
+Array.dfy(58:7-58:8): Error: modified array location could not be proved to be in the current modifies clause
+Array.dfy(65:7-65:8): Error: modified array location could not be proved to be in the current modifies clause
 Array.dfy(108:20-108:21): Error: upper bound below lower bound or above length of array
 Array.dfy(118:7-118:8): Error: insufficient reads clause to read the indicated range of array elements; Consider adding 'reads a' in the enclosing function specification for resolution
 Array.dfy(120:7-120:8): Error: insufficient reads clause to read the indicated range of array elements; Consider adding 'reads a' in the enclosing function specification for resolution
@@ -15,8 +15,8 @@ Array.dfy(121:7-121:8): Error: insufficient reads clause to read the indicated r
 Array.dfy(122:7-122:8): Error: insufficient reads clause to read the indicated range of array elements; Consider adding 'reads a' in the enclosing function specification for resolution
 Array.dfy(160:5-160:6): Error: insufficient reads clause to read array element; Consider adding 'reads a' in the enclosing function specification for resolution
 Array.dfy(168:5-168:6): Error: insufficient reads clause to read array element; Consider adding 'reads b' in the enclosing function specification for resolution
-Array.dfy(184:5-184:6): Error: assignment might update an array element not in the enclosing context's modifies clause
-Array.dfy(191:5-191:6): Error: assignment might update an array element not in the enclosing context's modifies clause
+Array.dfy(184:5-184:6): Error: modified array location could not be proved to be in the current modifies clause
+Array.dfy(191:5-191:6): Error: modified array location could not be proved to be in the current modifies clause
 Array.dfy(216:0-216:1): Error: a postcondition could not be proved on this return path
 Array.dfy(215:10-215:16): Related location: this is the postcondition that could not be proved
 Array.dfy(240:0-240:1): Error: a postcondition could not be proved on this return path
@@ -28,9 +28,9 @@ Array.dfy(256:5-256:6): Error: value does not satisfy the subset constraints of 
 Array.dfy(257:12-257:13): Error: value does not satisfy the subset constraints of 'nat'
 Array.dfy(258:6-258:7): Error: value does not satisfy the subset constraints of 'nat'
 Array.dfy(260:4-260:5): Error: value does not satisfy the subset constraints of 'nat'
-Array.dfy(332:4-332:5): Error: assignment might update an object not in the enclosing context's modifies clause
-Array.dfy(338:5-338:6): Error: assignment might update an array element not in the enclosing context's modifies clause
-Array.dfy(353:4-353:10): Error: assertion might not hold
-Array.dfy(358:17-358:18): Error: left-hand sides that.x and this.x might refer to the same location
+Array.dfy(332:4-332:5): Error: modified field could not be proved to be in the current modifies clause
+Array.dfy(338:5-338:6): Error: modified array location could not be proved to be in the current modifies clause
+Array.dfy(353:4-353:10): Error: assertion could not be proved
+Array.dfy(358:17-358:18): Error: left-hand sides that.x and this.x could not be proved to refer to different locations
 
 Dafny program verifier finished with 41 verified, 27 errors

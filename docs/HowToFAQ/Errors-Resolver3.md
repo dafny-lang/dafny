@@ -379,7 +379,7 @@ The |...| operator is the _size_ operator and returns the integer that is the si
 Only finite collections (of type `seq`, `set`, `multiset`, `map`) may be the argument of the
 size operator -- not arrays, `iset`, or `imap`.
 
-## **Error: a _what_ definition is not allowed to depend on the set of allocated references**
+## **Error: a _what_ definition is not allowed to depend on the set of allocated references_hint_**
 
 ```dafny
 class B {}
@@ -388,17 +388,17 @@ predicate p() { allocated(bbb) }
 ```
 
 A function is allowed to depend on the heap, as if the heap were an implicit parameter to the function. 
-Any such dependence on mutable fields must be declared in the function’s reads clause. 
-Dafny enforces that a function’s definition (which includes its body and its requires and reads clauses, 
-but not any of its ensures and decreases clauses) adheres to its reads clause.
-The purpose of the reads clause is to let you determine when the function’s value may have changed. 
-If you invoke F(x) twice on the same parameter x, then you expect to get the same value. 
-But since the heap is an implicit parameter of the function, will F(x) still give the same value if the heap is changed between the two invocations? 
-The reads clause helps answer this question. Suppose the function’s reads clause denotes a set of objects R. 
-Then, as long as the fields of the objects in R are the same for the two invocations of F(x), the two invocations will give the same value.
+Any such dependence on mutable fields must be declared in the function’s `reads` clause. 
+Dafny enforces that a function’s definition (which includes its body and its `requires` and `reads` clauses, 
+but not any of its `ensures` and `decreases` clauses) adheres to its `reads` clause.
+The purpose of the `reads` clause is to let you determine when the function’s value may have changed. 
+If you invoke `F(x)` twice on the same parameter `x`, then you expect to get the same value. 
+But since the heap is an implicit parameter of the function, will `F(x)` still give the same value if the heap is changed between the two invocations? 
+The `reads` clause helps answer this question. Suppose the function’s `reads` clause denotes a set of objects `R`. 
+Then, as long as the fields of the objects in `R` are the same for the two invocations of `F(x)`, the two invocations will give the same value.
 Part of this rule is also that the function is not allowed to depend on the “allocation set”, that is, the set of objects that are currently allocated. 
 This is convenient, because a method is always allowed to enlarge the allocation set. 
-As an example, consider a function F(x) with an empty reads clause and a method M() with an empty modifies clause. 
+As an example, consider a function `F(x)` with an empty `reads` clause and a method `M()` with an empty `modifies` clause. 
 From this, Dafny allows you to prove the assertion in the following code:
 <!-- %no-check -->
 ```dafny
@@ -407,9 +407,11 @@ M();
 assert tmp == F(x);
 ```
 
-The non-dependence on the allocation set is checked syntactically by the resolver and the reads clause is enforced by the verifier.
-Although it would be possible to extend Dafny's logic so that functions could depend on the allocation set, this is
-at present not implemented.
+The non-dependence on the allocation set is checked syntactically by the resolver and the `reads` clause is enforced by the verifier.
+
+Almost always, this is the behavior you would want. Nevertheless, Dafny does allow you to declare that a function depends on the allocation set,
+provided you're willing to give up the verifier's knowledge about what the function depends on. To specify a function in this way,
+declare it with `reads **`.
 
 ## **Error: type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got _type_)**
 

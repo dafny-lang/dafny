@@ -356,7 +356,7 @@ public class ExpressionTester {
                   expr, "a `decreases to` expression is allowed only in specification and ghost contexts");
       return false;
 
-    } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
+    } else if (expr is ConcreteSyntaxExpression { ResolvedExpression: not null } concreteSyntaxExpression) {
       return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
     }
 
@@ -622,7 +622,7 @@ public class ExpressionTester {
     } else if (expr is LambdaExpr) {
       var e = (LambdaExpr)expr;
       return UsesSpecFeatures(e.Term);
-    } else if (expr is WildcardExpr) {
+    } else if (expr is WildcardExpr or DoubleWildcardExpr) {
       return false;
     } else if (expr is StmtExpr) {
       var e = (StmtExpr)expr;

@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /functionSyntax:4 "%s" > "%t"
+// RUN: %exits-with 2 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Resolution checks for functions appearing in reads clauses

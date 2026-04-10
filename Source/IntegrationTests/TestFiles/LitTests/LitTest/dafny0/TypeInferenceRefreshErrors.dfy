@@ -294,3 +294,25 @@ module EscapedStringLiterals {
     u := '{'; // error
   }
 }
+
+module VarianceErrorMessage {
+  datatype Domain = Domain(subProgram: Program)
+
+  datatype Program = Program(domains: seq<Domain>)
+
+  // problem with covariance
+  ghost function PRepr(p: Program): set<object> { // error: expects set<object>, gets set<set<...>>
+    (set domain <- p.domains :: DRepr(domain))
+  }
+
+  ghost function DRepr(d: Domain): set<object> {
+    PRepr(d.subProgram)
+  }
+
+  // problem with contravariance
+  ghost function Func(): set<object> -> bool { // error: expects set<object> -> bool, gets set<set<...>> -> bool
+    ss => SetSetProperty(ss)
+  }
+
+  ghost predicate SetSetProperty(ss: set<set<object>>)
+}

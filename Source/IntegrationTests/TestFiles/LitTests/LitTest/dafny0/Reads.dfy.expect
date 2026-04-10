@@ -10,5 +10,10 @@ Reads.dfy(138,10): Error: insufficient reads clause to read field; Consider addi
 Reads.dfy(149,25): Error: insufficient reads clause to read field; Consider adding 'reads this' or 'reads this`y' in the enclosing function specification for resolution
 Reads.dfy(157,18): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
 Reads.dfy(159,19): Error: insufficient reads clause to invoke function
+Reads.dfy(176,18): Error: insufficient reads clause to invoke function
+Reads.dfy(199,4): Error: assertion could not be proved
+Reads.dfy(201,4): Error: assertion could not be proved
+Reads.dfy(212,4): Error: assertion could not be proved
+Reads.dfy(224,4): Error: assertion could not be proved
 
-Dafny program verifier finished with 19 verified, 12 errors
+Dafny program verifier finished with 20 verified, 17 errors

@@ -1,0 +1,1 @@
+Improve type-checking error message when co- or contra-variant type constraints are not met (previous message was "`bad`")

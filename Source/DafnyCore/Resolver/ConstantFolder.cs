@@ -133,6 +133,8 @@ namespace Microsoft.Dafny {
           return FoldBitvector(bin, (BigInteger)e0, (BigInteger)e1);
         } else if (bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Real) && bin.E1.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           return FoldReal(bin, (BaseTypes.BigDec)e0, (BaseTypes.BigDec)e1);
+        } else if (bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Float) && bin.E1.Type.IsNumericBased(Type.NumericPersuasion.Float)) {
+          return null; // fp64 constant folding not supported
         } else if (e0 is string s0 && e1 is string s1) {
           return FoldCharOrString(bin, s0, s1);
         }

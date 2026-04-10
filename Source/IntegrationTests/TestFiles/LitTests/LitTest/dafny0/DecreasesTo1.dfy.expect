@@ -1,24 +1,24 @@
-DecreasesTo1.dfy(19,2): Error: assertion might not hold
+DecreasesTo1.dfy(19,2): Error: assertion could not be proved
  Asserted expression: 0 decreases to 1
-DecreasesTo1.dfy(23,2): Error: assertion might not hold
+DecreasesTo1.dfy(23,2): Error: assertion could not be proved
  Asserted expression: x - 1 decreases to x
-DecreasesTo1.dfy(27,2): Error: assertion might not hold
+DecreasesTo1.dfy(27,2): Error: assertion could not be proved
  Asserted expression: (x, y - 1 decreases to x, y)
-DecreasesTo1.dfy(39,39): Error: decreases clause might not decrease
+DecreasesTo1.dfy(39,39): Error: decreases clause could not be proved to decrease
  Asserted expression: n + m decreases to n + m + 1
-DecreasesTo1.dfy(49,20): Error: decreases clause might not decrease
+DecreasesTo1.dfy(49,20): Error: decreases clause could not be proved to decrease
  Asserted expression: old(n + m) decreases to n + m + 1
-DecreasesTo1.dfy(57,2): Error: decreases expression might not decrease
+DecreasesTo1.dfy(57,2): Error: decreases expression could not be proved to decrease
  Asserted expression: old@LoopEntry(prev_x') decreases to x'
    with the label `LoopEntry` applied to the loop
    and with the following declarations at the beginning of the loop body:
      var prev_x': int := x';
      var prev_y': int := y';
-DecreasesTo1.dfy(69,2): Error: assertion might not hold
+DecreasesTo1.dfy(69,2): Error: assertion could not be proved
  Asserted expression: 0 nonincreases to 1
-DecreasesTo1.dfy(73,2): Error: assertion might not hold
+DecreasesTo1.dfy(73,2): Error: assertion could not be proved
  Asserted expression: i decreases to b
-DecreasesTo1.dfy(77,2): Error: assertion might not hold
+DecreasesTo1.dfy(77,2): Error: assertion could not be proved
  Asserted expression: 0 decreases to false
 
 Dafny program verifier finished with 2 verified, 9 errors

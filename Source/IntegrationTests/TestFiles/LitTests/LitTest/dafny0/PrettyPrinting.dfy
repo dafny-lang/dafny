@@ -247,3 +247,10 @@ module DecreasesTo {
     }
   }
 }
+
+module ReadsAnything {
+  function F(): int
+    reads *
+  function G(): int
+    reads **
+}

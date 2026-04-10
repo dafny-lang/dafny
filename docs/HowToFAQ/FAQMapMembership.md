@@ -1,8 +1,8 @@
 ---
-title: "Why does Dafny not know this obvious property of maps?"
+title: Why does Dafny not know this obvious property of maps?
 ---
 
-** Question: Why does Dafny not know this obvious property of maps?
+** Question
 
 I have this simple program:
 

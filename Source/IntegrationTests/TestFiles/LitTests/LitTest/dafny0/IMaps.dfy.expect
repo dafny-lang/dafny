@@ -2,6 +2,6 @@ IMaps.dfy(36,18): Warning: Could not find a trigger for this quantifier. Without
 IMaps.dfy(36,49): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 IMaps.dfy(51,18): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 IMaps.dfy(79,33): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-IMaps.dfy(52,7): Error: element might not be in domain
+IMaps.dfy(52,7): Error: element could not be proved to be in domain
 
 Dafny program verifier finished with 14 verified, 1 error

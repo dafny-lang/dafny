@@ -1,6 +1,6 @@
 [project]
 name = "DafnyRuntimePython"
-version = "4.10.1"
+version = "4.11.1"
 authors = [
   { name = "The Dafny core team", email = "core-team@dafny.org" },
 ]

@@ -870,7 +870,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
               if (members.TryGetValue(formal.Name, out previousMember)) {
                 localDuplicate = formalsUsedInThisCtor.Contains(formal.Name);
                 if (localDuplicate) {
-                  resolver.reporter.Error(MessageSource.Resolver, ctor,
+                  resolver.reporter.Error(MessageSource.Resolver, formal.Origin,
                     "Duplicate use of deconstructor name in the same constructor: {0}", formal.Name);
                   duplicates.Add(formal);
                 } else if (previousMember is DatatypeDestructor) {

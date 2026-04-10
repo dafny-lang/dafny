@@ -158,3 +158,57 @@ module M3 {
     assert forall c: Cell :: c.x == 8;
   }
 }
+
+module M200 {
+  ghost predicate P<T>(x: T)
+
+  ghost predicate AllP<T>()
+    reads **
+  { forall x :: P<T>(x) }
+
+  class C {}
+
+  method M1()
+
+  method M2()
+  {
+    assume forall x: C :: P<C>(x);
+    M1();
+    assert forall x: C :: P<C>(x); // error: the previous line may change the allocation state, so this assertion may no longer hold
+  }
+
+  method M3()
+  {
+    assume forall x: C :: P<C>(x);
+    M1();
+    assert AllP<C>(); // error: the previous line may change the allocation state, so AllP() may no longer hold
+    assert forall x: C :: P<C>(x);
+  }
+
+  // a more concrete test
+
+  class Cell { var data: int }
+
+  ghost predicate Always100()
+    reads **
+  {
+    forall c: Cell :: c.data == 100
+  }
+
+  lemma Lemma() {
+  }
+
+  method AMethodIsAMethod() {
+    var c := new Cell;
+    c.data := 101;
+  }
+
+  method TestStarStar()
+    requires Always100()
+  {
+    Lemma();
+    assert Always100(); // yes, nothing in the state has changed so far
+    AMethodIsAMethod();
+    assert Always100(); // error: the previous line may change the allocation state, so Always100() may no longer hold
+  }
+}

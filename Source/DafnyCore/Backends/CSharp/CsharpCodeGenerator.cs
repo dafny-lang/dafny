@@ -463,7 +463,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var constructors = iter.Members.OfType<Constructor>().ToList();
 
-      // we're expecting just one constructor 
+      // we're expecting just one constructor
       var enumerable = constructors.ToList();
       Contract.Assert(enumerable.Count == 1);
       Constructor ct = constructors[0];
@@ -1566,6 +1566,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private static string CSharpFloatTypeName(Type type) {
+      return type.IsFp32Type ? "float" : "double";
+    }
+
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
       Contract.Assume(member is Method { IsTailRecursive: true } or Function { IsTailRecursive: true }); // precondition
       if (!member.IsStatic && !NeedsCustomReceiver(member)) {
@@ -1593,6 +1597,10 @@ namespace Microsoft.Dafny.Compilers {
         return "BigInteger";
       } else if (xType is RealType) {
         return "Dafny.BigRational";
+      } else if (xType.IsFp32Type) {
+        return "float";
+      } else if (xType.IsFp64Type) {
+        return "double";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger";
@@ -1700,6 +1708,10 @@ namespace Microsoft.Dafny.Compilers {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
         return "Dafny.BigRational.ZERO";
+      } else if (xType.IsFp32Type) {
+        return "0.0f";
+      } else if (xType.IsFp64Type) {
+        return "0.0";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? "0" : "BigInteger.Zero";
@@ -2210,7 +2222,7 @@ namespace Microsoft.Dafny.Compilers {
         // Okay, so '\0' _is_ a value of type "char", but it's so unpleasant to deal with in test files, etc.
         // By returning false here, a different value will be chosen.
         return false;
-      } else if (t is BoolType || t is IntType || t is BigOrdinalType || t is RealType || t is BitvectorType) {
+      } else if (t is BoolType or IntType or BigOrdinalType or RealType or BitvectorType or Fp64Type) {
         return true;
       } else if (t is CollectionType) {
         return false;
@@ -2262,7 +2274,26 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is BigInteger bigInteger) {
         EmitIntegerLiteral(bigInteger, wr);
       } else if (e.Value is BigDec n) {
-        if (0 <= n.Exponent) {
+        if (e.Type.IsFloatingPointType) {
+          // Use precomputed float value for floating-point decimal literals
+          if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
+            // Use exact IEEE 754 value from resolution
+            var bigFloat = decLit.ResolvedFloatValue.Value;
+            var s = "";
+            if (bigFloat.IsInfinity) {
+              var typeName = e.Type.IsFp32Type ? "float" : "double";
+              s += $"{typeName}.";
+              s += bigFloat.IsPositive ? "Positive" : "Negative";
+              s += "Infinity";
+            } else {
+              var suffix = e.Type.IsFp32Type ? 'f' : 'd';
+              s = bigFloat.ToDecimalString() + suffix;
+            }
+            wr.Write(s);
+          } else {
+            Contract.Assert(false, $"float literal without ResolvedFloatValue: {e.Value} (type: {e.GetType().Name})");
+          }
+        } else if (0 <= n.Exponent) {
           wr.Write("new Dafny.BigRational(BigInteger.Parse(\"{0}", n.Mantissa);
           for (int i = 0; i < n.Exponent; i++) {
             wr.Write("0");
@@ -2383,6 +2414,25 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(".Sign");
 
       return w;
+    }
+
+    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type from, Type to, IOrigin tok, ConcreteSyntaxTree wr, Type toOrig = null) {
+      if (from != null && to != null) {
+        if (from.IsNumericBased(Type.NumericPersuasion.Real) && !from.IsFp64Type && to.IsFp64Type) {
+          // real to fp64
+          wr.Write("(");
+          var w = wr.Fork();
+          wr.Write(").ToDouble()");
+          return w;
+        } else if (from.IsFp64Type && to.IsNumericBased(Type.NumericPersuasion.Real) && !to.IsFp64Type) {
+          // fp64 to real
+          wr.Write("Dafny.BigRational.FromDouble(");
+          var w = wr.Fork();
+          wr.Write(")");
+          return w;
+        }
+      }
+      return base.EmitCoercionIfNecessary(from, to, tok, wr, toOrig);
     }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
@@ -2636,10 +2686,145 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField.ID.New:
           compiledName = "_new";
           break;
+        case SpecialField.ID.IsNaN:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsNaN(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsFinite:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsFinite(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsInfinite:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsInfinity(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsNormal:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsNormal(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsSubnormal:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsSubnormal(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsZero:
+          preString = "(";
+          postString = receiverType.IsFp32Type ? " == 0.0f)" : " == 0.0)";
+          break;
+        case SpecialField.ID.IsNegative:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsNegative(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsPositive:
+          preString = receiverType.IsFp32Type ? "Dafny.Helpers.Fp32IsPositive(" : "Dafny.Helpers.Fp64IsPositive(";
+          postString = ")";
+          break;
+        case SpecialField.ID.NaN:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.NaN";
+          break;
+        case SpecialField.ID.PositiveInfinity:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.PositiveInfinity";
+          break;
+        case SpecialField.ID.NegativeInfinity:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.NegativeInfinity";
+          break;
+        case SpecialField.ID.Pi:
+          preString = receiverType.IsFp32Type ? "(float)Math.PI" : "Math.PI";
+          break;
+        case SpecialField.ID.E:
+          preString = receiverType.IsFp32Type ? "(float)Math.E" : "Math.E";
+          break;
+        case SpecialField.ID.MaxValue:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.MaxValue";
+          break;
+        case SpecialField.ID.MinValue:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.MinValue";
+          break;
+        case SpecialField.ID.MinNormal:
+          preString = receiverType.IsFp32Type ? "1.17549435e-38f" : "2.2250738585072014e-308";
+          break;
+        case SpecialField.ID.MinSubnormal:
+          preString = $"{(CSharpFloatTypeName(receiverType))}.Epsilon";
+          break;
+        case SpecialField.ID.Epsilon:
+          preString = receiverType.IsFp32Type ? "(float)Math.Pow(2, -23)" : "Math.Pow(2, -52)";
+          break;
         default:
           Contract.Assert(false); // unexpected ID
           break;
       }
+    }
+
+    protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
+        ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced = false) {
+
+      // Handle fp32 and fp64 special functions
+      if (e.Function is SpecialFunction && e.Function.EnclosingClass?.Name is "fp32" or "fp64") {
+        var isFp32 = e.Function.EnclosingClass?.Name == "fp32";
+        switch (e.Function.Name) {
+          case "Equal":
+            wr.Write("(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(" == ");
+            tr(e.Args[1], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "FromReal":
+            wr.Write("(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(isFp32 ? ").ToSingle()" : ").ToDouble()");
+            return;
+          case "ToInt":
+            wr.Write("((System.Numerics.BigInteger)Math.Truncate(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write("))");
+            return;
+          case "Min":
+            wr.Write("Math.Min(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(", ");
+            tr(e.Args[1], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "Max":
+            wr.Write("Math.Max(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(", ");
+            tr(e.Args[1], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "Abs":
+            wr.Write("Math.Abs(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "Floor":
+            if (isFp32) wr.Write("(float)");
+            wr.Write("Math.Floor(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "Ceiling":
+            if (isFp32) wr.Write("(float)");
+            wr.Write("Math.Ceiling(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "Round":
+            if (isFp32) wr.Write("(float)");
+            wr.Write("Math.Round(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(", MidpointRounding.ToEven)");
+            return;
+          case "Sqrt":
+            if (isFp32) wr.Write("(float)");
+            wr.Write("Math.Sqrt(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+        }
+      }
+
+      base.CompileFunctionCallExpr(e, wr, inLetExprBody, wStmts, tr, alreadyCoerced);
     }
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
@@ -3065,6 +3250,9 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(".Count)");
           }
           break;
+        case ResolvedUnaryOp.FloatNegate:
+          TrParenExpr("-", expr, wr, inLetExprBody, wStmts);
+          break;
         default:
           Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
       }
@@ -3072,7 +3260,7 @@ namespace Microsoft.Dafny.Compilers {
 
     static bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
+      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.IsFloatingPointType || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -3255,7 +3443,15 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.NormalizeToAncestorType().IsBitVectorType || fromType.IsCharType) {
-        if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        if (toType.IsFp64Type) {
+          if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
+            wr.Write("(double)");
+            EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
+          } else {
+            // This should be prevented by the type checker
+            Contract.Assert(false, $"Direct conversion from {fromType} to fp64 is not allowed");
+          }
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(toType) == null);
           wr.Write("new Dafny.BigRational(");
@@ -3326,9 +3522,16 @@ namespace Microsoft.Dafny.Compilers {
             }
           }
         }
-      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !fromType.IsFp64Type) {
+        // Handle real conversions but exclude fp64 (which has NumericPersuasion.Real)
         Contract.Assert(AsNativeType(fromType) == null);
-        if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        if (toType.IsFp64Type) {
+          // real to fp64 (exact conversion only)
+          // For exact conversions, we expect simple rationals that can be exactly represented
+          wr.Write("(");
+          EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
+          wr.Write(").ToDouble()");
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(toType) == null);
           wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
@@ -3363,6 +3566,28 @@ namespace Microsoft.Dafny.Compilers {
           var typename = TypeName(toType, wr, null, null);
           wr.Write($"({typename})");
           TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+        } else {
+          Contract.Assert(false, $"not implemented for C#: {fromType} -> {toType}");
+        }
+      } else if (fromType.IsFp64Type) {
+        // fp64 conversions
+        if (toType.IsFp64Type) {
+          // fp64 -> fp64, no conversion needed
+          wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+        } else if (toType.IsFp32Type) {
+          wr.Write("(float)");
+          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+          // fp64 -> int (exact conversion only)
+          // C# truncates towards zero, which matches what we want for exact integers
+          wr.Write("(BigInteger)");
+          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+          // fp64 -> real (exact for finite values)
+          // Convert double to BigRational through decimal for better precision
+          wr.Write("Dafny.BigRational.FromDouble(");
+          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+          wr.Write(")");
         } else {
           Contract.Assert(false, $"not implemented for C#: {fromType} -> {toType}");
         }

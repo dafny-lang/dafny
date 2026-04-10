@@ -1,3 +1,3 @@
-TraitUsingParentMembers.dfy(10,7): Error: assignment might update an array element not in the enclosing context's modifies clause
+TraitUsingParentMembers.dfy(10,7): Error: modified array location could not be proved to be in the current modifies clause
 
 Dafny program verifier finished with 4 verified, 1 error

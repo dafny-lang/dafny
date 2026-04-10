@@ -1,13 +1,20 @@
-Naked.dfy(9,15): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(12,7): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(17,58): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(22,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(26,15): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(32,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(38,10): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(42,11): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(49,10): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(56,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(60,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(67,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-12 resolution/type errors detected in Naked.dfy
+Naked.dfy(9,15): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(12,7): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(17,58): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(22,14): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(26,15): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(32,14): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(38,10): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(42,11): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(49,10): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(56,12): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(60,13): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(67,12): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(74,13): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(79,13): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(87,13): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+Naked.dfy(131,13): Error: a function declared with 'reads **' can only be used if applied to arguments
+Naked.dfy(136,9): Error: a function declared with 'reads **' can only be used if applied to arguments
+Naked.dfy(141,23): Error: a function declared with 'reads **' can only be used if applied to arguments
+Naked.dfy(141,23): Error: in the definition of a function, every recursive use of the function must apply it to arguments. Possible solution: eta expansion.
+19 resolution/type errors detected in Naked.dfy

@@ -1,5 +1,5 @@
 ---
-title: Cannot export mutable field 'x' without revealing its enclosing class 'A'
+title: "Cannot export mutable field 'x' without revealing its enclosing class 'A'"
 ---
 
 An example of this error is the code

@@ -3,6 +3,6 @@ Simple.dfy(27,9): Error: possible division by zero
 Simple.dfy(37,8): Error: function precondition could not be proved
 Simple.dfy(49,8): Error: function precondition could not be proved
 Simple.dfy(61,9): Error: function precondition could not be proved
-Simple.dfy(73,2): Error: assertion might not hold
+Simple.dfy(73,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 5 verified, 6 errors

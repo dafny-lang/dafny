@@ -4,5 +4,5 @@ CLI: Error: malformed dtr file NoGood.dtr
 Translation was aborted because errors were found
 
 Dafny program verifier finished with 0 verified, 0 errors
-CLI: Error: cannot load WrongDafnyVersion.dtr: it was built with Dafny 10.6.0.0, which cannot be used by Dafny 4.10.1.0
+CLI: Error: cannot load WrongDafnyVersion.dtr: it was built with Dafny 10.6.0.0, which cannot be used by Dafny 4.11.1.0
 Translation was aborted because errors were found

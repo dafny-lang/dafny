@@ -1,4 +1,4 @@
-non-null.dfy(6,6): Error: target object might be null
+non-null.dfy(6,6): Error: target object could not be proved to be non-null
  Asserted expression: a != null
 
 Dafny program verifier finished with 0 verified, 1 error

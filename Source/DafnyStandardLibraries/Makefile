@@ -38,7 +38,6 @@ test-cs:
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:cs examples/dfyconfig.toml examples/BoundedInts/NonDefault.cs --output:build/stdlibexamples --coverage-report:build/testcoverage
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:cs examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic --coverage-report:build/nondeterministic_testcoverage
 	TARGETLANG=cs make -C src/Std/TargetSpecific test
-
 test-java:
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:java examples/dfyconfig.toml examples/BoundedInts/Externs/NonDefault.java --output:build/stdlibexamples
 # Iterators aren't supported on Java so we can't test the nondeterministic examples

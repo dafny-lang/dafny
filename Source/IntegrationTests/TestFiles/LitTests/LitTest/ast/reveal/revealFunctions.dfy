@@ -98,7 +98,7 @@ module M2 {
     ensures RecFunc(0) == 0
     {
         // Because RecFunc is recursive, it uses the fuel related $LS function, 
-        // this was previously hidden by 'hide *', so that the ensures could not be proven
+        // this was previously hidden by 'hide *', so that the ensures could not be proved
         hide *;
         reveal RecFunc;
     }

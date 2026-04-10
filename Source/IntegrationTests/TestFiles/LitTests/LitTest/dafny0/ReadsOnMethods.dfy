@@ -533,3 +533,59 @@ method DefaultValueReads(b: Box<int>, x: int := b.x)  // Error: insufficient rea
 {
   return x;
 }
+
+// ---------- reads ** -----------
+
+method EmptyCaller(a: array<int>, b: array<int>)
+  reads {}
+{
+  if
+  case true =>
+    var x := StarFunction(); // error: not allowed to call `reads *` function from here
+  case true =>
+    var y := StarStarFunction(); // error: not allowed to call `reads **` function from here
+  case true =>
+    var r := allocated(a);
+  case true =>
+    var s := allocated(b);
+}
+
+method SomethingCaller(a: array<int>, b: array<int>)
+  reads a
+{
+  if
+  case true =>
+    var x := StarFunction(); // error: not allowed to call `reads *` function from here
+  case true =>
+    var y := StarStarFunction(); // error: not allowed to call `reads **` function from here
+  case true =>
+    var r := allocated(a);
+  case true =>
+    var s := allocated(b);
+}
+
+method StarCaller(a: array<int>, b: array<int>)
+  reads *
+{
+  if
+  case true =>
+    var x := StarFunction(); // allowed
+  case true =>
+    var y := StarStarFunction(); // note, even this is allowed, because the caller is allowed to read anything, including the allocation state
+  case true =>
+    var r := allocated(a);
+  case true =>
+    var s := allocated(b);
+}
+
+function StarStarFunction(): int
+  reads **
+{
+  15
+}
+
+function StarFunction(): int
+  reads *
+{
+  15
+}

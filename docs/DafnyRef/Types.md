@@ -3,17 +3,17 @@
 A Dafny type is a (possibly-empty) set of values or heap data-structures,
 together with allowed operations on those values.
 Types are classified as mutable reference types or immutable value types,
-depending on whether their values are stored in the heap or are 
+depending on whether their values are stored in the heap or are
 (mathematical) values independent of the heap.
 
 Dafny supports the following kinds of types,
 all described in later sections of this manual:
-* [builtin scalar types](#sec-basic-type), 
-* [builtin collection types](#sec-collection-types), 
+* [builtin scalar types](#sec-basic-type),
+* [builtin collection types](#sec-collection-types),
 * reference types ([classes](#sec-class-types), [arrays](#sec-array-type), [iterators](#sec-iterator-types)),
 * [abstract supertypes](#sec-trait-types) (traits)
 * [tuple types](#sec-tuple-types) (including as a special case a parenthesized type),
-* [inductive](#sec-datatype) and [coinductive](#sec-coinductive-datatypes) datatypes, 
+* [inductive](#sec-datatype) and [coinductive](#sec-coinductive-datatypes) datatypes,
 * [function (arrow) types](#sec-arrow-subset-types), and
 * [types, such as subset types, derived from other types](#sec-subset-types).
 
@@ -220,9 +220,10 @@ exists), described in [Section 9.31.4](#sec-quantifier-expression).
 
 Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
-includes the basic type `real` of all real numbers.  User-defined
-numeric types based on `int` and `real`, either _subset types_ or _newtypes_,
-are described in [Section 5.6.3](#sec-subset-types) and [Section 5.7](#sec-newtypes).
+includes the basic type `real` of all real numbers and the floating-point
+type `fp64`.  User-defined numeric types based on `int` and `real`, either
+_subset types_ or _newtypes_, are described in [Section 5.6.3](#sec-subset-types)
+and [Section 5.7](#sec-newtypes).
 
 There is one built-in [_subset type_](#sec-subset-types),
 `nat`, representing the non-negative subrange of `int`.
@@ -239,7 +240,7 @@ are written as decimal numbers, optionally prefixed by a `-` character.
 Examples: `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
 
 Real literals can also be written in **scientific notation** using lowercase `e`
-to denote the exponent. For example, `1.23e5` (which equals `123000.0`), 
+to denote the exponent. For example, `1.23e5` (which equals `123000.0`),
 `1.23e-2` (which equals `0.0123`), and `5e2` (which equals `500.0`).
 Both decimal numbers with optional exponents (like `1.23e5`) and integers
 with mandatory exponents (like `123e5`) are supported.
@@ -345,7 +346,393 @@ stronger than unary minus.  The fourth line uses the conversion
 function `as real` from `int` to `real`, as described in
 [Section 9.10](#sec-as-is-expression).
 
-### 5.2.3. Bit-vector Types ([grammar](#g-basic-type)) {#sec-bit-vector-types}
+### 5.2.3. Floating-point Types (fp32 and fp64) {#sec-floating-point-type}
+
+Dafny supports two floating-point types: `fp32` (IEEE 754 binary32, single-precision)
+and `fp64` (IEEE 754 binary64, double-precision). These types provide hardware-compatible
+floating-point arithmetic with the expected precision and rounding behavior. Both types
+are considered real-based numeric types in Dafny's type system.
+
+The `fp32` type has 24 bits of significand precision (approximately 7 decimal digits),
+while `fp64` has 53 bits (approximately 16 decimal digits).
+
+#### 5.2.3.1. Literals
+
+Floating-point literals use the same notation as real literals, but the type system distinguishes between
+exact and approximate representations:
+
+- **Exact literals**: Values that can be represented exactly in binary floating-point,
+  such as powers of 2 (`0.5`, `0.25`, `1.0`) and small integers.
+
+- **Approximate literals**: Values that cannot be represented exactly and require the
+  `~` prefix to acknowledge rounding. For example, `~0.1`, `~3.14`, `~0.3`.
+
+<!-- %check-verify -->
+```dafny
+method FloatingPointLiterals() {
+  var exact: fp64 := 0.5;      // Exact: 0.5 = 2^(-1)
+  var approx: fp64 := ~0.1;    // Approximate: 0.1 cannot be exactly represented
+
+  // Scientific notation is supported
+  var large: fp64 := 1.23e10;  // 12300000000.0
+  var small: fp64 := ~1.5e-10; // Very small number
+}
+```
+
+The `~` prefix must encompass the entire literal including the sign:
+- Correct: `~-0.1` (approximate negative one-tenth)
+- Incorrect: `-~0.1` (not allowed)
+
+#### 5.2.3.2. Special Values
+
+Both `fp32` and `fp64` types include IEEE 754 special values as static members:
+
+- `fp32.NaN` / `fp64.NaN` - Not a Number
+- `fp32.PositiveInfinity` / `fp64.PositiveInfinity` - Positive infinity (+∞)
+- `fp32.NegativeInfinity` / `fp64.NegativeInfinity` - Negative infinity (-∞)
+
+Additional constants include:
+- `MaxValue` - Largest finite positive value
+- `MinValue` - Most negative finite value
+- `Epsilon` - Smallest positive value such that `1.0 + Epsilon != 1.0`
+- `MinNormal` - Smallest positive normal number
+- `MinSubnormal` - Smallest positive subnormal number
+- `Pi` - The mathematical constant π (pi)
+- `E` - The mathematical constant e (Euler's number)
+
+#### 5.2.3.3. Classification Predicates
+
+Values of type `fp32` and `fp64` support classification predicates to test for special values:
+
+- `.IsNaN` - true if the value is NaN
+- `.IsInfinite` - true if the value is positive or negative infinity
+- `.IsFinite` - true if the value is neither NaN nor infinite
+- `.IsNormal` - true if the value is a normal (not subnormal) number
+- `.IsSubnormal` - true if the value is a subnormal number
+- `.IsZero` - true if the value is positive or negative zero
+- `.IsPositive` - true if the value has a positive sign
+- `.IsNegative` - true if the value has a negative sign
+
+<!-- %check-verify -->
+```dafny
+method ClassificationExample() {
+  var nan := fp64.NaN;
+  var inf := fp64.PositiveInfinity;
+  var zero: fp64 := 0.0;
+  var normal: fp64 := 1.0;
+
+  assert nan.IsNaN;
+  assert inf.IsInfinite && inf.IsPositive;
+  assert zero.IsZero && zero.IsFinite;
+  assert normal.IsNormal && normal.IsFinite;
+}
+```
+
+#### 5.2.3.4. Arithmetic Operations
+
+Both `fp32` and `fp64` types support standard arithmetic operations following IEEE 754 semantics:
+
+- Addition (`+`), subtraction (`-`), multiplication (`*`), division (`/`)
+- Unary negation (`-`)
+- Comparisons (`<`, `<=`, `>`, `>=`)
+
+**Well-formedness checks**: All these arithmetic operations and comparisons require that operands are not NaN. Additionally, certain combinations of infinity values produce invalid operations:
+
+- Addition: `∞ + (-∞)` is invalid
+- Subtraction: `∞ - ∞` is invalid
+- Multiplication: `∞ * 0` is invalid
+- Division: `0 / 0` and `∞ / ∞` are invalid
+
+These well-formedness checks are performed by Dafny. To help it, use the classification predicates (`.IsNaN`, `.IsInfinite`, `.IsZero`).
+
+<!-- %check-verify -->
+```dafny
+method FloatingPointArithmetic() {
+  var a: fp64 := ~0.1;
+  var b: fp64 := ~0.2;
+  var c: fp64 := ~0.3;
+
+  assert a + b != c;  // 0.1 + 0.2 != 0.3 due to rounding
+}
+
+method SafeArithmetic(x: fp64, y: fp64) returns (result: fp64)
+  requires !x.IsNaN && !y.IsNaN
+  requires !(x.IsInfinite && y.IsInfinite && x.IsPositive != y.IsPositive)
+{
+  result := x + y;  // OK: preconditions established
+}
+```
+
+#### 5.2.3.5. Equality
+
+Both `fp32` and `fp64` types have equality semantics that differ from IEEE 754. Equality is defined based on the bit representation:
+
+- In **compiled contexts** the `==` operator has **well-formedness conditions** that
+  require operands to not be NaN and, if they are zeros, to have the same sign.
+  Under these conditions, `==` behaves like IEEE 754 equality.
+
+- In **ghost contexts** (specifications, assertions): The well-formedness conditions are
+  relaxed, and `==` performs bitwise comparison where NaN equals itself and positive/negative
+  zero are distinct.
+
+- The static methods `fp32.Equal(a, b)` and `fp64.Equal(a, b)` provide IEEE 754 equality
+  semantics without well-formedness restrictions (NaN is not equal to anything including itself,
+  and ±0 are equal).
+
+<!-- %check-verify -->
+```dafny
+method EqualityExample(x: fp64, y: fp64) {
+  var nan := fp64.NaN;
+  var posZero: fp64 := 0.0;
+  var negZero: fp64 := -0.0;
+
+  // In ghost context - no well-formedness restrictions
+  assert nan == nan;           // true (bitwise comparison)
+  assert posZero != negZero;   // true (different bit patterns)
+
+  // In compiled context - well-formedness restrictions verified statically
+  // var b1 := x == y;              // ERROR: verifier cannot prove x and y are not NaN
+  // var b2 := posZero == negZero;  // ERROR: verifier knows they have different signs
+
+  // Valid use of == when preconditions can be verified
+  if !x.IsNaN {
+    // Can compare posZero with x since we know posZero is not NaN,
+    // and if x is also zero, we'd need to check signs match
+    if !x.IsZero || !x.IsNegative {
+      var equal := posZero == x;  // OK: not NaN, and no sign mismatch
+      print "0.0 == ", x, ": ", equal, "\n";
+    }
+  }
+
+  // Simpler: just use fp64.Equal when unsure about values
+  var maybeNaN := if !x.IsNaN && x.IsNegative then fp64.NaN else x;
+  // var bad := maybeNaN == x;  // ERROR: cannot prove maybeNaN is not NaN
+  var safe := fp64.Equal(maybeNaN, x);  // Always works, no preconditions
+
+  // fp64.Equal always uses IEEE 754 semantics
+  assert !fp64.Equal(nan, nan);        // NaN != NaN
+  assert fp64.Equal(posZero, negZero); // ±0 are equal
+}
+```
+
+#### 5.2.3.6. Unchecked Arithmetic and Comparison Methods
+
+For operations that may involve NaN or invalid infinity combinations, both `fp32` and `fp64` provide unchecked static methods:
+
+**Arithmetic methods:**
+- `fp32.Add(x, y)` / `fp64.Add(x, y)` - Addition without well-formedness checks
+- `fp32.Sub(x, y)` / `fp64.Sub(x, y)` - Subtraction without well-formedness checks
+- `fp32.Mul(x, y)` / `fp64.Mul(x, y)` - Multiplication without well-formedness checks
+- `fp32.Div(x, y)` / `fp64.Div(x, y)` - Division without well-formedness checks
+- `fp32.Neg(x)` / `fp64.Neg(x)` - Negation without well-formedness checks
+
+**Comparison methods:**
+- `fp32.Less(x, y)` / `fp64.Less(x, y)` - Less than without well-formedness checks
+- `fp32.LessOrEqual(x, y)` / `fp64.LessOrEqual(x, y)` - Less than or equal without well-formedness checks
+- `fp32.Greater(x, y)` / `fp64.Greater(x, y)` - Greater than without well-formedness checks
+- `fp32.GreaterOrEqual(x, y)` / `fp64.GreaterOrEqual(x, y)` - Greater than or equal without well-formedness checks
+
+These methods follow IEEE 754 semantics exactly, including producing NaN for invalid operations and returning false for all comparisons involving NaN.
+
+<!-- %check-verify -->
+```dafny
+method EdgeCaseTesting() {
+  var nan := fp64.NaN;
+  var inf := fp64.PositiveInfinity;
+
+  // These would fail with operators due to wellformedness checks:
+  // var bad1 := nan + 1.0;      // ERROR: fp64 arithmetic requires that operands are not NaN
+  // var bad2 := inf - inf;      // ERROR: fp64 subtraction has invalid operand combination
+  // var bad3 := nan < 1.0;      // ERROR: fp64 comparison requires that operands are not NaN
+
+  // But work with unchecked static methods:
+  var result1 := fp64.Add(nan, 1.0);
+  var result2 := fp64.Sub(inf, inf);
+  var result3 := fp64.Less(nan, 1.0);
+
+  assert result1.IsNaN;  // NaN propagates
+  assert result2.IsNaN;  // ∞ - ∞ = NaN
+  assert !result3;       // NaN < anything = false
+}
+```
+
+**Recommendation**: Use operators (`+`, `-`, `*`, `/`, `<`, etc.) by default for their safety guarantees. Only use these unchecked static methods when you specifically need to handle edge cases or rely on IEEE 754 behavior.
+
+#### 5.2.3.7. Mathematical Functions
+
+Both `fp32` and `fp64` types provide static methods for common mathematical operations. All functions
+require that operands are not NaN, and some have additional preconditions:
+
+- `fp32.Abs(x)` / `fp64.Abs(x)` - Absolute value. **Requires**: `!x.IsNaN`.
+- `fp32.Sqrt(x)` / `fp64.Sqrt(x)` - Square root. **Requires**: `!x.IsNaN` and `x ≥ 0.0` (non-negative). Returns √x for finite x ≥ 0, returns +∞ for x = +∞.
+- `fp32.Min(x, y)` / `fp64.Min(x, y)` - Minimum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
+- `fp32.Max(x, y)` / `fp64.Max(x, y)` - Maximum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
+- `fp32.Floor(x)` / `fp64.Floor(x)` - Round down to nearest integer. **Requires**: `!x.IsNaN`.
+- `fp32.Ceiling(x)` / `fp64.Ceiling(x)` - Round up to nearest integer. **Requires**: `!x.IsNaN`.
+- `fp32.Round(x)` / `fp64.Round(x)` - Round to nearest integer, ties to even. **Requires**: `!x.IsNaN`.
+- `fp32.ToInt(x)` / `fp64.ToInt(x)` - Convert to integer. **Requires**: `x.IsFinite`.
+
+<!-- %check-verify -->
+```dafny
+method MathFunctions() {
+  var x: fp64 := -3.5;
+  var y: fp64 := 2.0;
+
+  var absX := fp64.Abs(x);
+  var sqrtY := fp64.Sqrt(y);
+  var minimum := fp64.Min(x, y);
+  var floored := fp64.Floor(x);
+  var ceiled := fp64.Ceiling(x);
+  var rounded := fp64.Round(2.5);  // Rounds to 2.0 (nearest even)
+
+  assert absX == 3.5;
+  assert sqrtY == ~1.4142135623730951;  // Approximate √2
+  assert minimum == x;
+  assert floored == -4.0;
+  assert ceiled == -3.0;
+  assert rounded == 2.0;
+}
+```
+
+Special value behavior:
+<!-- %check-verify -->
+```dafny
+method SpecialValueBehavior() {
+  var inf := fp64.PositiveInfinity;
+  var negInf := fp64.NegativeInfinity;
+
+  // Math functions work with infinity when preconditions are met
+  var sqrtInf := fp64.Sqrt(inf);        // Returns positive infinity
+  var absNegInf := fp64.Abs(negInf);    // Returns positive infinity
+  var minInf := fp64.Min(inf, negInf);  // Returns negative infinity
+
+  assert sqrtInf == fp64.PositiveInfinity;
+  assert absNegInf == fp64.PositiveInfinity;
+  assert minInf == fp64.NegativeInfinity;
+
+  // Well-formedness checks prevent invalid operations
+  // var sqrtNeg := fp64.Sqrt(-1.0);   // ERROR: negative input not allowed
+  // var floorNaN := fp64.Floor(fp64.NaN); // ERROR: NaN not allowed
+}
+```
+
+#### 5.2.3.8. Type Conversions
+
+Both `fp32` and `fp64` types support conversions to and from other numeric types using the `as` operator:
+
+- **From `real` to `fp32`/`fp64`**: Requires the real value to be exactly representable in the target type.
+
+- **From `fp32`/`fp64` to `real`**: Requires the floating-point value to be finite (not NaN or infinity).
+
+- **From `int` to `fp32`/`fp64`**: Requires the integer to be exactly representable in the target type.
+
+- **From `fp32`/`fp64` to `int`**: Requires the floating-point value to be finite and represent an exact integer.
+
+- **Between `fp32` and `fp64`**: Conversions are allowed in both directions. `fp32` to `fp64` is always exact. `fp64` to `fp32` requires the value to be exactly representable in fp32.
+
+**Note**: Direct conversions between `bv` and floating-point types are not supported. To convert between
+these types, use `int` as an intermediate type (e.g., `bv_value as int as fp64` or
+`fp64_value as int as bv32`).
+
+<!-- %check-verify -->
+```dafny
+method ConversionExamples() {
+  // Real to fp64
+  var r1: real := 0.5;
+  // var f1: fp64 := r1 as fp64;  // OK: 0.5 is exactly representable, but times out
+
+  var r2: real := 0.1;
+  // var f2: fp64 := r2 as fp64;  // ERROR: 0.1 is not exactly representable
+
+  // fp64 to real
+  var f3: fp64 := 42.5;
+  var r3: real := f3 as real;  // OK: finite value
+
+  // int to fp64
+  var i1: int := 42;
+  // var f4: fp64 := i1 as fp64;  // OK: 42 is exactly representable, but times out
+  var i2: int := 9007199254740992;  // 2^53
+  // var f5: fp64 := i2 as fp64;  // OK: 2^53 is exactly representable, but times out
+  var i3: int := 9007199254740993;  // 2^53 + 1
+  // var f6: fp64 := i3 as fp64;  // ERROR: 2^53 + 1 is not exactly representable
+
+  // fp64 to int
+  var f7: fp64 := 3.0;
+  var i4: int := f7 as int;  // OK: 3 is an integer
+
+  var f8: fp64 := ~3.14;
+  // var i5: int := f8 as int;  // ERROR: 3.14 is not an integer
+}
+```
+
+**Note**: There is a known limitation with conversions to floating-point types using the `as` operator:
+
+- **Direct literal conversions work**: `42 as fp64`, `0.5 as fp32` verify successfully.
+- **Variable conversions may timeout**: Converting a variable to fp32/fp64 (e.g., `var i := 42; i as fp64`)
+  may cause verification timeouts due to Z3's difficulty combining quantifiers and floats.
+
+To avoid this limitation, use direct literal conversions where possible.
+
+#### 5.2.3.9. Inexact Conversion Methods
+
+In addition to the exact conversions using the `as` operator, both `fp32` and `fp64` provide static methods
+for conversions that may involve rounding or truncation:
+
+- `fp32.FromReal(r)` / `fp64.FromReal(r)` - Converts a real value to the target type with rounding. Values outside the
+  representable range become ±infinity. No preconditions.
+
+- `fp32.ToInt(x)` / `fp64.ToInt(x)` - Converts a floating-point value to unbounded int by truncating towards zero (like C cast).
+  Requires x to be finite (not NaN or infinity). This precondition is inspired by IEEE 754 which specifies
+  that implementations shall signal invalid operation for NaN/infinity to integer conversions.
+
+<!-- %check-verify -->
+```dafny
+method InexactConversions() {
+  // FromReal allows any real value and rounds as needed
+  var r1: real := 0.1;
+  var f1 := fp64.FromReal(r1);  // OK: rounds to nearest representable value
+
+  // Verification times out here
+  // var huge: real := 1e400;
+  // var f2 := fp64.FromReal(huge);  // Becomes positive infinity
+  // assert f2 == fp64.PositiveInfinity;
+
+  // ToInt truncates towards zero (Round Toward Zero - RTZ)
+  var f3: fp64 := 3.75;  // Exactly representable
+  var i1 := fp64.ToInt(f3);  // Returns 3
+  assert i1 == 3;
+
+  var f4: fp64 := -3.75;  // Exactly representable
+  var i2 := fp64.ToInt(f4);  // Returns -3 (truncates toward zero, not -4)
+  assert i2 == -3;
+}
+
+// This method demonstrates the precondition check
+method ToIntWellformednessExamples() {
+  var finite: fp64 := 42.5;
+  var i := fp64.ToInt(finite);  // OK: finite value
+  assert i == 42;
+
+  // The following would fail verification:
+  // var inf := fp64.PositiveInfinity;
+  // var i_inf := fp64.ToInt(inf);  // Error: requires finite argument
+
+  // var nan := fp64.NaN;
+  // var i_nan := fp64.ToInt(nan);  // Error: requires finite argument
+}
+```
+
+#### 5.2.3.10. Comparison of Numeric Types
+
+| Aspect | int | real | fp64 |
+|--------|-----|------|------|
+| Numeric kind | integer-based | real-based | real-based |
+| Precision | Unlimited | Exact | ~15-17 decimal digits |
+| Special values | None | None | NaN, ±∞ |
+| Modulus operator | Yes | No | No |
+| Hardware mapping | BigInteger | BigRational | IEEE 754 binary64 |
+
+### 5.2.4. Bit-vector Types ([grammar](#g-basic-type)) {#sec-bit-vector-types}
 
 Dafny includes a family of bit-vector types, each type having a specific,
 constant length, the number of bits in its values.
@@ -386,7 +773,7 @@ unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arith
   `*`            | 7 | bit-limited multiplication
 -----------------|------------------------------------
   `&`            | 8 | bit-wise and
-  `|`            | 8 | bit-wise or 
+  `|`            | 8 | bit-wise or
   `^`            | 8 | bit-wise exclusive-or
 -----------------|------------------------------------
   `-`            | 10 | bit-limited negation (unary minus)
@@ -397,7 +784,7 @@ unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arith
 
 The groups of operators lower in the table above bind more tightly.[^binding]
 All operators bind more tightly than equality, disequality, and comparisons.
-All binary operators are left-associative, but the 
+All binary operators are left-associative, but the
 bit-wise `&`, `|`, and `^` do not associate together (parentheses are required to disambiguate).
 The `+`, `|`, `^`, and `&` operators are commutative.
 
@@ -499,7 +886,7 @@ But `11` is not a valid `bv3` literal.
 
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
 
-### 5.2.4. Ordinal type ([grammar](#g-basic-type)) {#sec-ordinals}
+### 5.2.5. Ordinal type ([grammar](#g-basic-type)) {#sec-ordinals}
 
 Values of type `ORDINAL` behave like `nat`s in many ways, with one important difference:
 there are `ORDINAL` values that are larger than any `nat`. The smallest of these non-nat ordinals is
@@ -519,7 +906,7 @@ The Dafny type `ORDINAL` has these member functions:
 and if `o.IsNat` is true then `(o as nat)` is well-defined
 - `o.Offset` -- is the `nat` value giving the offset of the ordinal
 
-In addition, 
+In addition,
 - non-negative numeric literals may be considered `ORDINAL` literals, so `o + 1` is allowed
 - `ORDINAL`s may be compared, using `== != < <= > >=`
 - two `ORDINAL`s may be added and the result is `>=` either one of them; addition is associative but not commutative
@@ -528,9 +915,9 @@ In addition,
 
 In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
-### 5.2.5. Characters ([grammar](#g-basic-type)) {#sec-characters}
+### 5.2.6. Characters ([grammar](#g-basic-type)) {#sec-characters}
 
-Dafny supports a type `char` of _characters_.  
+Dafny supports a type `char` of _characters_.
 Its exact meaning is controlled by the command-line switch `--unicode-char:true|false`.
 
 If `--unicode-char` is disabled, then `char` represents any [UTF-16 code unit](https://en.wikipedia.org/wiki/UTF-16).
@@ -539,7 +926,7 @@ This includes surrogate code points.
 If `--unicode-char` is enabled, then `char` represents any [Unicode scalar value](https://unicode.org/glossary/#unicode_scalar_value).
 This excludes surrogate code points.
 
-Character literals are enclosed in single quotes, as in `'D'`. 
+Character literals are enclosed in single quotes, as in `'D'`.
 To write a single quote as a
 character literal, it is necessary to use an _escape sequence_.
 Escape sequences can also be used to write other characters.  The
@@ -566,13 +953,13 @@ In the form `\u`_xxxx_, which is only allowed if `--unicode-char` is disabled,
 the `u` is always lower case, but the four
 hexadecimal digits are case insensitive.
 
-In the form `\U{`_x..x_`}`, 
+In the form `\U{`_x..x_`}`,
 which is only allowed if `--unicode-char` is enabled,
 the `U` is always upper case,
 but the hexadecimal digits are case insensitive, and there must
 be at least one and at most six digits.
 Surrogate code points are not allowed.
-The hex digits may be interspersed with underscores for readability 
+The hex digits may be interspersed with underscores for readability
 (but not beginning or ending with an underscore), as in `\U{1_F680}`.
 
 Character values are ordered and can be compared using the standard
@@ -609,7 +996,7 @@ type G3<+T(==),-U>
 ```
 
 Many of the types, functions, and methods in Dafny can be
-parameterized by types.  These _type parameters_ are 
+parameterized by types.  These _type parameters_ are
 declared inside angle brackets and can stand for any type.
 
 Dafny has some inference support that makes certain signatures less
@@ -635,7 +1022,7 @@ inside the parentheses or as multiple parenthesized elements:
 When an actual type is substituted for a type parameter in a generic type instantiation,
 the actual type must have the declared or inferred type characteristics of the type parameter.
 These characteristics might also be inferred for the actual type. For example, a numeric-based
-subset or newtype automatically has the `==` relationship of its base type. Similarly, 
+subset or newtype automatically has the `==` relationship of its base type. Similarly,
 type synonyms have the characteristics of the type they represent.
 
 An abstract type has no known characteristics. If it is intended to be defined only as types
@@ -841,13 +1228,13 @@ notation | variance | cardinality-preserving
 - _contra-variance_ (`A<-T>`) means that if `U` is a subtype of `V` then `A<V>` is a subtype of `A<U>`
 - _non-variance_ (`A<T>` or `A<!T>`)  means that if `U` is a different type than `V` then there is no subtyping relationship between `A<U>` and `A<V>`
 
-_Cardinality preserving_ 
+_Cardinality preserving_
 means that the cardinality of the type being defined never exceeds the cardinality of any of its type parameters.
 For example `type T<X> = X -> bool`
 is illegal and returns the error message `formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '-X' or '!X')`
-The type `X -> bool` has strictly more values than the type `X`. 
-This affects certain uses of the type, so Dafny requires the declaration of `T` to explicitly say so. 
-Marking the type parameter `X` with `-` or `!` announces that the cardinality of `T<X>` may by larger than that of `X`. 
+The type `X -> bool` has strictly more values than the type `X`.
+This affects certain uses of the type, so Dafny requires the declaration of `T` to explicitly say so.
+Marking the type parameter `X` with `-` or `!` announces that the cardinality of `T<X>` may by larger than that of `X`.
 If you use `-`, you’re also declaring `T` to be contravariant in its type argument, and if you use `!`, you’re declaring that `T` is non-variant in its type argument.
 
 To fix it, we use the variance `!`:
@@ -863,7 +1250,7 @@ A more detailed explanation of these topics is [here](http://leino.science/paper
 
 A generic instantiation consists of a comma-separated list of 1 or more Types,
 enclosed in angle brackets (`<` `>`),
-providing actual types to be used in place of the type parameters of the 
+providing actual types to be used in place of the type parameters of the
 declaration of the generic type.
 If there is no instantion for a generic type, type inference will try
 to fill these in (cf. [Section 12.2](#sec-type-inference)).
@@ -1168,7 +1555,7 @@ String literals of the standard form are enclosed in double quotes, as
 in `"Dafny"`.  To include a double quote in such a string literal,
 it is necessary to use an escape sequence.  Escape sequences can also
 be used to include other characters.  The supported escape sequences
-are the same as those for character literals ([Section 5.2.5](#sec-characters)).
+are the same as those for character literals ([Section 5.2.6](#sec-characters)).
 For example, the Dafny expression `"say \"yes\""` represents the
 string `'say "yes"'`.
 The escape sequence for a single quote is redundant, because
@@ -1472,7 +1859,7 @@ type string_(==,0,!new) = seq<char>
 ```
 If the implicit declaration did not include the type characteristics, they would be inferred in any case.
 
-Note that although a type synonym can be declared and used in place of a type name, 
+Note that although a type synonym can be declared and used in place of a type name,
 that does not affect the names of datatype or class constructors.
 For example, consider
 <!-- %check-resolve Types.22.expect -->
@@ -1666,12 +2053,12 @@ For more information about arrow types (function types), see [Section 5.12](#sec
 This section is a preview to point out the subset-type relationships among the kinds
 of function types.
 
-The built-in type 
+The built-in type
 
-- `->` stands for total functions, 
+- `->` stands for total functions,
 - `-->` stands for partial functions (that is, functions with possible `requires` clauses),
-and 
-- `~>` stands for all functions. 
+and
+- `~>` stands for all functions.
 
 More precisely, type constructors
 exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
@@ -1743,8 +2130,8 @@ For more information about arrow types, see [Section 5.12](#sec-arrow-types).
 The declaration of a subset type permits an optional `witness` clause.
 Types in Dafny are generally expected to be non-empty, in part because
 variables of any type are expected to have some value when they are used.
-In many cases, Dafny can determine that a newly declared type has 
-some value. 
+In many cases, Dafny can determine that a newly declared type has
+some value.
 For example, in the absence of a witness clause,
 a numeric type that includes 0 is known by Dafny
 to be non-empty.
@@ -1754,7 +2141,7 @@ the `witness` clause must be a valid value for the type and assures Dafny
 that the type is non-empty. (The variation `witness *` is described below.)
 
 
-For example, 
+For example,
 <!-- %check-verify Types.10.expect -->
 ```dafny
 type OddInt = x: int | x % 2 == 1
@@ -1787,7 +2174,7 @@ function {:axiom} MySubsetWitness(): BaseType
 ```
 Here the type is given a ghost witness: the result of the expression
 `MySubsetWitness()`, which is a call of a (ghost) function.
-Now that function has a postcondition saying that the returned value 
+Now that function has a postcondition saying that the returned value
 is indeed a candidate value for the declared type, so the verifier is
 satisfied regarding the non-emptiness of the type. However, the function
 has no body, so there is still no proof that there is indeed such a witness.
@@ -2271,7 +2658,7 @@ that each extend `Shape`:
 class UnitSquare extends Shape
 {
   var x: real, y: real
-  function Width(): real 
+  function Width(): real
     decreases 0
   {  // note the empty reads clause
     1.0
@@ -2348,7 +2735,7 @@ method m(n: nat) {
 }
 ```
 The initial values of the array elements are arbitrary values of type
-`T`. 
+`T`.
 A one-dimensional array value can also be assigned using an ordered list of expressions enclosed in square brackets, as follows:
 <!-- %no-check -->
 ```dafny
@@ -2878,7 +3265,7 @@ for an input `t` of type `T` is denoted `f(t)` and has type `U`.
 Note that `f.reads` and `f.requires` are themselves functions.
 Without loss of generality, suppose `f` is defined as:
 <!-- %no-check -->
-```dafny 
+```dafny
 function f<T,U>(x: T): U
   reads R(x)
   requires P(x)
@@ -2888,12 +3275,12 @@ function f<T,U>(x: T): U
 ```
 where `P`, `R`, and `body` are declared as:
 <!-- %no-check -->
-```dafny 
+```dafny
 predicate P<T>(x: T)
 function R<T>(x: T): set<object>
 function body<T,U>(x: T): U
 ```
-Then, `f.reads` is a function of type `T ~> set<object?>` 
+Then, `f.reads` is a function of type `T ~> set<object?>`
 whose `reads` and `requires` properties are given by the definition:
 <!-- %no-check -->
 ```dafny
@@ -3413,9 +3800,9 @@ terminate, greatest predicates are always ghost. There is also a restriction on
 the call graph that a cluster containing a greatest predicate must contain only
 greatest predicates, no other kinds of functions.
 
-[^fn-copredicate-restriction]: To be specific, Dafny has two forms of 
-extreme predicates and lemmas, one in which `_k` has type `nat` and one in 
-which it has type `ORDINAL` (the default). The continuous restriction 
+[^fn-copredicate-restriction]: To be specific, Dafny has two forms of
+extreme predicates and lemmas, one in which `_k` has type `nat` and one in
+which it has type `ORDINAL` (the default). The continuous restriction
 applies only when `_k` is `nat`. Also, higher-order function support in Dafny is
     rather modest and typical reasoning patterns do not involve them, so this
     restriction is not as limiting as it would have been in, e.g., Coq.
@@ -3596,7 +3983,7 @@ infinite proof on demand.
 #### 5.14.3.7. Abstemious and voracious functions {#sec-abstemious}
 
 Some functions on codatatypes are _abstemious_, meaning that they do not
-need to unfold a datatype instance very far (perhaps just one destructor call) 
+need to unfold a datatype instance very far (perhaps just one destructor call)
 to prove a relevant property. Knowing this is the case can aid the proofs of
 properties about the function. The attribute `{:abstemious}` can be applied to
 a function definition to indicate this.
@@ -3721,7 +4108,7 @@ A method signature specifies the method generic parameters,
 input parameters and return parameters.
 The formal parameters are not allowed to have `ghost` specified
 if `ghost` was already specified for the method.
-Within the body of a method, formal (input) parameters are immutable, that is, 
+Within the body of a method, formal (input) parameters are immutable, that is,
 they may not be assigned to, though their array elements or fields may be
 assigned, if otherwise permitted.
 The out-parameters are mutable and must be assigned in the body of the method.
@@ -3775,7 +4162,7 @@ modifies c, d
 
 all mean the same thing.
 
-If the method is an _extreme lemma_ ( a `least` or `greatest` lemma), then the 
+If the method is an _extreme lemma_ ( a `least` or `greatest` lemma), then the
 method signature may also state the type of the _k_ parameter as either `nat` or `ORDINAL`.
 These are described
 in [Section 12.5.3](#sec-friendliness) and subsequent sections.
@@ -3820,7 +4207,7 @@ constructor, every call to `new` for a class must be accompanied
 by a call to one of its constructors. A class may
 declare no constructors or one or more constructors.
 
-In general, a constructor is responsible for initializating the 
+In general, a constructor is responsible for initializating the
 instance fields of its class. However, any field that is given an
 initializer in its declaration may not be reassigned in the body
 of the constructor.
@@ -3942,10 +4329,10 @@ This is done by declaring a method with the `lemma` keyword.
 Lemmas are implicitly ghost methods and the `ghost` keyword cannot
 be applied to them.
 
-Syntactically, lemmas can be placed where ghost methods can be placed, but they serve 
-a significantly different function. First of all, a lemma is forbidden to have 
+Syntactically, lemmas can be placed where ghost methods can be placed, but they serve
+a significantly different function. First of all, a lemma is forbidden to have
 `modifies` clause: it may not change anything about even the ghost state; ghost methods
-may have `modifies` clauses and may change ghost (but not non-ghost) state. 
+may have `modifies` clauses and may change ghost (but not non-ghost) state.
 Furthermore, a lemma is not allowed to allocate any new objects.
 And a lemma may be used in the program text in places where ghost methods may not,
 such as within expressions (cf. [Section 21.1](sec-top-level-expression)).
@@ -3954,9 +4341,9 @@ Lemmas may, but typically do not, have out-parameters.
 
 In summary, a lemma states a logical fact, summarizing an inference that the verifier
 cannot do on its own. Explicitly "calling" a lemma in the program text tells the verifier
-to use that fact at that location with the actual arguments substituted for the 
+to use that fact at that location with the actual arguments substituted for the
 formal parameters. The lemma is proved separately for all cases of its formal parameters
-that satisfy the preconditions of the lemma. 
+that satisfy the preconditions of the lemma.
 
 For an example, see the `FibProperty` lemma in
 [Section 12.5.2](#sec-proofs-in-dafny).
@@ -4142,7 +4529,7 @@ function h(i: int, k: int): int requires i >= 0 { if i == 0 then 0 else 1 }
 ```
 
 Functions may be declared as ghost. If so, all the formal parameters and
-return values are ghost; if it is not a ghost function, then 
+return values are ghost; if it is not a ghost function, then
 individual parameters may be declared ghost as desired.
 
 See [Section 7.3](#sec-function-specification) for a description of the function specification.
@@ -4213,12 +4600,12 @@ Pre v4.0, a function is `ghost` by default, and cannot be called from non-ghost
 code. To make it non-ghost, replace the keyword `function` with the two
 keywords "`function method`". From v4.0 on, a function is non-ghost by
 default. To make it ghost, replace the keyword `function` with the two keywords "`ghost function`".
-(See the [--function-syntax option](#sec-function-syntax) for a description 
+(See the [--function-syntax option](#sec-function-syntax) for a description
 of the migration path for this change in behavior.}
 
 Like methods, functions can be either _instance_ (which they are by default when declared within a type) or
 _static_ (when the function declaration contains the keyword `static` or is declared in a module).
-An instance function, but not a static function, has an implicit receiver parameter, `this`.  
+An instance function, but not a static function, has an implicit receiver parameter, `this`.
 A static function `F` in a class `C` can be invoked
 by `C.F(…)`. This provides a convenient way to declare a number of helper
 functions in a separate class.
@@ -4592,7 +4979,7 @@ The above function may also be called as
 var k := f(y := 10, x := 2);
 ```
 using names; actual arguments with names may be given in any order,
-though they must be after actual arguments without names. 
+though they must be after actual arguments without names.
 
 Formal parameters may also be declared `nameonly`, in which case a call site
 must always explicitly name the formal when providing its actual argument.
@@ -4602,8 +4989,8 @@ For example, a function `ff` declared as
 ```dafny
 function ff(x: int, nameonly y: int): int
 ```
-must be called either by listing the value for x and then y with a name, 
-as in `ff(0, y := 4)` or by giving both actuals by name (in any order). 
+must be called either by listing the value for x and then y with a name,
+as in `ff(0, y := 4)` or by giving both actuals by name (in any order).
 A `nameonly` formal may also have a default value and thus be optional.
 
 Any formals after a `nameonly` formal must either be `nameonly` themselves or have default values.

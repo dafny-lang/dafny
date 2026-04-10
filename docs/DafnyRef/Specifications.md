@@ -458,17 +458,19 @@ Examples:
 ```dafny
 const o: object
 const o, oo: object
-function f()
+function F(): int
   reads *
-function g()
+function G(): int
   reads o, oo
-function h()
+function H(): int
   reads { o }
-method f()
+function K(): int
+  reads **
+method M()
   reads *
-method g()
+method N()
   reads o, oo
-method h()
+method P()
   reads { o }
 ```
 
@@ -478,14 +480,14 @@ the heap memory locations that the function is allowed to read. The reason we
 might limit what a function can read is so that when we write to memory,
 we can be sure that functions that did not read that part of memory have
 the same value they did before. For example, we might have two arrays,
-one of which we know is sorted. If we did not put a reads annotation on
+one of which we know is sorted. Without the ability to specify the reads frame on
 the sorted predicate, then when we modify the unsorted array, we cannot
 determine whether the other array stopped being sorted. While we might be
 able to give invariants to preserve it in this case, it gets even more
-complex when manipulating data structures. In this case, framing is
-essential to making the verification process feasible.
+complex when manipulating data structures, especially recursive data structures.
+Then, framing is essential to making the verification process feasible.
 
-By default, methods are not required to list the memory location they read.
+Unlike functions, methods are by default not required to list the memory locations they read.
 However, there are use cases for restricting what methods can read as well.
 In particular, if you want to verify that imperative code is safe to execute concurrently when compiled,
 you can specify that a method does not read or write any shared state,
@@ -495,19 +497,6 @@ See [the `{:concurrent}` attribute](#sec-concurrent-attribute) for more details.
 
 It is not just the body of a function or method that is subject to `reads`
 checks, but also its precondition and the `reads` clause itself.
-
-A `reads` clause can list a wildcard `*`, which allows the enclosing
-function or method to read anything. 
-This is the implicit default for methods with no `reads` clauses,
-allowing methods to read whatever they like.
-The default for functions, however, is to not allow reading any memory.
-Allowing functions to read arbitrary memory is more problematic:
-in many cases, and in particular in all cases
-where the function is defined recursively, this makes it next to
-impossible to make any use of the function. Nevertheless, as an
-experimental feature, the language allows it (and it is sound).
-If a `reads` clause uses `*`, then the `reads` clause is not allowed to
-mention anything else (since anything else would be irrelevant, anyhow).
 
 A `reads` clause specifies the set of memory locations that a function,
 lambda, or method may read. The readable memory locations are all the fields
@@ -535,7 +524,7 @@ If more than one `reads` clause is given
 in a specification the effective read set is the union of the sets
 specified. If there are no `reads` clauses the effective read set is
 empty. If `*` is given in a `reads` clause it means any memory may be
-read.
+read (see below).
 
 If a `reads` clause refers to a sequence or multiset, that collection
 (call it `c`) is converted to a set by adding an implicit set
@@ -599,10 +588,47 @@ function Sum(f: int ~> real, lo: int, hi: int): real
 Note, only `reads` clauses, not `modifies` clauses, are allowed to
 include functions as just described.
 
+A `reads` clause can list a wildcard `*`, which allows the enclosing
+function or method to read anything. 
+This is the implicit default for methods with no `reads` clauses,
+allowing methods to read whatever they like.
+The default for functions, however, is to not allow reading any memory.
+Allowing functions to read arbitrary memory is more problematic:
+in many cases, and in particular in all cases
+where the function is defined recursively, this makes it next to
+impossible to make any use of the function.
+
+The `reads *` specification gives the function the ability to read anything in the
+heap, but the function is still not allowed to depend on the allocation state of
+the heap. An example of an expression that depends on the allocation state is
+`forall c: Cell :: c.data == 10`, where `Cell` is a `class` with a field `data`.
+Since such quantifiers only quantify over allocated `Cell` objects, the value
+of the expression can go from `true` to `false` if the program allocates a new `Cell`
+object. In cases like this, the best recourse is almost always to limit the
+range of the quantification, for example to something like
+`forall c: Cell :: c in myCellsOfInterest ==> c.data == 10` (see
+[Section 6.4.6](#sec-older-parameters) for more information). However, there is
+also a way to allow a function to depend on the allocation state, namely
+to declare the function with `reads **`, which completely removes the verifier's
+knowledge about what the function depends on in the heap.
+Note that, without such knowledge for a function, the verifier will "forget" the
+value of the function whenever the heap changes in any way, including when another
+method is called, since all methods are allowed to allocate more objects. The only
+way the verifier can determine the value of such a function is to go back to the
+function's body.
+
+The `reads **` specification is not supported on lambda expressions, but `reads *` is.
+
+If a `reads` clause uses `**`, then the `reads` clause is not allowed to
+mention anything else (since anything else would be irrelevant, anyhow).
+Similarly, if a `reads` clause uses `*`, then it is not allowed to
+mention anything else, either.
+
 Iterator specifications also allow `reads` clauses,
 with the same syntax and interpretation of arguments as above,
 but the meaning is quite different!
 See [Section 5.11](#sec-iterator-types) for more details.
+Iterators are not allowed to use `*` or `**` in their `reads` clauses.
 
 ### 7.1.6. Modifies Clause ([grammar](#g-modifies-clause)) {#sec-modifies-clause}
 

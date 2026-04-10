@@ -1,17 +1,17 @@
-opaqueBlock.dfy(15,2): Error: assertion might not hold
-opaqueBlock.dfy(28,2): Error: assertion might not hold
-opaqueBlock.dfy(42,2): Error: assertion might not hold
+opaqueBlock.dfy(15,2): Error: assertion could not be proved
+opaqueBlock.dfy(28,2): Error: assertion could not be proved
+opaqueBlock.dfy(42,2): Error: assertion could not be proved
 opaqueBlock.dfy(49,14): Error: possible division by zero
-opaqueBlock.dfy(54,17): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
-opaqueBlock.dfy(71,21): Error: assignment might update an object not in the enclosing context's modifies clause
-opaqueBlock.dfy(85,12): Error: assignment might update an object not in the enclosing context's modifies clause
-opaqueBlock.dfy(93,2): Error: opaque block might violate context's modifies clause
-opaqueBlock.dfy(106,4): Error: opaque block might violate context's modifies clause
-opaqueBlock.dfy(127,12): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
-opaqueBlock.dfy(130,17): Error: variable 'z', which is subject to definite-assignment rules, might be uninitialized here
-opaqueBlock.dfy(142,12): Error: ensures might not hold
-opaqueBlock.dfy(206,6): Error: assignment might update an object not in the enclosing context's modifies clause
-opaqueBlock.dfy(218,2): Error: assertion might not hold
-opaqueBlock.dfy(228,2): Error: assertion might not hold
+opaqueBlock.dfy(54,17): Error: variable 'y', which is subject to definite-assignment rules, could not be proved to be initialized here
+opaqueBlock.dfy(71,21): Error: modified field could not be proved to be in the current modifies clause
+opaqueBlock.dfy(85,12): Error: modified field could not be proved to be in the current modifies clause
+opaqueBlock.dfy(93,2): Error: modified object in opaque block could not be proved to be in the current modifies clause
+opaqueBlock.dfy(106,4): Error: modified object in opaque block could not be proved to be in the current modifies clause
+opaqueBlock.dfy(127,12): Error: variable 'y', which is subject to definite-assignment rules, could not be proved to be initialized here
+opaqueBlock.dfy(130,17): Error: variable 'z', which is subject to definite-assignment rules, could not be proved to be initialized here
+opaqueBlock.dfy(142,12): Error: ensures could not be proved
+opaqueBlock.dfy(206,6): Error: modified field could not be proved to be in the current modifies clause
+opaqueBlock.dfy(218,2): Error: assertion could not be proved
+opaqueBlock.dfy(228,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 4 verified, 15 errors

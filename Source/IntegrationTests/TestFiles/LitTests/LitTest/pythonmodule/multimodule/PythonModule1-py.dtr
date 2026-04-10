@@ -1,4 +1,4 @@
 file_format_version = "1.0"
-dafny_version = "4.10.1.0"
+dafny_version = "4.11.1.0"
 [options_by_module.DafnyModule1]
 python-module-name = "PythonModule1"

@@ -2,7 +2,7 @@
 title: I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
 ---
 
-## Question: I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
+## Question
 
 I have this lemma
 ```dafny
@@ -35,7 +35,7 @@ assume |schema| == |map k <- schema.Keys :: fn(k) := schema[k]|;
 assert |schema| == |map k <- schema.Keys :: fn(k) := schema[k]|;
 ```
 
-## Answer:
+## Answer
 
 The explanation is a little involved, and in the end gets into a weakness of Dafny. But these is a workaround. Here goes:
 

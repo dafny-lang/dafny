@@ -571,6 +571,8 @@ public partial class Parser {
       case _nat:
       case _int:
       case _real:
+      case _fp32:
+      case _fp64:
       case _ORDINAL:
       case _string:
       case _object_q:

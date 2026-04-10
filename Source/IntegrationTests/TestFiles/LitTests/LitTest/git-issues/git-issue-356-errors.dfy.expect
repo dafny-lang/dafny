@@ -1,25 +1,25 @@
-git-issue-356-errors.dfy(10,14): Error: value to be converted might not fit in char
-git-issue-356-errors.dfy(16,14): Error: value to be converted might not fit in char
-git-issue-356-errors.dfy(22,14): Error: value to be converted might not fit in char
+git-issue-356-errors.dfy(10,14): Error: value to be converted could not be proved to fit in char
+git-issue-356-errors.dfy(16,14): Error: value to be converted could not be proved to fit in char
+git-issue-356-errors.dfy(22,14): Error: value to be converted could not be proved to fit in char
 git-issue-356-errors.dfy(34,22): Error: a negative integer cannot be converted to an ORDINAL
 git-issue-356-errors.dfy(47,22): Error: a negative real cannot be converted to an ORDINAL
 git-issue-356-errors.dfy(53,22): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 git-issue-356-errors.dfy(66,18): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-git-issue-356-errors.dfy(80,14): Error: real value to be converted might not fit in char
-git-issue-356-errors.dfy(87,14): Error: real value to be converted might not fit in char
+git-issue-356-errors.dfy(80,14): Error: real value to be converted could not be proved to fit in char
+git-issue-356-errors.dfy(87,14): Error: real value to be converted could not be proved to fit in char
 git-issue-356-errors.dfy(93,14): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-git-issue-356-errors.dfy(108,14): Error: value to be converted might not fit in bv8
-git-issue-356-errors.dfy(115,14): Error: value to be converted might not fit in bv8
+git-issue-356-errors.dfy(108,14): Error: value to be converted could not be proved to fit in bv8
+git-issue-356-errors.dfy(115,14): Error: value to be converted could not be proved to fit in bv8
 git-issue-356-errors.dfy(121,14): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-git-issue-356-errors.dfy(135,14): Error: value to be converted might not fit in bv8
-git-issue-356-errors.dfy(141,14): Error: value to be converted might not fit in bv8
-git-issue-356-errors.dfy(153,14): Error: value to be converted might not fit in bv8
-git-issue-356-errors.dfy(170,14): Error: ORDINAL value to be converted might not fit in char
-git-issue-356-errors.dfy(170,14): Error: value to be converted might be bigger than every natural number
-git-issue-356-errors.dfy(176,14): Error: ORDINAL value to be converted might not fit in char
-git-issue-356-errors.dfy(189,13): Error: value to be converted might be bigger than every natural number
-git-issue-356-errors.dfy(189,13): Error: value to be converted might not fit in bv8
-git-issue-356-errors.dfy(195,13): Error: value to be converted might not fit in bv8
-git-issue-356-errors.dfy(207,14): Error: bit-vector value to be converted might not fit in char
+git-issue-356-errors.dfy(135,14): Error: value to be converted could not be proved to fit in bv8
+git-issue-356-errors.dfy(141,14): Error: value to be converted could not be proved to fit in bv8
+git-issue-356-errors.dfy(153,14): Error: value to be converted could not be proved to fit in bv8
+git-issue-356-errors.dfy(170,14): Error: ORDINAL value to be converted could not be proved to fit in char
+git-issue-356-errors.dfy(170,14): Error: value to be converted could not be proved to be a natural number
+git-issue-356-errors.dfy(176,14): Error: ORDINAL value to be converted could not be proved to fit in char
+git-issue-356-errors.dfy(189,13): Error: value to be converted could not be proved to be a natural number
+git-issue-356-errors.dfy(189,13): Error: value to be converted could not be proved to fit in bv8
+git-issue-356-errors.dfy(195,13): Error: value to be converted could not be proved to fit in bv8
+git-issue-356-errors.dfy(207,14): Error: bit-vector value to be converted could not be proved to fit in char
 
 Dafny program verifier finished with 14 verified, 23 errors

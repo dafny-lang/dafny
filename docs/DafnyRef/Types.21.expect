@@ -1,4 +1,4 @@
-text.dfy(8,4): Error: field 'x', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-text.dfy(10,4): Error: assertion might not hold
+text.dfy(8,4): Error: field 'x', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
+text.dfy(10,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 2 errors

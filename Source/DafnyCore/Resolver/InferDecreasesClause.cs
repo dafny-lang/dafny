@@ -149,7 +149,7 @@ public class InferDecreasesClause {
     List<Expression> singletons = null;
     var idGen = new VerificationIdGenerator();
     // drop wildcards altogether in the following iterations
-    foreach (FrameExpression fe in fexprs.Where(fe => fe.E is not WildcardExpr)) {
+    foreach (FrameExpression fe in fexprs.Where(fe => fe.E is not (WildcardExpr or DoubleWildcardExpr))) {
       Contract.Assert(fe != null);
       Expression e = new Cloner(false, true).CloneExpr(fe.E); // keep only fe.E, drop any fe.Field designation
       Contract.Assert(e.Type != null); // fe.E should have been resolved already, and the clone should still have that type

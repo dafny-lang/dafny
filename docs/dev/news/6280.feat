@@ -1,1 +1,0 @@
-Dafny classes and traits can now redeclare methods defined by traits they inherit from.

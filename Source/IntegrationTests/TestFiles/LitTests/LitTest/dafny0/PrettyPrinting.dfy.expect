@@ -283,6 +283,14 @@ module DecreasesTo {
 
   datatype Record = R
 }
+
+module ReadsAnything {
+  function F(): int
+    reads *
+
+  function G(): int
+    reads **
+}
 PrettyPrinting.dfy(20,4): Error: skeleton statements are allowed only in refining methods
 PrettyPrinting.dfy(21,4): Error: skeleton statements are allowed only in refining methods
 PrettyPrinting.dfy(75,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating

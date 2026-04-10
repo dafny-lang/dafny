@@ -1,24 +1,24 @@
-CoinductiveProofs.dfy(30,18): Error: assertion might not hold
+CoinductiveProofs.dfy(30,18): Error: assertion could not be proved
 CoinductiveProofs.dfy(15,45): Related location: this proposition could not be proved
 CoinductiveProofs.dfy(13,19): Related location: this proposition could not be proved
-CoinductiveProofs.dfy(44,19): Error: assertion might not hold
-CoinductiveProofs.dfy(48,21): Error: assertion might not hold
+CoinductiveProofs.dfy(44,19): Error: assertion could not be proved
+CoinductiveProofs.dfy(48,21): Error: assertion could not be proved
 CoinductiveProofs.dfy(13,19): Related location: this proposition could not be proved
 CoinductiveProofs.dfy(78,0): Error: a postcondition could not be proved on this return path
 CoinductiveProofs.dfy(77,11): Related location: this is the postcondition that could not be proved
 CoinductiveProofs.dfy(73,3): Related location: this proposition could not be proved
-CoinductiveProofs.dfy(94,16): Error: assertion might not hold
+CoinductiveProofs.dfy(94,16): Error: assertion could not be proved
 CoinductiveProofs.dfy(87,36): Related location: this proposition could not be proved
 CoinductiveProofs.dfy(73,3): Related location: this proposition could not be proved
 CoinductiveProofs.dfy(127,0): Error: a postcondition could not be proved on this return path
 CoinductiveProofs.dfy(126,11): Related location: this is the postcondition that could not be proved
 CoinductiveProofs.dfy(115,3): Related location: this proposition could not be proved
-CoinductiveProofs.dfy(136,16): Error: assertion might not hold
+CoinductiveProofs.dfy(136,16): Error: assertion could not be proved
 CoinductiveProofs.dfy(117,36): Related location: this proposition could not be proved
 CoinductiveProofs.dfy(115,3): Related location: this proposition could not be proved
-CoinductiveProofs.dfy(149,17): Error: assertion might not hold
+CoinductiveProofs.dfy(149,17): Error: assertion could not be proved
 CoinductiveProofs.dfy(115,3): Related location: this proposition could not be proved
-CoinductiveProofs.dfy(153,19): Error: assertion might not hold
+CoinductiveProofs.dfy(153,19): Error: assertion could not be proved
 CoinductiveProofs.dfy(115,3): Related location: this proposition could not be proved
 CoinductiveProofs.dfy(164,0): Error: a postcondition could not be proved on this return path
 CoinductiveProofs.dfy(163,11): Related location: this is the postcondition that could not be proved
@@ -31,5 +31,5 @@ CoinductiveProofs.dfy(208,21): Related location: this is the postcondition that 
 CoinductiveProofs.dfy(4,23): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 23 verified, 12 errors
-Total resources used is 748715
+Total resources used is 752683
 Max resources used by VC is 59297

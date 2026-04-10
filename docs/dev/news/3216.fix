@@ -1,0 +1,1 @@
+**Breaking change**: Error messages now use "could not be proved" instead of "might not hold" to better reflect Dafny's verification semantics. This change improves user experience by shifting focus from uncertainty about assertions to Dafny's inability to prove them. External tools that parse Dafny output may need to update their error message patterns.

@@ -214,7 +214,7 @@ module PrefixBodyInlining {
   greatest predicate BBB(s: nat)
 
   lemma P(k: ORDINAL, n: int)
-    requires forall t :: AAA#[k](t)
+    requires forall t: nat :: AAA#[k](t)
   {
     // We DO NOT want the following call to be inlined--a trigger would then contain a "<".
     assert AAA#[k](if n < 0 then 0 else n); // info: not inlined
