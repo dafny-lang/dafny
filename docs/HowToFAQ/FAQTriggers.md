@@ -1,5 +1,5 @@
 ---
-title: What does `forall v :: v in vals ==> false` evaluate to if `vals` is nonempty?
+title: "What does `forall v :: v in vals ==> false` evaluate to if `vals` is nonempty?"
 ---
 
 ## Question
