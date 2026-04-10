@@ -779,7 +779,11 @@ func (CompanionStruct_NativeArray_) Copy(other ImmutableArray) NativeArray {
 }
 
 func (g GoNativeArray) Length() uint32 {
-	return uint32(g.underlying.dimensionLength(0))
+	arrLength := g.underlying.dimensionLength(0)
+	if arrLength > int(Companion_Default___.SIZE__T__MAX()) {
+		panic(fmt.Sprintf("array size exceeds memory limit"))
+	}
+	return uint32(arrLength)
 }
 
 func (g GoNativeArray) Select(i uint32) interface{} {

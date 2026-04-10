@@ -183,4 +183,22 @@ func SequenceIsBackedByByteArray(seq Sequence) bool {
 	return ok
 }
 
+func TestMaximumLengthCardinality(t *testing.T) {
+	size := Companion_Default___.SIZE__T__MAX()
+	a := make([]byte, int(size))
+	cardinality := SeqOfBytes(a).Cardinality()
+	if cardinality != size {
+		t.Errorf("Expected cardinality %d, got %d", size, cardinality)
+	}
+}
 
+func TestCardinalityOverflow(t *testing.T) {
+	size := Companion_Default___.SIZE__T__MAX() + 1
+	a := make([]byte, int(size))
+
+	// Expect a panic
+	defer func() { _ = recover() }()
+
+	SeqOfBytes(a).Cardinality()
+	t.Errorf("Expected Cardinality() to panic, but it didn't")
+}
