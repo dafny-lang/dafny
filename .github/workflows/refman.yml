@@ -57,7 +57,7 @@ jobs:
       uses: wtfjoke/setup-tectonic@v4
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        tectonic-version: 0.15
+        tectonic-version: 0.16.1
     - name: Build reference manual
       run: |
         eval "$(/usr/libexec/path_helper)"
