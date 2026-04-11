@@ -196,9 +196,16 @@ func TestCardinalityOverflow(t *testing.T) {
 	size := Companion_Default___.SIZE__T__MAX() + 1
 	a := make([]byte, int(size))
 
-	// Expect a panic
-	defer func() { _ = recover() }()
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("Expected Cardinality() to panic, but it didn't")
+		}
+		msg, ok := r.(string)
+		if !ok || msg != ErrArrayLengthExceedsSizeTMax {
+			t.Fatalf("Expected array length panic, got: %v", r)
+		}
+	}()
 
 	SeqOfBytes(a).Cardinality()
-	t.Errorf("Expected Cardinality() to panic, but it didn't")
 }
