@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04 ]
+        os: [ ubuntu-24.04 ]
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
@@ -54,10 +54,10 @@ jobs:
         pandoc -v
         sudo gem install rouge -v 3.30.0
     - name: Install Tectonic
-      uses: wtfjoke/setup-tectonic@v3
+      uses: wtfjoke/setup-tectonic@v4
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        tectonic-version: 0.15
+        tectonic-version: 0.16.1
     - name: Build reference manual
       run: |
         eval "$(/usr/libexec/path_helper)"
