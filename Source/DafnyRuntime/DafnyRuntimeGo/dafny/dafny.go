@@ -13,6 +13,8 @@ import (
 	"unicode/utf8"
 )
 
+const ErrArrayLengthExceedsSizeTMax = "array length exceeds SIZE_T_MAX"
+
 func FromMainArguments(args []string) Sequence {
 	var size = len(args)
 	var dafnyArgs []interface{} = make([]interface{}, size)
@@ -779,7 +781,11 @@ func (CompanionStruct_NativeArray_) Copy(other ImmutableArray) NativeArray {
 }
 
 func (g GoNativeArray) Length() uint32 {
-	return uint32(g.underlying.dimensionLength(0))
+	arrLength := g.underlying.dimensionLength(0)
+	if arrLength > int(Companion_Default___.SIZE__T__MAX()) {
+		panic(ErrArrayLengthExceedsSizeTMax)
+	}
+	return uint32(arrLength)
 }
 
 func (g GoNativeArray) Select(i uint32) interface{} {
