@@ -106,9 +106,12 @@ public partial class BoogieGenerator {
             var rhs = new BinaryExpr(s.Origin, BinaryExpr.Opcode.Add, dafnyYs, dafnySingletonY);
             rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;
             rhs.Type = ys.Type; // resolve here
+            var rawRhs = etran.TrExpr(rhs);
+            var boxedRhs = CondApplyBox(s.Origin, rawRhs, rhs.Type, null);
+            etran.UpdateMutableField(s.Origin, ys, etran.TrExpr(th), boxedRhs);
             var cmd = Bpl.Cmd.SimpleAssign(s.Origin, etran.HeapCastToIdentifierExpr,
               UpdateHeap(s.Origin, etran.HeapExpr, etran.TrExpr(th), new Bpl.IdentifierExpr(s.Origin, GetField(ys)),
-                etran.TrExpr(rhs)));
+                rawRhs));
             builder.Add(cmd);
           }
 
@@ -816,6 +819,8 @@ public partial class BoogieGenerator {
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
 
+    etran.MarkAllocated(tok, nw);
+
     // $Heap[$nw, alloc] := true;
     Bpl.Expr alloc = Predef.Alloc(tok);
     Bpl.IdentifierExpr heap = etran.HeapCastToIdentifierExpr;
@@ -891,9 +896,12 @@ public partial class BoogieGenerator {
       if (processLabels) {
         if (ss is LabeledStatement labelledStatement) {
           foreach (var label in labelledStatement.Labels) {
+            var heapVariableName = "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator);
             var heapAt = locals.GetOrAdd(new Bpl.LocalVariable(ss.Origin,
-              new Bpl.TypedIdent(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator), Predef.HeapType)));
-            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, new Bpl.IdentifierExpr(ss.Origin, heapAt), etran.HeapExpr));
+              new Bpl.TypedIdent(ss.Origin, heapVariableName, Predef.HeapType)));
+            var heapAtExpr = new Bpl.IdentifierExpr(ss.Origin, heapAt);
+            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, heapAtExpr, etran.HeapExpr));
+            etran.CaptureObjectFieldSnapshot(heapVariableName, heapAtExpr);
           }
         }
       }

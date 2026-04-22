@@ -4437,9 +4437,8 @@ namespace Microsoft.Dafny {
       if (iter != null && f == iter.Member_New) {
         // Assignments to an iterator _new field is only allowed to shrink the set, so:
         // assert Set#Subset(rhs, obj._new);
-        var fId = new Bpl.IdentifierExpr(tok, GetField(f));
         var subset = FunctionCall(tok, BuiltinFunction.SetSubset, null, rhs,
-          ApplyUnbox(tok, ReadHeap(tok, etran.HeapExpr, obj, fId), Predef.SetType));
+          ApplyUnbox(tok, etran.ReadMutableField(tok, obj, f), Predef.SetType));
         builder.Add(Assert(tok, subset, new AssignmentShrinks(dObj, f.Name), builder.Context));
       }
     }
