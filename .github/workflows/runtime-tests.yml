@@ -28,7 +28,7 @@ jobs:
       # The Windows image was recently updated with a .NET 9 CLI which made CI fail, 
       # We added a global.json to force it to use any .NET CLI with 8 as a major version
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
       - name: Set up JDK 18

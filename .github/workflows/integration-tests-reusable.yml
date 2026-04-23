@@ -69,12 +69,12 @@ jobs:
       if: runner.os == 'Linux'
       run: cert-sync /etc/ssl/certs/ca-certificates.crt
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: ${{ env.dotnet-version }}
     #  Setup dotnet 6.0 for running Boogie. Alternatively we could try running Boogie with a roll forward policy, or updating Boogie.
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 6.0.x
     - name: C++ for ubuntu 22.04
