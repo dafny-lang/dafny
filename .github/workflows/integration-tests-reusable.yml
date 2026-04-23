@@ -110,7 +110,7 @@ jobs:
       run: python -m pip install --upgrade pip
     - name: Install lit
       run: pip install lit OutputCheck pyyaml
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v6
     - run: npm install bignumber.js
     - name: Checkout Dafny
       uses: actions/checkout@v6
