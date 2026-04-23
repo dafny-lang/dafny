@@ -157,7 +157,7 @@ jobs:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyRuntime.Tests/coverlet.runsettings Source/DafnyRuntime.Tests
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       if: always() && !inputs.soak_test
       with:
         name: unit-test-results-${{ matrix.os }}-${{ matrix.shard }}
