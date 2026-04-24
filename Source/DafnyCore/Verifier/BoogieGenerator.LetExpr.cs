@@ -46,7 +46,7 @@ namespace Microsoft.Dafny {
             canCallRHS = BplAnd(canCallRHS, CanCallAssumption(rhs, cco));
           }
 
-          var bodyCanCall = CanCallAssumption(expr.Body);
+          var bodyCanCall = CanCallAssumption(expr.Body, cco);
           // We'd like to compute the free variables if "bodyCanCall". It would be nice to use the Boogie
           // routine Bpl.Expr.ComputeFreeVariables for this purpose. However, calling it requires the Boogie
           // expression to be resolved. Instead, we do the cheesy thing of computing the set of names of
