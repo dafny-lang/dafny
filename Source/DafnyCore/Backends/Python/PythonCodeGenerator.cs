@@ -173,6 +173,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("from typing import Callable, Any, TypeVar, NamedTuple");
       wr.WriteLine("from math import floor");
       wr.WriteLine("from itertools import count");
+      // If (cacheConstVariablesCliFlag):
+      wr.WriteLine("from functools import lru_cache");
       wr.WriteLine();
       // Don't emit `import module_` for generated modules in the DafnyRuntimePython.
       // The DafnyRuntimePython doesn't have a module.py file, so the import isn't valid.
@@ -588,7 +590,7 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IOrigin tok,
           bool isStatic, bool isConst, bool createBody, MemberDecl member, bool forBodyInheritance) {
-        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
+        return Compiler.CreateGetter(name, resultType, tok, isStatic, isConst, createBody, MethodWriter);
       }
 
       public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IOrigin tok,
@@ -642,9 +644,18 @@ namespace Microsoft.Dafny.Compilers {
       return null;
     }
 
-    private ConcreteSyntaxTree CreateGetter(string name, Type resultType, IOrigin tok, bool isStatic, bool createBody, ConcreteSyntaxTree methodWriter) {
+    private ConcreteSyntaxTree CreateGetter(string name, Type resultType, IOrigin tok, bool isStatic, bool isConst, bool createBody, ConcreteSyntaxTree methodWriter) {
       if (!createBody) { return null; }
       methodWriter.WriteLine(isStatic ? $"@{DafnyRuntimeModule}.classproperty" : "@property");
+      // if (isConst and cacheConstVariablesCliFlag)
+      if (isConst) {
+        // maxsize's value represents the number of unique inputs to the function whose outputs are cached.
+        // Setting this to 1 means that only 1 input/output pair will be cached,
+        //   and a new input will evict the existing input/output pair from the cache.
+        // However, const methods only take `self` or `instance`, and no other parameters.
+        // So there is only 1 input/output pair, and maxsize can be fixed to 1.
+        methodWriter.WriteLine("@lru_cache(maxsize=1)");
+      }
       return methodWriter.NewBlockPy(header: $"def {name}({(isStatic ? "instance" : "self")}):");
     }
 
