@@ -1152,7 +1152,7 @@ namespace Microsoft.Dafny.Compilers {
     protected static string TranslateEscapes(string s) {
       s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
 
-      s = Util.ExpandUnicodeEscapes(s, false);
+      s = Util.ExpandUnicodeEscapes(s, false, false);
 
       return s;
     }
