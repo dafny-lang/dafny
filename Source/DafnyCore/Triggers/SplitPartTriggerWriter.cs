@@ -77,12 +77,41 @@ class SplitPartTriggerWriter {
     //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
     // after:
     //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
+    // Collect variables bound by match cases inside the quantifier body.
+    // that should not be extracted into the quantifier range.
+    var innerBoundVars = new HashSet<IVariable>();
+    Comprehension.Term.Visit(new Func<INode, bool>(node => {
+      var e = node as Expression; if (e == null) return true;
+      if (e is MatchExpr me) {
+        foreach (var mc in me.Cases) {
+          foreach (var arg in mc.Arguments) {
+            innerBoundVars.Add(arg);
+          }
+        }
+      } else if (e is NestedMatchExpr nme) {
+        foreach (var mc in nme.Cases) {
+          foreach (var bv in mc.Pat.DescendantsAndSelf.OfType<IdPattern>().Where(p => p.BoundVar != null)) {
+            innerBoundVars.Add(bv.BoundVar);
+          }
+        }
+      }
+      return true;
+    }));
+
     var substMap = new List<Tuple<Expression, IdentifierExpr>>();
     foreach (var triggerMatch in loopingMatches) {
       var e = triggerMatch.OriginalExpr;
       if (triggersCollector.IsPotentialTriggerCandidate(e) && triggersCollector.IsTriggerKiller(e)) {
         foreach (var sub in e.SubExpressions) {
           if (triggersCollector.IsTriggerKiller(sub) && (!triggersCollector.IsPotentialTriggerCandidate(sub))) {
+            // Don't extract subexpressions that reference match-bound variables.
+            // These get substituted away by DesugarMatchExpr during Boogie
+            // generation, but the extracted range constraint would still
+            // reference the original variable, causing undeclared identifiers.
+            if (sub.DescendantsAndSelf.OfType<IdentifierExpr>().Any(
+                  ie => ie.Var != null && innerBoundVars.Contains(ie.Var))) {
+              continue;
+            }
             var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
             if (entry == null) {
               var newBv = new BoundVar(sub.Origin, "_t#" + substMap.Count, sub.Type);
