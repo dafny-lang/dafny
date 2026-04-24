@@ -8,10 +8,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// </summary>
   public static class FormatExtensions {
     /// <summary>
-    /// Converts the given enumerable of variables into a comma seperated string.
+    /// Converts the given enumerable of variables into a comma separated string.
     /// </summary>
     /// <param name="variables">The variables to get the string representation of.</param>
-    /// <returns>The string representation of the variables seperated by commas.</returns>
+    /// <returns>The string representation of the variables separated by commas.</returns>
     public static string AsCommaSeperatedText<TVariable>(this IEnumerable<TVariable> variables) where TVariable : IVariable {
       var combined = new StringBuilder();
       foreach (var formal in variables) {

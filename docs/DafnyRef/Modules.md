@@ -215,7 +215,7 @@ sometimes you have to use the = version to ensure the names do not
 clash. When importing nested modules, `import B.C` means `import C = B.C`;
 the implicit name is always the last name segment of the module designation.
 
-The first identifier in the dot-separated sequence of identifers that constitute
+The first identifier in the dot-separated sequence of identifiers that constitute
 the qualified name of the module being imported is resolved as (in order)
 - a submodule of the importing module, 
 - or a sibling module of the importing module, 

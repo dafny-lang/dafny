@@ -1122,7 +1122,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     function Then(other: AssignmentStatus): AssignmentStatus {
       if SurelyAssigned? then SurelyAssigned
       else if NotAssigned? then other
-      else Unknown // It's not as simple. If there are are two paths leading to one being assigned, the other not,
+      else Unknown // It's not as simple. If there are two paths leading to one being assigned, the other not,
       // Rust won't be able to figure out the rules
     }
   }

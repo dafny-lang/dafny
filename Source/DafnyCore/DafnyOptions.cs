@@ -1176,7 +1176,7 @@ namespace Microsoft.Dafny {
     private static ConcurrentDictionary<string, Version> z3VersionPerPath = new();
     /// <summary>
     /// Dafny releases come with their own copy of Z3, to save users the trouble of having to install extra dependencies.
-    /// For this to work, Dafny first tries any prover path explicitly provided by the user, then looks for for the copy
+    /// For this to work, Dafny first tries any prover path explicitly provided by the user, then looks for the copy
     /// distributed with Dafny, and finally looks in any directory in the system PATH environment variable.
     /// </summary>
     private Version SetZ3ExecutablePath(ErrorReporter errorReporter, IOrigin token) {

@@ -22,7 +22,7 @@ See [docs/dev/news/](docs/dev/news/).
 
 - Support using `--standard-libraries` with `--enforce-determinism`. Removed `Std.Collections.Seq.SetToSeq` since it was slow and not compatible with this mode. (https://github.com/dafny-lang/dafny/pull/6137)
 
-- With `--standard-libraries` you can now read an UTF-8 text files from the disk using `Std.FileIO.ReadUTF8FromFile(path: string): Result<string, string>`.
+- With `--standard-libraries` you can now read UTF-8 text files from the disk using `Std.FileIO.ReadUTF8FromFile(path: string): Result<string, string>`.
   To write some content to the disk, use `Std.FileIO.WriteUTF8ToFile(path: string, content: string): Outcome<string>`.
   **Standard library breaking change**: All `UnicodeEncodingForm` versions of `FromUTF8Checked`, `FromUTF16Checked` and `DecodeCodeUnitSequenceChecked` now return a `Result` instead of an `Option` so that the error message is clearer. Migration is easy: Use `.ToOption()` if you really prefer an option. Affected refining modules: `Utf8EncodingForm` and `Utf16EncodingForm`
   (https://github.com/dafny-lang/dafny/pull/6198)
@@ -96,7 +96,7 @@ See [docs/dev/news/](docs/dev/news/).
 
 - Besides `--filter-position :<line>`, also support `--filter-position :<start>-<end>`, `--filter-position :<start>-` and `--filter-position :-<end>` (https://github.com/dafny-lang/dafny/pull/6077)
 
-- The options --iterations from the command `measure-complexity`, has been renamed to `--mutations`. The option `--progress VerificationJob` has been renamed to `--progress Batch`. (https://github.com/dafny-lang/dafny/pull/6078)
+- The option --iterations for the command `measure-complexity`, has been renamed to `--mutations`. The option `--progress VerificationJob` has been renamed to `--progress Batch`. (https://github.com/dafny-lang/dafny/pull/6078)
 
 ## Bug fixes
 
@@ -159,7 +159,7 @@ See [docs/dev/news/](docs/dev/news/).
      If patterns are found, then an IH is generated, the list of variables and the patterns are indicated in tooltips,
      and the patterns are used with the IH quantifier.
 
-     The pattern search can be overriden by providing patterns explicitly using the `{:inductionTrigger}` attribute.
+     The pattern search can be overridden by providing patterns explicitly using the `{:inductionTrigger}` attribute.
      This attribute has the same syntax as the `{:trigger}` attribute.  Using an empty list of triggers restores
      Dafny's legacy behavior (no triggers for lemma induction hypotheses).
   (https://github.com/dafny-lang/dafny/pull/5835)
@@ -306,7 +306,7 @@ See [docs/dev/news/](docs/dev/news/).
 
 - Enable the option `--enforce-determinism` for the commands `resolve` and `verify` (https://github.com/dafny-lang/dafny/pull/5632)
 
-- Method calls get an optional by-proof that hides the precondtion and its proof (https://github.com/dafny-lang/dafny/pull/5662)
+- Method calls get an optional by-proof that hides the precondition and its proof (https://github.com/dafny-lang/dafny/pull/5662)
 
 ## Bug fixes
 
@@ -372,14 +372,14 @@ Those two can be silenced with the flag `--allow-external-contracts`. A third ne
 
 - Improve the performance of the Dafny IDE by fixing bugs in its caching code
 
-- No longer reuse SMT solver processes between different document version when using the IDE, making the IDE verification behavior more inline to that of the CLI
+- No longer reuse SMT solver processes between different document version when using the IDE, making the IDE verification behavior more in line with that of the CLI
 
 - Fix bugs that caused Dafny IDE internal errors (https://github.com/dafny-lang/dafny/issues/5355, https://github.com/dafny-lang/dafny/pull/5543, https://github.com/dafny-lang/dafny/pull/5548)
 
-- Fix bugs in the Dafny IDEs code navigation and renaming features when working with definition that are not referred to.
+- Fix bugs in the Dafny IDE's code navigation and renaming features when working with definitions that are not referred to.
 
 - Fix a code navigation bug that could occur when navigating to and from module imports
-- 
+
 - Fix a code navigation bug that could occur when navigating to and from explicit types of variables
   (https://github.com/dafny-lang/dafny/pull/5419)
 
@@ -515,7 +515,7 @@ Those two can be silenced with the flag `--allow-external-contracts`. A third ne
 
 - Check for correct usage of type characteristics in specifications and other places where they were missing.
 
-  This fix will cause build breaks for programs with missing type characteristics (like `(!new)` and `(0)`). Any such error message is accompanied with a hint about what type characterics need to be added where.
+  This fix will cause build breaks for programs with missing type characteristics (like `(!new)` and `(0)`). Any such error message is accompanied with a hint about what type characteristics need to be added where.
   (https://github.com/dafny-lang/dafny/pull/4928)
 
 - Initialize additional fields in the AST (https://github.com/dafny-lang/dafny/pull/4930)
@@ -665,7 +665,7 @@ Those two can be silenced with the flag `--allow-external-contracts`. A third ne
   - The assisted rename feature (also added in this release), only works for files that are part of a project.
   - When using a project file, it is no longer necessary to use include directives. In the previous version of Dafny, it was already the case that the Dafny CLI, when passed a Dafny project file, does not require include directives to process the Dafny program. The same now holds for the Dafny IDE when working with Dafny files for which a project file can be found.
   - If any file in the project is resolved, all files in the project are resolved. Opening a file in a project that's already resolved means the opened file is resolved instantly.
-  - The IDE's memory consumption stays the same regardless of how many files in a project are opened. Without a project, the IDE increases it's memory usage for each open file.
+  - The IDE's memory consumption stays the same regardless of how many files in a project are opened. Without a project, the IDE increases its memory usage for each open file.
 
   Try out the IDE's project support now by creating an empty `dfyconfig.toml` file in the root of your project repository.
   (https://github.com/dafny-lang/dafny/pull/4435)
@@ -684,7 +684,7 @@ Those two can be silenced with the flag `--allow-external-contracts`. A third ne
 
 ## Bug fixes
 
-- Triggers warnings correclty converted into errors with --warn-as-errors (https://github.com/dafny-lang/dafny/pull/3358)
+- Triggers warnings correctly converted into errors with --warn-as-errors (https://github.com/dafny-lang/dafny/pull/3358)
 
 - Allow JavaScript keywords as names of Dafny modules (https://github.com/dafny-lang/dafny/pull/4243)
 
@@ -906,7 +906,7 @@ Those two can be silenced with the flag `--allow-external-contracts`. A third ne
 
 - The deprecated attributes :dllimport, :handle, and :heapQuantifier are no longer recognized. (https://github.com/dafny-lang/dafny/pull/3398)
 
-- While using `dafny translate --target=java`, the `--include-runtime` option works as intended, while before it had no affect. (https://github.com/dafny-lang/dafny/pull/3611)
+- While using `dafny translate --target=java`, the `--include-runtime` option works as intended, while before it had no effect. (https://github.com/dafny-lang/dafny/pull/3611)
 
 - Tested support for paths with spaces in them (https://github.com/dafny-lang/dafny/pull/3683)
 
@@ -1092,7 +1092,7 @@ Those two can be silenced with the flag `--allow-external-contracts`. A third ne
 
 ## New features
 
-- Emit warnings about possibly missing parentheses, based on operator precedence and unusual identation (https://github.com/dafny-lang/dafny/pull/2783)
+- Emit warnings about possibly missing parentheses, based on operator precedence and unusual indentation (https://github.com/dafny-lang/dafny/pull/2783)
 
 - The DafnyRuntime NuGet package is now compatible with the .NET Standard 2.0 and .NET Framework 4.5.2 frameworks. (https://github.com/dafny-lang/dafny/pull/2795)
 
@@ -1123,7 +1123,7 @@ Those two can be silenced with the flag `--allow-external-contracts`. A third ne
 
 - Refinements get errors at the correct place in LSP (https://github.com/dafny-lang/dafny/pull/2402)
 
-- Resolution errors in the left-hand sign of an assign-such-that statement do not crash Dafny anymore (https://github.com/dafny-lang/dafny/pull/2496)
+- Resolution errors in the left-hand side of an assign-such-that statement do not crash Dafny anymore (https://github.com/dafny-lang/dafny/pull/2496)
 
 - old() cannot be inferred as a trigger alone (https://github.com/dafny-lang/dafny/pull/2593)
 
@@ -1192,7 +1192,7 @@ Those two can be silenced with the flag `--allow-external-contracts`. A third ne
 
 - don't crash on type synonyms and subset types of array types in LHSs of simultaneous assignments (https://github.com/dafny-lang/dafny/pull/2884)
 
-- Removed an bogus optimization on the Language Server (https://github.com/dafny-lang/dafny/pull/2890)
+- Removed a bogus optimization on the Language Server (https://github.com/dafny-lang/dafny/pull/2890)
 
 - The Dafny-to-Java compiler will now fully-qualify type casts in pattern destructors, avoiding "reference to TYPE is ambiguous" errors from javac. (https://github.com/dafny-lang/dafny/pull/2904)
 
@@ -1221,7 +1221,7 @@ Those two can be silenced with the flag `--allow-external-contracts`. A third ne
 
 # 3.8.1
 
-- feat: Support for the `{:opaque}` attibute on `const` (https://github.com/dafny-lang/dafny/pull/2545)
+- feat: Support for the `{:opaque}` attribute on `const` (https://github.com/dafny-lang/dafny/pull/2545)
 - feat: Support for plugin-based code actions on the IDE (https://github.com/dafny-lang/dafny/pull/2021)
 - fix: Fixed a crash when parsing `newtype` in the parser (https://github.com/dafny-lang/dafny/pull/2649)
 - fix: Added missing error reporting position on string prefix check (https://github.com/dafny-lang/dafny/pull/2652)
@@ -1245,7 +1245,7 @@ Those two can be silenced with the flag `--allow-external-contracts`. A third ne
 - fix: Counterexamples - fix an integer parsing bug and correctly extract datatype and field names (https://github.com/dafny-lang/dafny/pull/2461)
 - feat: New option `-diagnosticsFormat:json` to print Dafny error messages as JSON objects (one per line).
   (https://github.com/dafny-lang/dafny/pull/2363)
-- fix: No more exceptions when hovering over variables without type, and types of local variabled kept under match statements (https://github.com/dafny-lang/dafny/pull/2437)
+- fix: No more exceptions when hovering over variables without type, and types of local variables kept under match statements (https://github.com/dafny-lang/dafny/pull/2437)
 - fix: Check extreme predicates and constants in all types, not just classes
   (https://github.com/dafny-lang/dafny/pull/2515)
 - fix: Correctly substitute type variables in override checks

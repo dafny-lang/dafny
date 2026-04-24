@@ -442,7 +442,7 @@ The multiset type is almost the same as sets:
   multiset<int>
 ```
 
-Similarly, to give a multiset literal, you write curly braces, except preceeded by the `multiset` keyword:
+Similarly, to give a multiset literal, you write curly braces, except preceded by the `multiset` keyword:
 
 <!-- %no-check -->
 ```dafny
@@ -486,7 +486,7 @@ method test()
 }
 ```
 
-Both of these assertions are correct because the multiset of a sequence considers each element seperately,
+Both of these assertions are correct because the multiset of a sequence considers each element separately,
 whereas a set only has at most one of each element. Dafny lets you write `{1,1}`, but this is the same
 as `{1}`, because duplicates are ignored. Thus when making a multiset from a set, each element in the
 multiset will have multiplicity exactly one. Making multisets from sequences is particularly useful, as when

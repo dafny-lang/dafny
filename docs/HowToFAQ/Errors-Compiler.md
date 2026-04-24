@@ -460,7 +460,7 @@ Note that a `modify` statement with a body is deprecated.
 
 ## **Error: this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'** {#c_let_such_that_is_too_complex}
 
-<!-- TODO: needs example and explanataion -->
+<!-- TODO: needs example and explanation -->
 _The documentation of this problem is in progress._
 
 <!-- DafnyCore/Compilers/CSharp/Synthesizer-Csharp.cs -->

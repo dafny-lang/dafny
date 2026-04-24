@@ -373,7 +373,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
   // ReSharper disable once UnusedParameter.Local
   void SetAttributeIndentation(Attributes attributes) {
-    // If we ever need multiline attributes, here is the place to format them appropriatedly
+    // If we ever need multiline attributes, here is the place to format them appropriately
   }
 
   public void SetDecreasesExpressionIndentation(Expression expression, int indent) {

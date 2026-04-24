@@ -271,7 +271,7 @@ abstract module Std.Unicode.UnicodeEncodingForm {
     Seq.Flatten(ms)
   }
   by method {
-    // Optimize to to avoid allocating the intermediate unflattened sequence.
+    // Optimize to avoid allocating the intermediate unflattened sequence.
     // We can't quite use Seq.FlatMap easily because we need to prove the result
     // is not just a seq<CodeUnit> but a WellFormedCodeUnitSeqs.
     // TODO: We can be even more efficient by using a JSON.Utils.Vectors.Vector instead.

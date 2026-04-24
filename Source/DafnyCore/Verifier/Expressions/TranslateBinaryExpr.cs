@@ -568,7 +568,7 @@ public partial class BoogieGenerator {
       }
 
       if (extractObjectFromMemoryLocation != null) {
-        // Translate "elmt in s" into "exists xs :: xs in s && elem == xs.0"
+        // Translate "elmt in s" into "exists xs :: xs in s && elmt == xs.0"
         // with extractObjectFromMemoryLocation = (xs) => xs.0
         var xs = new BoundVariable(GetToken(s), new TypedIdent(tok, "xs", BoogieGenerator.TrType(s.Type.AsSetType.Arg)));
         var xsExpr = new Boogie.IdentifierExpr(xs.tok, xs);

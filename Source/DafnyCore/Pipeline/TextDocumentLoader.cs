@@ -11,7 +11,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny {
   /// <summary>
   /// Text document loader implementation that offloads the whole load procedure on one dedicated
-  /// thread with a stack size of 256MB. Since only one thread is used, document loading is implicitely synchronized.
+  /// thread with a stack size of 256MB. Since only one thread is used, document loading is implicitly synchronized.
   /// The verification runs on the calling thread.
   /// </summary>
   /// <remarks>

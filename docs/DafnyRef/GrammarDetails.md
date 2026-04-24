@@ -16,7 +16,7 @@ parameterized by boolean parameters that control variations of the
 production rules, such as whether a particular alternative is permitted or
 not. Using such attributes allows combining non-terminals with quite
 similar production rules, making a simpler, more compact and more
-readable grammer.
+readable grammar.
 
 The grammar rules presented here replicate those in the source
 code, but omit semantic actions, error recovery markers, and

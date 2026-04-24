@@ -41,7 +41,7 @@ public class CasePattern<VT> : NodeWithOrigin
       Arguments = original.Arguments.Select(cloner.CloneCasePattern).ToList();
     }
 
-    // In this case, tt is important to resolve the resolved fields AFTER the Arguments above.
+    // In this case, it is important to resolve the resolved fields AFTER the Arguments above.
     // If we resolve the expression first, the references to variables declared in the case pattern
     // will be cloned as references instead of declarations,
     // and when we clone the declarations the cache in Cloner.clones will incorrectly return

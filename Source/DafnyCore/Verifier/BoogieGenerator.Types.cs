@@ -175,7 +175,7 @@ public partial class BoogieGenerator {
              even if some of bx1...bxN are unallocated
            - it's harder to satisfy the stronger condition, but two cases are nevertheless useful:
              1) f has an empty reads clause
-             2) f explictly states that everything is its reads clause is allocated
+             2) f explicitly states that everything is its reads clause is allocated
        */
       {
         var bvars = new List<Bpl.Variable>();

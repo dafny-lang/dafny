@@ -1051,7 +1051,7 @@ namespace Microsoft.Dafny {
       Expression newExpr = null;
 
       var e = (ComprehensionExpr)expr;
-      // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with
+      // For quantifiers and setComprehension we want to make sure that we don't introduce name clashes with
       // the enclosing scopes.
 
       if (e is QuantifierExpr { SplitQuantifier: not null } quantifierExpr) {

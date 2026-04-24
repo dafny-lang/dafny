@@ -273,7 +273,7 @@ public partial class BoogieGenerator {
     //
     // The translation of "body" uses "s" as the layer argument for intra-cluster calls and the default layer argument
     // (which is Succ(0)) for other calls.  Usually, the layer argument in the LHS of the definition (and also in the trigger,
-    // see the two occurrences of (*) above) use Succ(s) as the layer argument.  However, if "lits" are specified, then
+    // see the two occurrences of (*) above) use Succ(s) as the layer argument.  However, if "lits" are specified,
     // then the argument used is just "s" (in both the LHS and trigger).
     //
     // Note, an antecedent $Heap[this,alloc] is intentionally left out:  including it would only weaken
@@ -682,7 +682,7 @@ public partial class BoogieGenerator {
         // As a first approximation, the following axiom is of the form:
         // Requires(Ty.., F#Handle( Ty1, ..., TyN, Layer, reveal, self), Heap, arg1, ..., argN)
         //   = F#Requires(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
-        // However, .reads ands .requires functions require special attention.
+        // However, .reads and .requires functions require special attention.
         // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual.
         // The requires clause of the .requires function is simply true.
         // The requires clause of the .reads function checks that the precondition of the receiving function holds.
@@ -712,7 +712,7 @@ public partial class BoogieGenerator {
         // As a first approximation, the following axiom is of the form:
         // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
         //   =  $Frame_F(args...)
-        // However, .reads ands .requires functions require special attention.
+        // However, .reads and .requires functions require special attention.
         // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual.
         // In both cases, the precondition of the receiving function must be checked before its reads clause can
         // be referred to.
@@ -774,7 +774,7 @@ public partial class BoogieGenerator {
   /// Expressions in [...] are omitted if
   ///   - /allocated:0, or
   ///   - /allocated:1, or
-  ///   - /allocated:3, except if "reads" clause is "*" of if the function is a two-state function;
+  ///   - /allocated:3, except if "reads" clause is "*" or if the function is a two-state function;
   /// see comments in AddArrowTypeAxioms
   /// Also, with /allocated:3, the frame axiom is omitted altogether if the (one-state) function has an
   /// empty "reads" clause (because then the function doesn't take a heap argument at all).
