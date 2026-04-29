@@ -1,0 +1,4 @@
+git-issue-6410.dfy(12,13): Error: insufficient reads clause to invoke the function passed as an argument to the array initializer
+git-issue-6410.dfy(13,13): Error: insufficient reads clause to invoke the function passed as an argument to the array initializer
+
+Dafny program verifier finished with 0 verified, 2 errors
