@@ -1,0 +1,8 @@
+NonReferenceTraitsFrames.dfy(18,10): Error: a reads clause can only refer to reference types (consider declaring the trait 'Account' with 'extends object')
+NonReferenceTraitsFrames.dfy(23,10): Error: a reads clause can only refer to reference types (consider declaring the trait 'Account' with 'extends object')
+NonReferenceTraitsFrames.dfy(28,10): Error: a reads clause can only refer to reference types (consider declaring the trait 'Account' with 'extends object')
+NonReferenceTraitsFrames.dfy(33,13): Error: a modifies clause can only refer to reference types (consider declaring the trait 'Account' with 'extends object')
+NonReferenceTraitsFrames.dfy(38,14): Error: an unchanged expression can only refer to reference types (consider declaring the trait 'Account' with 'extends object')
+NonReferenceTraitsFrames.dfy(42,10): Error: a fresh expression can only refer to reference types (consider declaring the trait 'Account' with 'extends object')
+NonReferenceTraitsFrames.dfy(46,10): Error: a fresh expression can only refer to reference types (consider declaring the trait 'Account' with 'extends object')
+7 resolution/type errors detected in NonReferenceTraitsFrames.dfy

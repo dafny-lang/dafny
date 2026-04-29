@@ -442,7 +442,23 @@ namespace Microsoft.Dafny {
             ResolveExpression(e.E, resolutionContext);
             e.AtLabel = ResolveDominatingLabelInExpr(freshExpr.Origin, e.At, "fresh", resolutionContext);
             // the type of e.E must be either an object or a set/seq of objects
-            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Freshable, e.E.PreType, e.E.Origin, "the argument of a fresh expression must denote an object or a set or sequence of objects (instead got {0})");
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Freshable, e.E.PreType, e.E.Origin, () => {
+              // At error-report time, peel off set/iset/seq wrapping to get the element decl, and
+              // suggest `extends object` if that decl is a non-reference trait.
+              var pt = e.E.PreType.Normalize();
+              TopLevelDecl elementDecl = null;
+              if (pt is DPreType dpOuter) {
+                if (dpOuter.Decl.Name is PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq
+                    && dpOuter.Arguments.Count >= 1
+                    && dpOuter.Arguments[0].Normalize() is DPreType dpInner) {
+                  elementDecl = dpInner.Decl;
+                } else {
+                  elementDecl = dpOuter.Decl;
+                }
+              }
+              return ModuleResolver.NonReferenceTraitFrameMessageOrNull(elementDecl, "a fresh expression")
+                     ?? string.Format(ModuleResolver.FreshGenericFormat, e.E.PreType);
+            });
             ConstrainTypeExprBool(e, "result of 'fresh' is boolean, but is used as if it had type {0}");
             break;
           }
