@@ -42,6 +42,18 @@ public class XConstraint {
     convertedIntoOtherTypeConstraints = false;
     moreXConstraints = false;
     var t = Types[0].NormalizeExpand();
+
+    // If "type" is a non-reference trait, emit a tailored frame-expression diagnostic
+    // naming "clauseDescription" and return true. Otherwise return false.
+    bool TryReportNonReferenceTraitError(Type type, string clauseDescription) {
+      var hint = ModuleResolver.NonReferenceTraitFrameMessageOrNull((type as UserDefinedType)?.ResolvedClass, clauseDescription);
+      if (hint != null) {
+        resolver.reporter.Error(MessageSource.Resolver, tok, hint);
+        return true;
+      }
+      return false;
+    }
+
     if (t is TypeProxy) {
       switch (ConstraintName) {
         case "Assignable":
@@ -437,10 +449,22 @@ public class XConstraint {
             return false;  // there is not enough information
           }
           satisfied = t.IsRefType;
+          if (!satisfied && TryReportNonReferenceTraitError(t, "a fresh expression")) {
+            return true;
+          }
           break;
         }
-      case "ModifiesFrame": {
+      case "FrameExpression": {
+          var frameConstraint = (XConstraintFrame)this;
+          var isReads = frameConstraint.Use == FrameExpressionUse.Reads;
           var u = Types[1].NormalizeExpand();  // eventual ref type
+
+          // Only reads clauses can contain a function expression (whose result is then what's being read).
+          var arrTy = isReads ? t.AsArrowType : null;
+          if (arrTy != null) {
+            t = arrTy.Result.NormalizeExpand();
+          }
+
           var collType = t is MapType ? null : t.AsCollectionType;
           if (collType != null) {
             t = collType.Arg.NormalizeExpand();
@@ -460,7 +484,10 @@ public class XConstraint {
             if (collType != null || tType != null) {
               // we know enough to convert into a subtyping constraint
               resolver.AddXConstraint(Token.NoToken/*bogus, but it seems this token would be used only when integers are involved*/, "IsRefType", t, errorMsg);
-              moreXConstraints = true;
+              if (!isReads) {
+                // Preserve pre-existing behavior: modifies/unchanged also mark IsRefType as a newly added constraint.
+                moreXConstraints = true;
+              }
               resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
               moreXConstraints = true;
               convertedIntoOtherTypeConstraints = true;
@@ -469,50 +496,15 @@ public class XConstraint {
               return false;  // there is not enough information
             }
           }
-          if (t.IsRefType) {
+          var satisfiesRefRequirement = isReads
+            ? (t.IsRefType || t.IsMemoryLocationType) && (arrTy == null || collType != null)
+            : t.IsRefType;
+          if (satisfiesRefRequirement) {
             resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
             convertedIntoOtherTypeConstraints = true;
             return true;
           }
-          satisfied = false;
-          break;
-        }
-      case "ReadsFrame": {
-          var u = Types[1].NormalizeExpand();  // eventual ref type
-          var arrTy = t.AsArrowType;
-          if (arrTy != null) {
-            t = arrTy.Result.NormalizeExpand();
-          }
-          var collType = t is MapType ? null : t.AsCollectionType;
-          if (collType != null) {
-            t = collType.Arg.NormalizeExpand();
-          }
-
-          var tType = t.AsDatatype is TupleTypeDecl { Dims: 2 } tDecl ? tDecl : null;
-          if (tType != null) {
-            var refType = t.TypeArgs[0];
-            var fieldType = t.TypeArgs[1];
-            t = refType.NormalizeExpand();
-            if (fieldType is not FieldType) {
-              resolver.AddXConstraint(Token.NoToken/*bogus, but it seems this token would be used only when integers are involved*/, "IsFieldType", fieldType, errorMsg);
-              convertedIntoOtherTypeConstraints = true;
-            }
-          }
-          if (t is TypeProxy) {
-            if (collType != null || tType != null) {
-              // we know enough to convert into a subtyping constraint
-              resolver.AddXConstraint(Token.NoToken/*bogus, but it seems this token would be used only when integers are involved*/, "IsRefType", t, errorMsg);
-              resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
-              moreXConstraints = true;
-              convertedIntoOtherTypeConstraints = true;
-              return true;
-            } else {
-              return false;  // there is not enough information
-            }
-          }
-          if ((t.IsRefType || t.IsMemoryLocationType) && (arrTy == null || collType != null)) {
-            resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
-            convertedIntoOtherTypeConstraints = true;
+          if (TryReportNonReferenceTraitError(t, frameConstraint.Use.ClauseDescription())) {
             return true;
           }
           satisfied = false;
@@ -593,6 +585,18 @@ public class XConstraintWithExprs : XConstraint {
     Contract.Requires(exprs != null);
     Contract.Requires(errMsg != null);
     this.Exprs = exprs;
+  }
+}
+
+public class XConstraintFrame : XConstraint {
+  public readonly FrameExpressionUse Use;
+  public XConstraintFrame(IOrigin tok, FrameExpressionUse use, Type t, Type eventualRefType, TypeConstraint.ErrorMsg errMsg)
+    : base(tok, "FrameExpression", [t, eventualRefType], errMsg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(t != null);
+    Contract.Requires(eventualRefType != null);
+    Contract.Requires(errMsg != null);
+    this.Use = use;
   }
 }
 

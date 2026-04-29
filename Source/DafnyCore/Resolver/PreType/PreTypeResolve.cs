@@ -538,6 +538,10 @@ namespace Microsoft.Dafny {
       Constraints.AddConfirmation(check, preType, tok, errorFormatString, onProxyAction);
     }
 
+    void AddConfirmation(PreTypeConstraints.CommonConfirmationBag check, PreType preType, IOrigin tok, Func<string> errorMessage) {
+      Constraints.AddConfirmation(check, preType, tok, errorMessage);
+    }
+
     void AddComparableConstraint(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, string errorFormatString) {
       AddComparableConstraint(a, b, tok, allowBaseTypeCast, () => string.Format(errorFormatString, a, b));
     }
@@ -1641,20 +1645,24 @@ namespace Microsoft.Dafny {
 
         if (!((DPreType.IsReferenceTypeDecl(dp.Decl) ||
                DPreType.IsFieldLocationType(dp)) && (!hasArrowType || hasCollectionType))) {
-          var expressionMustDenoteObject = "expression must denote an object";
-          var fieldLocation = ModuleResolver.SingleFieldLocation;
-          var collection = ModuleResolver.CollectionOfFieldLocations;
-          var instead = "(instead got {0})";
-          var errorMsgFormat = use switch {
-            FrameExpressionUse.Reads =>
-              $"a reads-clause {expressionMustDenoteObject}, {fieldLocation}, {collection}, or a function to {collection} {instead}",
-            FrameExpressionUse.Modifies =>
-              $"a modifies-clause {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
-            FrameExpressionUse.Unchanged =>
-              $"an unchanged {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
-            _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
-          };
-          ReportError(fe.E.Origin, errorMsgFormat, fe.E.PreType);
+          if (ModuleResolver.NonReferenceTraitFrameMessageOrNull(dp.Decl, use.ClauseDescription()) is { } traitHint) {
+            ReportError(fe.E.Origin, traitHint);
+          } else {
+            var expressionMustDenoteObject = "expression must denote an object";
+            var fieldLocation = ModuleResolver.SingleFieldLocation;
+            var collection = ModuleResolver.CollectionOfFieldLocations;
+            var instead = "(instead got {0})";
+            var errorMsgFormat = use switch {
+              FrameExpressionUse.Reads =>
+                $"a reads-clause {expressionMustDenoteObject}, {fieldLocation}, {collection}, or a function to {collection} {instead}",
+              FrameExpressionUse.Modifies =>
+                $"a modifies-clause {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
+              FrameExpressionUse.Unchanged =>
+                $"an unchanged {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
+              _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
+            };
+            ReportError(fe.E.Origin, errorMsgFormat, fe.E.PreType);
+          }
         }
 
         if (fe.FieldName != null) {
