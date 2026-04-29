@@ -758,7 +758,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.E, resolutionContext);
         e.AtLabel = ResolveDominatingLabelInExpr(expr.Origin, e.At, "fresh", resolutionContext);
         // the type of e.E must be either an object or a set/seq of objects
-        AddXConstraint(expr.Origin, "Freshable", e.E.Type, "the argument of a fresh expression must denote an object or a set or sequence of objects (instead got {0})");
+        AddXConstraint(expr.Origin, "Freshable", e.E.Type, FreshGenericFormat);
         expr.Type = Type.Bool;
 
       } else if (expr is UnaryOpExpr) {
@@ -3191,6 +3191,28 @@ namespace Microsoft.Dafny {
     public static readonly string CollectionOfFieldLocations = "a set/iset/multiset/seq of objects or single field locations (with `--referrers`)";
     public static readonly string SingleFieldLocation = "a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`)";
 
+    /// <summary>
+    /// Format string (with a single {0} placeholder for the offending type) for the diagnostic emitted when
+    /// a `fresh` expression's argument is not a reference type. Shared between the legacy and PreType resolvers
+    /// so both produce identical text.
+    /// </summary>
+    public static readonly string FreshGenericFormat = "the argument of a fresh expression must denote an object or a set or sequence of objects (instead got {0})";
+
+    /// <summary>
+    /// If <paramref name="decl"/> represents a non-reference trait (under the default `--general-traits=datatype`),
+    /// return a tailored error message suggesting `extends object`. Otherwise, return null so the caller can fall
+    /// back to its generic message.
+    ///
+    /// <paramref name="clauseDescription"/> is the noun phrase naming the language construct ("a reads clause",
+    /// "a modifies clause", "an unchanged expression", "a fresh expression").
+    /// </summary>
+    public static string NonReferenceTraitFrameMessageOrNull(TopLevelDecl decl, string clauseDescription) {
+      if (decl is TraitDecl traitDecl && !traitDecl.IsReferenceTypeDecl) {
+        return $"{clauseDescription} can only refer to reference types (consider declaring the trait '{traitDecl.Name}' with 'extends object')";
+      }
+      return null;
+    }
+
     public void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ResolutionContext resolutionContext) {
       Contract.Requires(fe != null);
       Contract.Requires(resolutionContext != null);
@@ -3199,15 +3221,18 @@ namespace Microsoft.Dafny {
       Type t = fe.E.Type;
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
       var eventualRefType = new InferredTypeProxy();
-      if (use == FrameExpressionUse.Reads) {
-        AddXConstraint(fe.E.Origin, "ReadsFrame", t, eventualRefType,
-          $"a reads-clause expression must denote an object, {SingleFieldLocation}, {CollectionOfFieldLocations}, or a function to {CollectionOfFieldLocations} (instead got {{0}})");
-      } else {
-        AddXConstraint(fe.E.Origin, "ModifiesFrame", t, eventualRefType,
-          use == FrameExpressionUse.Modifies ?
-          $"a modifies-clause expression must denote an object, {SingleFieldLocation}, or {CollectionOfFieldLocations} (instead got {{0}})" :
-          $"an unchanged expression must denote an object, {SingleFieldLocation}, or {CollectionOfFieldLocations} (instead got {{0}})");
-      }
+      var errMsgFormat = use switch {
+        FrameExpressionUse.Reads =>
+          $"a reads-clause expression must denote an object, {SingleFieldLocation}, {CollectionOfFieldLocations}, or a function to {CollectionOfFieldLocations} (instead got {{0}})",
+        FrameExpressionUse.Modifies =>
+          $"a modifies-clause expression must denote an object, {SingleFieldLocation}, or {CollectionOfFieldLocations} (instead got {{0}})",
+        FrameExpressionUse.Unchanged =>
+          $"an unchanged expression must denote an object, {SingleFieldLocation}, or {CollectionOfFieldLocations} (instead got {{0}})",
+        _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
+      };
+      var types = new Type[] { t, eventualRefType };
+      AllXConstraints.Add(new XConstraintFrame(fe.E.Origin, use, t, eventualRefType,
+        new TypeConstraint.ErrorMsgWithToken(fe.E.Origin, errMsgFormat, types)));
       if (fe.FieldName != null) {
         var member = ResolveMember(fe.E.Origin, eventualRefType, fe.FieldName, out var tentativeReceiverType);
         var ctype = (UserDefinedType)tentativeReceiverType;  // correctness of cast follows from the DenotesClass test above
@@ -5210,7 +5235,7 @@ namespace Microsoft.Dafny {
           GetRelatedTypeProxies(xc.Types[1], proxies);
         } else if (xc.ConstraintName == "Innable" && xc.Types[1].Normalize() == proxy) {
           GetRelatedTypeProxies(xc.Types[0], proxies);
-        } else if ((xc.ConstraintName == "ModifiesFrame" || xc.ConstraintName == "ReadsFrame") && xc.Types[1].Normalize() == proxy) {
+        } else if (xc.ConstraintName == "FrameExpression" && xc.Types[1].Normalize() == proxy) {
           GetRelatedTypeProxies(xc.Types[0], proxies);
         }
       }
