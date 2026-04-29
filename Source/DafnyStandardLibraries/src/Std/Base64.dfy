@@ -335,11 +335,9 @@ module Std.Base64 {
       assert b[i..][..3] == b[i..i+3];
       assert b[i..][3..] == b[i+3..];
       assert result[j..j+4] == block;
-      calc {
-        EncodeBlock(b[i..i+3]) + EncodeRecursively(b[i+3..]);
-        EncodeBlock(b[i..][..3]) + EncodeRecursively(b[i..][3..]);
-        EncodeRecursively(b[i..]);
-      }
+      assert |b[i+3..]| % 3 == 0;
+      assert |b[i..]| % 3 == 0;
+      assert block + EncodeRecursively(b[i+3..]) == EncodeRecursively(b[i..]);
     }
     s := result[..];
   }
