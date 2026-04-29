@@ -1,0 +1,1 @@
+With `--reads-clauses-on-methods`, reads-clause compliance is now checked for array initializer lambdas, matching the behaviour for `seq()` constructor lambdas
