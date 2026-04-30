@@ -363,7 +363,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintActualArguments(ActualBindings bindings, string/*?*/ name, Bpl.IToken/*?*/ atLabel) {
+    void PrintActualArguments(ActualBindings bindings, string/*?*/ name, Bpl.IToken/*?*/ atLabel, bool parensAroundArgList = true) {
       Contract.Requires(bindings != null);
       var i = 0;
       if (name != null && name.EndsWith("#")) {
@@ -390,7 +390,7 @@ namespace Microsoft.Dafny {
           if (binding.FormalParameterName != null) {
             wr.Write($"{binding.FormalParameterName.val} := ");
           }
-          PrintExpression(binding.Actual, false);
+          PrintExpression(binding.Actual, parensAroundArgList || i == bindings.ArgumentBindings.Count - 1, false);
         }
       } else {
         // print arguments after incorporating default parameters
@@ -402,7 +402,7 @@ namespace Microsoft.Dafny {
           }
           wr.Write(sep);
           sep = ", ";
-          PrintExpression(arg, false);
+          PrintExpression(arg, parensAroundArgList || i == bindings.Arguments.Count - 1, false);
         }
       }
       wr.Write(")");
@@ -421,14 +421,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintExpressionList(List<Expression> exprs, bool isFollowedBySemicolon) {
+    void PrintExpressionList(List<Expression> exprs, bool isFollowedBySemicolon, bool parensAroundArgList = true) {
       Contract.Requires(exprs != null);
       string sep = "";
-      foreach (Expression e in exprs) {
-        Contract.Assert(e != null);
+      for (var i = 0; i < exprs.Count; i++) {
+        Contract.Assert(exprs[i] != null);
         wr.Write(sep);
         sep = ", ";
-        PrintExpression(e, isFollowedBySemicolon);
+        PrintExpression(exprs[i], parensAroundArgList || i == exprs.Count - 1, isFollowedBySemicolon);
       }
     }
     void PrintExpressionPairList(List<MapDisplayEntry> exprs) {
@@ -628,7 +628,7 @@ namespace Microsoft.Dafny {
 
         string name = e.Lhs is NameSegment ? ((NameSegment)e.Lhs).Name :
           e.Lhs is ExprDotName ? ((ExprDotName)e.Lhs).SuffixName : null;
-        PrintActualArguments(e.Bindings, name, e.AtTok);
+        PrintActualArguments(e.Bindings, name, e.AtTok, parensAroundArgList: false);
         if (parensNeeded) {
           wr.Write(")");
         }
@@ -772,7 +772,7 @@ namespace Microsoft.Dafny {
 
         PrintExpr(e.Function, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1, keyword);
         wr.Write("(");
-        PrintExpressionList(e.Args, false);
+        PrintExpressionList(e.Args, false, parensAroundArgList: false);
         wr.Write(")");
 
         if (parensNeeded) {
@@ -805,7 +805,7 @@ namespace Microsoft.Dafny {
         */
         if (e.OpenParen == null && e.Args.Count == 0) {
         } else {
-          PrintActualArguments(e.Bindings, e.Name, null);
+          PrintActualArguments(e.Bindings, e.Name, null, parensAroundArgList: false);
         }
 
         if (parensNeeded) {
