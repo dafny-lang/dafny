@@ -1771,7 +1771,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
               r = BplAnd(r, correctConstructor);
             }
           } else if (e.Member is ConstantField { Rhs: { } rhs } && BoogieGenerator.RevealedInScope(e.Member)) {
-            r = CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null));
+            var constTypeMap = e.TypeArgumentSubstitutionsWithParents();
+            r = CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), constTypeMap));
           }
           return r;
         } else if (expr is SeqSelectExpr) {
