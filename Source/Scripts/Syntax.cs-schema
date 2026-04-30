@@ -96,211 +96,10 @@ class AutoGhostIdentifierExpr : IdentifierExpr
 {
 }
 
-abstract class UnaryExpr : Expression
+class StmtExpr : Expression
 {
-    Expression e;
-}
-
-abstract class TypeUnaryExpr : UnaryExpr
-{
-    Type toType;
-}
-
-class TypeTestExpr : TypeUnaryExpr
-{
-}
-
-class ConversionExpr : TypeUnaryExpr
-{
-    String messagePrefix;
-}
-
-class UnaryOpExpr : UnaryExpr
-{
-    UnaryOpExprOpcode op;
-}
-
-enum UnaryOpExprOpcode
-{
-    Not,
-    Cardinality,
-    Fresh,
-    Allocated,
-    Lit,
-    Assigned,
-    Negate
-}
-
-class FreshExpr : UnaryExpr
-{
-    String? at;
-}
-
-class BinaryExpr : Expression
-{
-    BinaryExprOpcode op;
-    Expression e0;
-    Expression e1;
-}
-
-enum BinaryExprOpcode
-{
-    Iff,
-    Imp,
-    Exp,
-    And,
-    Or,
-    Eq,
-    Neq,
-    Lt,
-    Le,
-    Ge,
-    Gt,
-    Disjoint,
-    In,
-    NotIn,
-    LeftShift,
-    RightShift,
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    BitwiseAnd,
-    BitwiseOr,
-    BitwiseXor
-}
-
-class LiteralExpr : Expression
-{
-    Object? value;
-}
-
-class StringLiteralExpr : LiteralExpr
-{
-    Boolean isVerbatim;
-}
-
-class DecimalLiteralExpr : LiteralExpr
-{
-}
-
-class CharLiteralExpr : LiteralExpr
-{
-}
-
-class UnchangedExpr : Expression
-{
-    List<FrameExpression> frame;
-    String? at;
-}
-
-class FrameExpression : NodeWithOrigin
-{
-    Expression originalExpression;
-    String? fieldName;
-}
-
-class OldExpr : Expression
-{
+    Statement stmt;
     Expression expr;
-    String? at;
-}
-
-class DatatypeValue : Expression
-{
-    String datatypeName;
-    String memberName;
-    ActualBindings bindings;
-}
-
-abstract class NodeWithoutOrigin : Node
-{
-}
-
-class ModuleQualifiedId : NodeWithoutOrigin
-{
-    List<Name> path;
-}
-
-class Name : Node
-{
-    IOrigin origin;
-    String value;
-}
-
-class Specification<T> : NodeWithoutOrigin where T : Node
-{
-    List<T>? expressions;
-    Attributes? attributes;
-}
-
-class ActualBinding : NodeWithoutOrigin
-{
-    IOrigin? formalParameterName;
-    Expression actual;
-    Boolean isGhost;
-}
-
-class ActualBindings : NodeWithoutOrigin
-{
-    List<ActualBinding> argumentBindings;
-}
-
-class TernaryExpr : Expression
-{
-    TernaryExprOpcode op;
-    Expression e0;
-    Expression e1;
-    Expression e2;
-}
-
-enum TernaryExprOpcode
-{
-    PrefixEqOp,
-    PrefixNeqOp
-}
-
-class NestedMatchExpr : Expression
-{
-    Expression source;
-    List<NestedMatchCaseExpr> cases;
-    Boolean usesOptionalBraces;
-    Attributes? attributes;
-}
-
-abstract class NestedMatchCase : NodeWithOrigin
-{
-    ExtendedPattern pat;
-}
-
-abstract class ExtendedPattern : NodeWithOrigin
-{
-    Boolean isGhost;
-}
-
-class LitPattern : ExtendedPattern
-{
-    Expression origLit;
-}
-
-class IdPattern : ExtendedPattern
-{
-    String id;
-    Type? syntacticType;
-    List<ExtendedPattern>? arguments;
-    Boolean hasParenthesis;
-}
-
-class DisjunctivePattern : ExtendedPattern
-{
-    List<ExtendedPattern> alternatives;
-}
-
-class NestedMatchCaseStmt : NestedMatchCase
-{
-    List<Statement> body;
-    Attributes? attributes;
 }
 
 abstract class Statement : NodeWithOrigin
@@ -316,6 +115,10 @@ abstract class PredicateStmt : Statement
 class ExpectStmt : PredicateStmt
 {
     Expression? message;
+}
+
+class AssumeStmt : PredicateStmt
+{
 }
 
 class AssertStmt : PredicateStmt
@@ -365,6 +168,39 @@ class AllocateClass : TypeRhs
     ActualBindings? bindings;
 }
 
+abstract class NodeWithoutOrigin : Node
+{
+}
+
+class ModuleQualifiedId : NodeWithoutOrigin
+{
+    List<Name> path;
+}
+
+class Name : Node
+{
+    IOrigin origin;
+    String value;
+}
+
+class Specification<T> : NodeWithoutOrigin where T : Node
+{
+    List<T>? expressions;
+    Attributes? attributes;
+}
+
+class ActualBinding : NodeWithoutOrigin
+{
+    IOrigin? formalParameterName;
+    Expression actual;
+    Boolean isGhost;
+}
+
+class ActualBindings : NodeWithoutOrigin
+{
+    List<ActualBinding> argumentBindings;
+}
+
 class AllocateArray : TypeRhs
 {
     Type? explicitType;
@@ -396,6 +232,12 @@ abstract class LoopStmt : LabeledStatement
     List<AttributedExpression> invariants;
     Specification<Expression> decreases;
     Specification<FrameExpression> mod;
+}
+
+class FrameExpression : NodeWithOrigin
+{
+    Expression originalExpression;
+    String? fieldName;
 }
 
 class AttributedExpression
@@ -489,9 +331,181 @@ class NestedMatchStmt : Statement
     Boolean usesOptionalBraces;
 }
 
+abstract class NestedMatchCase : NodeWithOrigin
+{
+    ExtendedPattern pat;
+}
+
+abstract class ExtendedPattern : NodeWithOrigin
+{
+    Boolean isGhost;
+}
+
+class LitPattern : ExtendedPattern
+{
+    Expression origLit;
+}
+
+class IdPattern : ExtendedPattern
+{
+    String id;
+    Type? syntacticType;
+    List<ExtendedPattern>? arguments;
+    Boolean hasParenthesis;
+}
+
+class DisjunctivePattern : ExtendedPattern
+{
+    List<ExtendedPattern> alternatives;
+}
+
+class NestedMatchCaseStmt : NestedMatchCase
+{
+    List<Statement> body;
+    Attributes? attributes;
+}
+
 class NestedMatchCaseExpr : NestedMatchCase
 {
     Expression body;
+    Attributes? attributes;
+}
+
+abstract class UnaryExpr : Expression
+{
+    Expression e;
+}
+
+abstract class TypeUnaryExpr : UnaryExpr
+{
+    Type toType;
+}
+
+class TypeTestExpr : TypeUnaryExpr
+{
+}
+
+class ConversionExpr : TypeUnaryExpr
+{
+    String messagePrefix;
+}
+
+class UnaryOpExpr : UnaryExpr
+{
+    UnaryOpExprOpcode op;
+}
+
+enum UnaryOpExprOpcode
+{
+    Not,
+    Cardinality,
+    Fresh,
+    Allocated,
+    Lit,
+    Assigned,
+    Negate
+}
+
+class FreshExpr : UnaryExpr
+{
+    String? at;
+}
+
+class BinaryExpr : Expression
+{
+    BinaryExprOpcode op;
+    Expression e0;
+    Expression e1;
+}
+
+enum BinaryExprOpcode
+{
+    Iff,
+    Imp,
+    Exp,
+    And,
+    Or,
+    Eq,
+    Neq,
+    Lt,
+    Le,
+    Ge,
+    Gt,
+    Disjoint,
+    In,
+    NotIn,
+    LeftShift,
+    RightShift,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor
+}
+
+class LiteralExpr : Expression
+{
+    Object? value;
+}
+
+class StringLiteralExpr : LiteralExpr
+{
+    Boolean isVerbatim;
+}
+
+class DecimalLiteralExpr : LiteralExpr
+{
+}
+
+class CharLiteralExpr : LiteralExpr
+{
+}
+
+class WildcardExpr : Expression
+{
+}
+
+class UnchangedExpr : Expression
+{
+    List<FrameExpression> frame;
+    String? at;
+}
+
+class OldExpr : Expression
+{
+    Expression expr;
+    String? at;
+}
+
+class DatatypeValue : Expression
+{
+    String datatypeName;
+    String memberName;
+    ActualBindings bindings;
+}
+
+class TernaryExpr : Expression
+{
+    TernaryExprOpcode op;
+    Expression e0;
+    Expression e1;
+    Expression e2;
+}
+
+enum TernaryExprOpcode
+{
+    PrefixEqOp,
+    PrefixNeqOp
+}
+
+class NestedMatchExpr : Expression
+{
+    Expression source;
+    List<NestedMatchCaseExpr> cases;
+    Boolean usesOptionalBraces;
     Attributes? attributes;
 }
 
