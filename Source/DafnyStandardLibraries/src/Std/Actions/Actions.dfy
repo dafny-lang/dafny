@@ -128,7 +128,7 @@ module Std.Actions {
   // But this is rejected in predicates unless I and O are declared with (!new),
   // which greatly restricts the utility of code that needs to work with reference types.
   // Instead the AnyInputIsValid lemma below takes the quantified variables as input,
-  // and has to prove the postcondition holds for any arbitrary values that satsify the precondition.
+  // and has to prove the postcondition holds for any arbitrary values that satisfy the precondition.
   // 
   // Code that depends on this property then accepts a ghost value that implements the trait
   // and explicitly applies the lemma on inputs at hand as needed.

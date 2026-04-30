@@ -20,7 +20,7 @@ A record might also be a single alternative but with data values:
 ```dafny
 datatype Date = Date(year: int, month: int, day: int)
 ```
-where a record instance can be created like `var d := Date(2022, 8, 23)` and componenents retrieved like `d.year`.
+where a record instance can be created like `var d := Date(2022, 8, 23)` and components retrieved like `d.year`.
 
 There can be multiple record alternatives each holding different data:
 ```dafny

@@ -689,7 +689,7 @@ module Std.Base64 {
   }
 
   function Encode2Padding(b: seq<bv8>): (s: seq<char>)
-    // Padding with 2 = implies the sequence represents 1 bytes
+    // Padding with 2 = implies the sequence represents 1 byte
     requires |b| == 1
     ensures |s| % 4 == 0
     ensures |s| == 4

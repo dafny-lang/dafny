@@ -61,7 +61,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
 }
 
 /// <summary>
-/// An implicit identifier is used in the context of a ReturnStmt tacetly
+/// An implicit identifier is used in the context of a ReturnStmt tacitly
 /// assigning a value to a Method's out parameter.
 /// </summary>
 public class ImplicitIdentifierExpr : IdentifierExpr {

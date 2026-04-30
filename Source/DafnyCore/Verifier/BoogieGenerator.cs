@@ -1548,7 +1548,7 @@ namespace Microsoft.Dafny {
       var etran = new ExpressionTranslator(this, Predef, dt.Origin, dt);
       // For example, for possibly infinite lists:
       //     codatatype SList<T> = Nil | SCons(head: T, tail: SList<T>);
-      // produce with conjucts=false (default):
+      // produce with conjuncts=false (default):
       //   (A.Nil? && B.Nil?) ||
       //   (A.Cons? && B.Cons? && A.head == B.head && Equal(k, A.tail, B.tail))
       //
@@ -5163,7 +5163,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(varsAndAntecedents != null);
       Contract.Requires(body != null);
 
-      // We'd like to compute the free variables if "body" and "trg". It would be nice to use the Boogie
+      // We'd like to compute the free variables of "body" and "trg". It would be nice to use the Boogie
       // routine Bpl.Expr.ComputeFreeVariables for this purpose. However, calling it requires the Boogie
       // expression to be resolved. Instead, we do the cheesy thing of computing the set of names of
       // free variables in "body" and "trg".

@@ -3,7 +3,7 @@ title: "Error: rbrace expected"
 ---
 
 The error "rbrace expected"
-is a common occurence caused by some parsing error within a brace-enclosed block, such as a module declaration, a class declaration, or a block statement.
+is a common occurrence caused by some parsing error within a brace-enclosed block, such as a module declaration, a class declaration, or a block statement.
 The error means that the parser does not expect whatever characters it next sees. Consequently, the parser just says that it expects the block to be closed by a right curly brace (`}`).
 Indeed, one cause might be an inadvertently omitted right brace.
 

@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
                 // We don't know where the RHSs of the let are used in the body. In particular, we don't know if a RHS
                 // will end up in a spot where TrSplitExpr would like to increase the Layer offset or not. In fact, different
                 // uses of the same let variable may end up needing different Layer constants. The following code will
-                // always bump the Layer offset in the RHS. This seems likely to be desireable in many cases, because the
+                // always bump the Layer offset in the RHS. This seems likely to be desirable in many cases, because the
                 // LetExpr sits in a position for which TrSplitExpr is invoked.
                 List<Bpl.Variable> lhss;
                 List<Bpl.Expr> rhss;

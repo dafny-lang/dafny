@@ -41,7 +41,7 @@ public abstract class Constraint {
     return expression;
   }
 
-  /// <summary> This is intended for debugging as we don't know apriori how to refer to partial values </summary>
+  /// <summary> This is intended for debugging as we don't know a priori how to refer to partial values </summary>
   public override string ToString() {
     var temporaryIds = new Dictionary<PartialValue, Expression>();
     foreach (var partialValue in referencedValues) {

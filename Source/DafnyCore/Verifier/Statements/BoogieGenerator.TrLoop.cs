@@ -388,7 +388,7 @@ public partial class BoogieGenerator {
     } else if (isBodyLessLoop) {
       var bodySurrogate = ((OneBodyLoopStmt)loop).BodySurrogate;
       // This is a body-less loop. Havoc the targets and then set w to false, to make the loop-invariant
-      // maintenance check vaccuous.
+      // maintenance check vacuous.
       var bplTargets = bodySurrogate.LocalLoopTargets.ConvertAll(v => TrVar(loop.Origin, v));
       if (bodySurrogate.UsesHeap) {
         bplTargets.Add(etran.HeapCastToIdentifierExpr);
@@ -409,7 +409,7 @@ public partial class BoogieGenerator {
     builder.Add(new Bpl.WhileCmd(loop.Origin, Bpl.Expr.True, invariants, [], body));
   }
 
-  // Return the version of e that holds at the beginnging of the loop,
+  // Return the version of e that holds at the beginning of the loop,
   // Along with the local variable assignments that need to happen at
   // the beginning of the loop for it to be valid.
   private (List<VarDeclStmt>, Expression) TranslateToLoopEntry(LoopStmt loop, Expression e, string loopLabel) {

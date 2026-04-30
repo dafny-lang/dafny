@@ -45,7 +45,7 @@ class CoCallResolution {
   /// if the situation deals with co-datatypes, then one of the NoBecause... values is chosen (rather
   /// than just No), so that any error message that may later be produced when trying to prove termination of the
   /// recursive call can include a note pointing out that the call was not selected to be a co-call.
-  /// If the call looks like it is guarded, then it is added to the list "coCandicates", so that a later analysis
+  /// If the call looks like it is guarded, then it is added to the list "coCandidates", so that a later analysis
   /// can either set all of those .CoCall fields to Yes or to NoBecauseRecursiveCallsInDestructiveContext, depending
   /// on other intra-cluster calls.
   /// The "destructionLevel" indicates how many pending co-destructors the context has.  It may be infinity (int.MaxValue)
