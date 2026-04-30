@@ -33,6 +33,20 @@ namespace Microsoft.Dafny {
 
   public enum FrameExpressionUse { Reads, Modifies, Unchanged }
 
+  public static class FrameExpressionUseExtensions {
+    /// <summary>
+    /// Returns a short human-readable noun phrase naming the language construct associated with
+    /// <paramref name="use"/>, e.g. "a reads clause", "a modifies clause", or "an unchanged expression".
+    /// Used by diagnostic messages that want to refer to the construct uniformly across resolvers.
+    /// </summary>
+    public static string ClauseDescription(this FrameExpressionUse use) => use switch {
+      FrameExpressionUse.Reads => "a reads clause",
+      FrameExpressionUse.Modifies => "a modifies clause",
+      FrameExpressionUse.Unchanged => "an unchanged expression",
+      _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
+    };
+  }
+
   public partial class ModuleResolver : INewOrOldResolver {
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }

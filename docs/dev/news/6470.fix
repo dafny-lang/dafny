@@ -1,0 +1,1 @@
+Improve the error messages produced when `reads`, `modifies`, `unchanged`, and `fresh` are applied to a non-reference trait: the diagnostic now suggests declaring the trait with `extends object` instead of showing the generic message that mentions `--referrers`.
