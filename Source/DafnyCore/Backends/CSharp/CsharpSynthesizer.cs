@@ -304,7 +304,7 @@ public class CsharpSynthesizer {
   /// MultiMatcher allows converting one expression over many arguments
   /// (like ones one finds in Dafny in antecedent of a forall statement)
   /// to many separate predicates over each argument (which is how argument
-  /// matching is done in expressionC#'s Moq library)
+  /// matching is done in C#'s Moq library)
   /// So, for instance, a Dafny postcondition
   ///   forall a,b:int :: a > b ==> o.m(a, b) == 4
   /// is converted to:

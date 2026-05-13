@@ -75,7 +75,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public ModuleKindEnum ModuleKind;
   public bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
-  private bool IsBuiltinName => Name is "_System" or "_module"; // true if this is something like _System that shouldn't have it's name mangled.
+  private bool IsBuiltinName => Name is "_System" or "_module"; // true if this is something like _System that shouldn't have its name mangled.
 
   public DefaultClassDecl? DefaultClass { get; set; }
 
@@ -896,7 +896,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
               dtor.InheritVisibility(dt);
               dtor.EnclosingClass = dt; // resolve here
               if (formal.HasName && !localDuplicate && previousMember == null) {
-                // the destructor has an explict name and there was no member at all with this name before
+                // the destructor has an explicit name and there was no member at all with this name before
                 members.Add(formal.Name, dtor);
               }
             }

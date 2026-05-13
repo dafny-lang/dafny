@@ -284,7 +284,7 @@ module Std.Arithmetic.Mul {
     }
   }
 
-  /* if two seperate integers are each multiplied by a common integer and the products are equal, the 
+  /* if two separate integers are each multiplied by a common integer and the products are equal, the 
     two original integers are equal */
   lemma LemmaMulEqualityConverse(m: int, x: int, y: int)
     requires m != 0
@@ -297,7 +297,7 @@ module Std.Arithmetic.Mul {
     LemmaMulInductionAuto(m, u => x < y && 0 > u ==> x * u > y * u);
   }
 
-  /* if any two seperate integers are each multiplied by a common integer and the products are equal, the 
+  /* if any two separate integers are each multiplied by a common integer and the products are equal, the 
   two original integers are equal */
   lemma LemmaMulEqualityConverseAuto()
     ensures forall m: int, x: int, y: int {:trigger m * x, m * y} :: (m != 0 && m * x == m * y) ==> x == y

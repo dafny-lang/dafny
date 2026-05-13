@@ -102,7 +102,7 @@ abstract module Std.Parsers.Core
 
   type Parser<+R> = Input -> ParseResult<R>
   // A parser is a total function from a position to a parse result
-  // Because it returns a delta pos, it cannot return a position negative from the origing
+  // Because it returns a delta pos, it cannot return a position negative from the origin
   // If the parsing is out of context, it will return a failure.
 
   type ParserSelector<!R> = string -> Parser<R>
@@ -135,7 +135,7 @@ abstract module Std.Parsers.Core
     // A Fatal error results in a unique FailurePosition
     // and will be propagated to the top ASAP
     // A Recoverable error can typically be processed.
-    // Comittedness of the parser only depends if the .Remaining()
+    // Committedness of the parser only depends if the .Remaining()
     // of the parse result has moved since the input was provided.
     Fatal | Recoverable
 
@@ -347,7 +347,7 @@ abstract module Std.Parsers.Core
     left: Parser<L>,
     right: Parser<R>
   ) : (p: Parser<(L, R)>)
-    // Make the two parsers parse the same string and, if both suceed,
+    // Make the two parsers parse the same string and, if both succeed,
     // returns a pair of the two results, with the remaining of the right
   {
     (input: Input) =>
@@ -391,7 +391,7 @@ abstract module Std.Parsers.Core
     //   returns its result without committing the input
     // if the underlying parser fails,
     // - If the failure is fatal, returns it as-it
-    // - If the failure is recoverable, returns it without comitting the input
+    // - If the failure is recoverable, returns it without committing the input
   {
     (input: Input) =>
       var p := underlying(input);
@@ -425,7 +425,7 @@ abstract module Std.Parsers.Core
     condition: Parser<L>,
     succeed: Parser<R>
   ) : (p: Parser<R>)
-    // If the condifition fails, returns a non-committing failure
+    // If the condition fails, returns a non-committing failure
     // Suitable to use in Or parsers
   {
     Bind(Lookahead(condition), (l: L) => succeed)
@@ -514,7 +514,7 @@ abstract module Std.Parsers.Core
       output
   }
 
-  // A datatype that avoid a quadratic complexity in concatenating long sequences.
+  // A datatype that avoids a quadratic complexity in concatenating long sequences.
 
   datatype SeqB<A> = SeqBCons(last: A, init: SeqB<A>) | SeqBNil {
     function Append(elem: A): SeqB<A> {

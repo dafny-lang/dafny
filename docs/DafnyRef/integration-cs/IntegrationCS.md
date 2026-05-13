@@ -166,7 +166,7 @@ Here, `T'` for a type parameter `T` indicates the C# type corresponding to a Daf
 | array<T>                      | T'[]                        |
 | seq<T>                        | Dafny.ISequence<? extends T'> |
 | set<T>, iset<T>               | Dafny.ISet<? extends T'>      |
-| multisetset<T>                | Dafny.ISet<? extends T'>      |
+| multiset<T>                   | Dafny.ISet<? extends T'>      |
 | map<T,U>, imap<T,U>           | Dafny.IMap<? extends T'>      |
 | imap<T,U>, imap<T,U>          | Dafny.IMap<? extends T'>      |
 | function (arrow) types        | Func<T',U'> |

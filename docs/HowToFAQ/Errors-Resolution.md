@@ -440,7 +440,7 @@ function {:abstemious} f(): int {0}
 ```
 
 <!-- TODO -->
-_Abstemious functions are not documented. Please report occurences of this error message._
+_Abstemious functions are not documented. Please report occurrences of this error message._
 
 ## **Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters** {#r_bad_astemious_destructor}
 
@@ -453,7 +453,7 @@ ghost function {:abstemious} BadDestruct(t: EnormousTree): EnormousTree
 ```
 
 <!-- TODO -->
-_Abstemious functions are not documented. Please report occurences of this error message._
+_Abstemious functions are not documented. Please report occurrences of this error message._
 
 ## **Error: an abstemious function is allowed to codatatype-match only on its parameters** {#r_bad_astemious_nested_match}
 
@@ -468,13 +468,13 @@ ghost function {:abstemious} BadMatch(t: EnormousTree): EnormousTree
 ```
 
 <!-- TODO -->
-_Abstemious functions are not documented. Please report occurences of this error message._
+_Abstemious functions are not documented. Please report occurrences of this error message._
 
 ## **Error: an abstemious function is allowed to codatatype-match only on its parameters** {#r_bad_astemious_match}
 
 <!-- TODO - need an example of this variation of error message -->
 <!-- TODO -->
-_Abstemious functions are not documented. Please report occurences of this error message._
+_Abstemious functions are not documented. Please report occurrences of this error message._
 
 ## **Error: an abstemious function is not allowed to check codatatype equality** {#r_bad_astemious_codatatype_equality}
 

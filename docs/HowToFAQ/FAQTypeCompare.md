@@ -4,7 +4,7 @@ title: Is there a way to test that two types are the same?
 
 ## Question
 
-Is there a way to test that two types are the same, as in this exmple:
+Is there a way to test that two types are the same, as in this example:
 ```
 {% include_relative FAQTypeCompare.dfy %}
 ```

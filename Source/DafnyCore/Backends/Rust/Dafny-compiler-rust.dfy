@@ -1496,7 +1496,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         // Implementation of Default trait when c supports equality
         if false && cIsAlwaysEq { // We don't emit default because datatype defaults are broken.
           // - There should be no default when an argument is a lambda
-          // - There is no possiblity to define witness for datatypes so that we know if it's (0) or (00)
+          // - There is no possibility to define witness for datatypes so that we know if it's (0) or (00)
           // - General traits don't have defaults but can be wrapped in datatypes and datatypes are assumed to have default values always
           // Default values are not used in --enforce-determinism anyway, only placebos values are useful and they are implemented with
           // a custom option type.

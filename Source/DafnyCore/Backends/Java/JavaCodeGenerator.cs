@@ -1087,7 +1087,7 @@ namespace Microsoft.Dafny.Compilers {
       s = Util.UnicodeEscapesToUtf16Escapes(s);
 
       // Java \u escapes are translated before parsing, so we need to convert to escapes
-      // that aren't for characters that will mess up paring the string or character literal.
+      // that aren't for characters that will mess up parsing the string or character literal.
       s = Util.ReplaceTokensWithEscapes(s, Util.Utf16Escape, match => {
         return match.Value switch {
           "\\u000a" => "\\n",
