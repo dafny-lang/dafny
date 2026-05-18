@@ -33,7 +33,7 @@ abstract module M0 {
     case Extend(prefix, n) => n in S && sink in n.children && ReachableVia(source, prefix, n, S)
   }
 
-  method SchorrWaite(root: Node, ghost S: set<Node>)
+  method {:resource_limit "100e6"} SchorrWaite(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
     requires forall n :: n in S ==>

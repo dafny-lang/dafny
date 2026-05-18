@@ -1,16 +1,9 @@
-// RUN: %verify "%s" > "%t"
+// RUN: %exits-with 4 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// WISH: The following example should NOT verify.
-
-// The following program shows an unsoundness in the Dafny 4.10 / Boogie / Z3 4.12.1 tool stack.
-// Trouble-shooting investigations point fingers at Z3 4.12.1, because minute changes to the
-// generated Boogie or changing to newer versions of Z3 no longer show signs of problems.
-
-// The example is added to test suite for now, so we can keep track of it. It lives in the
-// Test/wishlist folder to indicate that something is wrong. If a change to Dafny (e.g., a
-// change to a newer version of Z3) causes this example to verify, then we should move this
-// file to the Test/git-issues folder and indicate that we expect an error.
+// The following program previously showed an unsoundness in the Dafny 4.10 / Boogie / Z3 4.12.1
+// tool stack. The soundness bug was fixed in Z3 4.16.0, so this program now correctly fails
+// to verify (as expected).
 
 function lsb(i: nat): nat
   requires i > 0
