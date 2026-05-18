@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation --verification-time-limit=90
+// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation --verification-time-limit=90 --cores:1
 
 
 // Schorr-Waite algorithms, written and verified in Dafny.
@@ -33,7 +33,7 @@ abstract module M0 {
     case Extend(prefix, n) => n in S && sink in n.children && ReachableVia(source, prefix, n, S)
   }
 
-  method {:resource_limit "100e6"} SchorrWaite(root: Node, ghost S: set<Node>)
+  method {:vcs_split_on_every_assert} SchorrWaite(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
     requires forall n :: n in S ==>
