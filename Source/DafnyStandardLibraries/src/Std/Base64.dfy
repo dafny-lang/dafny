@@ -735,6 +735,7 @@ module Std.Base64 {
     }
   }
 
+  @ResourceLimit("5e7")
   lemma DecodeEncode2Padding(s: seq<char>)
     requires Is2Padding(s)
     ensures Encode2Padding(Decode2Padding(s)) == s
@@ -780,6 +781,7 @@ module Std.Base64 {
       DecodeUnpadded(s)
   }
 
+  @ResourceLimit("5e7")
   lemma AboutDecodeValid(s: seq<char>, b: seq<bv8>)
     requires IsBase64String(s) && b == DecodeValid(s)
     ensures 4 <= |s| ==> var finalBlockStart := |s| - 4;
@@ -892,6 +894,7 @@ module Std.Base64 {
     ensures EncodeBV(b) == EncodeUnpadded(b[..(|b| - 2)]) + Encode1Padding(b[(|b| - 2)..])
   {  }
 
+  @ResourceLimit("5e7")
   lemma EncodeBVLengthCongruentToZeroMod4(b: seq<bv8>)
     ensures |EncodeBV(b)| % 4 == 0
   {
@@ -1231,6 +1234,7 @@ module Std.Base64 {
     }
   }
 
+  @ResourceLimit("5e7")
   lemma EncodeDecodeValid(b: seq<bv8>)
     ensures (EncodeBVIsBase64(b); DecodeValid(EncodeBV(b)) == b)
   {

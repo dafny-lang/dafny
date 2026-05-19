@@ -122,6 +122,7 @@ module Std.Termination {
       PlusStrictlyIncreasingOnRight(maxLeft, |right| as ORDINAL + 1, |left| as ORDINAL + 1);
     }
 
+    @ResourceLimit("5e7")
     static lemma MaxOrdinalNonIncreases(parent: TerminationMetric, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
       requires forall o <- left :: parent decreases to o
       requires forall o <- right :: parent decreases to o
@@ -131,6 +132,7 @@ module Std.Termination {
       reveal MaxOrdinal();
     }
 
+    @ResourceLimit("5e7")
     static lemma MaxOrdinalDecreasesIfAllDecrease(parent: TerminationMetric, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
       requires forall o <- left :: parent decreases to o
       requires forall o <- right :: parent decreases to o

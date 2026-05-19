@@ -68,6 +68,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
     }
   }
 
+  @ResourceLimit("5e7")
   lemma Lemma2To64()
     ensures Pow2(0) == 0x1
     ensures Pow2(1) == 0x2

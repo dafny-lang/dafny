@@ -626,6 +626,7 @@ module Std.Arithmetic.DivMod {
     }
   }
 
+  @ResourceLimit("5e7")
   lemma {:induction false} LemmaIndistinguishableQuotients(a: int, b: int, d: int)
     requires 0 < d
     requires 0 <= a - a % d <= b < a + d - a % d
@@ -724,6 +725,7 @@ module Std.Arithmetic.DivMod {
 
   /* rounds down when adding an integer r to the dividend a that is smaller than the divisor d, and then
   multiplying by d */
+  @ResourceLimit("5e7")
   lemma LemmaRoundDown(a: int, r: int, d: int)
     requires 0 < d
     requires a % d == 0
@@ -850,6 +852,7 @@ module Std.Arithmetic.DivMod {
 
   /* a dividend y that is a positive multiple of the divisor z will always yield a greater quotient 
   than a dividend x that is less than y */
+  @ResourceLimit("5e7")
   lemma LemmaDivByMultipleIsStronglyOrdered(x: int, y: int, m: int, z: int)
     requires x < y
     requires y == m * z
@@ -873,6 +876,7 @@ module Std.Arithmetic.DivMod {
 
   /* if an integer a is less than or equal to the product of two other integers b and c, then the 
   quotient of a/b will be less than or equal to c */
+  @ResourceLimit("5e7")
   lemma LemmaMultiplyDivideLe(a: int, b: int, c: int)
     requires 0 < b
     requires a <= b * c
@@ -895,6 +899,7 @@ module Std.Arithmetic.DivMod {
 
   /* if an integer a is less than the product of two other integers b and c, then the quotient 
   of a/b will be less than c */
+  @ResourceLimit("5e7")
   lemma LemmaMultiplyDivideLt(a: int, b: int, c: int)
     requires 0 < b
     requires a < b * c
@@ -916,6 +921,7 @@ module Std.Arithmetic.DivMod {
   }
 
   /* expresses the equality of giving fractions common denominators and then adding them together */
+  @ResourceLimit("5e7")
   lemma LemmaHoistOverDenominator(x: int, j: int, d: nat)
     requires 0 < d
     ensures x / d + j == (x + j * d) / d
@@ -1333,7 +1339,7 @@ module Std.Arithmetic.DivMod {
   }
 
   /* proves the validity of the quotient and remainder */
-  @ResourceLimit("2200000")
+  @ResourceLimit("5e7")
   @TimeLimitMultiplier(10)
   lemma LemmaFundamentalDivModConverse(x: int, d: int, q: int, r: int)
     requires d != 0
