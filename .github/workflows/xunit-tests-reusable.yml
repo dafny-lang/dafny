@@ -60,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2022, macos-14]
+        os: [ubuntu-24.04, windows-2022, macos-14]
         iteration: ${{ fromJson(needs.populate-matrix-dimensions.outputs.iterations) }}
         shard: ${{ fromJson(needs.populate-matrix-dimensions.outputs.shard-list) }}
         include:
@@ -72,8 +72,8 @@ jobs:
             suffix: win
             z3_os: windows-2022
             chmod: false
-          - os: ubuntu-22.04
-            suffix: ubuntu-22.04
+          - os: ubuntu-24.04
+            suffix: ubuntu-24.04
             z3_os: ubuntu-24.04
             chmod: true
     env:
