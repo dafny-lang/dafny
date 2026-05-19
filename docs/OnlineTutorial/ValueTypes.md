@@ -141,7 +141,7 @@ usually has the same type as the resulting set, but it does not need to. As an e
 ```dafny
 method m()
 {
-  assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
+  assert (set x | x in {0,1,2} && x < 3) == {0,1,2};
 }
 ```
 
