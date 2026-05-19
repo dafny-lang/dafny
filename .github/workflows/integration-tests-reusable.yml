@@ -67,7 +67,7 @@ jobs:
     steps:
     - name: Manually sync certs
       if: runner.os == 'Linux'
-      run: cert-sync /etc/ssl/certs/ca-certificates.crt
+      run: which cert-sync && cert-sync /etc/ssl/certs/ca-certificates.crt || true
     - name: Setup dotnet
       uses: actions/setup-dotnet@v4
       with:
