@@ -203,7 +203,7 @@ abstract module M2 refines M1 {
 // verify its correctness.
 module M3 refines M2 {
   class UnionFind ... {
-    method {:timeLimitMultiplier 3} Join...
+    method {:resource_limit "200e6"} Join...
     {
       if r0 == r1 {
         r := r0;
