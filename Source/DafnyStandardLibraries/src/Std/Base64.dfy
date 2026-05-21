@@ -894,6 +894,7 @@ module Std.Base64 {
     ensures EncodeBV(b) == EncodeUnpadded(b[..(|b| - 2)]) + Encode1Padding(b[(|b| - 2)..])
   {  }
 
+  @IsolateAssertions
   @ResourceLimit("5e7")
   lemma EncodeBVLengthCongruentToZeroMod4(b: seq<bv8>)
     ensures |EncodeBV(b)| % 4 == 0
@@ -1234,13 +1235,48 @@ module Std.Base64 {
     }
   }
 
+  lemma EncodeDecodeValidCase1(b: seq<bv8>)
+    requires |b| % 3 == 1
+    ensures (EncodeBVIsBase64(b); DecodeValid(EncodeBV(b)) == b)
+  {
+    hide *;
+    EncodeBVIsBase64(b);
+    var s := EncodeBV(b);
+    EncodeDecodeValid2Padded(b);
+    var prefix := b[..(|b| - 1)];
+    var suffix := b[(|b| - 1)..];
+    EncodeUnpaddedBase64(prefix);
+    EncodeUnpaddedBounds(prefix);
+    reveal DecodeValid;
+    DecodeValidPartialsFrom2PaddedSeq(s);
+    EncodeDecodeUnpadded(prefix);
+    EncodeDecode2Padding(suffix);
+  }
+
+  lemma EncodeDecodeValidCase2(b: seq<bv8>)
+    requires |b| % 3 == 2
+    ensures (EncodeBVIsBase64(b); DecodeValid(EncodeBV(b)) == b)
+  {
+    hide *;
+    EncodeBVIsBase64(b);
+    var s := EncodeBV(b);
+    EncodeDecodeValid1Padded(b);
+    var prefix := b[..(|b| - 2)];
+    var suffix := b[(|b| - 2)..];
+    EncodeUnpaddedBase64(prefix);
+    EncodeUnpaddedBounds(prefix);
+    reveal DecodeValid;
+    DecodeValidPartialsFrom1PaddedSeq(s);
+    EncodeDecodeUnpadded(prefix);
+    EncodeDecode1Padding(suffix);
+  }
+
   @ResourceLimit("5e7")
   lemma EncodeDecodeValid(b: seq<bv8>)
     ensures (EncodeBVIsBase64(b); DecodeValid(EncodeBV(b)) == b)
   {
     hide *;
     EncodeBVIsBase64(b);
-    var s := EncodeBV(b);
     if b == [] {
       calc {
         DecodeValid(EncodeBV(b));
@@ -1258,39 +1294,9 @@ module Std.Base64 {
         b;
       }
     } else if |b| % 3 == 1 {
-      EncodeDecodeValid2Padded(b);
-      var prefix := b[..(|b| - 1)];
-      var suffix := b[(|b| - 1)..];
-      EncodeUnpaddedBase64(prefix);
-
-      calc {
-        DecodeValid(EncodeBV(b));
-      ==
-        DecodeValid(EncodeUnpadded(prefix) + Encode2Padding(suffix));
-      == {  DecodeValidPartialsFrom2PaddedSeq(s); }
-        DecodeUnpadded(EncodeUnpadded(prefix)) + Decode2Padding(Encode2Padding(suffix));
-      == { EncodeDecodeUnpadded(prefix); EncodeDecode2Padding(suffix); }
-        prefix + suffix;
-      ==
-        b;
-      }
+      EncodeDecodeValidCase1(b);
     } else if |b| % 3 == 2 {
-      EncodeDecodeValid1Padded(b);
-      var prefix := b[..(|b| - 2)];
-      var suffix := b[(|b| - 2)..];
-      EncodeUnpaddedBase64(prefix);
-
-      calc {
-        DecodeValid(EncodeBV(b));
-      ==
-        DecodeValid(EncodeUnpadded(prefix) + Encode1Padding(suffix));
-      == {  DecodeValidPartialsFrom1PaddedSeq(s); }
-        DecodeUnpadded(EncodeUnpadded(prefix)) + Decode1Padding(Encode1Padding(suffix));
-      == { EncodeDecodeUnpadded(prefix); EncodeDecode1Padding(suffix); }
-        prefix + suffix;
-      ==
-        b;
-      }
+      EncodeDecodeValidCase2(b);
     }
   }
 

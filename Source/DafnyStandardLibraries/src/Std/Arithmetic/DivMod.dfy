@@ -883,8 +883,15 @@ module Std.Arithmetic.DivMod {
     ensures  a / b <= c
   {
     LemmaModMultiplesBasic(c, b);
-    LemmaDivInductionAuto(b, b * c - a, i => 0 <= i && (i + a) % b == 0 ==> a / b <= (i + a) / b);
+    assert (b * c) % b == 0;
+    var i := b * c - a;
+    assert i + a == b * c;
+    assert (i + a) % b == 0;
+    assert 0 <= i;
+    LemmaDivInductionAuto(b, i, u => 0 <= u && (u + a) % b == 0 ==> a / b <= (u + a) / b);
+    assert a / b <= (i + a) / b;
     LemmaDivMultiplesVanish(c, b);
+    assert (b * c) / b == c;
   }
 
   lemma LemmaMultiplyDivideLeAuto()
@@ -906,8 +913,15 @@ module Std.Arithmetic.DivMod {
     ensures  a / b < c
   {
     LemmaModMultiplesBasic(c, b);
-    LemmaDivInductionAuto(b, b * c - a, i => 0 < i && (i + a) % b == 0 ==> a / b < (i + a) / b);
+    assert (b * c) % b == 0;
+    var i := b * c - a;
+    assert i + a == b * c;
+    assert (i + a) % b == 0;
+    assert 0 < i;
+    LemmaDivInductionAuto(b, i, u => 0 < u && (u + a) % b == 0 ==> a / b < (u + a) / b);
+    assert a / b < (i + a) / b;
     LemmaDivMultiplesVanish(c, b);
+    assert (b * c) / b == c;
   }
 
   lemma LemmaMultiplyDivideLtAuto()
@@ -927,7 +941,19 @@ module Std.Arithmetic.DivMod {
     ensures x / d + j == (x + j * d) / d
   {
     LemmaDivAuto(d);
-    LemmaMulInductionAuto(j, u => x / d  + u == (x + u * d) / d);
+    var f := u => x / d + u == (x + u * d) / d;
+    assert f(0) by { LemmaMulAuto(); }
+    forall i ensures IsLe(0, i) && f(i) ==> f(i + 1) {
+      if IsLe(0, i) && f(i) {
+        assert (i + 1) * d == i * d + d by { LemmaMulAuto(); }
+      }
+    }
+    forall i ensures IsLe(i, 0) && f(i) ==> f(i - 1) {
+      if IsLe(i, 0) && f(i) {
+        assert (i - 1) * d == i * d - d by { LemmaMulAuto(); }
+      }
+    }
+    LemmaMulInductionAuto(j, f);
   }
 
   lemma LemmaHoistOverDenominatorAuto()
