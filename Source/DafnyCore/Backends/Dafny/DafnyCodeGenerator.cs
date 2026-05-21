@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.Compilers {
     // However, if a method is declared in a trait A, and another trait B implements it,
     // then any class or datatype extending that last trait B must also explicitly implement the first trait A
     // by calling the trait implementation in B
-    protected override bool InstanceMethodsCanOnlyCallOverridenTraitMethods => true;
+    protected override bool InstanceMethodsCanOnlyCallOverriddenTraitMethods => true;
 
     public void Start() {
       if (items != null) {
@@ -1583,7 +1583,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    // Overriden from SinglePassCodeGenerator to return a BuilderSyntaxTree
+    // Overridden from SinglePassCodeGenerator to return a BuilderSyntaxTree
     // To avoid UnsupportedInvalidOperationException in EmitIdentifier by way of set comprehension (github issue 5644)
     protected override ConcreteSyntaxTree MaybeEmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
       Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);

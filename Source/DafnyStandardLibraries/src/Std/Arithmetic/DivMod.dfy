@@ -279,7 +279,7 @@ module Std.Arithmetic.DivMod {
     }
   }
 
-  /* numerical order is preserved when dividing two seperate integers by a common positive divisor */
+  /* numerical order is preserved when dividing two separate integers by a common positive divisor */
   lemma LemmaDivIsOrdered(x: int, y: int, z: int)
     requires x <= y
     requires 0 < z

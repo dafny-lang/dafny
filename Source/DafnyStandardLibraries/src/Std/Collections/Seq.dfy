@@ -622,7 +622,7 @@ module Std.Collections.Seq {
     else FlattenReverse(DropLast(xs)) + Last(xs)
   }
 
-  /* Flattening sequences of sequences in reverse order is distributive over concatentation.
+  /* Flattening sequences of sequences in reverse order is distributive over concatenation.
      That is, concatenating the flattening of two sequences of sequences in reverse
      order is the same as flattening the concatenation of two sequences of sequences
      in reverse order. */

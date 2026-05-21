@@ -1252,7 +1252,7 @@ A generic instantiation consists of a comma-separated list of 1 or more Types,
 enclosed in angle brackets (`<` `>`),
 providing actual types to be used in place of the type parameters of the
 declaration of the generic type.
-If there is no instantion for a generic type, type inference will try
+If there is no instantiation for a generic type, type inference will try
 to fill these in (cf. [Section 12.2](#sec-type-inference)).
 
 <!--PDF NEWPAGE-->
@@ -3465,7 +3465,7 @@ inductive datatype for trees may be updated as follows:
 node.(left := L, right := R)
 ```
 
-The operator `<` is defined for two operands of the same datataype.
+The operator `<` is defined for two operands of the same datatype.
 It means _is properly contained in_. For example, in the code
 <!-- %check-verify Types.19.expect -->
 ```dafny
@@ -3792,7 +3792,7 @@ body of greatest predicates: after conversion to negation normal form (i.e.,
 pushing negations down to the atoms), intra-cluster calls of
 greatest predicates must appear only in _positive_ positions—that is, they must
 appear as atoms and must not be negated. Additionally, to guarantee
-soundness later on, we require that they appear in _continous_
+soundness later on, we require that they appear in _continuous_
 positions—that is, in negation normal form, when they appear under
 existential quantification, the quantification needs to be limited to a
 finite range[^fn-copredicate-restriction]. Since the evaluation of a greatest predicate might not
@@ -3856,7 +3856,7 @@ In other words, a greatest predicate is true iff its corresponding prefix
 predicate is true for all finite unrollings.
 
 In Sec. 4 of the paper [Co-induction Simply] a soundness theorem of such
-assumptions is given, provided the greatest predicates meet the continous
+assumptions is given, provided the greatest predicates meet the continuous
 restrictions. An example proof of `Pos(Up(n))` for every `n > 0` is
 shown here:
 
@@ -4207,7 +4207,7 @@ constructor, every call to `new` for a class must be accompanied
 by a call to one of its constructors. A class may
 declare no constructors or one or more constructors.
 
-In general, a constructor is responsible for initializating the
+In general, a constructor is responsible for initializing the
 instance fields of its class. However, any field that is given an
 initializer in its declaration may not be reassigned in the body
 of the constructor.
@@ -4791,7 +4791,7 @@ This looks like a good definition of reachability, but Dafny won't
 admit it. The reason is twofold:
 
 * Quantifiers and comprehensions are allowed to range only over
-  allocated state. Ater all, Dafny is a type-safe language where every
+  allocated state. After all, Dafny is a type-safe language where every
   object reference is _valid_ (that is, a pointer to allocated storage
   of the right type)---it should not be possible, not even through a
   bound variable in a quantifier or comprehension, for a program to

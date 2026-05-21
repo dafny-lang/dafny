@@ -51,7 +51,7 @@ jobs:
         git push origin ${{ inputs.tag_name }} -f
       working-directory: dafny
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: C++ for ubuntu 20.04
@@ -67,10 +67,10 @@ jobs:
       with:
         java-version: 18
         distribution: corretto
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v6
     - run: npm install bignumber.js
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with: 
        python-version: '3.11'
     - name: Build Dafny
@@ -86,7 +86,7 @@ jobs:
       run: dotnet pack --version-suffix ${{ inputs.name }} dafny/Source/Dafny.sln
 
     - name: Make NuGet package available as an artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: nuget-packages
         path: dafny/Binaries/*.nupkg
@@ -116,10 +116,10 @@ jobs:
         pandoc -v
         sudo gem install rouge -v 3.30.0
     - name: Install Tectonic
-      uses: wtfjoke/setup-tectonic@v3
+      uses: wtfjoke/setup-tectonic@v4
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        tectonic-version: 0.15
+        tectonic-version: 0.16.1
 
     - name: Clean Dafny
       run: dotnet clean dafny/Source/Dafny.sln
@@ -152,7 +152,7 @@ jobs:
 
     - name: Create GitHub release (release)
       if: ${{ !inputs.prerelease }}
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         name: Dafny ${{ inputs.name }}
         tag_name: ${{ inputs.tag_name }}
@@ -167,7 +167,7 @@ jobs:
     # This step is separate from the release one because the refman is omitted
     - name: Create GitHub release (prerelease)
       if: ${{ inputs.prerelease }}
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         name: Dafny ${{ inputs.name }}
         tag_name: ${{ inputs.tag_name }}

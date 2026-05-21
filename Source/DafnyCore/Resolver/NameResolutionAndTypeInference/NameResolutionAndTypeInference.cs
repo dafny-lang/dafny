@@ -2938,7 +2938,7 @@ namespace Microsoft.Dafny {
 
     bool AssignKnownEndsFullstrength_SuperDirection(TypeProxy proxy) {
       Contract.Requires(proxy != null && proxy.T == null);
-      // First, compute the the join of the Assignable LHSs.  Then, compute
+      // First, compute the join of the Assignable LHSs.  Then, compute
       // the meet of that join and the supertypes.
       var joins = new List<Type>();
       foreach (var xc in AllXConstraints) {
@@ -3741,7 +3741,7 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, expr.Origin, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.SuffixName, ad.ModuleNames());
           } else {
             // We have found a module name or a type name.  We create a temporary expression that will never be seen by the compiler
-            // or verifier, just to have a placeholder where we can recorded what we have found.
+            // or verifier, just to have a placeholder where we can record what we have found.
             r = CreateResolver_IdentifierExpr(expr.Origin, expr.SuffixName, expr.OptTypeArguments, decl);
           }
 #if ASYNC_TASK_TYPES
@@ -3983,7 +3983,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is SingleAssignStmt) {
         SingleAssignStmt s = (SingleAssignStmt)stmt;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
-        ResolveExpression(s.Lhs, resolutionContext);  // allow ghosts for now, tighted up below
+        ResolveExpression(s.Lhs, resolutionContext);  // allow ghosts for now, tightened up below
         bool lhsResolvedSuccessfully = reporter.Count(ErrorLevel.Error) == prevErrorCount;
         Contract.Assert(s.Lhs.Type != null);  // follows from postcondition of ResolveExpression
         // check that LHS denotes a mutable variable or a field
@@ -4497,7 +4497,7 @@ namespace Microsoft.Dafny {
         if (!t.HasTypeArg()) {
           // defaults and auto have been applied; check if we now have the right number of arguments
           reporter.Error(MessageSource.Resolver, tok, "Wrong number of type arguments (0 instead of 1) passed to type: {0}", t.CollectionTypeName);
-          // add a proxy type, to make sure that CollectionType will have have a non-null Arg
+          // add a proxy type, to make sure that CollectionType will have a non-null Arg
           t.SetTypeArg(new InferredTypeProxy());
         }
 
@@ -5435,7 +5435,7 @@ namespace Microsoft.Dafny {
     /// case, "legalSourceConstructors" contains both ghost and compiled constructors.
     ///
     /// The reason for computing both desugarings here is that it's too early to tell if the DatatypeUpdateExpr is being used in
-    /// a ghost or compiled context. This is a consequence of doing the deguaring so early. But it's also convenient to do the
+    /// a ghost or compiled context. This is a consequence of doing the desugaring so early. But it's also convenient to do the
     /// desugaring during resolution, because then the desugaring can be constructed as a non-resolved expression on which ResolveExpression
     /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
@@ -5701,9 +5701,9 @@ namespace Microsoft.Dafny {
           }
         } else {
           // We have found a module name or a type name, neither of which is an expression. However, the NameSegment we're
-          // looking at may be followed by a further suffix that makes this into an expresion. We postpone the rest of the
+          // looking at may be followed by a further suffix that makes this into an expression. We postpone the rest of the
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
-          // or verifier, just to have a placeholder where we can recorded what we have found.
+          // or verifier, just to have a placeholder where we can record what we have found.
           if (!isLastNameSegment) {
             if (decl is ClassLikeDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
               // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
@@ -5903,7 +5903,7 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, expr.Origin, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.Name, ad.ModuleNames());
         } else {
           // We have found a module name or a type name, neither of which is a type expression. However, the NameSegment we're
-          // looking at may be followed by a further suffix that makes this into a type expresion. We postpone the rest of the
+          // looking at may be followed by a further suffix that makes this into a type expression. We postpone the rest of the
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
           // or verifier, just to have a placeholder where we can record what we have found.
           r = CreateResolver_IdentifierExpr(expr.Origin, expr.Name, expr.OptTypeArguments, decl);
@@ -6035,9 +6035,9 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, expr.Origin, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.SuffixName, ad.ModuleNames());
           } else {
             // We have found a module name or a type name, neither of which is an expression. However, the ExprDotName we're
-            // looking at may be followed by a further suffix that makes this into an expresion. We postpone the rest of the
+            // looking at may be followed by a further suffix that makes this into an expression. We postpone the rest of the
             // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
-            // or verifier, just to have a placeholder where we can recorded what we have found.
+            // or verifier, just to have a placeholder where we can record what we have found.
             if (!isLastNameSegment) {
               if (decl is ClassLikeDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
                 // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used

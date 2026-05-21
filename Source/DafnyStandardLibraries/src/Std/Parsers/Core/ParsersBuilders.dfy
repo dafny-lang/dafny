@@ -500,7 +500,7 @@ abstract module Std.Parsers.Builders {
   // Conversion to/from RecursiveNoStackResult requires proving an impossible termination
   datatype RecNoStackResult<!R> =
     | RecReturn(toReturn: R)
-      // Immediatley return an R
+      // Immediately return an R
     | RecContinue(toContinue: (R, Input) -> B<RecNoStackResult<R>>)
   // Ask to parse an R recursively, and then continue with the given parser.
   // It is possible to chain RecContinue.

@@ -210,7 +210,7 @@ namespace Microsoft.Dafny.Compilers {
           // Non-nested externs can be aliased (since, in 2., `Y` does not have `.`s).
           //
           // There are several possible paths to supporting these features together:
-          // - Modify behavior in 1 to apply prefixe (python-module-name/outer-module) to externs.
+          // - Modify behavior in 1 to apply prefixes (python-module-name/outer-module) to externs.
           //   This is out of scope for python-module-name, since the outer-module prefix also does not apply to externs.
           //   These are both "prefixes", and I expect any solution for python-module-name should also apply to outer-module.
           // - Modify nested extern behavior to replace `.`s with `_`s, similar to nested non-externs.
@@ -1343,7 +1343,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dt is not TupleTypeDecl) {
         wr.Write($"{DtCtorDeclarationName(ctor, dt.EnclosingModuleDefinition != enclosingModule)}");
       } else if (ctor.Destructors.Count(d => !d.IsGhost) == 1) {
-        // 1-tuples need this this for disambiguation
+        // 1-tuples need this for disambiguation
         arguments += ",";
       }
       var sep = typeDescriptorArguments.Length != 0 && arguments.Length != 0 ? ", " : "";

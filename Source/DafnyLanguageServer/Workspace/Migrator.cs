@@ -299,7 +299,7 @@ public class Migrator : IMigrator {
     int newLine = position.Line - originalOffset.Line + changeOffset.Line;
     int newCharacter = position.Character;
     if (newLine == changeOffset.Line) {
-      // The end of the change occured within the line of the given position.
+      // The end of the change occurred within the line of the given position.
       newCharacter = position.Character - originalOffset.Character + changeOffset.Character - 1;
     }
     return new Position(newLine, newCharacter);
@@ -362,7 +362,7 @@ public class Migrator : IMigrator {
       return new Range(from, to);
     }
     if (IsPositionBeforeChange(changeRange, oldRange.Start) && IsPositionAfterChange(changeRange, oldRange.End)) {
-      // The change is inbetween the range.
+      // The change is in between the range.
       var to = GetPositionWithOffset(oldRange.End, beforeChangeEndOffset, afterChangeEndOffset);
       return new Range(oldRange.Start, to);
     }

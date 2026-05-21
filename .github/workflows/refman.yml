@@ -21,12 +21,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04 ]
+        os: [ ubuntu-24.04 ]
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 8.0.x
     - name: Checkout Dafny
@@ -54,10 +54,10 @@ jobs:
         pandoc -v
         sudo gem install rouge -v 3.30.0
     - name: Install Tectonic
-      uses: wtfjoke/setup-tectonic@v3
+      uses: wtfjoke/setup-tectonic@v4
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        tectonic-version: 0.15
+        tectonic-version: 0.16.1
     - name: Build reference manual
       run: |
         eval "$(/usr/libexec/path_helper)"
@@ -65,7 +65,7 @@ jobs:
         make -C dafny/docs/DafnyRef
     - name: Check
       run: ls -la dafny/docs/DafnyRef/DafnyRef.pdf
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       if: always()
       with:
         name: DafnyRef

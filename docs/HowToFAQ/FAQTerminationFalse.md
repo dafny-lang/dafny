@@ -38,7 +38,7 @@ In this example, omitting `{:termination false}` provokes the error "class 'Boz'
 unless the class is annotated with `@AssumeCrossModuleTermination` or the parent trait is annotated with `{:termination false}`.".
 
 These attributes are only needed when there is dynamic dispatch across module boundaries.
-It does put the onus on the user to prove termiation, as Dafny may successfully verify the program even if some execution paths may never terminate.
+It does put the onus on the user to prove termination, as Dafny may successfully verify the program even if some execution paths may never terminate.
 The origin of this situation has to do with the interaction of current decreases clauses and traits.
 
 Dafny decreases clauses were designed before the language had dynamic dispatch via trait members. As such, decreases clauses are made to be as simple as possible within each module, and decreases clauses are unnecessary across modules. When dynamic dispatch was added to the language, a draconian restriction was put in place to maintain soundness, namely to disallow dynamic dispatch across module boundaries. This is enforced by insisting that a class that implements a trait is declared in the same module that declares the trait.

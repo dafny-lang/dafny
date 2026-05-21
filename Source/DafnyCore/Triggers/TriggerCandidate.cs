@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny.Triggers;
 
 /// <summary>
-/// A trigger consist of a number of terms
+/// A trigger consists of a number of terms
 /// </summary>
 class TriggerCandidate {
   internal List<TriggerTerm> Terms { get; set; }

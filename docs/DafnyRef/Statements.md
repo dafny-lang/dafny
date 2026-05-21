@@ -259,7 +259,7 @@ is interpreted as a label in which the user forgot the `label` keyword.
 
 ### 8.5.6. Method call with a `by` proof
 
-The purpose of this form of a method call is to seperate the called method's
+The purpose of this form of a method call is to separate the called method's
 precondition and its proof from the rest of the correctness proof of the
 calling method.
 
@@ -278,14 +278,14 @@ method M(i: int) returns (r: int)
 
 method C() {
   var v := M(1/3) by { // We prove 3 != 0 outside of the by proof
-    ProveP();          // Prove precondtion  
+    ProveP();          // Prove precondition  
   }
   assert v == 0;       // Use postcondition
   assert P();          // Fails
 }
 ```
 
-By placing the call to lemma `ProveP` inside of the by block, we can not use
+By placing the call to lemma `ProveP` inside of the by block, we cannot use
 `P` after the method call. The well-formedness checks of the arguments to the
 method call are not subject to the separation.
 
@@ -1011,7 +1011,7 @@ Loops
 - may have a `*` for the condition (the loop is then non-deterministic)
 - binding guards are not allowed
 - may have a case-based structure
-- may have no body --- a bodyless loop is not compilable, but can be reaosnaed about
+- may have no body --- a bodyless loop is not compilable, but can be reasoned about
 
 Importantly, loops need _loop specifications_ in order for Dafny to prove that
 they obey expected behavior. In some cases Dafny can infer the loop specifications by analyzing the code,

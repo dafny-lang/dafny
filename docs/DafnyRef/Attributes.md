@@ -380,7 +380,7 @@ method TestUnverified() {
 }
 ```
 
-`{:only}` can help focusing on a particular member, for example a lemma or a function, as it simply disables the verification of all other lemmas, methods and functions in the same file. It's equivalent to adding [`{:verify false}`](#sec-verify) to all other declarations simulatenously on the same file. Since it's meant to be a temporary construct, it always emits a warning.
+`{:only}` can help focusing on a particular member, for example a lemma or a function, as it simply disables the verification of all other lemmas, methods and functions in the same file. It's equivalent to adding [`{:verify false}`](#sec-verify) to all other declarations simultaneously on the same file. Since it's meant to be a temporary construct, it always emits a warning.
 
 More information about the Boogie implementation of `{:opaque}` is [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
@@ -729,7 +729,7 @@ Each `{:only}` annotation defines a "verification interval" which is visual:
 * `assert {:only "before"} ...` inside another verification interval finishes that verification interval earlier at the end of this assertion. Outside a verification interval, it sets a verification interval from the beginning of the declaration to the end of this assertion, but only if there were no other verification intervals before.
 * `assert {:only "after"} ...` inside another verification interval moves the start of that verification interval to the start of this new assert. Outside a verification interval, it sets a verification interval from the beginning of this `assert` to the end of the declaration.
 
-The start of an asserted expression is used to determines if it's inside a verification interval or not.
+The start of an asserted expression is used to determine if it's inside a verification interval or not.
 For example, in `assert B ==> (assert {:only "after"} true; C)`, `C` is actually the start of the asserted expression, so it is verified because it's after `assert {:only "after"} true`.
 
 As soon as a declaration contains one `assert {:only}`, none of the postconditions are verified; you'd need to make them explicit with assertions if you wanted to verify them at the same time.

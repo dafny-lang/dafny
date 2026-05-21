@@ -185,10 +185,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   ) {
     public string PrefixedDisplayName => Kind + " `" + DisplayName + "`";
 
-    // Overriden by checking children if there are some
+    // Overridden by checking children if there are some
     public GutterVerificationStatus StatusVerification { get; set; } = GutterVerificationStatus.Nothing;
 
-    // Overriden by checking children if there are some
+    // Overridden by checking children if there are some
     public CurrentStatus StatusCurrent { get; set; } = CurrentStatus.Obsolete;
 
     /// Time and Resource diagnostics
