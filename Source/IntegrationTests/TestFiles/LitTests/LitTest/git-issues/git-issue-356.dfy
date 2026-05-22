@@ -243,7 +243,7 @@ module M {
     expect o.IsNat && o as int <= 100 ==> o == o as Tx as ORDINAL;
   }
 
-  method Test2d(b: bv, n: int, c: char, r: real, o: ORDINAL, x: Tx, h: Tr) {
+  method {:vcs_split_on_every_assert} {:timeLimitMultiplier 3} Test2d(b: bv, n: int, c: char, r: real, o: ORDINAL, x: Tx, h: Tr) {
     assert h == h as Tr;
     expect h == h as Tr;
     assert h == h as Tx as Tr;

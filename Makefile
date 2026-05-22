@@ -60,10 +60,10 @@ refman-release: exe
 
 z3-mac:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-x64-macos-14-bin.zip
-	unzip z3-4.14.1-x64-macos-14-bin.zip
-	rm z3-4.14.1-x64-macos-14-bin.zip
-	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-macos-14-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2026-04-03/z3-4.16.0-x64-macos-15-bin.zip
+	unzip z3-4.16.0-x64-macos-15-bin.zip
+	rm z3-4.16.0-x64-macos-15-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2026-04-03/z3-4.12.1-x64-macos-14-bin.zip
 	unzip z3-4.12.1-x64-macos-14-bin.zip
 	rm z3-4.12.1-x64-macos-14-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
@@ -71,10 +71,10 @@ z3-mac:
 
 z3-mac-arm:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-arm64-macos-14-bin.zip
-	unzip z3-4.14.1-arm64-macos-14-bin.zip
-	rm z3-4.14.1-arm64-macos-14-bin.zip
-	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-arm64-macos-14-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2026-04-03/z3-4.16.0-arm64-macos-15-bin.zip
+	unzip z3-4.16.0-arm64-macos-15-bin.zip
+	rm z3-4.16.0-arm64-macos-15-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2026-04-03/z3-4.12.1-arm64-macos-14-bin.zip
 	unzip z3-4.12.1-arm64-macos-14-bin.zip
 	rm z3-4.12.1-arm64-macos-14-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
@@ -82,10 +82,10 @@ z3-mac-arm:
 
 z3-ubuntu:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-x64-ubuntu-22.04-bin.zip
-	unzip z3-4.14.1-x64-ubuntu-22.04-bin.zip
-	rm z3-4.14.1-x64-ubuntu-22.04-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-ubuntu-22.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2026-04-03/z3-4.16.0-x64-ubuntu-24.04-bin.zip
+	unzip z3-4.16.0-x64-ubuntu-24.04-bin.zip
+	rm z3-4.16.0-x64-ubuntu-24.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2026-04-03/z3-4.12.1-x64-ubuntu-22.04-bin.zip
 	unzip z3-4.12.1-x64-ubuntu-22.04-bin.zip
 	rm z3-4.12.1-x64-ubuntu-22.04-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/

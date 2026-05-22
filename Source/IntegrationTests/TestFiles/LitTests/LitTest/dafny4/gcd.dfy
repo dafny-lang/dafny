@@ -133,7 +133,7 @@ lemma GcdIdempotent(x: pos)
   assert x in Factors(x) * Factors(x);
 }
 
-lemma {:isolate_assertions} GcdSubtract (x: pos, y: pos)
+lemma {:isolate_assertions} {:resource_limit "200e6"} GcdSubtract (x: pos, y: pos)
   requires x < y
   ensures Gcd(x, y) == Gcd(x, y - x)
 {

@@ -393,7 +393,7 @@ lemma sorted_reverse(xs: List<G>, ys: List<G>)
   }
 }
 
-lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
+lemma {:vcs_split_on_every_assert} {:timeLimitMultiplier 10} sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
   requires sorted(reverse(xs, ys))
   requires forall y :: y in multiset_of(xs) ==> Below(y, a)
   requires forall y :: y in multiset_of(ys) ==> Below(a, y)

@@ -456,7 +456,7 @@ namespace Microsoft.Dafny {
 
     public bool AuditProgram = false;
 
-    public static string DefaultZ3Version = "4.12.1";
+    public static string DefaultZ3Version = "4.16.0";
     // Not directly user-configurable, only recorded once we discover it
     public string SolverIdentifier { get; private set; }
     public Version SolverVersion { get; set; }

@@ -68,7 +68,9 @@ module TestStatistics {
   }
 
   // Testcase for median in even case
-  method {:test} {:rlimit 1000000} Test_Median_Even_Case() {
+  @ResourceLimit("2e8")
+  @TimeLimit(120)
+  method {:test} Test_Median_Even_Case() {
     AssertAndExpect(Median([4.0, 2.0, 3.0, 1.0]) == (2.0 + 3.0) / 2.0);
   }
 
@@ -83,7 +85,9 @@ module TestStatistics {
   }
 
   // Testcase for checking already sorted case in median for even elements
-  method {:test} {:rlimit 500000} Test_Median_Even_Case_Sorted_Sequence() {
+  @ResourceLimit("2e8")
+  @TimeLimit(120)
+  method {:test} Test_Median_Even_Case_Sorted_Sequence() {
     AssertAndExpect(Median([1.0, 2.0, 3.0, 4.0]) == (2.0 + 3.0) / 2.0);
   }
 
