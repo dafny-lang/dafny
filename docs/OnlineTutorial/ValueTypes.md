@@ -141,11 +141,12 @@ usually has the same type as the resulting set, but it does not need to. As an e
 ```dafny
 method m()
 {
-  assert (set x | x in {0,1,2} && x < 3) == {0,1,2};
+  assert (set x | x in {0,1,2} :: x) == {0,1,2};
 }
 ```
 
-If the function is the identity, then the expression can be written with a particularly nice form:
+The `:: f(x)` part can also be omitted, in which case the comprehension keeps just the
+elements that satisfy the predicate:
 
 <!-- %check-verify-warn Sets.W3.expect -->
 ```dafny
@@ -155,7 +156,7 @@ method m()
 }
 ```
 
-General, non-identity functions in set comprehensions confuse Dafny easily. For example,
+When `f` is supplied and is non-trivial, Dafny easily gets confused. For example,
 the following is true, but Dafny cannot prove it:
 
 <!-- %check-verify  Sets.1.expect -->
