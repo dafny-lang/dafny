@@ -25,7 +25,7 @@ method Main() {
   print "Window size 5:  min window-max is ", m, "\n";  // 3
 }
 
-method {:resource_limit "400e6"} {:isolate_assertions} MinimumWindowMax(a: array<int>, W: int) returns (m: int, start: int)
+method {:isolate_assertions} MinimumWindowMax(a: array<int>, W: int) returns (m: int, start: int)
   requires 1 <= W <= a.Length
   ensures 0 <= start <= a.Length - W
   ensures m == Max(a, start, W)
@@ -89,11 +89,16 @@ method {:resource_limit "400e6"} {:isolate_assertions} MinimumWindowMax(a: array
     }
     n := n + 1;
     Bound(b, k, l, n, W);  // this reestablishes "l - k <= W"
+    // Help Z3 maintain the RightmostMax-of-each-segment invariant:
+    // the middle entries of b are unchanged from the previous iteration, and
+    // their RightmostMax range b[u-1]+1..b[u] is entirely < n-1 < n, so the
+    // newly-inserted element a[n-1] doesn't affect them.
+    assert forall u :: k < u < l - 1 ==> RightmostMax(a, b[u-1] + 1, b[u], n);
   }
 }
 
 // Function Max returns the maximum value in a[s..s+len]
-ghost function Max(a: array<int>, s: int, len: int): int
+opaque ghost function Max(a: array<int>, s: int, len: int): int
   requires 0 <= s && 1 <= len && s + len <= a.Length
   reads a
 {
@@ -110,6 +115,7 @@ lemma MaxProperty(a: array<int>, s: int, len: int)
   ensures forall i :: s <= i < s + len ==> a[i] <= Max(a, s, len)
   ensures exists i :: s <= i < s + len && a[i] == Max(a, s, len)
 {
+  reveal Max();
   if len == 1 {
     assert a[s] == Max(a, s, len);
   } else {
