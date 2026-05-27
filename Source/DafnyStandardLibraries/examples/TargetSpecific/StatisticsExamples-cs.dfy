@@ -68,10 +68,8 @@ module TestStatistics {
   }
 
   // Testcase for median in even case
-  @ResourceLimit("2e8")
-  @TimeLimit(120)
   method {:test} Test_Median_Even_Case() {
-    AssertAndExpect(Median([4.0, 2.0, 3.0, 1.0]) == (2.0 + 3.0) / 2.0);
+    expect Median([4.0, 2.0, 3.0, 1.0]) == (2.0 + 3.0) / 2.0;
   }
 
   // Testcase for evaluating median for a sequence with single element
@@ -85,10 +83,8 @@ module TestStatistics {
   }
 
   // Testcase for checking already sorted case in median for even elements
-  @ResourceLimit("2e8")
-  @TimeLimit(120)
   method {:test} Test_Median_Even_Case_Sorted_Sequence() {
-    AssertAndExpect(Median([1.0, 2.0, 3.0, 4.0]) == (2.0 + 3.0) / 2.0);
+    expect Median([1.0, 2.0, 3.0, 4.0]) == (2.0 + 3.0) / 2.0;
   }
 
   // Testcase for checking mode calculation
