@@ -133,7 +133,7 @@ lemma GcdIdempotent(x: pos)
   assert x in Factors(x) * Factors(x);
 }
 
-lemma {:isolate_assertions} {:resource_limit "200e6"} GcdSubtract (x: pos, y: pos)
+lemma GcdSubtract (x: pos, y: pos)
   requires x < y
   ensures Gcd(x, y) == Gcd(x, y - x)
 {
@@ -155,8 +155,8 @@ lemma {:isolate_assertions} {:resource_limit "200e6"} GcdSubtract (x: pos, y: po
   // We now show that p is also a factor of y - x.
   assert IsFactor(p, y - x) by
   {
-    var a :| p * a == x;
-    var b :| p * b == y;
+    var a: int :| p * a == x;
+    var b: int :| p * b == y;
     calc {
       y - x;
     ==
@@ -177,8 +177,8 @@ lemma {:isolate_assertions} {:resource_limit "200e6"} GcdSubtract (x: pos, y: po
   {
     reveal Gcd();
     // q is a factor of both x and y - x, so a and b exist:
-    var a :| q * a == x;
-    var b :| q * b == y - x;
+    var a: int :| q * a == x;
+    var b: int :| q * b == y - x;
     assert IsFactor(q, y) by {
       calc {
         y;
@@ -227,7 +227,7 @@ method EuclidGcd(X: pos, Y: pos) returns (gcd: pos)
 // ------------------------------------------------------------------------------------------------------
 // The alternative definitions that follow allow the two cases in the GCD algorithm to look more similar.
 
-lemma {:isolate_assertions} GcdSubtractAlt(x: pos, y: pos)
+lemma GcdSubtractAlt(x: pos, y: pos)
   requires x < y
   ensures Gcd(y, x) == Gcd(x, y - x) // this says Gcd(y, x) instead of Gcd(x, y) as in GcdSubtract above
 {
@@ -247,8 +247,8 @@ lemma {:isolate_assertions} GcdSubtractAlt(x: pos, y: pos)
   }
 
   assert IsFactor(p, y - x) by {
-    var a :| p * a == x;
-    var b :| p * b == y;
+    var a: int :| p * a == x;
+    var b: int :| p * b == y;
     assert y - x == p * (b - a) by {
       assert p * b - p * a == p * (b - a);
     }
@@ -261,8 +261,8 @@ lemma {:isolate_assertions} GcdSubtractAlt(x: pos, y: pos)
     ensures q <= p
   {
     reveal Gcd();
-    var a :| q * a == x;
-    var b :| q * b == y - x;
+    var a: int :| q * a == x;
+    var b: int :| q * b == y - x;
     assert IsFactor(q, y)  by {
       calc {
         y;
