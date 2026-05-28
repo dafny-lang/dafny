@@ -113,11 +113,11 @@ abstract module M0 {
         t, p, p.children := p, p.children[p.childrenVisited], p.children[p.childrenVisited := t];
         stackNodes := stackNodes[..|stackNodes| - 1];
         t.childrenVisited := t.childrenVisited + 1;
-
+        assert {:split_here} true;
       } else if t.children[t.childrenVisited] == null || t.children[t.childrenVisited].marked {
         // just advance to next child
         t.childrenVisited := t.childrenVisited + 1;
-
+        assert {:split_here} true;
       } else {
         // push
         stackNodes := stackNodes + [t];
@@ -128,6 +128,7 @@ abstract module M0 {
         // some more properties about the loop.  Therefore, we just assume the property here and
         // prove it in a separate refinement.
         assume t !in stackNodes;
+        assert {:split_here} true;
       }
     }
     // From the loop invariant, it now follows that all children pointers have been restored,

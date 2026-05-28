@@ -56,7 +56,7 @@ method test6(a: array<int>, n: int, e: int)
   a[n] := e;
   assert a[..n+1] == a[..n] + [e];
 }
-method {:resource_limit "100e6"} test7(a: array<int>, i: int, j: int)
+method test7(a: array<int>, i: int, j: int)
    requires 0 <= i < j < a.Length;
    modifies a;
    ensures old(multiset(a[..])) == multiset(a[..]);
@@ -67,6 +67,7 @@ method {:resource_limit "100e6"} test7(a: array<int>, i: int, j: int)
    assert a[..] == s;
    a[i], a[j] := a[j], a[i];
    assert a[..] == a[..i] + [a[i]] + a[i+1 .. j] + [a[j]] + a[j+1..];
+   assert {:split_here} true;
    assert s == a[..i] + [old(a[i])] + a[i+1 .. j] + [old(a[j])] + a[j+1..];
 }
 method test8(a: array<int>, i: int, j: int)

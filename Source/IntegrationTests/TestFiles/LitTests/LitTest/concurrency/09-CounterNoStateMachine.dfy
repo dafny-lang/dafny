@@ -725,6 +725,7 @@ method {:isolate_assertions} {:timeLimitMultiplier 3} Incrementer(universe: Univ
     label l3:
     counter.value := counter.value + 1;
     universe.ProveTransitiveInv2@l3();
+    assert {:split_here} true;
     universe.lci@l3(running);
     
     // No interference!

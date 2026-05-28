@@ -795,7 +795,6 @@ lemma mutsPointIntoSameRegionOrImmOrIso(f : Object, t : Object)
 //
  
 method
-{:timeLimit 1}
 {:ignore } dynMove(o : Object, n : string, f : Object, m : string) returns (r : Status)
 
     requires n !=m;  //can't write to oneself field (although o can equal f?)  //seems a bit shifty. houjld be fixed.

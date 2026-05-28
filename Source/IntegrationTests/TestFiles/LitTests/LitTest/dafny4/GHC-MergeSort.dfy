@@ -393,7 +393,7 @@ lemma sorted_reverse(xs: List<G>, ys: List<G>)
   }
 }
 
-lemma {:vcs_split_on_every_assert} {:timeLimitMultiplier 10} sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
+lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
   requires sorted(reverse(xs, ys))
   requires forall y :: y in multiset_of(xs) ==> Below(y, a)
   requires forall y :: y in multiset_of(ys) ==> Below(a, y)
@@ -402,16 +402,10 @@ lemma {:vcs_split_on_every_assert} {:timeLimitMultiplier 10} sorted_insertInMidd
   match xs {
     case Nil =>
     case Cons(b, xs') =>
-      calc ==> {
-        true;
-        { sorted_reverse(xs, ys); }
-        sorted(reverse(xs', Cons(b, ys))) && sorted(Cons(a, ys));
-        { sorted_replaceSuffix(xs', Cons(b, ys), Cons(a, ys)); }
-        sorted(reverse(xs', Cons(a, ys)));
-        { sorted_reverse(xs', Cons(b, ys));
-          sorted_insertInMiddle(xs', b, Cons(a, ys)); }
-        sorted(reverse(xs', Cons(b, Cons(a, ys))));
-      }
+      sorted_reverse(xs, ys);
+      sorted_replaceSuffix(xs', Cons(b, ys), Cons(a, ys));
+      sorted_reverse(xs', Cons(b, ys));
+      sorted_insertInMiddle(xs', b, Cons(a, ys));
   }
 }
 
