@@ -9,7 +9,7 @@
 // CHECK: Outcome: Valid
 // CHECK: Duration: .*
 // CHECK: Resource count: .*
-// CHECK: TextLogger.dfy\(34,14\): divisor is always non-zero
+// CHECK: TextLogger.dfy\(34,12\)-\(34,16\): divisor is always non-zero
 // CHECK: Outcome: Invalid
 // CHECK: Duration: .*
 // CHECK: Resource count: .*
@@ -22,7 +22,7 @@
 // CHECK: Outcome: Valid
 // CHECK: Duration: .*
 // CHECK: Resource count: .*
-// CHECK: TextLogger.dfy\(34,14\): divisor is always non-zero
+// CHECK: TextLogger.dfy\(34,12\)-\(34,16\): divisor is always non-zero
 // CHECK: Outcome: Invalid
 // CHECK: Duration: .*
 // CHECK: Resource count: .*
