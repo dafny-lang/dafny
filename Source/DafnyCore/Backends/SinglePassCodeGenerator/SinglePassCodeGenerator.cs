@@ -4127,14 +4127,10 @@ namespace Microsoft.Dafny.Compilers {
         EmitNew(allocateClass.Type, typeRhs.Origin, constructor != null ? allocateClass.InitCall : null, wRhs, wStmts);
         // Proceed with initialization
         if (allocateClass.InitCall != null) {
-          if (constructor != null && IsExternallyImported(constructor)) {
-            // initialization was done at the time of allocation
-          } else {
-            var wrBefore = wStmts.Fork();
-            var wrCall = wStmts.Fork();
-            var wrAfter = wStmts;
-            TrCallStmt(allocateClass.InitCall, nw, wrCall, wrBefore, wrAfter);
-          }
+          var wrBefore = wStmts.Fork();
+          var wrCall = wStmts.Fork();
+          var wrAfter = wStmts;
+          TrCallStmt(allocateClass.InitCall, nw, wrCall, wrBefore, wrAfter);
         }
         // Assign to the final LHS
         EmitIdentifier(nw, wr);
