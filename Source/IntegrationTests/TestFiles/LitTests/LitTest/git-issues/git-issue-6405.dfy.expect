@@ -1,6 +1,8 @@
-git-issue-6405.dfy(16,2): Error: a postcondition could not be proved on this return path
-git-issue-6405.dfy(15,10): Related location: this is the postcondition that could not be proved
-git-issue-6405.dfy(26,2): Error: a postcondition could not be proved on this return path
-git-issue-6405.dfy(25,34): Related location: this is the postcondition that could not be proved
+git-issue-6405.dfy(17,2): Error: a postcondition could not be proved on this return path
+git-issue-6405.dfy(16,10): Related location: this is the postcondition that could not be proved
+git-issue-6405.dfy(27,2): Error: a postcondition could not be proved on this return path
+git-issue-6405.dfy(26,34): Related location: this is the postcondition that could not be proved
+git-issue-6405.dfy(42,2): Error: a postcondition could not be proved on this return path
+git-issue-6405.dfy(41,10): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 2 verified, 2 errors
+Dafny program verifier finished with 3 verified, 3 errors
