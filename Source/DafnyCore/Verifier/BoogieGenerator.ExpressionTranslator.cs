@@ -1771,7 +1771,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
               r = BplAnd(r, correctConstructor);
             }
           } else if (e.Member is ConstantField { Rhs: { } rhs } && BoogieGenerator.RevealedInScope(e.Member)) {
-            r = CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null));
+            // Inlining the const's definition (with "this" := e.Obj) must keep the receiver's own canCall
+            // and propagate the self-call allowance (cco): if e.Obj is a self-call and the RHS mentions it,
+            // dropping cco would emit a bare f#canCall and trigger f's consequence axiom.
+            r = BplAnd(r, CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null), cco));
           }
           return r;
         } else if (expr is SeqSelectExpr) {
@@ -1858,7 +1861,11 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             Token.NoToken) {
             Type = e.Initializer.Type.AsArrowType.Result
           };
-          var canCall = CanCallAssumption(dafnyInitApplication);
+          // Propagate the self-call allowance (cco) into the per-index "init(i)" application, consistent
+          // with the standalone "init" and "n" calls below. Dropping it would emit a bare f#canCall for a
+          // self-call inside the initializer, which can trigger the function's consequence axiom -- the
+          // same soundness circularity the cco threading avoids elsewhere.
+          var canCall = CanCallAssumption(dafnyInitApplication, cco);
 
           dafnyInitApplication = new ApplyExpr(e.Origin, new BoogieWrapper(initF, e.Initializer.Type),
             [new BoogieWrapper(index, Type.Int)],
