@@ -274,7 +274,20 @@ namespace Microsoft.Dafny {
 
         var canCall = FunctionCall(e.Origin, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
         var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-        var canCallBody = etranCC.CanCallAssumption(p);
+        // If this let-such-that occurs in the specification of a function, the such-that constraint may
+        // contain a self-call to that function. Without the self-call allowance (cco), the bare "f#canCall"
+        // emitted here would trigger f's consequence axiom (assuming f's own postcondition), the same
+        // circularity the cco threading avoids for the let body and the exact-let case. This axiom is
+        // generated once, while CurrentDeclaration is the enclosing function, so we build the allowance
+        // here. The allowance compares the self-call's arguments to f's formals; those formals are
+        // represented in this axiom by the same substMap/receiverReplacement that translate the constraint
+        // (only the constraint's free variables are in scope), so we hand them to MakeAllowance via
+        // CanCallOptions. A trivial self-call f(formals) then reduces to a well-scoped tautology, while a
+        // non-trivial call keeps the bare canCall.
+        var cco = BoogieGenerator.CurrentDeclaration is Function enclosingFunction
+          ? new CanCallOptions(true, enclosingFunction, allowanceSubstMap: substMap, allowanceReceiver: receiverReplacement)
+          : null;
+        var canCallBody = etranCC.CanCallAssumption(p, cco);
         Bpl.Expr ax = BplImp(canCall, BplAnd(antecedent, BplAnd(canCallBody, etranCC.TrExpr(p))));
         ax = BplForall(gg, tr, ax);
         BoogieGenerator.AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.Origin, ax));

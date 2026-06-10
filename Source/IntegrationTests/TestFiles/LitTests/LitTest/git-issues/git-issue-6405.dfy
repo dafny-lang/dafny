@@ -8,6 +8,8 @@
 // - #6343: a `var` expression, which is already a LetExpr.
 // - a revealed `const` field whose definition is inlined when the field is
 //   selected on the result of a self-call (MemberSelectExpr / ConstantField).
+// - a `var ... :| ...` (let-such-that) whose such-that constraint contains a
+//   self-call (the standalone $let#canCall axiom).
 
 datatype D = Pair(x: int, y: int)
 
@@ -45,3 +47,20 @@ function constField(n: int): Wrapper
 function constFieldOk(n: int): Wrapper
   ensures constFieldOk(n).c == 0
 { Wrap(0) }
+
+// Let-such-that with a self-call in the constraint must not let `false` be proved.
+function letSuchThat(): int
+  ensures var x: int :| x == letSuchThat(); true
+  ensures false
+{ 1 }
+
+// Parameterless predicate variant.
+predicate letSuchThatPred()
+  ensures var x: int :| x == 0 && letSuchThatPred(); true
+  ensures false
+{ true }
+
+// Legitimate let-such-that whose body relies on the witness equality still verifies.
+function letSuchThatOk(n: nat): nat
+  ensures var x :| x == letSuchThatOk(n); x == letSuchThatOk(n)
+{ 0 }
