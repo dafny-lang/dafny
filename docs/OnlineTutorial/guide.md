@@ -670,7 +670,7 @@ method m()
 
 In fact, not only can we write this statement directly
 without capturing to a local variable, we didn't even need to write any
-postconditions to caputure the behavior as we did with the method (though functions can and do have
+postconditions to capture the behavior as we did with the method (though functions can and do have
 pre- and postconditions in general). The limitations of functions are
 precisely what enable Dafny to do this. Unlike with methods, Dafny does not forget the
 body of a function when using it. So it can expand the

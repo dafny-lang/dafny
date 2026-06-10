@@ -1278,7 +1278,7 @@ namespace Microsoft.Dafny {
       }
 
       // A function is not allowed to be used naked (that is, without being applied to arguments) in its own SCC.
-      // Also, a function is not allowed to be used in any way inside a "decreases" clause its its own SCC.
+      // Also, a function is not allowed to be used in any way inside a "decreases" clause in its own SCC.
       foreach (var callable in ModuleDefinition.AllCallables(declarations)) {
         DetectUnsoundFunctionReferencesVisitor.Check(callable, this);
       }
@@ -2592,7 +2592,7 @@ namespace Microsoft.Dafny {
           typeMap.Add(o, new UserDefinedType(tok, n));
           if (checkNames && o.Name != n.Name) { // if checkNames is false, then just treat the parameters positionally.
             reporter.Error(MessageSource.Resolver, n.Origin,
-              $"type parameters in this {thing} override are not allowed to be renamed from the names given in the the {thing} it overrides" +
+              $"type parameters in this {thing} override are not allowed to be renamed from the names given in the {thing} it overrides" +
               $" (expected '{o.Name}', got '{n.Name}')");
           } else {
             // Check type characteristics

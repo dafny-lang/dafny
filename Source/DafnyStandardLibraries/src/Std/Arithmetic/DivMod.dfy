@@ -279,7 +279,7 @@ module Std.Arithmetic.DivMod {
     }
   }
 
-  /* numerical order is preserved when dividing two seperate integers by a common positive divisor */
+  /* numerical order is preserved when dividing two separate integers by a common positive divisor */
   lemma LemmaDivIsOrdered(x: int, y: int, z: int)
     requires x <= y
     requires 0 < z
@@ -626,6 +626,7 @@ module Std.Arithmetic.DivMod {
     }
   }
 
+  @ResourceLimit("5e7")
   lemma {:induction false} LemmaIndistinguishableQuotients(a: int, b: int, d: int)
     requires 0 < d
     requires 0 <= a - a % d <= b < a + d - a % d
@@ -724,6 +725,7 @@ module Std.Arithmetic.DivMod {
 
   /* rounds down when adding an integer r to the dividend a that is smaller than the divisor d, and then
   multiplying by d */
+  @ResourceLimit("5e7")
   lemma LemmaRoundDown(a: int, r: int, d: int)
     requires 0 < d
     requires a % d == 0
@@ -850,6 +852,7 @@ module Std.Arithmetic.DivMod {
 
   /* a dividend y that is a positive multiple of the divisor z will always yield a greater quotient 
   than a dividend x that is less than y */
+  @ResourceLimit("5e7")
   lemma LemmaDivByMultipleIsStronglyOrdered(x: int, y: int, m: int, z: int)
     requires x < y
     requires y == m * z
@@ -873,14 +876,22 @@ module Std.Arithmetic.DivMod {
 
   /* if an integer a is less than or equal to the product of two other integers b and c, then the 
   quotient of a/b will be less than or equal to c */
+  @ResourceLimit("5e7")
   lemma LemmaMultiplyDivideLe(a: int, b: int, c: int)
     requires 0 < b
     requires a <= b * c
     ensures  a / b <= c
   {
     LemmaModMultiplesBasic(c, b);
-    LemmaDivInductionAuto(b, b * c - a, i => 0 <= i && (i + a) % b == 0 ==> a / b <= (i + a) / b);
+    assert (b * c) % b == 0;
+    var i := b * c - a;
+    assert i + a == b * c;
+    assert (i + a) % b == 0;
+    assert 0 <= i;
+    LemmaDivInductionAuto(b, i, u => 0 <= u && (u + a) % b == 0 ==> a / b <= (u + a) / b);
+    assert a / b <= (i + a) / b;
     LemmaDivMultiplesVanish(c, b);
+    assert (b * c) / b == c;
   }
 
   lemma LemmaMultiplyDivideLeAuto()
@@ -895,14 +906,22 @@ module Std.Arithmetic.DivMod {
 
   /* if an integer a is less than the product of two other integers b and c, then the quotient 
   of a/b will be less than c */
+  @ResourceLimit("5e7")
   lemma LemmaMultiplyDivideLt(a: int, b: int, c: int)
     requires 0 < b
     requires a < b * c
     ensures  a / b < c
   {
     LemmaModMultiplesBasic(c, b);
-    LemmaDivInductionAuto(b, b * c - a, i => 0 < i && (i + a) % b == 0 ==> a / b < (i + a) / b);
+    assert (b * c) % b == 0;
+    var i := b * c - a;
+    assert i + a == b * c;
+    assert (i + a) % b == 0;
+    assert 0 < i;
+    LemmaDivInductionAuto(b, i, u => 0 < u && (u + a) % b == 0 ==> a / b < (u + a) / b);
+    assert a / b < (i + a) / b;
     LemmaDivMultiplesVanish(c, b);
+    assert (b * c) / b == c;
   }
 
   lemma LemmaMultiplyDivideLtAuto()
@@ -916,12 +935,25 @@ module Std.Arithmetic.DivMod {
   }
 
   /* expresses the equality of giving fractions common denominators and then adding them together */
+  @ResourceLimit("5e7")
   lemma LemmaHoistOverDenominator(x: int, j: int, d: nat)
     requires 0 < d
     ensures x / d + j == (x + j * d) / d
   {
     LemmaDivAuto(d);
-    LemmaMulInductionAuto(j, u => x / d  + u == (x + u * d) / d);
+    var f := u => x / d + u == (x + u * d) / d;
+    assert f(0) by { LemmaMulAuto(); }
+    forall i ensures IsLe(0, i) && f(i) ==> f(i + 1) {
+      if IsLe(0, i) && f(i) {
+        assert (i + 1) * d == i * d + d by { LemmaMulAuto(); }
+      }
+    }
+    forall i ensures IsLe(i, 0) && f(i) ==> f(i - 1) {
+      if IsLe(i, 0) && f(i) {
+        assert (i - 1) * d == i * d - d by { LemmaMulAuto(); }
+      }
+    }
+    LemmaMulInductionAuto(j, f);
   }
 
   lemma LemmaHoistOverDenominatorAuto()
@@ -1333,7 +1365,7 @@ module Std.Arithmetic.DivMod {
   }
 
   /* proves the validity of the quotient and remainder */
-  @ResourceLimit("2200000")
+  @ResourceLimit("5e7")
   @TimeLimitMultiplier(10)
   lemma LemmaFundamentalDivModConverse(x: int, d: int, q: int, r: int)
     requires d != 0

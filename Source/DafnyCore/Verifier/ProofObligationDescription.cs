@@ -21,7 +21,7 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
     return null;
   }
 
-  // Substituting replaces the token of a substituting expression by the token of the identifierExpr being susbstituted,
+  // Substituting replaces the token of a substituting expression by the token of the identifierExpr being substituted,
   // Since the printer requires the token of IdentifierExpr to be Token.NoToken to print the custom name in Dafny mode,
   // we just wrap the identifierExpr into a ParensExpression, as it is the case for any other expression.
   protected static Expression ToSubstitutableExpression(BoundVar bvar) {

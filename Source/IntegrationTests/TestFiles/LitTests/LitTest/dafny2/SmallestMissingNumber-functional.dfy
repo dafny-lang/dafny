@@ -269,7 +269,7 @@ lemma {:induction false} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   }
 }
 
-lemma {:induction false} {:isolate_assertions} SMN''_Correct(xs: List<nat>, n: nat, len: nat)
+lemma {:induction false} SMN''_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)
@@ -285,21 +285,14 @@ lemma {:induction false} {:isolate_assertions} SMN''_Correct(xs: List<nat>, n: n
     var (L, R) := Split(xs, n + half);
     Split_Correct(xs, n + half);
     var llen := Length(L);
-    Elements_Property(L);  // use the NoDuplicates property
-    var bound := IntRange(n, half);
-    Cardinality(Elements(L), bound);
     if llen < half {
       SMN''_Correct(L, n, llen);
     } else {
-      var s := SMN''(R, n + llen, len - llen);
+      Elements_Property(L);  // use the NoDuplicates property
+      var bound := IntRange(n, half);
+      Cardinality(Elements(L), bound);
+      SetEquality(Elements(L), bound);
       SMN''_Correct(R, n + llen, len - llen);
-      forall x | n <= x < s
-        ensures x in Elements(xs)
-      {
-        if x < n + llen {
-          SetEquality(Elements(L), bound);
-        }
-      }
     }
   }
 }

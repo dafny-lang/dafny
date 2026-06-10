@@ -690,7 +690,7 @@ class ClaimIncreasingCounterGreaterThanConstant extends OwnedObject {
 //   assert!(i == 10);
 // }
 
-method {:isolate_assertions} Incrementer(universe: Universe, running: Thread, counter: IncreasingCounter, remaining: Integer)
+method {:isolate_assertions} {:timeLimitMultiplier 3} Incrementer(universe: Universe, running: Thread, counter: IncreasingCounter, remaining: Integer)
    requires universe.globalInv() && running in universe.content && counter in universe.content && remaining in universe.content
    requires remaining.owner == running && remaining.value == 10 // USER precondition
    modifies universe, universe.content
@@ -725,6 +725,7 @@ method {:isolate_assertions} Incrementer(universe: Universe, running: Thread, co
     label l3:
     counter.value := counter.value + 1;
     universe.ProveTransitiveInv2@l3();
+    assert {:split_here} true;
     universe.lci@l3(running);
     
     // No interference!

@@ -402,16 +402,10 @@ lemma sorted_insertInMiddle(xs: List<G>, a: G, ys: List<G>)
   match xs {
     case Nil =>
     case Cons(b, xs') =>
-      calc ==> {
-        true;
-        { sorted_reverse(xs, ys); }
-        sorted(reverse(xs', Cons(b, ys))) && sorted(Cons(a, ys));
-        { sorted_replaceSuffix(xs', Cons(b, ys), Cons(a, ys)); }
-        sorted(reverse(xs', Cons(a, ys)));
-        { sorted_reverse(xs', Cons(b, ys));
-          sorted_insertInMiddle(xs', b, Cons(a, ys)); }
-        sorted(reverse(xs', Cons(b, Cons(a, ys))));
-      }
+      sorted_reverse(xs, ys);
+      sorted_replaceSuffix(xs', Cons(b, ys), Cons(a, ys));
+      sorted_reverse(xs', Cons(b, ys));
+      sorted_insertInMiddle(xs', b, Cons(a, ys));
   }
 }
 

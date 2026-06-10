@@ -236,7 +236,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     Attributes? attributes, IOrigin? signatureEllipsis)
     : base(origin, nameNode, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
 
-    Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
+    Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a function-method
     this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
     this.Result = result;
     this.ResultType = result != null ? result.Type : resultType;

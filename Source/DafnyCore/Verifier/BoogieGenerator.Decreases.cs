@@ -47,7 +47,7 @@ public partial class BoogieGenerator {
 
     // The interpretation of the given decreases-clause expression tuples is as a lexicographic tuple, extended into
     // an infinite tuple by appending TOP elements.  The TOP element is strictly larger than any other value given
-    // by a Dafny expression.  Each Dafny types has its own ordering, and these orderings are combined into a partial
+    // by a Dafny expression.  Each Dafny type has its own ordering, and these orderings are combined into a partial
     // order where elements from different Dafny types are incomparable.  Thus, as an optimization below, if two
     // components from different types are compared, the answer is taken to be false.
 

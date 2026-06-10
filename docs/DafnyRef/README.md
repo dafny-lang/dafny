@@ -111,5 +111,5 @@ file as well.
 
 ## LSP
 
-Many IDEs interact with Language Servers (via LSP). Possibly an LSP protocol
+Many IDEs interact with Language Servers (via LSP). Possibly an LSP
 will be generated in the future.

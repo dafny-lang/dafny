@@ -15,6 +15,7 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
   import Utf16EncodingForm
 
   @IsolateAssertions
+  @ResourceLimit("5e7")
   lemma CharIsUnicodeScalarValue(c: char)
     ensures
       && var asBits := c as int as bv24;

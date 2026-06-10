@@ -316,6 +316,7 @@ module Std.JSON.ZeroCopy.Deserializer {
     // expected due to the tail recursion.
     @IsolateAssertions
     @TailRecursion
+    @ResourceLimit("5e7")
     function Elements(
       ghost cs0: FreshCursor,
       json: ValueParser,

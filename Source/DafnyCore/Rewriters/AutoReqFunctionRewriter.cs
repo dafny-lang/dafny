@@ -22,7 +22,7 @@ public class AutoReqFunctionRewriter : IRewriter {
   internal override void PostResolveIntermediate(ModuleDefinition m) {
     var components = m.CallGraph.TopologicallySortedComponents();
 
-    foreach (var scComponent in components) {  // Visit the call graph bottom up, so anything we call already has its prequisites calculated
+    foreach (var scComponent in components) {  // Visit the call graph bottom up, so anything we call already has its prerequisites calculated
       if (scComponent is Function) {
         Function fn = (Function)scComponent;
         if (Attributes.ContainsBoolAtAnyLevel(fn, "autoReq")) {
