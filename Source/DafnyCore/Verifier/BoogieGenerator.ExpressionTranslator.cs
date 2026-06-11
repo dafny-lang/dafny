@@ -1727,25 +1727,20 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       }
 
       /// <summary>
-      /// Builds the self-call allowance "e.Receiver == this && e.Args == formals" for a self-call "e" to
-      /// the enclosing function. This is OR'd with the call's #canCall so that the trivial self-call does
-      /// not force #canCall (which would trigger the function's consequence axiom -- a soundness
-      /// circularity when checking the function's own specification).
+      /// Builds the self-call allowance "e.Receiver == this && e.Args == formals", OR'd with #canCall by
+      /// the caller so the trivial self-call does not force #canCall (and thereby the function's
+      /// consequence axiom -- circular when checking the function's own spec).
       ///
-      /// When "cco.AllowanceSubstMap" is set, the allowance is being built in a scope (the standalone
-      /// $let#canCall axiom of a let-such-that expression) where the enclosing function's formals and
-      /// "this" are not the ordinary procedure parameters but are represented by that substitution. In
-      /// that case the allowance must be rewritten into that scope. A formal that is absent from the
-      /// substitution cannot occur in the trivial self-call at all, so the call is necessarily non-trivial
-      /// and no allowance applies; this method returns null to signal that the bare #canCall should be used.
+      /// With cco.AllowanceSubstMap set, the allowance is rewritten into the $let#canCall axiom's scope
+      /// (see CanCallOptions). A formal/receiver absent from that scope cannot occur in the trivial
+      /// self-call, so the call is non-trivial; returns null to signal "use the bare #canCall".
       /// </summary>
       public Expression MakeAllowance(FunctionCallExpr e, CanCallOptions cco = null) {
         var substMap = cco?.AllowanceSubstMap;
         Expression allowance = Expression.CreateBoolLiteral(e.Origin, true);
         if (!e.Function.IsStatic) {
           if (substMap != null && cco.AllowanceReceiver == null) {
-            // The allowance needs "this" but the scope has no representation for it; no allowance applies.
-            return null;
+            return null;  // "this" not in scope: no trivial self-call possible here
           }
           var formalThis = new ThisExpr(cco == null ? e.Function : cco.EnclosingFunction);
           allowance = Expression.CreateAnd(allowance, Expression.CreateEq(e.Receiver, formalThis, e.Receiver.Type));
@@ -1755,14 +1750,11 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           Expression ee = e.Args[i];
           Formal ff = formals[i];
           if (substMap != null && !substMap.ContainsKey(ff)) {
-            // This formal has no representation in the current scope, so the trivial self-call f(formals)
-            // cannot occur here; the call is non-trivial and gets no allowance.
-            return null;
+            return null;  // this formal not in scope: no trivial self-call possible here
           }
           allowance = Expression.CreateAnd(allowance, Expression.CreateEq(ee, Expression.CreateIdentExpr(ff), ff.Type));
         }
         if (substMap != null) {
-          // Rewrite the formals and "this" into the axiom's scope (see CanCallOptions.AllowanceSubstMap).
           allowance = Substitute(allowance, cco.AllowanceReceiver, substMap, null);
         }
         return allowance;
@@ -1798,9 +1790,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
               r = BplAnd(r, correctConstructor);
             }
           } else if (e.Member is ConstantField { Rhs: { } rhs } && BoogieGenerator.RevealedInScope(e.Member)) {
-            // Inlining the const's definition (with "this" := e.Obj) must keep the receiver's own canCall
-            // and propagate the self-call allowance (cco): if e.Obj is a self-call and the RHS mentions it,
-            // dropping cco would emit a bare f#canCall and trigger f's consequence axiom.
+            // Keep the receiver's canCall and propagate cco: if e.Obj is a self-call whose const RHS
+            // mentions "this", dropping cco would emit a bare f#canCall (see MakeAllowance).
             r = BplAnd(r, CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null), cco));
           }
           return r;
@@ -1889,10 +1880,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             Token.NoToken) {
             Type = e.Initializer.Type.AsArrowType.Result
           };
-          // Propagate the self-call allowance (cco) into the per-index "init(i)" application, consistent
-          // with the standalone "init" and "n" calls below. Dropping it would emit a bare f#canCall for a
-          // self-call inside the initializer, which can trigger the function's consequence axiom -- the
-          // same soundness circularity the cco threading avoids elsewhere.
+          // Propagate cco into the per-index "init(i)" application, like the "init"/"n" calls below
+          // (a self-call in the initializer would otherwise emit a bare f#canCall; see MakeAllowance).
           var canCall = CanCallAssumption(dafnyInitApplication, cco);
 
           dafnyInitApplication = new ApplyExpr(e.Origin, new BoogieWrapper(initF, e.Initializer.Type),
@@ -2082,14 +2071,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       public readonly Function EnclosingFunction; // self-call allowance is applied to the enclosing function
       public readonly bool SelfCallAllowanceAlsoForOverride;
 
-      // When the self-call allowance is built in a scope where the enclosing function's formals and "this"
-      // are not the ordinary procedure parameters -- as in the standalone $let#canCall axiom for a
-      // let-such-that expression, whose constraint is translated under a substitution of the function's
-      // free variables to the axiom's bound variables -- the allowance's "argument == formal" comparison
-      // must be expressed in that same scope. When AllowanceSubstMap is set, MakeAllowance rewrites the
-      // formals (via the map) and "this" (via AllowanceReceiver) into that scope; a formal absent from the
-      // map cannot occur in the trivial self-call, so MakeAllowance declines to produce an allowance. Both
-      // are null in the ordinary (procedure-scope) case, where all formals are already in scope.
+      // Set only when building the allowance inside the standalone $let#canCall axiom of a let-such-that
+      // expression, where the enclosing function's formals and "this" are represented not by the procedure
+      // parameters but by this substitution (formals via the map, "this" via AllowanceReceiver). They are
+      // null in the ordinary procedure-scope case. See MakeAllowance.
       public readonly Dictionary<IVariable, Expression> AllowanceSubstMap;
       public readonly Expression AllowanceReceiver;
 

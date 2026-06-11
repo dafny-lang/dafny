@@ -274,16 +274,11 @@ namespace Microsoft.Dafny {
 
         var canCall = FunctionCall(e.Origin, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
         var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-        // If this let-such-that occurs in the specification of a function, the such-that constraint may
-        // contain a self-call to that function. Without the self-call allowance (cco), the bare "f#canCall"
-        // emitted here would trigger f's consequence axiom (assuming f's own postcondition), the same
-        // circularity the cco threading avoids for the let body and the exact-let case. This axiom is
-        // generated once, while CurrentDeclaration is the enclosing function, so we build the allowance
-        // here. The allowance compares the self-call's arguments to f's formals; those formals are
-        // represented in this axiom by the same substMap/receiverReplacement that translate the constraint
-        // (only the constraint's free variables are in scope), so we hand them to MakeAllowance via
-        // CanCallOptions. A trivial self-call f(formals) then reduces to a well-scoped tautology, while a
-        // non-trivial call keeps the bare canCall.
+        // A self-call in the constraint would emit a bare f#canCall here, triggering f's consequence axiom
+        // when checking f's own spec (the same circularity cco avoids elsewhere). This axiom is generated
+        // once, while CurrentDeclaration is the enclosing function, so build the allowance now; pass the
+        // substMap/receiverReplacement that map f's formals and "this" into this axiom's scope (see
+        // MakeAllowance / CanCallOptions.AllowanceSubstMap).
         var cco = BoogieGenerator.CurrentDeclaration is Function enclosingFunction
           ? new CanCallOptions(true, enclosingFunction, allowanceSubstMap: substMap, allowanceReceiver: receiverReplacement)
           : null;
