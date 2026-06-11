@@ -46,7 +46,7 @@ namespace Microsoft.Dafny {
             canCallRHS = BplAnd(canCallRHS, CanCallAssumption(rhs, cco));
           }
 
-          var bodyCanCall = CanCallAssumption(expr.Body);
+          var bodyCanCall = CanCallAssumption(expr.Body, cco);
           // We'd like to compute the free variables of "bodyCanCall". It would be nice to use the Boogie
           // routine Bpl.Expr.ComputeFreeVariables for this purpose. However, calling it requires the Boogie
           // expression to be resolved. Instead, we do the cheesy thing of computing the set of names of
@@ -274,7 +274,15 @@ namespace Microsoft.Dafny {
 
         var canCall = FunctionCall(e.Origin, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
         var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-        var canCallBody = etranCC.CanCallAssumption(p);
+        // A self-call in the constraint would emit a bare f#canCall here, triggering f's consequence axiom
+        // when checking f's own spec (the same circularity cco avoids elsewhere). This axiom is generated
+        // once, while CurrentDeclaration is the enclosing function, so build the allowance now; pass the
+        // substMap/receiverReplacement that map f's formals and "this" into this axiom's scope (see
+        // MakeAllowance / CanCallOptions.AllowanceSubstMap).
+        var cco = BoogieGenerator.CurrentDeclaration is Function enclosingFunction
+          ? new CanCallOptions(true, enclosingFunction, allowanceSubstMap: substMap, allowanceReceiver: receiverReplacement)
+          : null;
+        var canCallBody = etranCC.CanCallAssumption(p, cco);
         Bpl.Expr ax = BplImp(canCall, BplAnd(antecedent, BplAnd(canCallBody, etranCC.TrExpr(p))));
         ax = BplForall(gg, tr, ax);
         BoogieGenerator.AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.Origin, ax));
