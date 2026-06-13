@@ -77,26 +77,49 @@ class SplitPartTriggerWriter {
     //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
     // after:
     //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
-    // Collect variables bound by match cases inside the quantifier body.
-    // that should not be extracted into the quantifier range.
+    // Collect variables bound by a binder inside the quantifier body. Such variables must not be
+    // extracted into the quantifier range: the binder's body is desugared/scoped during Boogie generation
+    // (e.g. a match-case variable is replaced by a destructor, a let/comprehension variable is scoped to
+    // its own construct), so an extracted range constraint that mentions the variable would reference an
+    // undeclared identifier in Boogie. This applies to every binder form, not just match, and to binders
+    // appearing in either the quantifier's range or its term (looping subexpressions are gathered from both).
     var innerBoundVars = new HashSet<IVariable>();
-    Comprehension.Term.Visit(node => {
-      var e = node as Expression; if (e == null) return true;
-      if (e is MatchExpr me) {
-        foreach (var mc in me.Cases) {
-          foreach (var arg in mc.Arguments) {
-            innerBoundVars.Add(arg);
-          }
+    void CollectInnerBoundVars(Expression start) {
+      start.Visit(node => {
+        switch (node) {
+          case MatchExpr me:
+            foreach (var mc in me.Cases) {
+              foreach (var arg in mc.Arguments) {
+                innerBoundVars.Add(arg);
+              }
+            }
+            break;
+          case NestedMatchExpr nme:
+            foreach (var mc in nme.Cases) {
+              foreach (var bv in mc.Pat.DescendantsAndSelf.OfType<IdPattern>().Where(p => p.BoundVar != null)) {
+                innerBoundVars.Add(bv.BoundVar);
+              }
+            }
+            break;
+          case LetExpr le:
+            foreach (var bv in le.BoundVars) {
+              innerBoundVars.Add(bv);
+            }
+            break;
+          case ComprehensionExpr ce:
+            // set/map/seq comprehensions, lambdas, and nested quantifiers
+            foreach (var bv in ce.BoundVars) {
+              innerBoundVars.Add(bv);
+            }
+            break;
         }
-      } else if (e is NestedMatchExpr nme) {
-        foreach (var mc in nme.Cases) {
-          foreach (var bv in mc.Pat.DescendantsAndSelf.OfType<IdPattern>().Where(p => p.BoundVar != null)) {
-            innerBoundVars.Add(bv.BoundVar);
-          }
-        }
-      }
-      return true;
-    });
+        return true;
+      });
+    }
+    if (Comprehension.Range != null) {
+      CollectInnerBoundVars(Comprehension.Range);
+    }
+    CollectInnerBoundVars(Comprehension.Term);
 
     var substMap = new List<Tuple<Expression, IdentifierExpr>>();
     foreach (var triggerMatch in loopingMatches) {
@@ -104,12 +127,13 @@ class SplitPartTriggerWriter {
       if (triggersCollector.IsPotentialTriggerCandidate(e) && triggersCollector.IsTriggerKiller(e)) {
         foreach (var sub in e.SubExpressions) {
           if (triggersCollector.IsTriggerKiller(sub) && (!triggersCollector.IsPotentialTriggerCandidate(sub))) {
-            // Don't extract subexpressions that reference match-bound variables.
-            // These get substituted away by DesugarMatchExpr during Boogie
-            // generation, but the extracted range constraint would still
-            // reference the original variable, causing undeclared identifiers.
-            if (sub.DescendantsAndSelf.OfType<IdentifierExpr>().Any(
-                  ie => ie.Var != null && innerBoundVars.Contains(ie.Var))) {
+            // Don't extract subexpressions that have a free reference to a variable bound by a binder
+            // inside the body (match cases, let/such-that, comprehensions, lambdas). These get
+            // substituted/scoped away during Boogie generation, but the extracted range constraint
+            // would still reference the original variable, causing undeclared identifiers. We test
+            // the *free* variables of the subexpression so that a self-contained binder (e.g. a whole
+            // lambda whose parameter never escapes) remains extractable.
+            if (FreeVariablesUtil.ComputeFreeVariables(reporter.Options, sub).Any(innerBoundVars.Contains)) {
               continue;
             }
             var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
