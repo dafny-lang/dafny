@@ -87,9 +87,9 @@ namespace Microsoft.Dafny {
             wr.Write(s is YieldStmt ? "yield" : "return");
             if (s.Rhss != null) {
               var sep = " ";
-              foreach (var rhs in s.Rhss) {
+              for (var i = 0; i < s.Rhss.Count; i++) {
                 wr.Write(sep);
-                PrintRhs(rhs);
+                PrintRhs(s.Rhss[i], i == s.Rhss.Count - 1);
                 sep = ", ";
               }
             }
@@ -601,9 +601,9 @@ namespace Microsoft.Dafny {
           wr.Write(":= ");
         }
         var sep = "";
-        foreach (var rhs in update.Rhss) {
+        for (var i = 0; i < update.Rhss.Count; i++) {
           wr.Write(sep);
-          PrintRhs(rhs);
+          PrintRhs(update.Rhss[i], i == update.Rhss.Count - 1);
           sep = ", ";
         }
       } else if (s is AssignSuchThatStmt) {
@@ -764,10 +764,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintRhs(AssignmentRhs rhs) {
+    void PrintRhs(AssignmentRhs rhs, bool isRightmost = true) {
       Contract.Requires(rhs != null);
       if (rhs is ExprRhs) {
-        PrintExpression(((ExprRhs)rhs).Expr, true);
+        // A non-last right-hand side must be parenthesized when needed (isRightmost=false), since the
+        // following comma could otherwise be absorbed (e.g. into a set comprehension's bound-variable list).
+        PrintExpression(((ExprRhs)rhs).Expr, isRightmost, false);
       } else if (rhs is HavocRhs) {
         wr.Write("*");
       } else if (rhs is TypeRhs) {
@@ -798,7 +800,7 @@ namespace Microsoft.Dafny {
             wr.Write(")");
           } else if (allocateArray.InitDisplay != null) {
             wr.Write(" [");
-            PrintExpressionList(allocateArray.InitDisplay, false);
+            PrintExpressionList(allocateArray.InitDisplay, false, parensAroundArgList: false);
             wr.Write("]");
           }
         } else if (t is AllocateClass allocateClass) {
