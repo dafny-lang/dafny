@@ -1,10 +1,10 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+// RUN: %testDafnyForEachResolver "%s"
 
 
-// It would be great if Dafny was able to verify the following statements;
-// otherwise, trigger splitting prevents `exists b :: b || not b` from verifying
+// Z3 4.16.0 can now verify these statements (previously a wishlist item).
+// Trigger splitting no longer prevents `exists b :: b || not b` from verifying.
 
 method M() {
-  assert exists b : bool {:nowarn} :: b; // WISH
-  assert exists b : bool {:nowarn} :: !b; // WISH
+  assert exists b : bool {:nowarn} :: b;
+  assert exists b : bool {:nowarn} :: !b;
 }

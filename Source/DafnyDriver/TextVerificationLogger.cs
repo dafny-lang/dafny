@@ -53,9 +53,17 @@ public class TextVerificationLogger : IVerificationResultFormatLogger {
       textWriter.WriteLine($"    Resource count: {vcResult.ResourceCount}");
       textWriter.WriteLine("");
       textWriter.WriteLine("    Assertions:");
+
       foreach (var cmd in vcResult.Asserts) {
-        textWriter.WriteLine(
-          $"      {cmd.tok.filename}({cmd.tok.line},{cmd.tok.col}): {cmd.Description.SuccessDescription}");
+        var dafnyOrigin = BoogieGenerator.ToDafnyToken(cmd.tok);
+        var range = dafnyOrigin?.EntireRangeWithFallback;
+        if (range?.StartToken != null) {
+          textWriter.WriteLine(
+            $"      {range.StartToken.filename}({range.StartToken.line},{range.StartToken.col})-({range.EndToken.line},{range.EndToken.col}): {cmd.Description.SuccessDescription}");
+        } else {
+          textWriter.WriteLine(
+            $"      {cmd.tok.filename}({cmd.tok.line},{cmd.tok.col}): {cmd.Description.SuccessDescription}");
+        }
       }
 
       if (vcResult.CoveredElements.Any() && vcResult.Outcome == SolverOutcome.Valid) {

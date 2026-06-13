@@ -67,6 +67,7 @@ method test7(a: array<int>, i: int, j: int)
    assert a[..] == s;
    a[i], a[j] := a[j], a[i];
    assert a[..] == a[..i] + [a[i]] + a[i+1 .. j] + [a[j]] + a[j+1..];
+   assert {:split_here} true;
    assert s == a[..i] + [old(a[i])] + a[i+1 .. j] + [old(a[j])] + a[j+1..];
 }
 method test8(a: array<int>, i: int, j: int)

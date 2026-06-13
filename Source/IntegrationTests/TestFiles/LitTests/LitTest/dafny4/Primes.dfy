@@ -104,7 +104,7 @@ lemma ProductPlusOneIsPrime(s: set<int>, q: int)
 // To get this proof through, it is necessary to know that if x!=y and y==Pick...(s), then
 // also y==Pick...(s - {x}).  It is for this reason that we use PickLargest, instead of
 // picking an arbitrary element from s.
-lemma RemoveFactor(x: int, s: set<int>)
+lemma {:vcs_split_on_every_assert} RemoveFactor(x: int, s: set<int>)
   requires x in s
   ensures product(s) == x * product(s - {x})
 {

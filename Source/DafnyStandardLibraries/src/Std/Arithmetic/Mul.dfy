@@ -145,13 +145,16 @@ module Std.Arithmetic.Mul {
 
   /* the product of two positive integers is always greater than the individual value of either 
   multiplied integer */
+  @ResourceLimit("5e7")
   lemma LemmaMulOrderingAuto()
     ensures forall x: int, y: int {:trigger x * y} :: (0 != x && 0 != y && x * y >= 0) ==> x * y >= x && x * y >= y
   {
     forall x: int, y: int | 0 != x && 0 != y && x * y >= 0
       ensures x * y >= x && x * y >= y
     {
-      LemmaMulOrdering(x, y);
+      var p := x * y;
+      assert p >= 0;
+      MulINL.LemmaMulOrdering(x, y);
     }
   }
 

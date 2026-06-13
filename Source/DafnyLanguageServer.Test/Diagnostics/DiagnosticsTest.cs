@@ -374,7 +374,7 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
       await GetNextDiagnostics(documentItem); // Migrated verification diagnostics.
       var diagnostics2 = await GetNextDiagnostics(documentItem);
-      Assert.Equal(3, diagnostics2.Length);
+      Assert.Equal(5, diagnostics2.Length);
       Assert.Equal(MessageSource.Parser.ToString(), diagnostics2[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics2[0].Severity);
       ApplyChange(ref documentItem, ((7, 20), (7, 25)), "");
