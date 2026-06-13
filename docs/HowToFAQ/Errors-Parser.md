@@ -226,7 +226,7 @@ static predicate p() { true }
 ```
 
 All names declared in a module (outside a class-like entity) are implicitly `static`.
-Dafny does not allow them to be explictly, redundantly, declared `static`.
+Dafny does not allow them to be explicitly, redundantly, declared `static`.
 
 ## **Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here** {#p_module_level_method_always_static}
 
@@ -236,7 +236,7 @@ static method m() {}
 ```
 
 All names declared in a module (outside a class-like entity) are implicitly `static`.
-Dafny does not allow them to be explictly, redundantly, declared `static`.
+Dafny does not allow them to be explicitly, redundantly, declared `static`.
 
 ## **Error: in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement** {#p_bad_datatype_refinement}
 
@@ -277,7 +277,7 @@ static const i := 9
 ```
 
 All names declared in a module (outside a class-like entity) are implicitly `static`.
-Dafny does not allow them to be explictly, redundantly, declared `static`.
+Dafny does not allow them to be explicitly, redundantly, declared `static`.
 
 ## **Error: expected an identifier after 'const' and any attributes** {#p_const_decl_missing_identifier}
 

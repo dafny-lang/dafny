@@ -1424,7 +1424,7 @@ module Std.Producers {
       TMSucc(source.DecreasesMetric())
     }
 
-    @ResourceLimit("1e7")
+    @ResourceLimit("5e7")
     method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads Reads(t)
@@ -2019,7 +2019,7 @@ module Std.Producers {
       TMTuple(base, TMNat(0), original.DecreasesMetric())
     }
 
-    @ResourceLimit("1e7")
+    @ResourceLimit("5e7")
     method Invoke(t: ()) returns (result: Option<Producer<O>>)
       requires Requires(t)
       reads Reads(t)

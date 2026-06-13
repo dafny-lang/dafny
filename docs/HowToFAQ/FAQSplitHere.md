@@ -27,7 +27,7 @@ both of which are applied to assert statements.
 In brief, `{:focus}` says to focus on the block in which the attribute appears. Everything in that block is one assertion batch and everything
 outside that block is another assertion batch. It does not matter where in the block the `{:focus}` attribute appears. If there are multiple
 `{:focus}` attributes, each block containing one (or more) is one assertion batch, and everything outside of blocks containing `{:focus}` attributes
-is a final assertion batch. This attibute is usually used to break out if-alternatives or loop-bodies into separate verification attempts.
+is a final assertion batch. This attribute is usually used to break out if-alternatives or loop-bodies into separate verification attempts.
 
 `{:split_here}` creates an assertion batch of all assertions strictly before the attributed statement and another of the assertions at or after
 the attributed statement. This attribute is usually used to break up long stretches of straight-line code.

@@ -622,7 +622,7 @@ module Std.Collections.Seq {
     else FlattenReverse(DropLast(xs)) + Last(xs)
   }
 
-  /* Flattening sequences of sequences in reverse order is distributive over concatentation.
+  /* Flattening sequences of sequences in reverse order is distributive over concatenation.
      That is, concatenating the flattening of two sequences of sequences in reverse
      order is the same as flattening the concatenation of two sequences of sequences
      in reverse order. */
@@ -1044,6 +1044,7 @@ module Std.Collections.Seq {
 
   // Helper function for MergeSortBy
   @TailRecursion
+  @ResourceLimit("5e7")
   function MergeSortedWith<T(!new)>(left: seq<T>, right: seq<T>, lessThanOrEq: (T, T) -> bool) : (result :seq<T>)
     requires SortedBy(lessThanOrEq, left)
     requires SortedBy(lessThanOrEq, right)
@@ -1076,6 +1077,7 @@ module Std.Collections.Seq {
   {}
 
   /* Proves that any two sequences that are sorted by a total order and that have the same elements are equal. */
+  @ResourceLimit("5e7")
   lemma SortedUnique<T(!new)>(xs: seq<T>, ys: seq<T>, R: (T, T) -> bool)
     requires SortedBy(R, xs)
     requires SortedBy(R, ys)

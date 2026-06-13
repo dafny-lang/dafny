@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.Triggers {
   class QuantifierSplitter : BottomUpVisitor {
     /// This cache was introduced because some statements (notably calc) return the same SubExpression multiple times.
     /// This ended up causing an inconsistent situation when the calc statement's subexpressions contained the same quantifier
-    /// twice: on the first pass that quantifier got its SplitQuantifiers generated, and on the the second pass these
+    /// twice: on the first pass that quantifier got its SplitQuantifiers generated, and on the second pass these
     /// split quantifiers got re-split, creating a situation where the direct children of a split quantifier were
     /// also split quantifiers.
     private readonly Dictionary<QuantifierExpr, List<Expression>> splits = new();

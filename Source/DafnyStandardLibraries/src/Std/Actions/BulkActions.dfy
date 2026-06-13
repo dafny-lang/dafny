@@ -187,6 +187,7 @@ module Std.BulkActions {
     }
 
     @IsolateAssertions
+    @ResourceLimit("5e7")
     method Read() returns (s: seq<T>)
       requires Valid()
       reads this, Repr

@@ -4,7 +4,7 @@
 /// This file tests inheritance of `:extern` annotation in traits.
 
 /// First, we check that `:extern` is correctly inherited by child classes, and
-/// can be overriden:
+/// can be overridden:
 
 module {:extern "M"} M {
   trait {:extern} T1 {

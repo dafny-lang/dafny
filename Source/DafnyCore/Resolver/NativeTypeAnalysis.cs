@@ -213,7 +213,7 @@ class NativeTypeAnalysis {
             lowBound = lo; // we found a more restrictive lower bound
           }
           if (hi != null && (highBound == null || hi < highBound)) {
-            highBound = hi; // we found a more restrictive lower bound
+            highBound = hi; // we found a more restrictive upper bound
           }
         }
 

@@ -3581,7 +3581,7 @@ namespace Microsoft.Dafny.Compilers {
           if (AsNativeType(resultType) != null) {
             if (AsNativeType(resultType).LowerBound == BigInteger.Zero) {
               // Go is a PITA about subtracting unsigned integers---it complains
-              // if they're constant and the substraction underflows.  Hiding
+              // if they're constant and the subtraction underflows.  Hiding
               // one of the arguments behind a thunk is kind of hideous but
               // it does prevent constant folding.
               opString = string.Format("- (func () {0} {{ return ", GetNativeTypeName(AsNativeType(resultType)));

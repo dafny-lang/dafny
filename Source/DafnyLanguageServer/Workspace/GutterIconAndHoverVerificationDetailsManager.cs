@@ -276,7 +276,7 @@ Send notifications about the verification status of each line in the program.
           };
         } else {
           targetMethodNode.Stop();
-          // Later, will be overriden by individual outcomes
+          // Later, will be overridden by individual outcomes
           targetMethodNode.StatusVerification = finalOutcome;
         }
 

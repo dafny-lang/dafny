@@ -141,7 +141,7 @@ namespace Microsoft.Dafny {
     /// If "allowDecisions" is "false", then no decisions, only determined inferences, are made; this mode is
     /// appropriate for the partial solving that's done before a member lookup.
     /// Returns "true" if anything changed (that is, if any of the constraints in the type-inference state
-    /// caused a change some pre-type proxy).
+    /// caused a change to some pre-type proxy).
     /// </summary>
     public void PartiallySolveTypeConstraints(string printableContext = null, bool makeDecisions = false) {
       if (printableContext != null) {
@@ -464,7 +464,7 @@ namespace Microsoft.Dafny {
       } else if (decl is TypeParameter { TypeBounds: { Count: > 0 } } typeParameter) {
         return typeParameter.TypeBoundHeads.Max(Height) + 1;
       } else {
-        // Other other declarations have height 1.
+        // Other declarations have height 1.
         // Note, an ostensibly parent-less reference type still has the implicit "object" as a parent trait, but
         // that still makes its height 1.
         return 1;

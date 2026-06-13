@@ -22,7 +22,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   ///   * a string for a string literal
   ///     This case always uses the subclass StringLiteralExpr.
   ///     Note, the string is stored with all escapes as characters.  For example, the input string "hello\n" is
-  ///     stored in a LiteralExpr has being 7 characters long, whereas the Dafny (and C#) length of this string is 6.
+  ///     stored in a LiteralExpr as being 7 characters long, whereas the Dafny (and C#) length of this string is 6.
   ///     This simplifies printing of the string, both when pretty printed as a Dafny expression and when being
   ///     compiled into C# code.  The parser checks the validity of the escape sequences and the verifier deals
   ///     with turning them into single characters.

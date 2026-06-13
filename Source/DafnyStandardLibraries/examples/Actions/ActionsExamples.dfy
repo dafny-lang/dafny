@@ -292,6 +292,7 @@ module ActionsExamples {
   }
 
   @IsolateAssertions
+  @ResourceLimit("5e6")
   method {:test} ExamplePipeline() {
     var input := new SeqReader<nat>([1, 2, 3, 4, 5]);
     var splitter := new Splitter();

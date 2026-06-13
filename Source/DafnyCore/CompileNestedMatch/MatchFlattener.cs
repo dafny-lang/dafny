@@ -438,7 +438,7 @@ public class MatchFlattener : IRewriter {
    * Implementation of case 3** (some of the head patterns are constants) of pattern-match compilation
    */
   private CaseBody CompileHeadsContainingLiteralPattern(MatchCompilationState mti, MatchingContext context, Cons<Expression> matchees, List<PatternPath> paths) {
-    // Decrease the count for each path (increases back for each occurence later on)
+    // Decrease the count for each path (increases back for each occurrence later on)
     foreach (var path in paths) {
       mti.UpdateCaseCopyCount(path.CaseId, -1);
     }

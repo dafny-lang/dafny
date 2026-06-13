@@ -404,7 +404,7 @@ public partial class BoogieGenerator {
       } else if (rhs is HavocRhs && lhsVar != null && GetDefiniteAssignmentTracker(lhsVar) != null) {
         // This "where" clause expresses that the new variable has a value of the given type only if
         // the variable has already been definitely assigned. (If it has not already been assigned,
-        // then the variable will get a new value, but Dafny's definite-assginment rules prevent that
+        // then the variable will get a new value, but Dafny's definite-assignment rules prevent that
         // value from being used, so it's appropriate to use effectively-"true" as the "where" clause
         // in that case.
         wh = BplImp(GetDefiniteAssignmentTracker(lhsVar),

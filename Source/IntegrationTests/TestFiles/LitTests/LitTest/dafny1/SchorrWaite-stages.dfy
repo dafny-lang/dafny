@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation --verification-time-limit=90
+// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation --verification-time-limit=90 --cores:1
 
 
 // Schorr-Waite algorithms, written and verified in Dafny.
@@ -33,7 +33,7 @@ abstract module M0 {
     case Extend(prefix, n) => n in S && sink in n.children && ReachableVia(source, prefix, n, S)
   }
 
-  method SchorrWaite(root: Node, ghost S: set<Node>)
+  method {:vcs_split_on_every_assert} SchorrWaite(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
     requires forall n :: n in S ==>
@@ -113,11 +113,11 @@ abstract module M0 {
         t, p, p.children := p, p.children[p.childrenVisited], p.children[p.childrenVisited := t];
         stackNodes := stackNodes[..|stackNodes| - 1];
         t.childrenVisited := t.childrenVisited + 1;
-
+        assert {:split_here} true;
       } else if t.children[t.childrenVisited] == null || t.children[t.childrenVisited].marked {
         // just advance to next child
         t.childrenVisited := t.childrenVisited + 1;
-
+        assert {:split_here} true;
       } else {
         // push
         stackNodes := stackNodes + [t];
@@ -128,6 +128,7 @@ abstract module M0 {
         // some more properties about the loop.  Therefore, we just assume the property here and
         // prove it in a separate refinement.
         assume t !in stackNodes;
+        assert {:split_here} true;
       }
     }
     // From the loop invariant, it now follows that all children pointers have been restored,

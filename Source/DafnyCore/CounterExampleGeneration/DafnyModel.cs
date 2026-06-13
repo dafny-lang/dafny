@@ -638,7 +638,7 @@ namespace Microsoft.Dafny {
               foreach (var fieldName in GetFieldNames(tpl.Args[1])) {
                 if (fieldName != "alloc") {
                   var field = PartialValue.Get(UnboxNotNull(tpl.Result), state);
-                  // make sure the field in quetion is not an array index
+                  // make sure the field in question is not an array index
                   if (fieldName.Contains("#")) {
                     continue;
                   }
