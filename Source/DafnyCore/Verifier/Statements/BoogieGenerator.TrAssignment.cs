@@ -475,22 +475,25 @@ public partial class BoogieGenerator {
       CheckSubrange(tok, nw, allocateClass.Type, rhsTypeConstraint, null, builder);
       return HandleGivenLhs(tok, bGivenLhs, lhsType, builder, stmt, bLhs, nw, allocateClass);
     } else if (rhs is AllocateArray allocateArray) {
+      // Reads checks apply to the allocation's sub-expressions exactly when the enclosing method has an
+      // active reads frame (i.e. under --reads-clauses-on-methods); otherwise etran.readsFrame is null.
+      var arrayWfOptions = new WFOptions(null, etran.readsFrame != null);
       int j = 0;
       foreach (Expression dim in allocateArray.ArrayDimensions) {
-        CheckWellformed(dim, new WFOptions(), locals, builder, etran);
+        CheckWellformed(dim, arrayWfOptions, locals, builder, etran);
         var desc = new NonNegative(allocateArray.ArrayDimensions.Count == 1
           ? "array size" : $"array size (dimension {j})", dim);
         builder.Add(Assert(GetToken(dim), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc, builder.Context));
         j++;
       }
       if (allocateArray.ElementInit != null) {
-        CheckWellformed(allocateArray.ElementInit, new WFOptions(), locals, builder, etran);
+        CheckWellformed(allocateArray.ElementInit, arrayWfOptions, locals, builder, etran);
       } else if (allocateArray.InitDisplay != null) {
         var dim = allocateArray.ArrayDimensions[0];
         var desc = new ArrayInitSizeValid(allocateArray, dim);
         builder.Add(Assert(GetToken(dim), Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(allocateArray.InitDisplay.Count)), desc, builder.Context));
         foreach (var v in allocateArray.InitDisplay) {
-          CheckWellformed(v, new WFOptions(), locals, builder, etran);
+          CheckWellformed(v, arrayWfOptions, locals, builder, etran);
         }
       } else if (options.DefiniteAssignmentLevel == 0) {
         // cool
@@ -517,7 +520,7 @@ public partial class BoogieGenerator {
         i++;
       }
       if (allocateArray.ElementInit != null) {
-        CheckElementInit(tok, true, allocateArray.ArrayDimensions, allocateArray.ElementType, allocateArray.ElementInit, nw, builder, etran, new WFOptions(null, etran.readsFrame != null));
+        CheckElementInit(tok, true, allocateArray.ArrayDimensions, allocateArray.ElementType, allocateArray.ElementInit, nw, builder, etran, arrayWfOptions);
       } else if (allocateArray.InitDisplay != null) {
         int ii = 0;
         foreach (var v in allocateArray.InitDisplay) {
