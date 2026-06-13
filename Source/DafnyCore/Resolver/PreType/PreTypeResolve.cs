@@ -1648,20 +1648,7 @@ namespace Microsoft.Dafny {
           if (ModuleResolver.NonReferenceTraitFrameMessageOrNull(dp.Decl, use.ClauseDescription()) is { } traitHint) {
             ReportError(fe.E.Origin, traitHint);
           } else {
-            var expressionMustDenoteObject = "expression must denote an object";
-            var fieldLocation = ModuleResolver.SingleFieldLocation;
-            var collection = ModuleResolver.CollectionOfFieldLocations;
-            var instead = "(instead got {0})";
-            var errorMsgFormat = use switch {
-              FrameExpressionUse.Reads =>
-                $"a reads-clause {expressionMustDenoteObject}, {fieldLocation}, {collection}, or a function to {collection} {instead}",
-              FrameExpressionUse.Modifies =>
-                $"a modifies-clause {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
-              FrameExpressionUse.Unchanged =>
-                $"an unchanged {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
-              _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
-            };
-            ReportError(fe.E.Origin, errorMsgFormat, fe.E.PreType);
+            ReportError(fe.E.Origin, ModuleResolver.GenericFrameMessageFormat(use), fe.E.PreType);
           }
         }
 
