@@ -1,1 +1,1 @@
-`--log-format text` no longer throws `OverflowException` on programs with very large resource counts
+Verification resource counts no longer overflow (throwing an `OverflowException`, or reporting a wrong and possibly negative total) when a program's total resource use exceeds about 2.1 billion
