@@ -3213,6 +3213,21 @@ namespace Microsoft.Dafny {
       return null;
     }
 
+    /// <summary>
+    /// The generic diagnostic (a format string with a single {0} placeholder for the offending type) emitted
+    /// when a frame expression's argument has an unsupported type. Shared between the legacy and PreType
+    /// resolvers so both produce identical text.
+    /// </summary>
+    public static string GenericFrameMessageFormat(FrameExpressionUse use) => use switch {
+      FrameExpressionUse.Reads =>
+        $"a reads-clause expression must denote an object, {SingleFieldLocation}, {CollectionOfFieldLocations}, or a function to {CollectionOfFieldLocations} (instead got {{0}})",
+      FrameExpressionUse.Modifies =>
+        $"a modifies-clause expression must denote an object, {SingleFieldLocation}, or {CollectionOfFieldLocations} (instead got {{0}})",
+      FrameExpressionUse.Unchanged =>
+        $"an unchanged expression must denote an object, {SingleFieldLocation}, or {CollectionOfFieldLocations} (instead got {{0}})",
+      _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
+    };
+
     public void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ResolutionContext resolutionContext) {
       Contract.Requires(fe != null);
       Contract.Requires(resolutionContext != null);
@@ -3221,15 +3236,7 @@ namespace Microsoft.Dafny {
       Type t = fe.E.Type;
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
       var eventualRefType = new InferredTypeProxy();
-      var errMsgFormat = use switch {
-        FrameExpressionUse.Reads =>
-          $"a reads-clause expression must denote an object, {SingleFieldLocation}, {CollectionOfFieldLocations}, or a function to {CollectionOfFieldLocations} (instead got {{0}})",
-        FrameExpressionUse.Modifies =>
-          $"a modifies-clause expression must denote an object, {SingleFieldLocation}, or {CollectionOfFieldLocations} (instead got {{0}})",
-        FrameExpressionUse.Unchanged =>
-          $"an unchanged expression must denote an object, {SingleFieldLocation}, or {CollectionOfFieldLocations} (instead got {{0}})",
-        _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
-      };
+      var errMsgFormat = GenericFrameMessageFormat(use);
       var types = new Type[] { t, eventualRefType };
       AllXConstraints.Add(new XConstraintFrame(fe.E.Origin, use, t, eventualRefType,
         new TypeConstraint.ErrorMsgWithToken(fe.E.Origin, errMsgFormat, types)));
