@@ -1,1 +1,1 @@
-A set comprehension appearing as a non-last function argument is now correctly parenthesized when serialized to a `.doo` file
+A set comprehension (or other expression that needs parentheses) appearing as a non-last element of a comma-separated list — such as a function or datatype argument, a set/sequence/multiset display, a map value, a `decreases`/`reads`/`modifies` clause, or an assignment or return right-hand side — is now correctly parenthesized when printed, so the output (for example a serialized `.doo` file) parses back correctly
