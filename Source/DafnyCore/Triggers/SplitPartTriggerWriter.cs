@@ -77,18 +77,13 @@ class SplitPartTriggerWriter {
     //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
     // after:
     //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
-    // Collect variables bound by a binder inside the quantifier body whose binding does not survive
-    // into Boogie as an enclosing quantifier. Such variables must not be extracted into the quantifier
-    // range: the matching-loop rewrite conjoins the extracted equality (and its fresh bound variable)
-    // onto the nearest enclosing forall/exists (see ExprSubstituter), but a match-case, let/such-that,
-    // comprehension, or lambda variable is desugared/scoped away during Boogie generation, so the
-    // equality would reference an undeclared identifier there.
-    //
-    // Nested forall/exists bound variables are deliberately NOT collected: ExprSubstituter re-homes the
-    // equality onto the innermost enclosing quantifier, where such a variable is still in scope as a
-    // genuine Boogie quantifier binder, so extracting through them is sound (and beneficial).
-    //
-    // Binders are scanned in both the range and the term, since looping subexpressions are gathered from both.
+    // The rewrite below homes each extracted "_t == subexpr" equality on the nearest enclosing
+    // forall/exists (see ExprSubstituter). So if "subexpr" mentions a variable bound *inside* the body by
+    // a binder that doesn't survive Boogie generation as that enclosing quantifier, the equality references
+    // it out of scope -> "undeclared identifier". Collect those variables: match-case, let/such-that,
+    // set/map-comprehension, and lambda bindings (which become destructors, let-scopes, or separate Boogie
+    // constructs). Nested forall/exists vars are NOT collected -- they stay in scope at the home quantifier,
+    // so extracting through them is sound and beneficial. Scan both range and term, as either may loop.
     var innerBoundVars = new HashSet<IVariable>();
     void CollectInnerBoundVars(Expression start) {
       start.Visit(node => {
@@ -112,8 +107,7 @@ class SplitPartTriggerWriter {
               innerBoundVars.Add(bv);
             }
             break;
-          case ComprehensionExpr ce when ce is not QuantifierExpr:
-            // set/map comprehensions and lambdas (but not forall/exists)
+          case ComprehensionExpr ce when ce is not QuantifierExpr: // set/map comprehensions and lambdas
             foreach (var bv in ce.BoundVars) {
               innerBoundVars.Add(bv);
             }
@@ -133,12 +127,9 @@ class SplitPartTriggerWriter {
       if (triggersCollector.IsPotentialTriggerCandidate(e) && triggersCollector.IsTriggerKiller(e)) {
         foreach (var sub in e.SubExpressions) {
           if (triggersCollector.IsTriggerKiller(sub) && (!triggersCollector.IsPotentialTriggerCandidate(sub))) {
-            // Don't extract subexpressions that have a free reference to a variable bound by a binder
-            // inside the body (match cases, let/such-that, comprehensions, lambdas). These get
-            // substituted/scoped away during Boogie generation, but the extracted range constraint
-            // would still reference the original variable, causing undeclared identifiers. We test
-            // the *free* variables of the subexpression so that a self-contained binder (e.g. a whole
-            // lambda whose parameter never escapes) remains extractable.
+            // Skip subexpressions that would dangle (see innerBoundVars above). Test *free* variables, not
+            // all occurrences, so a self-contained binder (e.g. a lambda whose parameter never escapes)
+            // stays extractable.
             if (FreeVariablesUtil.ComputeFreeVariables(reporter.Options, sub).Any(innerBoundVars.Contains)) {
               continue;
             }
