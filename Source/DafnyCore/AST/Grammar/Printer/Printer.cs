@@ -918,11 +918,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void PrintAttributeArgs(List<Expression> args, bool isFollowedBySemicolon) {
       Contract.Requires(args != null);
       string prefix = " ";
-      foreach (var arg in args) {
+      for (var i = 0; i < args.Count; i++) {
+        var arg = args[i];
         Contract.Assert(arg != null);
         wr.Write(prefix);
         prefix = ", ";
-        PrintExpression(arg, isFollowedBySemicolon);
+        // A non-last argument must be parenthesized when needed (isRightmost=false), since the following
+        // comma could otherwise be absorbed (e.g. into a set comprehension's bound-variable list).
+        PrintExpression(arg, i == args.Count - 1, isFollowedBySemicolon);
       }
     }
 
@@ -1166,7 +1169,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write("decreases");
         });
         wr.Write(" ");
-        PrintExpressionList(decs.Expressions, true);
+        PrintExpressionList(decs.Expressions, true, parensAroundArgList: false);
       }
     }
 
