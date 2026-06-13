@@ -77,12 +77,18 @@ class SplitPartTriggerWriter {
     //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
     // after:
     //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
-    // Collect variables bound by a binder inside the quantifier body. Such variables must not be
-    // extracted into the quantifier range: the binder's body is desugared/scoped during Boogie generation
-    // (e.g. a match-case variable is replaced by a destructor, a let/comprehension variable is scoped to
-    // its own construct), so an extracted range constraint that mentions the variable would reference an
-    // undeclared identifier in Boogie. This applies to every binder form, not just match, and to binders
-    // appearing in either the quantifier's range or its term (looping subexpressions are gathered from both).
+    // Collect variables bound by a binder inside the quantifier body whose binding does not survive
+    // into Boogie as an enclosing quantifier. Such variables must not be extracted into the quantifier
+    // range: the matching-loop rewrite conjoins the extracted equality (and its fresh bound variable)
+    // onto the nearest enclosing forall/exists (see ExprSubstituter), but a match-case, let/such-that,
+    // comprehension, or lambda variable is desugared/scoped away during Boogie generation, so the
+    // equality would reference an undeclared identifier there.
+    //
+    // Nested forall/exists bound variables are deliberately NOT collected: ExprSubstituter re-homes the
+    // equality onto the innermost enclosing quantifier, where such a variable is still in scope as a
+    // genuine Boogie quantifier binder, so extracting through them is sound (and beneficial).
+    //
+    // Binders are scanned in both the range and the term, since looping subexpressions are gathered from both.
     var innerBoundVars = new HashSet<IVariable>();
     void CollectInnerBoundVars(Expression start) {
       start.Visit(node => {
@@ -106,8 +112,8 @@ class SplitPartTriggerWriter {
               innerBoundVars.Add(bv);
             }
             break;
-          case ComprehensionExpr ce:
-            // set/map/seq comprehensions, lambdas, and nested quantifiers
+          case ComprehensionExpr ce when ce is not QuantifierExpr:
+            // set/map comprehensions and lambdas (but not forall/exists)
             foreach (var bv in ce.BoundVars) {
               innerBoundVars.Add(bv);
             }
