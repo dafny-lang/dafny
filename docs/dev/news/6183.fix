@@ -1,1 +1,1 @@
-No longer crash when a `forall` expression contains a single-constructor `match` whose bound variable is used as a sequence index
+No longer crash with an "undeclared identifier" error when a quantifier's matching-loop rewrite would extract a subexpression that uses a variable bound inside the quantifier body (by a `match`, `let`/such-that, comprehension, or lambda), in either the range or the term
