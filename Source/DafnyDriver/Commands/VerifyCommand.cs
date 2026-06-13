@@ -129,7 +129,7 @@ public static class VerifyCommand {
     await WriteTrailer(cliCompilation, statistics);
     var performanceStatisticsDivisor = cliCompilation.Options.Get(PerformanceStatisticsOption);
     if (performanceStatisticsDivisor != 0) {
-      int Round(int number) {
+      long Round(long number) {
         var numberForUpRounding = number + performanceStatisticsDivisor / 2;
         return (numberForUpRounding / performanceStatisticsDivisor) * performanceStatisticsDivisor;
       }
