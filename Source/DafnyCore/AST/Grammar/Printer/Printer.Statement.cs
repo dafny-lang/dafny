@@ -767,8 +767,7 @@ namespace Microsoft.Dafny {
     void PrintRhs(AssignmentRhs rhs, bool isRightmost = true) {
       Contract.Requires(rhs != null);
       if (rhs is ExprRhs) {
-        // A non-last right-hand side must be parenthesized when needed (isRightmost=false), since the
-        // following comma could otherwise be absorbed (e.g. into a set comprehension's bound-variable list).
+        // Parenthesize a non-last right-hand side when needed (see Printer.PrintExpressionPairList).
         PrintExpression(((ExprRhs)rhs).Expr, isRightmost, false);
       } else if (rhs is HavocRhs) {
         wr.Write("*");

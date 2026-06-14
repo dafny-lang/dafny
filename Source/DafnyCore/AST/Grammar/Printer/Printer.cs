@@ -923,8 +923,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         Contract.Assert(arg != null);
         wr.Write(prefix);
         prefix = ", ";
-        // A non-last argument must be parenthesized when needed (isRightmost=false), since the following
-        // comma could otherwise be absorbed (e.g. into a set comprehension's bound-variable list).
+        // Parenthesize non-last arguments when needed (see PrintExpressionPairList).
         PrintExpression(arg, i == args.Count - 1, isFollowedBySemicolon);
       }
     }
