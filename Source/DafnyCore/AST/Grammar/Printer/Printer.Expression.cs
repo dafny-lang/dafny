@@ -441,8 +441,9 @@ namespace Microsoft.Dafny {
         sep = ", ";
         PrintExpression(p.A, false);
         wr.Write(" := ");
-        // A non-last value must be parenthesized when needed (isRightmost=false), since the comma that
-        // follows it could otherwise be absorbed (e.g. into a set comprehension's bound-variable list).
+        // Non-last elements are printed with isRightmost=false so they are parenthesized when needed;
+        // otherwise the following comma could be absorbed (e.g. into a set comprehension's bound-variable
+        // list), changing how the printed program reparses.
         PrintExpression(p.B, i == exprs.Count - 1, false);
       }
     }
@@ -458,7 +459,7 @@ namespace Microsoft.Dafny {
         if (fe.E is ImplicitThisExpr) {
           Contract.Assert(fe.FieldName != null);
         } else {
-          // A non-last frame expression must be parenthesized when needed (isRightmost=false); see above.
+          // Parenthesize non-last elements when needed (see PrintExpressionPairList).
           PrintExpression(fe.E, i == fexprs.Count - 1, false);
         }
         if (fe.FieldName != null) {
@@ -749,8 +750,7 @@ namespace Microsoft.Dafny {
         for (var updateIndex = 0; updateIndex < e.Updates.Count; updateIndex++) {
           var update = e.Updates[updateIndex];
           wr.Write("{0}{1} := ", sep, update.Item2);
-          // A non-last update value must be parenthesized when needed (isRightmost=false), since the
-          // following comma could otherwise be absorbed (e.g. into a set comprehension's bound-variable list).
+          // Parenthesize non-last values when needed (see PrintExpressionPairList).
           PrintExpression(update.Item3, updateIndex == e.Updates.Count - 1, false);
           sep = ", ";
         }
