@@ -70,7 +70,8 @@ public class DafnyProjectTest {
         // Case-insensitive OS/filesystem: the include still resolves the (single) file.
         Assert.NotEmpty(matched);
       }
-    } finally {
+    }
+    finally {
       Directory.Delete(directory, true);
     }
   }
