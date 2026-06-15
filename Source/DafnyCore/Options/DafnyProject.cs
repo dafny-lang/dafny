@@ -189,9 +189,11 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   /// <summary>
   /// Path comparison based on the operating system's default case-sensitivity (case-insensitive on Windows
-  /// and macOS, case-sensitive elsewhere), mirroring .NET's own path APIs. This is an OS-level heuristic, not
-  /// a per-filesystem probe, so it can be wrong on atypical volumes such as a case-sensitive volume on macOS
-  /// or a case-insensitive mount on Linux.
+  /// and macOS, case-sensitive elsewhere). This reconstructs .NET's own path-comparison predicate
+  /// (System.IO.PathInternal.IsCaseSensitive), which is internal and has no public equivalent; neither does
+  /// the globbing Matcher offer a platform-aware constructor. It is an OS-level heuristic, not a per-filesystem
+  /// probe, so it can be wrong on atypical volumes such as a case-sensitive volume on macOS or a
+  /// case-insensitive mount on Linux.
   /// </summary>
   public static StringComparison FileSystemCaseComparison =>
     OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS()
