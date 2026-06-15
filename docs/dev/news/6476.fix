@@ -1,0 +1,1 @@
+On case-sensitive operating systems, a Dafny file or project include such as `file.dfy` no longer also matches differently-cased files like `File.dfy`
