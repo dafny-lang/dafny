@@ -173,12 +173,8 @@ public class DafnyProject : IEquatable<DafnyProject> {
     var excludes = Excludes;
     var fullPaths = includes.Concat(excludes).Select(p => Path.GetFullPath(p, projectRoot)).ToList();
     commonRoot = GetCommonParentDirectory(fullPaths) ?? diskRoot;
-    // Match include/exclude globs using the operating system's default path case-sensitivity, rather than
-    // the Matcher's default (which is always case-insensitive). On a case-sensitive OS this prevents an
-    // include like `file.dfy` from also matching unrelated files such as `File.dfy` (#6476); on a
-    // case-insensitive one it preserves the lenient matching users there expect. Note this keys off the OS,
-    // not the actual filesystem, so it does not cover atypical volumes (e.g. a case-sensitive volume on
-    // macOS, or a case-insensitive mount on Linux).
+    // The Matcher default is always case-insensitive, which makes an include like `file.dfy` also match
+    // `File.dfy` on a case-sensitive OS (#6476); use the OS's path case-sensitivity instead.
     var matcher = new Matcher(FileSystemCaseComparison);
     foreach (var includeGlob in includes) {
       matcher.AddInclude(Path.GetRelativePath(commonRoot, Path.GetFullPath(includeGlob, projectRoot)));
@@ -192,10 +188,10 @@ public class DafnyProject : IEquatable<DafnyProject> {
   }
 
   /// <summary>
-  /// The string comparison to use when matching source-file paths, based on the operating system's default
-  /// path case-sensitivity. This mirrors how .NET's own path APIs compare paths: case-insensitive on Windows
-  /// and macOS, case-sensitive elsewhere. It is an OS-level heuristic, not a per-filesystem probe, so it can
-  /// be wrong on atypical volumes (a case-sensitive volume on macOS, or a case-insensitive mount on Linux).
+  /// Path comparison based on the operating system's default case-sensitivity (case-insensitive on Windows
+  /// and macOS, case-sensitive elsewhere), mirroring .NET's own path APIs. This is an OS-level heuristic, not
+  /// a per-filesystem probe, so it can be wrong on atypical volumes such as a case-sensitive volume on macOS
+  /// or a case-insensitive mount on Linux.
   /// </summary>
   public static StringComparison FileSystemCaseComparison =>
     OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS()

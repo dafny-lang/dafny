@@ -35,15 +35,9 @@ public class DafnyProjectTest {
     Assert.NotEqual(first, second);
   }
 
-  // Regression test for https://github.com/dafny-lang/dafny/issues/6476: on a case-sensitive OS, an include
-  // such as `file.dfy` must not also match `File.dfy`.
-  //
-  // The strong assertion only applies when this run is on a case-sensitive OS (so the fix is in effect) AND
-  // the underlying filesystem actually distinguishes the two files (so the scenario is even constructible).
-  // On a typical Linux CI runner both hold, so the regression is genuinely exercised there; on Windows/macOS
-  // the test still runs but only checks that ordinary matching keeps working. The OS-keyed approach does not
-  // cover atypical volumes (a case-sensitive volume on macOS, or a case-insensitive mount on Linux); those
-  // are a known limitation rather than something this test pins down.
+  // Regression test for https://github.com/dafny-lang/dafny/issues/6476: an include like `file.dfy` must not
+  // also match `File.dfy`. The strict check only applies where it's both relevant and constructible -- a
+  // case-sensitive OS whose filesystem actually distinguishes the two files (e.g. a typical Linux runner).
   [Fact]
   public void IncludeMatchingDoesNotMatchOtherCasingsOnCaseSensitiveOs() {
     var directory = Path.Combine(Path.GetTempPath(), "dafny-6476-" + Guid.NewGuid().ToString("N"));
