@@ -173,7 +173,9 @@ public class DafnyProject : IEquatable<DafnyProject> {
     var excludes = Excludes;
     var fullPaths = includes.Concat(excludes).Select(p => Path.GetFullPath(p, projectRoot)).ToList();
     commonRoot = GetCommonParentDirectory(fullPaths) ?? diskRoot;
-    var matcher = new Matcher();
+    // The Matcher default is always case-insensitive, which makes an include like `file.dfy` also match
+    // `File.dfy` on a case-sensitive OS (#6476); use the OS's path case-sensitivity instead.
+    var matcher = new Matcher(FileSystemCaseComparison);
     foreach (var includeGlob in includes) {
       matcher.AddInclude(Path.GetRelativePath(commonRoot, Path.GetFullPath(includeGlob, projectRoot)));
     }
@@ -184,6 +186,19 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
     return matcher;
   }
+
+  /// <summary>
+  /// Path comparison based on the operating system's default case-sensitivity (case-insensitive on Windows
+  /// and macOS, case-sensitive elsewhere). This reconstructs .NET's own path-comparison predicate
+  /// (System.IO.PathInternal.IsCaseSensitive), which is internal and has no public equivalent; neither does
+  /// the globbing Matcher offer a platform-aware constructor. It is an OS-level heuristic, not a per-filesystem
+  /// probe, so it can be wrong on atypical volumes such as a case-sensitive volume on macOS or a
+  /// case-insensitive mount on Linux.
+  /// </summary>
+  public static StringComparison FileSystemCaseComparison =>
+    OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS()
+      ? StringComparison.OrdinalIgnoreCase
+      : StringComparison.Ordinal;
 
   string? GetCommonParentDirectory(IReadOnlyList<string> strings) {
     if (!strings.Any()) {
