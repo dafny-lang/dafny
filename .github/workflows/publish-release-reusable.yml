@@ -25,8 +25,8 @@ on:
         required: true
         type: boolean
     secrets:
-      # Required if release_nuget is true
-      nuget_api_key:
+      # nuget.org profile name (not an email) of the Trusted Publishing policy creator.
+      nuget_user:
         required: false
 
 env:
@@ -36,6 +36,9 @@ jobs:
 
   publish-release:
     runs-on: macos-14     # Put back 'ubuntu-22.04' if macos-14 fails in any way
+    permissions:
+      id-token: write   # for NuGet Trusted Publishing (NuGet/login step below)
+      contents: write   # tag push, action-gh-release, and asset cleanup below
     steps:
     - name: Print version
       run: echo ${{ inputs.name }}
@@ -91,12 +94,21 @@ jobs:
         name: nuget-packages
         path: dafny/Binaries/*.nupkg
 
+    # The nuget.org Trusted Publishing policy must name THIS file, not the caller:
+    # NuGet matches the OIDC job_workflow_ref claim (the file defining this job).
+    - name: NuGet login (OIDC -> short-lived API key)
+      if: ${{ inputs.release_nuget }}
+      uses: NuGet/login@v1
+      id: nuget-login
+      with:
+        user: ${{ secrets.nuget_user }}
+
     - name: Upload package to NuGet
       if: ${{ inputs.release_nuget }}
       # Need --skip-duplicate for cases where we release a new Dafny
       # version but the runtime hasn't changed and is still the old
       # version.
-      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ steps.nuget-login.outputs.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
 
     - name: Install pandoc - Linux
       if: runner.os == 'Linux'

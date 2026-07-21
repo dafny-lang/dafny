@@ -18,9 +18,14 @@ on:
       
 jobs:
   nightly-build:
+    # Inherited by the reusable chain (which can only reduce these); id-token is
+    # needed for the downstream NuGet Trusted Publishing login.
+    permissions:
+      id-token: write
+      contents: write
     uses: ./.github/workflows/nightly-build-reusable.yml
     with:
       ref: ${{ inputs.ref }}
       publish-prerelease: ${{ inputs.publish-prerelease }}
     secrets:
-      nuget_api_key: ${{ secrets.NUGET_API_KEY }}
+      nuget_user: ${{ secrets.NUGET_USER }}
