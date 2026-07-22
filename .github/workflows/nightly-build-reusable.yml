@@ -14,13 +14,16 @@ on:
         type: boolean
         default: false
     secrets:
-      # Required if publish-prerelease is true
-      nuget_api_key:
+      # nuget.org profile name of the Trusted Publishing policy creator.
+      nuget_user:
         required: false
 
 jobs:
   deep-integration-tests:
     if: github.repository_owner == 'dafny-lang'
+    # Drop the caller's id-token grant: only publish-release needs it.
+    permissions:
+      contents: read
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       ref: ${{ inputs.ref }}
@@ -32,6 +35,8 @@ jobs:
   determine-vars:
     if: github.repository_owner == 'dafny-lang' && inputs.publish-prerelease
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     steps:
       - name: Checkout Dafny
         uses: actions/checkout@v7
@@ -49,6 +54,11 @@ jobs:
       name: nightly-${{ env.date }}-${{ env.sha_short }}
 
   publish-release:
+    # Re-grant id-token here: this hop's permissions are inherited by the
+    # reusable workflow, which can only reduce them, not add id-token back.
+    permissions:
+      id-token: write
+      contents: write
     uses: ./.github/workflows/publish-release-reusable.yml
     needs: [deep-integration-tests, determine-vars]
     with:
@@ -60,4 +70,4 @@ jobs:
       release_notes: "This is an automatically published nightly release. This release may not be as stable as versioned releases and does not contain release notes."
       prerelease: true
     secrets:
-      nuget_api_key: ${{ secrets.nuget_api_key }}
+      nuget_user: ${{ secrets.nuget_user }}

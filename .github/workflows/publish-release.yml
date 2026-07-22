@@ -30,6 +30,11 @@ jobs:
 
   publish-release:
     needs: [deep-integration-tests, get-version]
+    # The reusable workflow inherits these; a called workflow can only reduce,
+    # never add, permissions, so id-token must be granted here for its NuGet login.
+    permissions:
+      id-token: write
+      contents: write
     uses: ./.github/workflows/publish-release-reusable.yml
     with:
       name: ${{ needs.get-version.outputs.version }}
@@ -40,4 +45,4 @@ jobs:
       # We can probably automate pulling this out of RELEASE_NOTES.md in the future
       release_notes: ""
     secrets:
-      nuget_api_key: ${{ secrets.NUGET_API_KEY }}
+      nuget_user: ${{ secrets.NUGET_USER }}
