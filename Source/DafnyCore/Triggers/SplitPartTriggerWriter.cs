@@ -77,12 +77,62 @@ class SplitPartTriggerWriter {
     //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
     // after:
     //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
+    // The rewrite below homes each extracted "_t == subexpr" equality on the nearest enclosing
+    // forall/exists (see ExprSubstituter). So if "subexpr" mentions a variable bound *inside* the body by
+    // a binder that doesn't survive Boogie generation as that enclosing quantifier, the equality references
+    // it out of scope -> "undeclared identifier". Collect those variables: match-case, let/such-that,
+    // set/map-comprehension, and lambda bindings (which become destructors, let-scopes, or separate Boogie
+    // constructs). Nested forall/exists vars are NOT collected -- they stay in scope at the home quantifier,
+    // so extracting through them is sound and beneficial. Scan both range and term, as either may loop.
+    var innerBoundVars = new HashSet<IVariable>();
+    void CollectInnerBoundVars(Expression start) {
+      start.Visit(node => {
+        switch (node) {
+          case MatchExpr me:
+            foreach (var mc in me.Cases) {
+              foreach (var arg in mc.Arguments) {
+                innerBoundVars.Add(arg);
+              }
+            }
+            break;
+          case NestedMatchExpr nme:
+            foreach (var mc in nme.Cases) {
+              foreach (var bv in mc.Pat.DescendantsAndSelf.OfType<IdPattern>().Where(p => p.BoundVar != null)) {
+                innerBoundVars.Add(bv.BoundVar);
+              }
+            }
+            break;
+          case LetExpr le:
+            foreach (var bv in le.BoundVars) {
+              innerBoundVars.Add(bv);
+            }
+            break;
+          case ComprehensionExpr ce when ce is not QuantifierExpr: // set/map comprehensions and lambdas
+            foreach (var bv in ce.BoundVars) {
+              innerBoundVars.Add(bv);
+            }
+            break;
+        }
+        return true;
+      });
+    }
+    if (Comprehension.Range != null) {
+      CollectInnerBoundVars(Comprehension.Range);
+    }
+    CollectInnerBoundVars(Comprehension.Term);
+
     var substMap = new List<Tuple<Expression, IdentifierExpr>>();
     foreach (var triggerMatch in loopingMatches) {
       var e = triggerMatch.OriginalExpr;
       if (triggersCollector.IsPotentialTriggerCandidate(e) && triggersCollector.IsTriggerKiller(e)) {
         foreach (var sub in e.SubExpressions) {
           if (triggersCollector.IsTriggerKiller(sub) && (!triggersCollector.IsPotentialTriggerCandidate(sub))) {
+            // Skip subexpressions that would dangle (see innerBoundVars above). Test *free* variables, not
+            // all occurrences, so a self-contained binder (e.g. a lambda whose parameter never escapes)
+            // stays extractable.
+            if (FreeVariablesUtil.ComputeFreeVariables(reporter.Options, sub).Any(innerBoundVars.Contains)) {
+              continue;
+            }
             var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
             if (entry == null) {
               var newBv = new BoundVar(sub.Origin, "_t#" + substMap.Count, sub.Type);
