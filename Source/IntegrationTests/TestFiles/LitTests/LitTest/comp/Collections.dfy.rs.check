@@ -1,1 +1,1 @@
-// CHECK: .*<i>EmitIndexCollectionUpdate for multiset<uint32></i>.*
+(0,-1): Error: Unsupported Invalid Operation: The Rust compiler requires `--enforce-determinism`

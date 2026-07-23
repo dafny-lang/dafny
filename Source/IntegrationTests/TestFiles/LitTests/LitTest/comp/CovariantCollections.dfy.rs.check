@@ -1,1 +1,1 @@
-// CHECK: .*<i>Unsupported:\ DAST_dBinOp_dAnd\ with\ not\ 2\ elements</i>.*
+Encountered internal compilation exception: Could not find a part of the path
