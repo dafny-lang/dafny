@@ -207,7 +207,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
     MemberNameNode = new Name(cloner, original.MemberNameNode);
 
     if (cloner.CloneResolvedFields) {
-      Member = cloner.CloneMember(original.Member, true);
+      Member = original.Member != null ? cloner.CloneMember(original.Member, true) : null;
       AtLabel = original.AtLabel;
       InCompiledContext = original.InCompiledContext;
       TypeApplicationAtEnclosingClass = original.TypeApplicationAtEnclosingClass;
