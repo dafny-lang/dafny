@@ -212,7 +212,9 @@ class SplitPartTriggerWriter {
     foreach (var candidate in Candidates) {
       Comprehension.Attributes = new Attributes("trigger",
         candidate.Terms.ConvertAll(t => Expression.WrapAsParsedStructureIfNecessary(t.Expr, systemModuleManager)),
-        Comprehension.Attributes);
+        Comprehension.Attributes) {
+        IsResolverGenerated = true
+      };
     }
   }
 
