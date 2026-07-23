@@ -54,7 +54,7 @@ jobs:
         git push origin ${{ inputs.tag_name }} -f
       working-directory: dafny
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: C++ for ubuntu 20.04
