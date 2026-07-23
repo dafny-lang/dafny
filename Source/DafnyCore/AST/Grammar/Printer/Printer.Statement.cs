@@ -87,9 +87,9 @@ namespace Microsoft.Dafny {
             wr.Write(s is YieldStmt ? "yield" : "return");
             if (s.Rhss != null) {
               var sep = " ";
-              foreach (var rhs in s.Rhss) {
+              for (var i = 0; i < s.Rhss.Count; i++) {
                 wr.Write(sep);
-                PrintRhs(rhs);
+                PrintRhs(s.Rhss[i], i == s.Rhss.Count - 1);
                 sep = ", ";
               }
             }
@@ -381,7 +381,7 @@ namespace Microsoft.Dafny {
             // prefix lemmas end up as CallStmt's by the end of resolution and they may need to be printed here.
             var s = callStmt;
             PrintExpression(s.MethodSelect, false);
-            PrintActualArguments(s.Bindings, s.Method.Name, null);
+            PrintActualArguments(s.Bindings, s.Method.Name, null, parensAroundArgList: false);
             break;
           }
         case VarDeclStmt declStmt: {
@@ -601,9 +601,9 @@ namespace Microsoft.Dafny {
           wr.Write(":= ");
         }
         var sep = "";
-        foreach (var rhs in update.Rhss) {
+        for (var i = 0; i < update.Rhss.Count; i++) {
           wr.Write(sep);
-          PrintRhs(rhs);
+          PrintRhs(update.Rhss[i], i == update.Rhss.Count - 1);
           sep = ", ";
         }
       } else if (s is AssignSuchThatStmt) {
@@ -764,10 +764,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintRhs(AssignmentRhs rhs) {
+    void PrintRhs(AssignmentRhs rhs, bool isRightmost = true) {
       Contract.Requires(rhs != null);
       if (rhs is ExprRhs) {
-        PrintExpression(((ExprRhs)rhs).Expr, true);
+        // Parenthesize a non-last right-hand side when needed (see Printer.PrintExpressionPairList).
+        PrintExpression(((ExprRhs)rhs).Expr, isRightmost, false);
       } else if (rhs is HavocRhs) {
         wr.Write("*");
       } else if (rhs is TypeRhs) {
@@ -798,7 +799,7 @@ namespace Microsoft.Dafny {
             wr.Write(")");
           } else if (allocateArray.InitDisplay != null) {
             wr.Write(" [");
-            PrintExpressionList(allocateArray.InitDisplay, false);
+            PrintExpressionList(allocateArray.InitDisplay, false, parensAroundArgList: false);
             wr.Write("]");
           }
         } else if (t is AllocateClass allocateClass) {
