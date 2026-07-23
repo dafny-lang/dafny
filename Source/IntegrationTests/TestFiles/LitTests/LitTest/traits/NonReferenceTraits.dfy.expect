@@ -77,9 +77,6 @@ NonReferenceTraits.dfy(192,16): Error: ghost const field 'S' of type 'PossiblyEm
 NonReferenceTraits.dfy(202,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
 NonReferenceTraits.dfy(207,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
 NonReferenceTraits.dfy(209,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
-NonReferenceTraits.dfy(219,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value (consider changing the field to be a function, or restricting the enclosing trait to be a reference type by adding 'extends object')
-NonReferenceTraits.dfy(224,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value (consider changing the field to be a function, or restricting the enclosing trait to be a reference type by adding 'extends object')
-NonReferenceTraits.dfy(226,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value (consider changing the field to be a function, or restricting the enclosing trait to be a reference type by adding 'extends object')
 NonReferenceTraits.dfy(279,8): Error: class 'ClassWithParentWithoutConstructor' with fields without known initializers, like 'g' of type 'Nonempty', must declare a constructor
 NonReferenceTraits.dfy(295,17): Error: static non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
 NonReferenceTraits.dfy(300,17): Error: static non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
@@ -112,4 +109,4 @@ NonReferenceTraits.dfy(460,9): Error: == can only be applied to expressions of t
 NonReferenceTraits.dfy(470,9): Error: == can only be applied to expressions of types that support equality (got TraitA)
 NonReferenceTraits.dfy(471,9): Error: == can only be applied to expressions of types that support equality (got TraitB)
 NonReferenceTraits.dfy(472,14): Error: set argument type must support equality (got TraitA)
-62 resolution/type errors detected in NonReferenceTraits.dfy
+59 resolution/type errors detected in NonReferenceTraits.dfy
