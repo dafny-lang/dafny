@@ -1,0 +1,6 @@
+git-issue-6368.dfy(9,28): Error: result of operation could not be proved to satisfy newtype constraint for 'pos'
+git-issue-6368.dfy(18,61): Error: result of operation could not be proved to satisfy newtype constraint for 'smallmap'
+git-issue-6368.dfy(22,48): Error: result of operation could not be proved to satisfy newtype constraint for 'smallmset'
+git-issue-6368.dfy(28,3): Error: result of operation could not be proved to satisfy newtype constraint for 'sortedseq'
+
+Dafny program verifier finished with 5 verified, 4 errors
