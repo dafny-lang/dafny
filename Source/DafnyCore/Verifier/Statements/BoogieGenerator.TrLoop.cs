@@ -406,7 +406,7 @@ public partial class BoogieGenerator {
     }
 
     Bpl.StmtList body = loopBodyBuilder.Collect(loop.Origin);
-    builder.Add(new Bpl.WhileCmd(loop.Origin, Bpl.Expr.True, invariants, [], body));
+    builder.Add(new Bpl.WhileCmd(loop.Origin, Bpl.Expr.True, invariants, [], [], body));
   }
 
   // Return the version of e that holds at the beginning of the loop,
