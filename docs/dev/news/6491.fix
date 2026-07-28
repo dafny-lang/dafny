@@ -1,0 +1,1 @@
+The JavaScript runtime now compares extern references without an `equals` method by identity instead of crashing with "a.equals is not a function"; defining an `equals` method remains the opt-in for extern value types
