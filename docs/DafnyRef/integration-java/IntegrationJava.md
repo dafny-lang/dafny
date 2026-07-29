@@ -218,18 +218,18 @@ Often this requires defining a Dafny class that corresponds to the Java class.
 the Dafny-generated (Java) types and the types used in the desired method.
 The wrapper will do appropriate conversions and call the desired method.
 
-A Dafny `class` or `trait` has object identity: the verifier assumes that `==`
-on such a type, and the `set`, `multiset`, and `map` collections over it, compare
-by identity. A Java class named by an `{:extern}` declaration should therefore
-not override `equals` and `hashCode`: the verifier assumes object identity, so
-any other equality — structural equality being the common case — can let the
-compiled program contradict what was proved, for example by making two distinct
-objects that were proved unequal compare equal, or by giving a `set` fewer
-elements than was verified. Dafny does not currently check this. A type whose
-equality should be structural is better modelled as a Dafny `datatype`, or, when
-it must be backed by Java code, as an opaque value type `type {:extern} T(==)`,
-whose equality the verifier leaves uninterpreted and whose Java `equals` and
-`hashCode` are then used at run time without contradicting any verified fact.
+A Dafny `class` or `trait` has object identity, and the verifier assumes that
+`==` and the built-in collections compare such values by identity. A Java class
+named by an `{:extern}` declaration should therefore not override `equals` and
+`hashCode`: any other equality — structural equality being the common case — can
+let the compiled program contradict what was proved, for example by making two
+distinct objects that were proved unequal compare equal, or by giving a `set`
+fewer elements than was verified. Dafny does not currently check this. A type
+whose equality should be structural is better modelled as a Dafny `datatype`,
+or, when it must be backed by Java code, as an opaque value type
+`type {:extern} T(==)`, whose equality the verifier leaves uninterpreted and
+whose Java `equals` and `hashCode` are then used at run time without
+contradicting any verified fact.
 
 ## Performance notes
 

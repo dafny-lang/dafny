@@ -168,9 +168,11 @@ To implement this in your extern file, use the following template:
 
 For classes, make sure all your mutable fields are wrapped in a `::dafny_runtime::Field` so that it's always possible to share the reference.
 
-Equality of extern reference types is by object identity and cannot be
-overridden by the Rust implementation, so the run-time behaviour always matches
-what the verifier assumes.
+A Dafny `class` or `trait` has object identity, and the verifier assumes that
+`==` and the built-in collections compare such values by identity. In Rust this
+holds by construction: extern reference types are compared by object identity
+and this cannot be overridden, so the run-time behaviour always matches what the
+verifier assumes.
 
 ## Other externs
 

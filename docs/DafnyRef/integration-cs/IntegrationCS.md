@@ -172,13 +172,14 @@ Here, `T'` for a type parameter `T` indicates the C# type corresponding to a Daf
 | function (arrow) types        | Func<T',U'> |
 |-------------------------------|------------------------------|
 
-A Dafny `class` or `trait` has object identity: the verifier assumes that `==`
-on such a type, and the `set`, `multiset`, and `map` collections over it, compare
-by identity. A C# class named by an `{:extern}` declaration should therefore not
-override `Equals` and `GetHashCode`: the verifier assumes object identity, so any
-other equality — structural equality being the common case — can let the
-compiled program contradict what was proved. Dafny does not currently check
-this. A type whose equality should be structural is better modelled as a Dafny
+A Dafny `class` or `trait` has object identity, and the verifier assumes that
+`==` and the built-in collections compare such values by identity. A C# class
+named by an `{:extern}` declaration should therefore not override `Equals` and
+`GetHashCode`: any other equality — structural equality being the common case —
+can let the compiled program contradict what was proved, for example by making
+two distinct objects that were proved unequal compare equal, or by giving a
+`set` fewer elements than was verified. Dafny does not currently check this. A
+type whose equality should be structural is better modelled as a Dafny
 `datatype`, or, when it must be backed by C# code, as an opaque value type
 `type {:extern} T(==)`, whose equality the verifier leaves uninterpreted and
 whose C# `Equals` and `GetHashCode` are then used at run time without
