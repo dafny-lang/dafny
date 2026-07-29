@@ -1769,6 +1769,14 @@ the only options that result in valid target code. Traits with
 `{:extern}` can refer to existing traits or interfaces in the target
 language, or can refer to the interfaces of existing classes.
 
+Unlike a class, a `datatype` cannot have `{:extern}` members. The compiler
+generates no way for external code to supply such a member's implementation,
+and the emitted target code fails to compile. To combine a datatype with
+external code, keep its members in Dafny and put the external operations in
+module-level `{:extern}` functions or methods that take the datatype as a
+parameter; use an `{:extern}` class when you need external members on a
+reference type.
+
 Member variables marked with `{:extern}` refer to fields or properties
 in existing target-language code. Constructors, methods, and functions
 refer to the equivalent concepts in the target language. They
