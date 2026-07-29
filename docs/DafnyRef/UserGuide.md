@@ -1782,6 +1782,37 @@ Types marked with `{:extern}` must be opaque. The name argument, if any,
 usually refers to the type name in the target language, but some
 compilers treat it differently.
 
+Because Dafny models objects by reference, the reference types (`class` and
+`trait` types) have object identity: `x == y` holds exactly when `x` and `y`
+denote the same object. The verifier reasons about equality on these types, and
+about the `set`, `multiset`, and `map` collections built over them, on the
+assumption that object identity is their only equality, and this assumption is
+not checked against external code. An `{:extern}` `class` is therefore expected
+to preserve object identity in the target language. If the external
+implementation instead gives the type some other equality — for example a
+structural equality obtained by overriding `equals` and `hashCode` in Java,
+`Equals` and `GetHashCode` in C#, or `__eq__` and `__hash__` in Python — then a
+compiled program can behave in ways the verifier proved impossible: two objects
+that were proved unequal may compare equal at run time, and a `set` containing
+them may turn out to have fewer elements than was verified. Dafny does not
+currently detect this situation, so it is the user's responsibility to avoid it;
+the target-specific behavior, and any supported way for an extern type to opt in
+to structural equality, are described in the integration guide for each
+language.
+
+A type whose equality should be structural rather than by object identity is
+better not written as an `{:extern}` `class` at all. When the value need not be
+backed by an external object, a Dafny `datatype` has structural equality that
+the verifier understands. When it must be backed by external code, an opaque
+value type declared as `type {:extern} T(==)` can be used instead: the verifier
+makes no assumption about which values of such a type are equal — it can prove
+neither that two values are equal nor that they are unequal — so the target
+language's own equality is used at run time, including within the built-in
+collections, without contradicting anything the verifier established. An
+`{:extern}` `class` may still define its state and some of its members in Dafny
+while implementing others externally; equality of such a class remains by object
+identity.
+
 Detailed description of the `dafny build` and `dafny run` commands and 
 the `--input` option (needed when `dafny run` has more than one input file)
 is contained [in the section on command-line structure](#command-line).
