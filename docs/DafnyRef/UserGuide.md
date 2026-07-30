@@ -1804,9 +1804,10 @@ compiled program can behave in ways the verifier proved impossible: two objects
 that were proved unequal may compare equal at run time, and a `set` containing
 them may turn out to have fewer elements than was verified. Dafny does not
 currently detect this situation, so it is the user's responsibility to avoid it;
-the target-specific behavior, and any supported way for an extern type to opt in
-to structural equality, are described in the integration guide for each
-language.
+the target-specific behavior is described in the integration guide for each
+language. Some backends let an extern override the equality used by the runtime
+collections, but doing so on a reference type reintroduces exactly this
+unsoundness; it is sound only for value types (see below).
 
 A type whose equality should be structural rather than by object identity is
 better not written as an `{:extern}` `class` at all. When the value need not be
