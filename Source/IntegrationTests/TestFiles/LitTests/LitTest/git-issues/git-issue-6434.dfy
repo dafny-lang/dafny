@@ -1,6 +1,4 @@
-// RUN: %baredafny resolve --use-basename-for-filename --show-snippets:false "%s" > "%t"
-// RUN: %baredafny resolve --type-system-refresh --general-newtypes --use-basename-for-filename --show-snippets:false "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver "%s"
 
 // An untyped, module-level const whose RHS reads a datatype discriminator or destructor used to
 // crash the resolver: these fields are not tracked individually, so their pre-types were still
