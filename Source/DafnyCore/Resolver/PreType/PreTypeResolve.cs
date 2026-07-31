@@ -783,6 +783,14 @@ namespace Microsoft.Dafny {
     }
 
     void ResolvePreTypeSignature(Declaration d) {
+      // Discriminators and destructors are the only members whose pre-types are filled in while resolving the
+      // enclosing datatype (see the DatatypeDecl case of FillInPreTypesInSignature) rather than on their own, so
+      // they are not in "StillNeedsPreTypeSignature" and resolving them directly is a no-op; redirect to the
+      // datatype to fill in the field's pre-type. This must not fire for user-declared members (e.g. a static
+      // const), which are tracked individually and must resolve on their own to preserve, e.g., cycle detection.
+      if (d is DatatypeDiscriminator or DatatypeDestructor) {
+        d = ((SpecialField)d).EnclosingClass;
+      }
       ResolvePreTypeSignature(d, preTypeInferenceModuleState, resolver);
     }
 
