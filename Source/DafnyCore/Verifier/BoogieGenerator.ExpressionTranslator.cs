@@ -1199,15 +1199,41 @@ namespace Microsoft.Dafny {
 
       private Expr TranslateMapDisplayExpr(MapDisplayExpr displayExpr) {
         Boogie.Type maptype = displayExpr.Finite ? Predef.MapType : Predef.IMapType;
-        Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.MapEmpty : BuiltinFunction.IMapEmpty, Predef.BoxType);
         var isLit = true;
+        var keysAllLit = true;
+        var entries = new List<(Boogie.Expr Key, Boogie.Expr Value)>();
         foreach (MapDisplayEntry p in displayExpr.Elements) {
           var rawA = TrExpr(p.A);
           var rawB = TrExpr(p.B);
           isLit = isLit && BoogieGenerator.IsLit(rawA) && BoogieGenerator.IsLit(rawB);
+          keysAllLit = keysAllLit && BoogieGenerator.IsLit(rawA);
           Boogie.Expr elt = BoxIfNecessary(GetToken(displayExpr), rawA, Cce.NonNull(p.A.Type));
           Boogie.Expr elt2 = BoxIfNecessary(GetToken(displayExpr), rawB, Cce.NonNull(p.B.Type));
-          s = FunctionCall(GetToken(displayExpr), displayExpr.Finite ? "Map#Build" : "IMap#Build", maptype, s, elt, elt2);
+          entries.Add((elt, elt2));
+        }
+        // Like set/multiset displays (see CanonicalizeDisplayElements), a map display's value is order-independent
+        // but the emitted Map#Build chain is not, so we canonicalize the entry order -- but only when every key is
+        // a literal. Map display is last-write-wins on a repeated key, and two syntactically-distinct non-literal
+        // keys may denote the same key at runtime, so reordering could change which write wins. (A shadowed
+        // value's well-formedness is checked in a separate pass, so dropping it here is sound.)
+        if (keysAllLit) {
+          // Same-key entries are identified by structural equality (Boogie's Expr.Equals); keeping the later one
+          // realizes last-write-wins. Displays are small, so the quadratic key comparison is negligible.
+          var deduped = new List<(Boogie.Expr Key, Boogie.Expr Value)>();
+          foreach (var entry in entries) {
+            var existing = deduped.FindIndex(e => e.Key.Equals(entry.Key));
+            if (existing >= 0) {
+              deduped[existing] = entry;
+            } else {
+              deduped.Add(entry);
+            }
+          }
+          entries = deduped;
+          entries.Sort((x, y) => string.CompareOrdinal(x.Key.ToString(), y.Key.ToString()));
+        }
+        Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.MapEmpty : BuiltinFunction.IMapEmpty, Predef.BoxType);
+        foreach (var (key, value) in entries) {
+          s = FunctionCall(GetToken(displayExpr), displayExpr.Finite ? "Map#Build" : "IMap#Build", maptype, s, key, value);
         }
         if (isLit) {
           // Lit-lifting: All keys and values are lit, so the map is Lit too
@@ -1238,14 +1264,47 @@ namespace Microsoft.Dafny {
         return new Boogie.NAryExpr(GetToken(call), new Boogie.FunctionCall(id), args);
       }
 
+      /// <summary>
+      /// Canonicalizes the elements of a set or multiset display before they are folded into a
+      /// Set#UnionOne / MultiSet#UnionOne chain. The value is order-independent, but the emitted chain is not, so
+      /// permutations (e.g. {1,2,3} vs {3,2,1}) would otherwise produce distinct Boogie terms whose equality --
+      /// and hence use as the same map key or set element -- holds only provably, not by construction. Sorting
+      /// the elements by their printed form gives permutations the same term.
+      ///
+      /// With <paramref name="dropDuplicates"/> (sets, which ignore multiplicity), equal elements are also
+      /// collapsed, so e.g. {1,1,2} and {1,2} agree; it must be false for multisets.
+      ///
+      /// The sort key only needs to be stable (ties are harmless: the UnionOne functions are commutative), so
+      /// the printed form suffices. Duplicate removal must be sound, so it uses structural equality
+      /// (Boogie's Expr.Equals), not the textual key.
+      /// </summary>
+      private static List<Boogie.Expr> CanonicalizeDisplayElements(List<Boogie.Expr> boxedElements, bool dropDuplicates) {
+        // Cache each element's printed form once, rather than recomputing ToString inside the comparator.
+        var keyed = boxedElements.ConvertAll(e => (Key: e.ToString(), Element: e));
+        keyed.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+        var result = new List<Boogie.Expr>(keyed.Count);
+        foreach (var (_, element) in keyed) {
+          // Equal elements share a key and so sort adjacently; comparing with the previous kept one thus removes
+          // every true duplicate. A key collision between distinct elements just keeps both -- a harmless miss.
+          if (dropDuplicates && result.Count != 0 && result[result.Count - 1].Equals(element)) {
+            continue;
+          }
+          result.Add(element);
+        }
+        return result;
+      }
+
       private Expr TranslateSetDisplayExpr(SetDisplayExpr displayExpr) {
-        Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.SetEmpty : BuiltinFunction.ISetEmpty, Predef.BoxType);
         var isLit = true;
+        var boxedElements = new List<Boogie.Expr>();
         foreach (Expression ee in displayExpr.Elements) {
           var rawElement = TrExpr(ee);
           isLit = isLit && BoogieGenerator.IsLit(rawElement);
-          Boogie.Expr ss = BoxIfNecessary(GetToken(displayExpr), rawElement, Cce.NonNull(ee.Type));
-          s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.SetUnionOne : BuiltinFunction.ISetUnionOne, Predef.BoxType, s, ss);
+          boxedElements.Add(BoxIfNecessary(GetToken(displayExpr), rawElement, Cce.NonNull(ee.Type)));
+        }
+        Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.SetEmpty : BuiltinFunction.ISetEmpty, Predef.BoxType);
+        foreach (var boxedElement in CanonicalizeDisplayElements(boxedElements, dropDuplicates: true)) {
+          s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.SetUnionOne : BuiltinFunction.ISetUnionOne, Predef.BoxType, s, boxedElement);
         }
         if (isLit) {
           // Lit-lifting: All elements are lit, so the set is Lit too

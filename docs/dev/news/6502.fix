@@ -1,0 +1,1 @@
+The verifier now recognizes set, multiset, and map displays that differ only in element order (e.g. `{1, 2, 3}` and `{3, 2, 1}`), or a set display with a repeated element (e.g. `{1, 1, 2}`), as equal, so they can be used interchangeably as, for example, map keys
