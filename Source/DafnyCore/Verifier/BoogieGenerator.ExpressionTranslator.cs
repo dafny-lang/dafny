@@ -1217,19 +1217,22 @@ namespace Microsoft.Dafny {
         // keys may denote the same key at runtime, so reordering could change which write wins. (A shadowed
         // value's well-formedness is checked in a separate pass, so dropping it here is sound.)
         if (keysAllLit) {
-          // Same-key entries are identified by structural equality (Boogie's Expr.Equals); keeping the later one
-          // realizes last-write-wins. Displays are small, so the quadratic key comparison is negligible.
-          var deduped = new List<(Boogie.Expr Key, Boogie.Expr Value)>();
-          foreach (var entry in entries) {
-            var existing = deduped.FindIndex(e => e.Key.Equals(entry.Key));
+          // Same-key entries are identified by their printed form -- not by Boogie's Expr.Equals, which for a
+          // function application compares the (not yet resolved, hence null) Function references and so reports
+          // any two applications as equal. Keeping the later entry realizes last-write-wins. Displays are small,
+          // so the quadratic key comparison is negligible.
+          var keyed = entries.ConvertAll(e => (KeyText: e.Key.ToString(), Entry: e));
+          var deduped = new List<(string KeyText, (Boogie.Expr Key, Boogie.Expr Value) Entry)>();
+          foreach (var item in keyed) {
+            var existing = deduped.FindIndex(e => e.KeyText == item.KeyText);
             if (existing >= 0) {
-              deduped[existing] = entry;
+              deduped[existing] = item;
             } else {
-              deduped.Add(entry);
+              deduped.Add(item);
             }
           }
-          entries = deduped;
-          entries.Sort((x, y) => string.CompareOrdinal(x.Key.ToString(), y.Key.ToString()));
+          deduped.Sort((x, y) => string.CompareOrdinal(x.KeyText, y.KeyText));
+          entries = deduped.ConvertAll(e => e.Entry);
         }
         Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.MapEmpty : BuiltinFunction.IMapEmpty, Predef.BoxType);
         foreach (var (key, value) in entries) {
@@ -1283,12 +1286,16 @@ namespace Microsoft.Dafny {
         var keyed = boxedElements.ConvertAll(e => (Key: e.ToString(), Element: e));
         keyed.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
         var result = new List<Boogie.Expr>(keyed.Count);
-        foreach (var (_, element) in keyed) {
-          // Equal elements share a key and so sort adjacently; comparing with the previous kept one thus removes
-          // every true duplicate. A key collision between distinct elements just keeps both -- a harmless miss.
-          if (dropDuplicates && result.Count != 0 && result[result.Count - 1].Equals(element)) {
+        string previousKey = null;
+        foreach (var (key, element) in keyed) {
+          // Identical elements print identically and so sort adjacently, so comparing each element's printed form
+          // with the previous kept one removes every duplicate. Note that Boogie's Expr.Equals must not be used
+          // here: for a function application it compares the (not yet resolved, hence null) Function references,
+          // so it reports any two applications as equal, which would drop distinct elements.
+          if (dropDuplicates && key == previousKey) {
             continue;
           }
+          previousKey = key;
           result.Add(element);
         }
         return result;

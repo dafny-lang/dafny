@@ -52,3 +52,20 @@ method Sequences() {
   assert [1, 2, 3] != [3, 2, 1];
   assert [1, 2, 3] == [1, 2, 3];
 }
+
+datatype Color = Red | Green | Blue
+
+method NonLiteralElements(a: set<int>, b: set<int>) {
+  // Elements that are function applications rather than literals must not be conflated: canonicalization
+  // may only collapse elements that are genuinely identical.
+  assert |{Red, Green, Blue}| == 3;
+  assert Red in {Red, Green};
+  assert |{"ab", "cd"}| == 2;
+  assert |{'a', 'b'}| == 2;
+  assert |{{1, 2}, {3, 4}}| == 2;
+  assert |{[1, 2], [3, 4]}| == 2;
+  assert |multiset{Red, Green}| == 2;
+  var m: map<Color, int> := map[Red := 1, Green := 2];
+  assert |m| == 2;
+  assert m[Red] == 1 && m[Green] == 2;
+}
