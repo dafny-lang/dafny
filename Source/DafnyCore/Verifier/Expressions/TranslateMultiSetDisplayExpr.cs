@@ -9,6 +9,7 @@ using Dafny;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
+using Microsoft.Dafny.Triggers;
 using static Microsoft.Dafny.Util;
 
 public partial class BoogieGenerator {
@@ -16,11 +17,11 @@ public partial class BoogieGenerator {
 
     private Expr TranslateMultiSetDisplayExpr(MultiSetDisplayExpr displayExpr) {
       var isLit = true;
-      var boxedElements = new List<Expr>();
+      var boxedElements = new List<(Expression, Expr)>();
       foreach (Expression ee in displayExpr.Elements) {
         var rawElement = TrExpr(ee);
         isLit = isLit && BoogieGenerator.IsLit(rawElement);
-        boxedElements.Add(BoxIfNecessary(GetToken(displayExpr), rawElement, Cce.NonNull(ee.Type)));
+        boxedElements.Add((ee, BoxIfNecessary(GetToken(displayExpr), rawElement, Cce.NonNull(ee.Type))));
       }
       // Canonicalize element order so permuted displays produce identical terms. Unlike a set, a multiset is
       // multiplicity-sensitive, so repeated elements are kept (dropDuplicates: false).

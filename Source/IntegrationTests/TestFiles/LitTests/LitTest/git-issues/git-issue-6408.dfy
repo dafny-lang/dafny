@@ -69,3 +69,17 @@ method NonLiteralElements(a: set<int>, b: set<int>) {
   assert |m| == 2;
   assert m[Red] == 1 && m[Green] == 2;
 }
+
+function Id<T>(x: T): T { x }
+datatype Box<T> = Box(v: T)
+
+method FunctionApplicationElements() {
+  // Distinct applications of the same function or constructor must not be conflated, and identical ones must
+  // still collapse. (Comparing the emitted Boogie terms cannot distinguish these, so the source expressions are
+  // compared instead.)
+  assert |{Id(1), Id(2)}| == 2;
+  assert |{Id(1), Id(1)}| == 1;
+  var s: set<Box<int>> := {Box(1), Box(2)};
+  assert |s| == 2;
+  assert |{Box(1), Box(1)}| == 1;
+}
