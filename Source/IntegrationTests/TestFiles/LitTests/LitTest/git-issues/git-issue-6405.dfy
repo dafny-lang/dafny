@@ -64,3 +64,52 @@ predicate letSuchThatPred()
 function letSuchThatOk(n: nat): nat
   ensures var x :| x == letSuchThatOk(n); x == letSuchThatOk(n)
 { 0 }
+
+// The self-call allowance must also be withheld when the trivial self-call reaches the function through a
+// let-bound alias of a formal, or of "this": the constraint's free variables are then the alias, so the formal
+// (or "this") is absent from the axiom's scope, and an allowance keyed on its presence would leak.
+function aliasedFormal(n: int): int
+  ensures var a := n; var x: int :| x == aliasedFormal(a); x == aliasedFormal(a)
+  ensures false  // must NOT be provable from the such-that above
+{ 1 }
+
+class Aliased {
+  function aliasedThis(): int
+    ensures var t := this; var x: int :| x == t.aliasedThis(); x == t.aliasedThis()
+    ensures false  // must NOT be provable from the such-that above
+  { 1 }
+}
+
+// Conversely, a self-call on a receiver or with an argument that genuinely is out of the axiom's scope must
+// still translate (the conjunct is simply omitted), rather than emitting an undeclared identifier.
+class OutOfScopeReceiver {
+  function f(o: OutOfScopeReceiver, n: nat): int
+    decreases n
+    ensures n > 0 ==> var x: int :| x == o.f(o, n - 1); true
+  { 0 }
+}
+
+function outOfScopeFormal(n: nat, m: int): int
+  decreases n
+  ensures n > 0 ==> var x: int :| x == outOfScopeFormal(n - 1, n); true
+{ 0 }
+
+// Propagating the allowance into these sub-expressions must not also suppress the $IsA# facts a datatype
+// equality contributes there (see CanCallOptions.AllowanceOnly): without them, the case analysis over D's
+// constructors is unavailable and the assertion below is not provable.
+datatype Two = A(a: int) | B(b: int)
+
+ghost function pick(n: int): int
+{ var z: int :| z == 0 && mk(n) == mk(n); z }
+
+function mk(n: int): Two
+
+predicate Q(d: Two)
+
+lemma IsAFactsSurvive(n: int)
+  requires forall a: int :: Q(A(a))
+  requires forall b: int :: Q(B(b))
+{
+  var q := pick(n);
+  assert Q(mk(n));
+}

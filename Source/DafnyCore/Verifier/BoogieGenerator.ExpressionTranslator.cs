@@ -1732,16 +1732,18 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       /// consequence axiom -- circular when checking the function's own spec).
       ///
       /// With cco.AllowanceSubstMap set, the allowance is rewritten into the $let#canCall axiom's scope
-      /// (see CanCallOptions). A formal/receiver absent from that scope cannot occur in the trivial
-      /// self-call, so the call is non-trivial; returns null to signal "use the bare #canCall".
+      /// (see CanCallOptions). A formal or receiver with no representation in that scope simply contributes no
+      /// conjunct: the allowance is then weaker, which is the safe direction, since it is only ever OR'd with
+      /// #canCall. It must not instead be reported as "no allowance", which would have the caller emit a bare
+      /// #canCall -- exactly the leak the allowance exists to prevent. In particular, an absent formal does NOT
+      /// mean the self-call is non-trivial: the argument may reach the formal through a let-bound alias, so that
+      /// the alias, not the formal, is the constraint's free variable. Whether an allowance applies at all is
+      /// decided by the caller, via CanCallOptions.MakeAllowance.
       /// </summary>
       public Expression MakeAllowance(FunctionCallExpr e, CanCallOptions cco = null) {
         var substMap = cco?.AllowanceSubstMap;
         Expression allowance = Expression.CreateBoolLiteral(e.Origin, true);
-        if (!e.Function.IsStatic) {
-          if (substMap != null && cco.AllowanceReceiver == null) {
-            return null;  // "this" not in scope: no trivial self-call possible here
-          }
+        if (!e.Function.IsStatic && !(substMap != null && cco.AllowanceReceiver == null)) {
           var formalThis = new ThisExpr(cco == null ? e.Function : cco.EnclosingFunction);
           allowance = Expression.CreateAnd(allowance, Expression.CreateEq(e.Receiver, formalThis, e.Receiver.Type));
         }
@@ -1750,7 +1752,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           Expression ee = e.Args[i];
           Formal ff = formals[i];
           if (substMap != null && !substMap.ContainsKey(ff)) {
-            return null;  // this formal not in scope: no trivial self-call possible here
+            continue;
           }
           allowance = Expression.CreateAnd(allowance, Expression.CreateEq(ee, Expression.CreateIdentExpr(ff), ff.Type));
         }
@@ -1791,8 +1793,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             }
           } else if (e.Member is ConstantField { Rhs: { } rhs } && BoogieGenerator.RevealedInScope(e.Member)) {
             // Keep the receiver's canCall and propagate cco: if e.Obj is a self-call whose const RHS
-            // mentions "this", dropping cco would emit a bare f#canCall (see MakeAllowance).
-            r = BplAnd(r, CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null), cco));
+            // mentions "this", dropping cco would emit a bare f#canCall (see MakeAllowance). Only the
+            // allowance is wanted here; this RHS previously got no cco, so it must keep its $IsA# facts.
+            r = BplAnd(r, CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null), cco?.AllowanceOnly()));
           }
           return r;
         } else if (expr is SeqSelectExpr) {
@@ -1848,8 +1851,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             Boogie.IdentifierExpr canCallFuncID = new Boogie.IdentifierExpr(expr.Origin, e.Function.FullSanitizedName + "#canCall", Boogie.Type.Bool);
             List<Boogie.Expr> args = FunctionInvocationArguments(e, null, null);
             Boogie.Expr canCallFuncAppl = new Boogie.NAryExpr(BoogieGenerator.GetToken(expr), new Boogie.FunctionCall(canCallFuncID), args);
-            var allowance = cco != null && cco.MakeAllowance(e.Function) ? MakeAllowance(e, cco) : null;
-            var add = allowance != null ? Boogie.Expr.Or(TrExpr(allowance), canCallFuncAppl) : canCallFuncAppl;
+            var add = cco != null && cco.MakeAllowance(e.Function)
+              ? Boogie.Expr.Or(TrExpr(MakeAllowance(e, cco)), canCallFuncAppl)
+              : canCallFuncAppl;
             r = BplAnd(r, add);
           }
           return r;
@@ -1882,7 +1886,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           };
           // Propagate cco into the per-index "init(i)" application, like the "init"/"n" calls below
           // (a self-call in the initializer would otherwise emit a bare f#canCall; see MakeAllowance).
-          var canCall = CanCallAssumption(dafnyInitApplication, cco);
+          // Only the allowance is wanted: this application previously got no cco, so it keeps its $IsA# facts.
+          var canCall = CanCallAssumption(dafnyInitApplication, cco?.AllowanceOnly());
 
           dafnyInitApplication = new ApplyExpr(e.Origin, new BoogieWrapper(initF, e.Initializer.Type),
             [new BoogieWrapper(index, Type.Int)],
@@ -2066,7 +2071,11 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
     }
 
     public class CanCallOptions {
-      public bool SkipIsA;
+      // Suppresses the $IsA# conjuncts that a datatype (in)equality would otherwise contribute. This is an
+      // optimization, independent of the self-call allowance below: a site that needs the allowance must not
+      // silently inherit the suppression, or it loses facts it would get with no cco at all (a "null" cco emits
+      // $IsA#). Derive such a cco with AllowanceOnly.
+      public readonly bool SkipIsA;
 
       public readonly Function EnclosingFunction; // self-call allowance is applied to the enclosing function
       public readonly bool SelfCallAllowanceAlsoForOverride;
@@ -2080,6 +2089,15 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
       public bool MakeAllowance(Function f) {
         return f == EnclosingFunction || (SelfCallAllowanceAlsoForOverride && f == EnclosingFunction.OverriddenFunction);
+      }
+
+      /// Returns these options with the $IsA# suppression turned off, keeping only the self-call allowance. Use
+      /// when propagating a cco into a subexpression that previously received none, so that the allowance reaches
+      /// self-calls there without also dropping the $IsA# facts that subexpression used to get.
+      public CanCallOptions AllowanceOnly() {
+        return SkipIsA
+          ? new CanCallOptions(false, EnclosingFunction, SelfCallAllowanceAlsoForOverride, AllowanceSubstMap, AllowanceReceiver)
+          : this;
       }
 
       public CanCallOptions(bool skipIsA, Function enclosingFunction, bool selfCallAllowanceAlsoForOverride = false,
