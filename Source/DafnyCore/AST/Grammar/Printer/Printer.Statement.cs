@@ -768,7 +768,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(rhs != null);
       if (rhs is ExprRhs) {
         // Parenthesize a non-last right-hand side when needed (see Printer.PrintExpressionPairList).
-        PrintExpression(((ExprRhs)rhs).Expr, isRightmost, false);
+        PrintExpression(((ExprRhs)rhs).Expr, isRightmost, true);
       } else if (rhs is HavocRhs) {
         wr.Write("*");
       } else if (rhs is TypeRhs) {

@@ -53,3 +53,17 @@ method PrintStmt(x: set<nat>, n: nat) { print (set i <- x), n; }
 // return and := right-hand-side lists.
 method Return(x: set<nat>, z: nat) returns (a: set<nat>, b: nat) { return (set i <- x), z; }
 method Assign(x: set<nat>, z: nat) returns (a: set<nat>, b: nat) { a, b := (set i <- x), z; }
+
+// A StmtExpr element must keep its parentheses too: printing an assignment RHS or a frame-clause
+// element must leave isFollowedBySemicolon = true, or a StmtExpr like (L(0); e) loses its parens
+// and fails to reparse. (These sites vary only isRightmost by position.)
+lemma L(i: int) {}
+
+// Assignment RHS.
+method AssignStmtExpr() returns (a: int) { a := (L(0); 5); }
+
+// reads / modifies / unchanged frame clauses, and the modify statement.
+function ReadsStmtExpr(o: C): int reads (L(0); o) { 0 }
+method ModifiesStmtExpr(o: C) modifies (L(0); o) { }
+method ModifyStmtExpr(o: C) modifies o { modify (L(0); o); }
+twostate predicate UnchangedStmtExpr(o: C) reads o { unchanged((L(0); o)) }

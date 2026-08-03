@@ -460,7 +460,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(fe.FieldName != null);
         } else {
           // Parenthesize non-last elements when needed (see PrintExpressionPairList).
-          PrintExpression(fe.E, i == fexprs.Count - 1, false);
+          PrintExpression(fe.E, i == fexprs.Count - 1, true);
         }
         if (fe.FieldName != null) {
           wr.Write("`{0}", fe.FieldName);
