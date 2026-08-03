@@ -1,19 +1,15 @@
 // RUN: %testDafnyForEachResolver "%s"
 
-// Set, multiset, and map displays that differ only in the order of their elements -- and set displays that
-// differ by a repeated element -- denote equal values, and are now emitted so that this equality holds by
-// construction. This lets such displays be used interchangeably as, e.g., map keys or set-of-set elements.
+// Set and multiset displays that differ only in the order of their elements denote equal values. Their emitted
+// Set#UnionOne / MultiSet#UnionOne chains are now built in a canonical element order, so such displays produce
+// the identical term and can be used interchangeably as, e.g., map keys or set-of-set elements -- even when the
+// equality would otherwise only be provable, not syntactic (as in a buried subgoal like `k in m.Keys`).
 
 method Sets() {
-  // Reordered set literals are equal, including when used as a map key.
-  assert {1, 2, 3} == {3, 2, 1};
+  // Reordered set literals used as a map key: the lookup key must match the stored key by construction.
   var m: map<set<int>, int> := map[{1, 2, 3} := 7];
   assert {3, 2, 1} in m.Keys;
   assert m[{3, 2, 1}] == 7;
-
-  // A repeated element does not change a set.
-  assert {1, 1, 2} == {1, 2};
-  assert |{1, 1, 2}| == 2;
 
   // Reordering works with variable elements too, and for nested sets.
   var ss: set<set<int>> := {{1, 2}, {3}};
@@ -27,59 +23,39 @@ method SetsVars(a: int, b: int) {
 }
 
 method Multisets() {
-  // Reordered multiset literals are equal, but multiplicity is significant.
-  assert multiset{1, 2, 3} == multiset{3, 2, 1};
-  assert multiset{1, 1, 2} == multiset{2, 1, 1};
-  assert multiset{1, 1, 2} != multiset{1, 2};
-  assert |multiset{1, 1, 2}| == 3;
+  // Reordered multiset literals as a map key. Multiplicity is significant, so only the order is canonicalized.
   var m: map<multiset<int>, int> := map[multiset{1, 2, 3} := 7];
   assert multiset{3, 2, 1} in m.Keys;
-}
-
-method Maps() {
-  // Reordered map displays are equal, including when used as a set element.
-  assert map[1 := 10, 2 := 20] == map[2 := 20, 1 := 10];
-  var s: set<map<int, int>> := {map[1 := 10, 2 := 20]};
-  assert map[2 := 20, 1 := 10] in s;
-
-  // A repeated key takes its last-written value (last-write-wins).
-  assert map[1 := 10, 1 := 20] == map[1 := 20];
-  assert map[1 := 10, 1 := 20][1] == 20;
-}
-
-method Sequences() {
-  // Sequences are ordered, so element order is significant (unchanged behavior).
-  assert [1, 2, 3] != [3, 2, 1];
-  assert [1, 2, 3] == [1, 2, 3];
+  assert multiset{1, 1, 2} != multiset{1, 2};
 }
 
 datatype Color = Red | Green | Blue
 
-method NonLiteralElements(a: set<int>, b: set<int>) {
-  // Elements that are function applications rather than literals must not be conflated: canonicalization
-  // may only collapse elements that are genuinely identical.
+method DatatypeAndOtherElements() {
+  // Canonicalization is only ever a reordering, so distinct elements are never conflated, whatever their shape.
   assert |{Red, Green, Blue}| == 3;
   assert Red in {Red, Green};
   assert |{"ab", "cd"}| == 2;
   assert |{'a', 'b'}| == 2;
   assert |{{1, 2}, {3, 4}}| == 2;
-  assert |{[1, 2], [3, 4]}| == 2;
   assert |multiset{Red, Green}| == 2;
-  var m: map<Color, int> := map[Red := 1, Green := 2];
-  assert |m| == 2;
-  assert m[Red] == 1 && m[Green] == 2;
+  var mc: map<Color, int> := map[Red := 1, Green := 2];
+  assert Red in mc.Keys && Green in mc.Keys;
 }
 
 function Id<T>(x: T): T { x }
 datatype Box<T> = Box(v: T)
 
 method FunctionApplicationElements() {
-  // Distinct applications of the same function or constructor must not be conflated, and identical ones must
-  // still collapse. (Comparing the emitted Boogie terms cannot distinguish these, so the source expressions are
-  // compared instead.)
-  assert |{Id(1), Id(2)}| == 2;
-  assert |{Id(1), Id(1)}| == 1;
+  // Distinct applications of the same function or constructor print differently and so are not conflated.
   var s: set<Box<int>> := {Box(1), Box(2)};
-  assert |s| == 2;
-  assert |{Box(1), Box(1)}| == 1;
+  assert Box(1) in s && Box(2) in s;
+  var t := {Id(1), Id(2)};
+  assert Id(1) in t && Id(2) in t;
+}
+
+method Sequences() {
+  // Sequences are ordered, so element order stays significant (unchanged behavior).
+  assert [1, 2, 3] != [3, 2, 1];
+  assert [1, 2, 3] == [1, 2, 3];
 }

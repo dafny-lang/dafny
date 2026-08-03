@@ -22,10 +22,10 @@ public partial class BoogieGenerator {
         isLit = isLit && BoogieGenerator.IsLit(rawElement);
         boxedElements.Add(BoxIfNecessary(GetToken(displayExpr), rawElement, Cce.NonNull(ee.Type)));
       }
-      // Canonicalize element order so permuted displays produce identical terms. Unlike a set, a multiset is
-      // multiplicity-sensitive, so repeated elements are kept (dropDuplicates: false).
+      // Canonicalize element order so permuted displays produce identical terms. Like the set case, this only
+      // reorders -- multiplicity is preserved, so it is sound for a multiset.
       Expr result = BoogieGenerator.FunctionCall(GetToken(displayExpr), BuiltinFunction.MultiSetEmpty, Predef.BoxType);
-      foreach (var boxedElement in CanonicalizeDisplayElements(boxedElements, dropDuplicates: false)) {
+      foreach (var boxedElement in CanonicalizeDisplayElements(boxedElements)) {
         result = BoogieGenerator.FunctionCall(GetToken(displayExpr), BuiltinFunction.MultiSetUnionOne, Predef.BoxType, result,
           boxedElement);
       }

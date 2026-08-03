@@ -7,7 +7,6 @@ using Dafny;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
-using Microsoft.Dafny.Triggers;
 using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny {
@@ -1199,44 +1198,22 @@ namespace Microsoft.Dafny {
       }
 
       private Expr TranslateMapDisplayExpr(MapDisplayExpr displayExpr) {
+        // A map display is intentionally NOT canonicalized. Unlike a set or multiset, its emitted Map#Build chain
+        // is order-sensitive in a way its value is not only up to a duplicate key: map display is last-write-wins,
+        // so reordering two entries with the same key changes the resulting map. Recognizing that the key is
+        // duplicated would require deciding key equality, which for non-literal keys is a runtime question and for
+        // any key would put the printer in the trusted computing base. So reordered map displays remain distinct
+        // terms (an incompleteness); equality of two such displays needs an explicit assertion.
         Boogie.Type maptype = displayExpr.Finite ? Predef.MapType : Predef.IMapType;
+        Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.MapEmpty : BuiltinFunction.IMapEmpty, Predef.BoxType);
         var isLit = true;
-        var keysAllLit = true;
-        var entries = new List<(Boogie.Expr Key, Boogie.Expr Value)>();
         foreach (MapDisplayEntry p in displayExpr.Elements) {
           var rawA = TrExpr(p.A);
           var rawB = TrExpr(p.B);
           isLit = isLit && BoogieGenerator.IsLit(rawA) && BoogieGenerator.IsLit(rawB);
-          keysAllLit = keysAllLit && BoogieGenerator.IsLit(rawA);
           Boogie.Expr elt = BoxIfNecessary(GetToken(displayExpr), rawA, Cce.NonNull(p.A.Type));
           Boogie.Expr elt2 = BoxIfNecessary(GetToken(displayExpr), rawB, Cce.NonNull(p.B.Type));
-          entries.Add((elt, elt2));
-        }
-        // Like set/multiset displays (see CanonicalizeDisplayElements), a map display's value is order-independent
-        // but the emitted Map#Build chain is not, so we canonicalize the entry order -- but only when every key is
-        // a literal. Map display is last-write-wins on a repeated key, and two syntactically-distinct non-literal
-        // keys may denote the same key at runtime, so reordering could change which write wins. (A shadowed
-        // value's well-formedness is checked in a separate pass, so dropping it here is sound.)
-        if (keysAllLit) {
-          // Entries are for the same key when their emitted keys print alike; keeping the later one realizes
-          // last-write-wins. The printed form is also the sort key, which only has to be stable. Displays are
-          // small, so the quadratic comparison is negligible.
-          var deduped = new List<(string KeyText, Boogie.Expr Key, Boogie.Expr Value)>();
-          foreach (var entry in entries) {
-            var item = (entry.Key.ToString(), entry.Key, entry.Value);
-            var existing = deduped.FindIndex(e => e.KeyText == item.Item1);
-            if (existing >= 0) {
-              deduped[existing] = item;
-            } else {
-              deduped.Add(item);
-            }
-          }
-          deduped.Sort((x, y) => string.CompareOrdinal(x.KeyText, y.KeyText));
-          entries = deduped.ConvertAll(e => (e.Key, e.Value));
-        }
-        Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.MapEmpty : BuiltinFunction.IMapEmpty, Predef.BoxType);
-        foreach (var (key, value) in entries) {
-          s = FunctionCall(GetToken(displayExpr), displayExpr.Finite ? "Map#Build" : "IMap#Build", maptype, s, key, value);
+          s = FunctionCall(GetToken(displayExpr), displayExpr.Finite ? "Map#Build" : "IMap#Build", maptype, s, elt, elt2);
         }
         if (isLit) {
           // Lit-lifting: All keys and values are lit, so the map is Lit too
@@ -1268,42 +1245,29 @@ namespace Microsoft.Dafny {
       }
 
       /// <summary>
-      /// Canonicalizes the elements of a set or multiset display before they are folded into a
-      /// Set#UnionOne / MultiSet#UnionOne chain. The value is order-independent, but the emitted chain is not, so
-      /// permutations (e.g. {1,2,3} vs {3,2,1}) would otherwise produce distinct Boogie terms whose equality --
-      /// and hence use as the same map key or set element -- holds only provably, not by construction. Sorting
-      /// the elements by their printed form gives permutations the same term.
+      /// Orders the elements of a set or multiset display before they are folded into a
+      /// Set#UnionOne / MultiSet#UnionOne chain. A display's value is independent of the order of its elements,
+      /// but the emitted chain is not: two displays that list the same elements in a different order (e.g.
+      /// {1,2,3} vs {3,2,1}) would otherwise produce distinct Boogie terms whose equality -- and hence their use
+      /// as the same map key or set element -- holds only provably, not by construction. Emitting the elements
+      /// in a canonical order makes such displays produce the identical term.
       ///
-      /// With <paramref name="dropDuplicates"/> (sets, which ignore multiplicity), equal elements are also
-      /// collapsed, so e.g. {1,1,2} and {1,2} agree; it must be false for multisets.
-      ///
-      /// Both the ordering and the duplicate test use the emitted term's printed form. Ties in the order are
-      /// harmless, since the UnionOne functions are commutative; and two elements that denote the same value emit
-      /// the same term, so they print alike and are found adjacent. Neither Boogie's <c>Expr.Equals</c> nor the
-      /// triggers' <c>ExpressionEq</c> can serve here: the former compares a function application's <c>Func</c>
-      /// references, which the translator leaves null until Boogie resolution, so it reports any two applications
-      /// (two different datatype constructors, say) as equal; the latter dispatches over a closed set of node
-      /// types and asserts when given a pair it does not enumerate, which a display element -- an arbitrary
-      /// expression, such as the <c>locals</c> of a memory location -- can easily be.
+      /// This is only ever a reordering, so it is sound: no element is added or dropped, the UnionOne functions
+      /// are commutative, and the sort merely picks one representative of the permutation. We do NOT additionally
+      /// collapse elements that print alike, even for sets (whose values ignore multiplicity): dropping on a
+      /// printed-key match would put the printer in the trusted computing base, since a printer collision between
+      /// two genuinely distinct values would silently discard one. So {1,1,2} and {1,2} remain distinct terms
+      /// (an incompleteness), and equality of differently-built collections still needs an explicit assertion.
       /// </summary>
-      private static List<Boogie.Expr> CanonicalizeDisplayElements(List<Boogie.Expr> boxedElements, bool dropDuplicates) {
-        // Cache each element's printed form once, rather than recomputing ToString inside the comparator.
+      private static List<Boogie.Expr> CanonicalizeDisplayElements(List<Boogie.Expr> boxedElements) {
+        // Order the elements by their printed form. This is only ever a reordering -- no element is added or
+        // removed -- so it is sound regardless of what the key is: the UnionOne functions are commutative, so
+        // every permutation denotes the same value, and the sort merely picks a canonical one. (We deliberately
+        // do NOT drop elements that print alike: that would make the printer part of the trusted computing base,
+        // since a printer collision between two distinct values would then silently discard one of them.)
         var keyed = boxedElements.ConvertAll(e => (Key: e.ToString(), Boxed: e));
         keyed.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
-        var result = new List<Boogie.Expr>(keyed.Count);
-        string previousKey = null;
-        foreach (var (key, boxed) in keyed) {
-          // Elements that denote the same value emit the same term and so print identically, which is why equal
-          // elements sort adjacently and comparing with the previous kept key removes them. Should two distinct
-          // elements ever print alike, the only consequence is that both are kept -- a missed collapse, which
-          // costs nothing but the syntactic equality this canonicalization would otherwise have provided.
-          if (dropDuplicates && key == previousKey) {
-            continue;
-          }
-          previousKey = key;
-          result.Add(boxed);
-        }
-        return result;
+        return keyed.ConvertAll(e => e.Boxed);
       }
 
       private Expr TranslateSetDisplayExpr(SetDisplayExpr displayExpr) {
@@ -1315,7 +1279,7 @@ namespace Microsoft.Dafny {
           boxedElements.Add(BoxIfNecessary(GetToken(displayExpr), rawElement, Cce.NonNull(ee.Type)));
         }
         Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.SetEmpty : BuiltinFunction.ISetEmpty, Predef.BoxType);
-        foreach (var boxedElement in CanonicalizeDisplayElements(boxedElements, dropDuplicates: true)) {
+        foreach (var boxedElement in CanonicalizeDisplayElements(boxedElements)) {
           s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.SetUnionOne : BuiltinFunction.ISetUnionOne, Predef.BoxType, s, boxedElement);
         }
         if (isLit) {
