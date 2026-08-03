@@ -1198,12 +1198,10 @@ namespace Microsoft.Dafny {
       }
 
       private Expr TranslateMapDisplayExpr(MapDisplayExpr displayExpr) {
-        // A map display is intentionally NOT canonicalized. Unlike a set or multiset, its emitted Map#Build chain
-        // is order-sensitive in a way its value is not only up to a duplicate key: map display is last-write-wins,
-        // so reordering two entries with the same key changes the resulting map. Recognizing that the key is
-        // duplicated would require deciding key equality, which for non-literal keys is a runtime question and for
-        // any key would put the printer in the trusted computing base. So reordered map displays remain distinct
-        // terms (an incompleteness); equality of two such displays needs an explicit assertion.
+        // A map display is intentionally NOT canonicalized the way a set or multiset display is: it is
+        // last-write-wins, so reordering two entries with the same key changes the map. Skipping such a pair would
+        // mean deciding key equality, which is a runtime question for a non-literal key and would otherwise rest
+        // on the printer. Reordered map displays therefore remain distinct terms, an incompleteness.
         Boogie.Type maptype = displayExpr.Finite ? Predef.MapType : Predef.IMapType;
         Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.MapEmpty : BuiltinFunction.IMapEmpty, Predef.BoxType);
         var isLit = true;
@@ -1260,11 +1258,6 @@ namespace Microsoft.Dafny {
       /// (an incompleteness), and equality of differently-built collections still needs an explicit assertion.
       /// </summary>
       private static List<Boogie.Expr> CanonicalizeDisplayElements(List<Boogie.Expr> boxedElements) {
-        // Order the elements by their printed form. This is only ever a reordering -- no element is added or
-        // removed -- so it is sound regardless of what the key is: the UnionOne functions are commutative, so
-        // every permutation denotes the same value, and the sort merely picks a canonical one. (We deliberately
-        // do NOT drop elements that print alike: that would make the printer part of the trusted computing base,
-        // since a printer collision between two distinct values would then silently discard one of them.)
         var keyed = boxedElements.ConvertAll(e => (Key: e.ToString(), Boxed: e));
         keyed.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
         return keyed.ConvertAll(e => e.Boxed);
