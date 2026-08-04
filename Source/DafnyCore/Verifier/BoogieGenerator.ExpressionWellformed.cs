@@ -279,6 +279,14 @@ namespace Microsoft.Dafny {
     /// Adds to "builder" code that checks the well-formedness of "expr".  Any local variables introduced
     /// in this code are added to "locals".
     /// See class WFOptions for descriptions of the specified options.
+    ///
+    /// A case that produces a value whose type may carry a constraint must call CheckResultToBeInType for it.
+    /// Forgetting to has been a recurring source of unsoundness (seq(), collection updates, "decreases to",
+    /// "unchanged"), so it is tempting to hoist one call to the end of this method and drop the per-case ones.
+    /// That does not work: where the expression is the RHS of an assignment, the assignment already checks it
+    /// via CheckSubrange, and the hoisted call reports a second error against the statement's token. Measured on
+    /// dafny0/ResultInTypeNewtype.dfy, hoisting turns 90 errors into 128, with 49 lines then carrying more than
+    /// one. The per-case calls keep the check aligned with the token of the value actually being constructed.
     /// </summary>
     public void CheckWellformedWithResult(Expression expr, WFOptions wfOptions,
       Variables locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
