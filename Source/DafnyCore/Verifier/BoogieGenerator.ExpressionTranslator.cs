@@ -2071,11 +2071,17 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
     }
 
     public class CanCallOptions {
-      // Suppresses the $IsA# conjuncts that a datatype (in)equality would otherwise contribute. This is an
-      // optimization, independent of the self-call allowance below, and it defaults to off: a cco exists to carry
-      // the allowance, so a site that propagates one into a subexpression must not silently also suppress facts
-      // that subexpression would get from no cco at all (a null cco emits $IsA#). Opt in with "skipIsA: true"
-      // only where the whole expression is a top-level specification being assumed, or derive with AllowanceOnly.
+      // Suppresses the $IsA# conjuncts that a datatype (in)equality would otherwise contribute. $IsA#Dt(d) is a
+      // depth-one case split over Dt's constructors, deliberately rationed: it is emitted only where the
+      // translation inserts it, because "making the RHS disjunction be available too often makes performance go
+      // down" (see AddDepthOneCaseSplitFunction). So this is a performance lever, not a correctness one, and it is
+      // independent of the self-call allowance below.
+      //
+      // It defaults to off because a cco exists to carry the allowance: a site that propagates one into a
+      // subexpression must not silently also suppress facts that subexpression would get from no cco at all (a
+      // null cco emits $IsA#). Opting in narrows what is emitted relative to no cco, so do it only where the
+      // ration is already being spent on the whole expression -- the specification-assumption sites in Methods.cs
+      // and Functions.Wellformedness.cs -- or derive with AllowanceOnly when forwarding.
       public readonly bool SkipIsA;
 
       public readonly Function EnclosingFunction; // self-call allowance is applied to the enclosing function
