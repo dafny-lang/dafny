@@ -1,1 +1,1 @@
-Newtype constraints are now checked for the `seq()` constructor, map updates, and multiset updates (soundness)
+Newtype constraints are now checked on the result of the `seq()` constructor, of sequence, map and multiset updates, and of `decreases to` and `unchanged` expressions (soundness)

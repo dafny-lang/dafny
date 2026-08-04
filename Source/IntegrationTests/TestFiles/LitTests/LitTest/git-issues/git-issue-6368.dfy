@@ -26,3 +26,25 @@ newtype sortedseq = s: seq<int> | forall i, j :: 0 <= i < j < |s| ==> s[i] <= s[
 function SeqUpdate(s: sortedseq): sortedseq
   requires |s| >= 2
 { s[0 := 999] }  // error: might break sorted order
+
+// The same omission affected the two bool-producing constructions whose result is constrained only to the
+// bool *family*, so that a newtype based on bool is an accepted result type: `decreases to` and `unchanged`.
+// With the constraint unchecked, the function's postcondition axiom supplied a contradiction to its callers.
+
+newtype TrueBool = b: bool | b witness true
+
+ghost function DecreasesTo(): TrueBool { 1 decreases to 2 }  // error: the value is false
+
+ghost function DecreasesToOk(): TrueBool { 2 decreases to 1 }  // ok
+
+class Cell { var data: int }
+
+twostate function Unchanged(c: Cell): TrueBool reads c { unchanged(c) }  // error: c may have changed
+
+twostate function UnchangedOk(c: Cell): TrueBool reads c
+  requires unchanged(c)
+{ unchanged(c) }  // ok
+
+// A plain bool result is unaffected, since there is no constraint to check.
+twostate predicate PlainUnchanged(c: Cell) reads c { unchanged(c) }
+ghost function PlainDecreasesTo(): bool { 1 decreases to 2 }

@@ -993,6 +993,7 @@ namespace Microsoft.Dafny {
               }
             }
 
+            CheckResultToBeInType(e.Origin, e, e.Type, locals, builder, etran);
             break;
           }
         case UnaryExpr unaryExpr: {
@@ -1582,6 +1583,7 @@ namespace Microsoft.Dafny {
             foreach (var subexpr in decreasesToExpr.SubExpressions) {
               CheckWellformed(subexpr, wfOptions, locals, builder, etran);
             }
+            CheckResultToBeInType(decreasesToExpr.Origin, decreasesToExpr, decreasesToExpr.Type, locals, builder, etran);
             break;
           }
         case FieldLocation: {

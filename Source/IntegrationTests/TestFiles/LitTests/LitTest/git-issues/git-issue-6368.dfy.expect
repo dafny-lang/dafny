@@ -2,5 +2,7 @@ git-issue-6368.dfy(9,28): Error: result of operation could not be proved to sati
 git-issue-6368.dfy(18,61): Error: result of operation could not be proved to satisfy newtype constraint for 'smallmap'
 git-issue-6368.dfy(22,48): Error: result of operation could not be proved to satisfy newtype constraint for 'smallmset'
 git-issue-6368.dfy(28,3): Error: result of operation could not be proved to satisfy newtype constraint for 'sortedseq'
+git-issue-6368.dfy(36,43): Error: result of operation could not be proved to satisfy newtype constraint for 'TrueBool'
+git-issue-6368.dfy(42,57): Error: result of operation could not be proved to satisfy newtype constraint for 'TrueBool'
 
-Dafny program verifier finished with 5 verified, 4 errors
+Dafny program verifier finished with 9 verified, 6 errors
