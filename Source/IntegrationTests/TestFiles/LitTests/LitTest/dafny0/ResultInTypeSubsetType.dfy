@@ -49,6 +49,20 @@ module Bool {
     assert 0 <= 2 * y < 10;
     q := exists x :: 0 <= 2 * x < 10; // error: the RHS is true, which is not a False
   }
+
+  ghost method DecreasesTo() returns (q: False) {
+    q := 2 decreases to 1; // error: the RHS is true, which is not a False
+  }
+
+  ghost function DecreasesToResult(): False {
+    2 decreases to 1 // error: the result is true, which is not a False
+  }
+
+  class Cell { var data: int }
+
+  twostate function UnchangedResult(c: Cell): False reads c {
+    unchanged(c) // error: c may be unchanged, and then the result is not a False
+  }
 }
 
 module Int {
