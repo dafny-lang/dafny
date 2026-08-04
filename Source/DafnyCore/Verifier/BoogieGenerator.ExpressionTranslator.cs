@@ -2072,9 +2072,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
     public class CanCallOptions {
       // Suppresses the $IsA# conjuncts that a datatype (in)equality would otherwise contribute. This is an
-      // optimization, independent of the self-call allowance below: a site that needs the allowance must not
-      // silently inherit the suppression, or it loses facts it would get with no cco at all (a "null" cco emits
-      // $IsA#). Derive such a cco with AllowanceOnly.
+      // optimization, independent of the self-call allowance below, and it defaults to off: a cco exists to carry
+      // the allowance, so a site that propagates one into a subexpression must not silently also suppress facts
+      // that subexpression would get from no cco at all (a null cco emits $IsA#). Opt in with "skipIsA: true"
+      // only where the whole expression is a top-level specification being assumed, or derive with AllowanceOnly.
       public readonly bool SkipIsA;
 
       public readonly Function EnclosingFunction; // self-call allowance is applied to the enclosing function
@@ -2096,12 +2097,13 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       /// self-calls there without also dropping the $IsA# facts that subexpression used to get.
       public CanCallOptions AllowanceOnly() {
         return SkipIsA
-          ? new CanCallOptions(false, EnclosingFunction, SelfCallAllowanceAlsoForOverride, AllowanceSubstMap, AllowanceReceiver)
+          ? new CanCallOptions(EnclosingFunction, SelfCallAllowanceAlsoForOverride, AllowanceSubstMap, AllowanceReceiver)
           : this;
       }
 
-      public CanCallOptions(bool skipIsA, Function enclosingFunction, bool selfCallAllowanceAlsoForOverride = false,
-        Dictionary<IVariable, Expression> allowanceSubstMap = null, Expression allowanceReceiver = null) {
+      public CanCallOptions(Function enclosingFunction, bool selfCallAllowanceAlsoForOverride = false,
+        Dictionary<IVariable, Expression> allowanceSubstMap = null, Expression allowanceReceiver = null,
+        bool skipIsA = false) {
         Contract.Assert(!selfCallAllowanceAlsoForOverride ||
                         (enclosingFunction.OverriddenFunction != null &&
                          enclosingFunction.Ins.Count == enclosingFunction.OverriddenFunction.Ins.Count));

@@ -279,10 +279,10 @@ namespace Microsoft.Dafny {
         // when checking f's own spec (the same circularity cco avoids elsewhere). This axiom is generated
         // once, while CurrentDeclaration is the enclosing function, so build the allowance now; pass the
         // substMap/receiverReplacement that map f's formals and "this" into this axiom's scope (see
-        // MakeAllowance / CanCallOptions.AllowanceSubstMap). Only the allowance is wanted, so skipIsA stays
-        // false: the constraint previously got no cco and must keep its $IsA# facts.
+        // MakeAllowance / CanCallOptions.AllowanceSubstMap). Only the allowance is wanted; the constraint
+        // previously got no cco, so it keeps its $IsA# facts (skipIsA defaults to off).
         var cco = BoogieGenerator.CurrentDeclaration is Function enclosingFunction
-          ? new CanCallOptions(false, enclosingFunction, allowanceSubstMap: substMap, allowanceReceiver: receiverReplacement)
+          ? new CanCallOptions(enclosingFunction, allowanceSubstMap: substMap, allowanceReceiver: receiverReplacement)
           : null;
         var canCallBody = etranCC.CanCallAssumption(p, cco);
         Bpl.Expr ax = BplImp(canCall, BplAnd(antecedent, BplAnd(canCallBody, etranCC.TrExpr(p))));
