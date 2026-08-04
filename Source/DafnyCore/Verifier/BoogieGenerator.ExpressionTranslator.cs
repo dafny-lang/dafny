@@ -1793,8 +1793,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             }
           } else if (e.Member is ConstantField { Rhs: { } rhs } && BoogieGenerator.RevealedInScope(e.Member)) {
             // Keep the receiver's canCall and propagate cco: if e.Obj is a self-call whose const RHS
-            // mentions "this", dropping cco would emit a bare f#canCall (see MakeAllowance). Only the
-            // allowance is wanted here; this RHS previously got no cco, so it must keep its $IsA# facts.
+            // mentions "this", dropping cco would emit a bare f#canCall (see MakeAllowance).
             r = BplAnd(r, CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null), cco?.AllowanceOnly()));
           }
           return r;
@@ -1886,7 +1885,6 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           };
           // Propagate cco into the per-index "init(i)" application, like the "init"/"n" calls below
           // (a self-call in the initializer would otherwise emit a bare f#canCall; see MakeAllowance).
-          // Only the allowance is wanted: this application previously got no cco, so it keeps its $IsA# facts.
           var canCall = CanCallAssumption(dafnyInitApplication, cco?.AllowanceOnly());
 
           dafnyInitApplication = new ApplyExpr(e.Origin, new BoogieWrapper(initF, e.Initializer.Type),
@@ -2098,9 +2096,11 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         return f == EnclosingFunction || (SelfCallAllowanceAlsoForOverride && f == EnclosingFunction.OverriddenFunction);
       }
 
-      /// Returns these options with the $IsA# suppression turned off, keeping only the self-call allowance. Use
-      /// when propagating a cco into a subexpression that previously received none, so that the allowance reaches
-      /// self-calls there without also dropping the $IsA# facts that subexpression used to get.
+      /// Returns these options with the $IsA# suppression turned off, keeping only the self-call allowance. Use at
+      /// every site that forwards a cco into a subexpression which used to receive none: the allowance must reach
+      /// the self-calls there, but a null cco emits $IsA#, so forwarding the suppression as well would silently
+      /// take away facts that subexpression had before. Callers of such a site may have opted into the
+      /// suppression for the whole expression (see SkipIsA), so this cannot be assumed to be a no-op.
       public CanCallOptions AllowanceOnly() {
         return SkipIsA
           ? new CanCallOptions(EnclosingFunction, SelfCallAllowanceAlsoForOverride, AllowanceSubstMap, AllowanceReceiver)

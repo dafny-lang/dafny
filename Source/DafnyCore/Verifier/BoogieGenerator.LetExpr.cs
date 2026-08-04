@@ -46,7 +46,6 @@ namespace Microsoft.Dafny {
             canCallRHS = BplAnd(canCallRHS, CanCallAssumption(rhs, cco));
           }
 
-          // Only the allowance is wanted: the body previously got no cco, so it keeps its $IsA# facts.
           var bodyCanCall = CanCallAssumption(expr.Body, cco?.AllowanceOnly());
           // We'd like to compute the free variables of "bodyCanCall". It would be nice to use the Boogie
           // routine Bpl.Expr.ComputeFreeVariables for this purpose. However, calling it requires the Boogie
@@ -279,8 +278,7 @@ namespace Microsoft.Dafny {
         // when checking f's own spec (the same circularity cco avoids elsewhere). This axiom is generated
         // once, while CurrentDeclaration is the enclosing function, so build the allowance now; pass the
         // substMap/receiverReplacement that map f's formals and "this" into this axiom's scope (see
-        // MakeAllowance / CanCallOptions.AllowanceSubstMap). Only the allowance is wanted; the constraint
-        // previously got no cco, so it keeps its $IsA# facts (skipIsA defaults to off).
+        // MakeAllowance / CanCallOptions.AllowanceSubstMap).
         var cco = BoogieGenerator.CurrentDeclaration is Function enclosingFunction
           ? new CanCallOptions(enclosingFunction, allowanceSubstMap: substMap, allowanceReceiver: receiverReplacement)
           : null;
