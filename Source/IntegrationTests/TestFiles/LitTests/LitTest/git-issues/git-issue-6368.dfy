@@ -45,6 +45,14 @@ twostate function UnchangedOk(c: Cell): TrueBool reads c
   requires unchanged(c)
 { unchanged(c) }  // ok
 
+// The constraint is really evaluated, rather than `unchanged` being rejected outright at a constrained type:
+// here the heap fact establishes that the value is false, which satisfies FalseBool.
+newtype FalseBool = b: bool | !b witness false
+
+twostate function MustHaveChanged(c: Cell): FalseBool reads c
+  requires old(c.data) != c.data
+{ unchanged(c) }  // ok
+
 // A plain bool result is unaffected, since there is no constraint to check.
 twostate predicate PlainUnchanged(c: Cell) reads c { unchanged(c) }
 ghost function PlainDecreasesTo(): bool { 1 decreases to 2 }

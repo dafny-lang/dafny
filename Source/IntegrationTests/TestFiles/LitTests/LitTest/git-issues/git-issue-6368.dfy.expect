@@ -5,4 +5,4 @@ git-issue-6368.dfy(28,3): Error: result of operation could not be proved to sati
 git-issue-6368.dfy(36,43): Error: result of operation could not be proved to satisfy newtype constraint for 'TrueBool'
 git-issue-6368.dfy(42,57): Error: result of operation could not be proved to satisfy newtype constraint for 'TrueBool'
 
-Dafny program verifier finished with 9 verified, 6 errors
+Dafny program verifier finished with 11 verified, 6 errors
