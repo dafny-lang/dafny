@@ -3,6 +3,7 @@
 // method, so comparing them generically -- here, through a set -- used to crash
 // (https://github.com/dafny-lang/dafny/issues/6491). They now compare by identity, which is
 // the equality Dafny gives reference types.
+// NONUNIFORM: Java does not support iterators, so this cannot use %testDafnyForEachCompiler
 // RUN: %run --target js "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
