@@ -285,6 +285,34 @@ module Multiset {
   }
 }
 
+module Map {
+  type Map = m: map<int, int> | |m| == 2 // error: cannot find witness
+
+  method Construct() returns (m: Map) {
+    if
+    case true =>
+      m := map[]; // error: too small, so not a Map
+    case true =>
+      m := map[1 := 1, 2 := 2];
+    case true =>
+      m := map[1 := 1, 2 := 2, 3 := 3]; // error: too big, so not a Map
+    case true =>
+      m := map x | 0 <= x < 1 :: x; // error: too small, so not a Map
+  }
+
+  method Update(a: Map, k: int, v: int) returns (m: Map) {
+    m := a[k := v]; // error: k may be a new key, so the result may not be a Map
+  }
+
+  method Operators(a: Map, b: Map, n: map<int, int>) returns (m: Map) {
+    if
+    case true =>
+      m := a + b; // error: not a Map
+    case true =>
+      m := n as Map; // error: not a Map
+  }
+}
+
 module Seq {
   type Seq = s: seq<int> | |s| == 3 // error: cannot find witness
   type String = s: string | |s| == 3 witness "abc"
