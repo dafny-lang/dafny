@@ -13,84 +13,85 @@ ResultInTypeNewtype.dfy(50,9): Error: result of operation could not be proved to
 ResultInTypeNewtype.dfy(54,11): Error: result of operation could not be proved to satisfy newtype constraint for 'False'
 ResultInTypeNewtype.dfy(58,6): Error: result of operation could not be proved to satisfy newtype constraint for 'False'
 ResultInTypeNewtype.dfy(64,4): Error: result of operation could not be proved to satisfy newtype constraint for 'False'
-ResultInTypeNewtype.dfy(69,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(69,27): Related location: this proposition could not be proved
-ResultInTypeNewtype.dfy(72,9): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
-ResultInTypeNewtype.dfy(78,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
-ResultInTypeNewtype.dfy(80,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
-ResultInTypeNewtype.dfy(82,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
-ResultInTypeNewtype.dfy(84,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
+ResultInTypeNewtype.dfy(70,6): Error: result of operation could not be proved to satisfy newtype constraint for 'False'
+ResultInTypeNewtype.dfy(75,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+ResultInTypeNewtype.dfy(75,27): Related location: this proposition could not be proved
+ResultInTypeNewtype.dfy(78,9): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
+ResultInTypeNewtype.dfy(84,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
 ResultInTypeNewtype.dfy(86,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
-ResultInTypeNewtype.dfy(90,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
-ResultInTypeNewtype.dfy(95,10): Error: cannot find witness that shows type is inhabited (only tried 0.0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(95,31): Related location: this proposition could not be proved
-ResultInTypeNewtype.dfy(98,9): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
-ResultInTypeNewtype.dfy(104,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
-ResultInTypeNewtype.dfy(106,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
-ResultInTypeNewtype.dfy(108,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
-ResultInTypeNewtype.dfy(110,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
+ResultInTypeNewtype.dfy(88,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
+ResultInTypeNewtype.dfy(90,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
+ResultInTypeNewtype.dfy(92,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
+ResultInTypeNewtype.dfy(96,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Int'
+ResultInTypeNewtype.dfy(101,10): Error: cannot find witness that shows type is inhabited (only tried 0.0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+ResultInTypeNewtype.dfy(101,31): Related location: this proposition could not be proved
+ResultInTypeNewtype.dfy(104,9): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
+ResultInTypeNewtype.dfy(110,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
 ResultInTypeNewtype.dfy(112,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
-ResultInTypeNewtype.dfy(116,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
-ResultInTypeNewtype.dfy(121,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(121,26): Related location: this proposition could not be proved
-ResultInTypeNewtype.dfy(124,9): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
-ResultInTypeNewtype.dfy(130,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
-ResultInTypeNewtype.dfy(132,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
-ResultInTypeNewtype.dfy(134,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
-ResultInTypeNewtype.dfy(136,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
+ResultInTypeNewtype.dfy(114,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
+ResultInTypeNewtype.dfy(116,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
+ResultInTypeNewtype.dfy(118,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
+ResultInTypeNewtype.dfy(122,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Real'
+ResultInTypeNewtype.dfy(127,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+ResultInTypeNewtype.dfy(127,26): Related location: this proposition could not be proved
+ResultInTypeNewtype.dfy(130,9): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
+ResultInTypeNewtype.dfy(136,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
 ResultInTypeNewtype.dfy(138,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
-ResultInTypeNewtype.dfy(144,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
-ResultInTypeNewtype.dfy(146,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
-ResultInTypeNewtype.dfy(148,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
-ResultInTypeNewtype.dfy(150,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
+ResultInTypeNewtype.dfy(140,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
+ResultInTypeNewtype.dfy(142,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
+ResultInTypeNewtype.dfy(144,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
+ResultInTypeNewtype.dfy(150,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
+ResultInTypeNewtype.dfy(152,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
+ResultInTypeNewtype.dfy(154,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
 ResultInTypeNewtype.dfy(156,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
-ResultInTypeNewtype.dfy(158,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
-ResultInTypeNewtype.dfy(162,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
-ResultInTypeNewtype.dfy(167,10): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(167,31): Related location: this proposition could not be proved
-ResultInTypeNewtype.dfy(170,9): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
-ResultInTypeNewtype.dfy(176,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
-ResultInTypeNewtype.dfy(178,13): Error: char subtraction could not be proved to remain above minimum
-ResultInTypeNewtype.dfy(178,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
-ResultInTypeNewtype.dfy(182,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
-ResultInTypeNewtype.dfy(187,10): Error: cannot find witness that shows type is inhabited (only tried {}); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(192,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
-ResultInTypeNewtype.dfy(194,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
+ResultInTypeNewtype.dfy(162,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
+ResultInTypeNewtype.dfy(164,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
+ResultInTypeNewtype.dfy(168,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Bv'
+ResultInTypeNewtype.dfy(173,10): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+ResultInTypeNewtype.dfy(173,31): Related location: this proposition could not be proved
+ResultInTypeNewtype.dfy(176,9): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
+ResultInTypeNewtype.dfy(182,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
+ResultInTypeNewtype.dfy(184,13): Error: char subtraction could not be proved to remain above minimum
+ResultInTypeNewtype.dfy(184,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
+ResultInTypeNewtype.dfy(188,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
+ResultInTypeNewtype.dfy(193,10): Error: cannot find witness that shows type is inhabited (only tried {}); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 ResultInTypeNewtype.dfy(198,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
 ResultInTypeNewtype.dfy(200,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
-ResultInTypeNewtype.dfy(206,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
-ResultInTypeNewtype.dfy(208,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
-ResultInTypeNewtype.dfy(210,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
+ResultInTypeNewtype.dfy(204,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
+ResultInTypeNewtype.dfy(206,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
 ResultInTypeNewtype.dfy(212,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
-ResultInTypeNewtype.dfy(217,10): Error: cannot find witness that shows type is inhabited (only tried iset{}); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(222,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
-ResultInTypeNewtype.dfy(224,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
+ResultInTypeNewtype.dfy(214,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
+ResultInTypeNewtype.dfy(216,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
+ResultInTypeNewtype.dfy(218,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntSet'
+ResultInTypeNewtype.dfy(223,10): Error: cannot find witness that shows type is inhabited (only tried iset{}); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 ResultInTypeNewtype.dfy(228,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
 ResultInTypeNewtype.dfy(230,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
-ResultInTypeNewtype.dfy(236,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
-ResultInTypeNewtype.dfy(238,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
-ResultInTypeNewtype.dfy(240,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
+ResultInTypeNewtype.dfy(234,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
+ResultInTypeNewtype.dfy(236,11): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
 ResultInTypeNewtype.dfy(242,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
-ResultInTypeNewtype.dfy(247,10): Error: cannot find witness that shows type is inhabited (only tried multiset{}); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(252,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
-ResultInTypeNewtype.dfy(254,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
-ResultInTypeNewtype.dfy(262,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
-ResultInTypeNewtype.dfy(264,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
-ResultInTypeNewtype.dfy(266,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
+ResultInTypeNewtype.dfy(244,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
+ResultInTypeNewtype.dfy(246,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
+ResultInTypeNewtype.dfy(248,13): Error: result of operation could not be proved to satisfy newtype constraint for 'IntIset'
+ResultInTypeNewtype.dfy(253,10): Error: cannot find witness that shows type is inhabited (only tried multiset{}); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+ResultInTypeNewtype.dfy(258,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
+ResultInTypeNewtype.dfy(260,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
 ResultInTypeNewtype.dfy(268,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
-ResultInTypeNewtype.dfy(274,19): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
-ResultInTypeNewtype.dfy(276,19): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
-ResultInTypeNewtype.dfy(283,10): Error: cannot find witness that shows type is inhabited (only tried []); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-ResultInTypeNewtype.dfy(290,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
-ResultInTypeNewtype.dfy(296,11): Error: result of operation could not be proved to satisfy newtype constraint for 'String'
-ResultInTypeNewtype.dfy(302,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
-ResultInTypeNewtype.dfy(304,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
-ResultInTypeNewtype.dfy(310,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
-ResultInTypeNewtype.dfy(312,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
-ResultInTypeNewtype.dfy(314,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
-ResultInTypeNewtype.dfy(324,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
-ResultInTypeNewtype.dfy(326,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
-ResultInTypeNewtype.dfy(328,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
+ResultInTypeNewtype.dfy(270,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
+ResultInTypeNewtype.dfy(272,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
+ResultInTypeNewtype.dfy(274,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
+ResultInTypeNewtype.dfy(280,19): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
+ResultInTypeNewtype.dfy(282,19): Error: result of operation could not be proved to satisfy newtype constraint for 'Multiset'
+ResultInTypeNewtype.dfy(289,10): Error: cannot find witness that shows type is inhabited (only tried []); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+ResultInTypeNewtype.dfy(296,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
+ResultInTypeNewtype.dfy(302,11): Error: result of operation could not be proved to satisfy newtype constraint for 'String'
+ResultInTypeNewtype.dfy(308,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
+ResultInTypeNewtype.dfy(310,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
+ResultInTypeNewtype.dfy(316,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
+ResultInTypeNewtype.dfy(318,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
+ResultInTypeNewtype.dfy(320,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
 ResultInTypeNewtype.dfy(330,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
+ResultInTypeNewtype.dfy(332,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
+ResultInTypeNewtype.dfy(334,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
+ResultInTypeNewtype.dfy(336,12): Error: result of operation could not be proved to satisfy newtype constraint for 'Seq'
 
-Dafny program verifier finished with 3 verified, 90 errors
+Dafny program verifier finished with 3 verified, 91 errors

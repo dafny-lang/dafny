@@ -63,6 +63,12 @@ module Bool {
   twostate function UnchangedResult(c: Cell): False reads c {
     unchanged(c) // error: c may be unchanged, and then the result is not a False
   }
+
+  codatatype Stream = Cons(head: int, tail: Stream)
+
+  ghost function PrefixEquality(s: Stream, t: Stream): False {
+    s ==#[1] t // error: the streams may agree, and then the result is not a False
+  }
 }
 
 module Int {
