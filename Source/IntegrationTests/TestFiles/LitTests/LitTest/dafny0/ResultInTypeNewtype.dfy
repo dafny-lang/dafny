@@ -297,7 +297,7 @@ module Map {
     case true =>
       m := map[1 := 1, 2 := 2, 3 := 3]; // error: too big, so not a Map
     case true =>
-      m := map x | 0 <= x < 1 :: x; // error: too small, so not a Map
+      m := map x: int | 0 <= x < 1 :: 2 * x; // error: too small, so not a Map
   }
 
   method Update(a: Map, k: int, v: int) returns (m: Map) {
