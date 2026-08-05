@@ -1801,9 +1801,13 @@ implementation instead gives the type some other equality — for example a
 structural equality obtained by overriding `equals` and `hashCode` in Java,
 `Equals` and `GetHashCode` in C#, or `__eq__` and `__hash__` in Python — then a
 compiled program can behave in ways the verifier proved impossible: two objects
-that were proved unequal may compare equal at run time, and a `set` containing
-them may turn out to have fewer elements than was verified. Dafny does not
-currently detect this situation, so it is the user's responsibility to avoid it;
+that were proved unequal may compare equal at run time, a `set` containing them
+may turn out to have fewer elements than was verified, and, where the collections
+of the target language are organized by hash value, an object whose hash depends
+on mutable state may no longer be found once it is mutated, so that a verified
+`x in s` is false at run time. The last of these needs only the hash to be
+overridden, with equality left as object identity. Dafny does not currently
+detect this situation, so it is the user's responsibility to avoid it;
 the target-specific behavior is described in the integration guide for each
 language. Some backends let an extern override the equality used by the runtime
 collections, but doing so on a reference type reintroduces exactly this
