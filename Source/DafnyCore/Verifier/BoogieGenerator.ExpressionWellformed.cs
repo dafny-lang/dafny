@@ -283,11 +283,11 @@ namespace Microsoft.Dafny {
     /// A case that produces a value whose type may carry a constraint must call CheckResultToBeInType for it.
     /// Forgetting to has been a recurring source of unsoundness (seq(), collection updates, "decreases to",
     /// "unchanged"), so it is tempting to hoist one call to the end of this method and drop the per-case ones.
-    /// That does not work: where the expression is the RHS of an assignment, the assignment already checks it via
-    /// CheckSubrange, and the hoisted call reports a second error against the statement's token rather than the
-    /// value's. Hoisting was tried on dafny0/ResultInTypeNewtype.dfy and left most of the file's error lines
-    /// reported twice, once per token. The per-case calls are what keeps each check aligned with the token of the
-    /// value actually being constructed.
+    /// That does not work. This method recurses, so a call placed after the switch runs at every level of the
+    /// expression tree rather than only where a value is constructed: for "b := true;" it reports the constraint
+    /// once against the assignment and again against the literal. Hoisting was tried on
+    /// dafny0/ResultInTypeNewtype.dfy and left most of the file's error lines duplicated that way. Keeping the
+    /// calls in the cases is what limits each check to the token whose value is actually being built.
     /// </summary>
     public void CheckWellformedWithResult(Expression expr, WFOptions wfOptions,
       Variables locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
