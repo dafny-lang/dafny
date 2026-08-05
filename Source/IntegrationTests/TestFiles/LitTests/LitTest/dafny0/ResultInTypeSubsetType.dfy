@@ -310,6 +310,18 @@ module Seq {
       s := m as Seq; // error: not a Seq
   }
 
+  method SeqConstruction(n: nat) returns (s: Seq) {
+    s := seq(n, i => i); // error: the length is n, which may not be 3
+  }
+
+  type Sorted = s: seq<int> | forall i, j :: 0 <= i < j < |s| ==> s[i] <= s[j]
+
+  method Update(a: Sorted) returns (s: Sorted)
+    requires 2 <= |a|
+  {
+    s := a[0 := 999]; // error: may break the sorted order, so not a Sorted
+  }
+
   method SubSequenceFromSeq(a: Seq) returns (s: Seq) {
     if
     case true =>

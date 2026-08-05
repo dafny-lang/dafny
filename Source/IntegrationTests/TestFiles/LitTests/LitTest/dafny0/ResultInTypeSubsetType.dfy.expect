@@ -86,12 +86,14 @@ ResultInTypeSubsetType.dfy(296,11): Error: value does not satisfy the subset con
 ResultInTypeSubsetType.dfy(302,11): Error: value does not satisfy the subset constraints of 'String'
 ResultInTypeSubsetType.dfy(308,13): Error: value does not satisfy the subset constraints of 'Seq'
 ResultInTypeSubsetType.dfy(310,13): Error: result of operation could not be proved to satisfy subset type constraint for 'Seq'
-ResultInTypeSubsetType.dfy(316,12): Error: value does not satisfy the subset constraints of 'Seq'
-ResultInTypeSubsetType.dfy(318,12): Error: value does not satisfy the subset constraints of 'Seq'
-ResultInTypeSubsetType.dfy(320,12): Error: value does not satisfy the subset constraints of 'Seq'
+ResultInTypeSubsetType.dfy(314,9): Error: value does not satisfy the subset constraints of 'Seq'
+ResultInTypeSubsetType.dfy(322,10): Error: value does not satisfy the subset constraints of 'Sorted'
+ResultInTypeSubsetType.dfy(328,12): Error: value does not satisfy the subset constraints of 'Seq'
 ResultInTypeSubsetType.dfy(330,12): Error: value does not satisfy the subset constraints of 'Seq'
 ResultInTypeSubsetType.dfy(332,12): Error: value does not satisfy the subset constraints of 'Seq'
-ResultInTypeSubsetType.dfy(334,12): Error: value does not satisfy the subset constraints of 'Seq'
-ResultInTypeSubsetType.dfy(336,12): Error: value does not satisfy the subset constraints of 'Seq'
+ResultInTypeSubsetType.dfy(342,12): Error: value does not satisfy the subset constraints of 'Seq'
+ResultInTypeSubsetType.dfy(344,12): Error: value does not satisfy the subset constraints of 'Seq'
+ResultInTypeSubsetType.dfy(346,12): Error: value does not satisfy the subset constraints of 'Seq'
+ResultInTypeSubsetType.dfy(348,12): Error: value does not satisfy the subset constraints of 'Seq'
 
-Dafny program verifier finished with 3 verified, 91 errors
+Dafny program verifier finished with 4 verified, 93 errors
