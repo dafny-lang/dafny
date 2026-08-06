@@ -1302,9 +1302,10 @@ namespace Microsoft.Dafny {
             wr.Write(", ");
           }
 
-          // A non-last frame expression is followed by ", ...", which a comprehension's domain would
-          // absorb, so it needs the disambiguating parentheses that isRightmost: false adds. The
-          // "=> term" that follows the last one plays the same role for it.
+          // A frame expression is followed either by ", ..." or by " => ", and a comprehension's domain
+          // would absorb the former, so isRightmost is false throughout. The last one happens to survive
+          // without the parentheses, because "=>" ends the domain, but that is a property of the arrow
+          // rather than of this list, so it is not worth varying by position here.
           PrintExpression(e.Reads.Expressions[readIndex].E, false, false);
         }
 

@@ -1131,6 +1131,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       wr.Write(")");
     }
 
+    /// "isRightmost" defaults to true because the two callers that do not pass it print a single formal
+    /// enclosed by its own delimiters -- a function's result formal in parentheses, and a prefix lemma's
+    /// first formal in brackets -- so nothing follows the formal that a comprehension could absorb.
     void PrintFormal(Formal f, bool showNewKeyword, bool isRightmost = true) {
       Contract.Requires(f != null);
       if (showNewKeyword && !f.IsOld) {
