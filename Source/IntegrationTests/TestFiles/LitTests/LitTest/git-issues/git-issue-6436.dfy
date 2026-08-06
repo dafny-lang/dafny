@@ -67,3 +67,21 @@ function ReadsStmtExpr(o: C): int reads (L(0); o) { 0 }
 method ModifiesStmtExpr(o: C) modifies (L(0); o) { }
 method ModifyStmtExpr(o: C) modifies o { modify (L(0); o); }
 twostate predicate UnchangedStmtExpr(o: C) reads o { unchanged((L(0); o)) }
+
+// Three more comma-separated expression lists of the same kind. In each, a comprehension is
+// followed by ", ...", which its domain would absorb if the parentheses were dropped.
+
+// A formal's default value (PrintFormals / PrintFormal).
+method DefaultValue(a: set<int> := (set i | i in {1, 2}), b: int := 0) { }
+
+// A lambda's reads clause.
+method LambdaReads(c: C, cs: set<C>) {
+  var g := (u: int) reads (set y | y in cs), c => u;
+}
+
+// An expect condition followed by a message. The condition must be bool, but that does not help:
+// parenthesization is governed by the rightmost spine, and a comprehension can sit there.
+method ExpectWithMessage(x: set<int>, n: int) {
+  expect n in (set i | i in x), n;
+}
+

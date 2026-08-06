@@ -528,8 +528,12 @@ namespace Microsoft.Dafny {
       if (assertStmt != null && assertStmt.Label != null) {
         wr.Write("{0}: ", assertStmt.Label.Name);
       }
-      PrintExpression(expr, true);
-      if (expectStmt is { Message: not null }) {
+      var hasMessage = expectStmt is { Message: not null };
+      // With a message, ", ..." follows the condition, which a comprehension on the condition's
+      // rightmost spine would absorb -- the condition being bool does not prevent that, since
+      // parenthesization is governed by the rightmost spine rather than the top-level type.
+      PrintExpression(expr, !hasMessage, true);
+      if (hasMessage) {
         wr.Write(", ");
         PrintExpression(expectStmt.Message, true);
       }

@@ -1121,16 +1121,17 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       wr.Write("(");
       string sep = "";
-      foreach (Formal f in ff) {
+      for (var i = 0; i < ff.Count; i++) {
+        var f = ff[i];
         Contract.Assert(f != null);
         wr.Write(sep);
         sep = ", ";
-        PrintFormal(f, (context is TwoStateLemma || context is TwoStateFunction) && f.InParam);
+        PrintFormal(f, (context is TwoStateLemma || context is TwoStateFunction) && f.InParam, i == ff.Count - 1);
       }
       wr.Write(")");
     }
 
-    void PrintFormal(Formal f, bool showNewKeyword) {
+    void PrintFormal(Formal f, bool showNewKeyword, bool isRightmost = true) {
       Contract.Requires(f != null);
       if (showNewKeyword && !f.IsOld) {
         wr.Write("new ");
@@ -1152,7 +1153,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       PrintType(f.Type);
       if (f.DefaultValue != null) {
         wr.Write(" := ");
-        PrintExpression(f.DefaultValue, false);
+        // A non-last formal is followed by ", ...", which a comprehension's domain would absorb, so the
+        // default value needs the disambiguating parentheses that isRightmost: false adds. The closing
+        // parenthesis of the formal list plays that role for the last one.
+        PrintExpression(f.DefaultValue, isRightmost, false);
       }
     }
 

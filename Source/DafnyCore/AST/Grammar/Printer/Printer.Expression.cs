@@ -1295,16 +1295,17 @@ namespace Microsoft.Dafny {
           PrintExpression(e.Range, false);
         }
 
-        var firstReadsExpression = true;
-        foreach (var read in e.Reads.Expressions) {
-          if (firstReadsExpression) {
+        for (var readIndex = 0; readIndex < e.Reads.Expressions.Count; readIndex++) {
+          if (readIndex == 0) {
             PrintAttributes(e.Reads.Attributes, indent, () => { wr.Write(" reads "); });
-            firstReadsExpression = false;
           } else {
             wr.Write(", ");
           }
 
-          PrintExpression(read.E, false);
+          // A non-last frame expression is followed by ", ...", which a comprehension's domain would
+          // absorb, so it needs the disambiguating parentheses that isRightmost: false adds. The
+          // "=> term" that follows the last one plays the same role for it.
+          PrintExpression(e.Reads.Expressions[readIndex].E, false, false);
         }
 
         wr.Write(" => ");
