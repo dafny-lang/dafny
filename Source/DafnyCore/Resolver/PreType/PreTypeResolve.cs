@@ -856,6 +856,13 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Assumes that the type parameters in scope for "d" have been pushed.
+    ///
+    /// Callers that are about to read a datatype constructor's formals must call this for the enclosing
+    /// datatype first. Those formals get their pre-types filled in while the datatype's signature is
+    /// resolved (the DatatypeDecl case of FillInPreTypesInSignature) rather than on their own, and the
+    /// datatype is not tracked in StillNeedsPreTypeSignature, so the formals can otherwise still be
+    /// unresolved. The call is idempotent: it returns immediately for a declaration that no longer needs
+    /// its signature resolved.
     /// </summary>
     public void ResolveDeclarationSignature(Declaration d) {
       Contract.Requires(d is TopLevelDecl or MemberDecl);

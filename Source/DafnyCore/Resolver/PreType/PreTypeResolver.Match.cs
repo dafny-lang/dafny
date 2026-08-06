@@ -152,10 +152,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      // A constructor's formals get their pre-types filled in while the enclosing datatype's signature is
-      // resolved (the DatatypeDecl case of FillInPreTypesInSignature), and the datatype is not tracked in
-      // StillNeedsPreTypeSignature, so reading the formals below can see them unresolved. Cf. the same call
-      // in ResolveDatatypeConstructor.
+      // ctor.Formals is read below; see ResolveDeclarationSignature.
       ResolveDeclarationSignature(dtd);
       var subst = PreType.PreTypeSubstMap(dtd.TypeArgs, dpreType.Arguments);
       for (var i = 0; i < idPattern.Arguments.Count; i++) {
