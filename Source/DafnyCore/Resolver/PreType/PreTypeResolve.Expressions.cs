@@ -2538,6 +2538,11 @@ namespace Microsoft.Dafny {
             ReportError(pat.Origin, "pattern for constructor {0} has wrong number of formals (found {1}, expected {2})", pat.Id, pat.Arguments.Count, ctor.Formals.Count);
           }
         }
+      // A constructor's formals get their pre-types filled in while the enclosing datatype's signature is
+      // resolved (the DatatypeDecl case of FillInPreTypesInSignature), and the datatype is not tracked in
+      // StillNeedsPreTypeSignature, so reading the formals below can see them unresolved. Cf. the same call
+      // in ResolveDatatypeConstructor.
+      ResolveDeclarationSignature(dtd);
         // build the type-parameter substitution map for this use of the datatype
         Contract.Assert(dtd.TypeArgs.Count == sourceTypeArguments.Count);  // follows from the type previously having been successfully resolved
         var subst = PreType.PreTypeSubstMap(dtd.TypeArgs, sourceTypeArguments);
@@ -2570,6 +2575,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(datatypeDecl != null);
       Contract.Requires(ty == null || (ty.Decl == datatypeDecl && ty.Arguments.Count == datatypeDecl.TypeArgs.Count));
 
+      // A constructor's formals get their pre-types filled in while the enclosing datatype's signature is
+      // resolved (the DatatypeDecl case of FillInPreTypesInSignature), and the datatype is not tracked in
+      // StillNeedsPreTypeSignature, so reading the formals below can see them unresolved. Cf. the same call
+      // in ResolveDatatypeConstructor.
+      ResolveDeclarationSignature(datatypeDecl);
       var ok = true;
       List<PreType> gt;
       if (ty == null) {
