@@ -62,3 +62,21 @@ module TestsOk {
     modifies a
   { a.bank := b; }
 }
+
+// The tailored suggestion must not appear when the shape is what is wrong. A reads clause accepts an
+// arrow only if it returns a collection, so `() ~> Account` is rejected on shape regardless of whether
+// Account is a reference type -- and `extends object` would not help, as the second case shows.
+module TestsShapeNotReferenceness {
+  trait Account { }
+
+  function ReadsArrowToTrait(g: () ~> Account): int
+    reads g
+  { 0 } // error: shape, not reference-ness
+
+  trait RefAccount extends object { }
+
+  function ReadsArrowToRefTrait(g: () ~> RefAccount): int
+    reads g
+  { 0 } // error: still the shape, even though the trait is a reference type
+}
+

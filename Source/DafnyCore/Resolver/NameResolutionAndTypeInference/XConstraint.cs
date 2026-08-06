@@ -504,7 +504,12 @@ public class XConstraint {
             convertedIntoOtherTypeConstraints = true;
             return true;
           }
-          if (TryReportNonReferenceTraitError(t, frameConstraint.Use.ClauseDescription())) {
+          // Suggest "extends object" only when reference-ness is the sole reason the type was rejected.
+          // For a reads clause the shape matters too -- an arrow has to return a collection -- and for
+          // something like "() ~> T" the shape is what is wrong, so the suggestion would send the user
+          // down a dead end: taking it produces the shape error instead.
+          if ((arrTy == null || collType != null) &&
+              TryReportNonReferenceTraitError(t, frameConstraint.Use.ClauseDescription())) {
             return true;
           }
           satisfied = false;
