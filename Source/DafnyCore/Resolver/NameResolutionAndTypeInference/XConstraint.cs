@@ -45,8 +45,9 @@ public class XConstraint {
 
     // If "type" is a non-reference trait, emit a tailored frame-expression diagnostic
     // naming "clauseDescription" and return true. Otherwise return false.
-    bool TryReportNonReferenceTraitError(Type type, string clauseDescription) {
-      var hint = ModuleResolver.NonReferenceTraitFrameMessageOrNull((type as UserDefinedType)?.ResolvedClass, clauseDescription);
+    bool TryReportNonReferenceTraitError(Type type, string clauseDescription, bool shapeIsAcceptable = true) {
+      var hint = ModuleResolver.NonReferenceTraitFrameMessageOrNull((type as UserDefinedType)?.ResolvedClass,
+        clauseDescription, shapeIsAcceptable);
       if (hint != null) {
         resolver.reporter.Error(MessageSource.Resolver, tok, hint);
         return true;
@@ -504,12 +505,8 @@ public class XConstraint {
             convertedIntoOtherTypeConstraints = true;
             return true;
           }
-          // Suggest "extends object" only when reference-ness is the sole reason the type was rejected.
-          // For a reads clause the shape matters too -- an arrow has to return a collection -- and for
-          // something like "() ~> T" the shape is what is wrong, so the suggestion would send the user
-          // down a dead end: taking it produces the shape error instead.
-          if ((arrTy == null || collType != null) &&
-              TryReportNonReferenceTraitError(t, frameConstraint.Use.ClauseDescription())) {
+          if (TryReportNonReferenceTraitError(t, frameConstraint.Use.ClauseDescription(),
+                shapeIsAcceptable: arrTy == null || collType != null)) {
             return true;
           }
           satisfied = false;

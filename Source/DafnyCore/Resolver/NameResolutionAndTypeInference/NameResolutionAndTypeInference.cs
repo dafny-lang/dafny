@@ -3205,9 +3205,16 @@ namespace Microsoft.Dafny {
     ///
     /// <paramref name="clauseDescription"/> is the noun phrase naming the language construct ("a reads clause",
     /// "a modifies clause", "an unchanged expression", "a fresh expression").
+    ///
+    /// <paramref name="shapeIsAcceptable"/> says whether the type would have been accepted had it been a
+    /// reference type. Only then is reference-ness the sole reason for the failure, and only then does the
+    /// suggestion help: for a reads clause on an arrow that does not return a collection, such as
+    /// `() ~&gt; T`, the shape is what is wrong, and taking the suggestion just produces the shape error
+    /// instead. Callers pass their own shape predicate, since the two resolvers phrase it differently.
     /// </summary>
-    public static string NonReferenceTraitFrameMessageOrNull(TopLevelDecl decl, string clauseDescription) {
-      if (decl is TraitDecl traitDecl && !traitDecl.IsReferenceTypeDecl) {
+    public static string NonReferenceTraitFrameMessageOrNull(TopLevelDecl decl, string clauseDescription,
+      bool shapeIsAcceptable = true) {
+      if (shapeIsAcceptable && decl is TraitDecl traitDecl && !traitDecl.IsReferenceTypeDecl) {
         return $"{clauseDescription} can only refer to reference types (consider declaring the trait '{traitDecl.Name}' with 'extends object')";
       }
       return null;

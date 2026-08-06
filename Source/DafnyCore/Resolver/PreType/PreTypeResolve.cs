@@ -1645,11 +1645,8 @@ namespace Microsoft.Dafny {
 
         if (!((DPreType.IsReferenceTypeDecl(dp.Decl) ||
                DPreType.IsFieldLocationType(dp)) && (!hasArrowType || hasCollectionType))) {
-          // Suggest "extends object" only when reference-ness is the sole reason the type was rejected;
-          // if the shape is also wrong (an arrow that does not return a collection) the suggestion would
-          // not help, and taking it just produces the shape error instead.
-          if ((!hasArrowType || hasCollectionType) &&
-              ModuleResolver.NonReferenceTraitFrameMessageOrNull(dp.Decl, use.ClauseDescription()) is { } traitHint) {
+          if (ModuleResolver.NonReferenceTraitFrameMessageOrNull(dp.Decl, use.ClauseDescription(),
+                shapeIsAcceptable: !hasArrowType || hasCollectionType) is { } traitHint) {
             ReportError(fe.E.Origin, traitHint);
           } else {
             ReportError(fe.E.Origin, ModuleResolver.GenericFrameMessageFormat(use), fe.E.PreType);
