@@ -2102,9 +2102,17 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       /// take away facts that subexpression had before. Callers of such a site may have opted into the
       /// suppression for the whole expression (see SkipIsA), so this cannot be assumed to be a no-op.
       public CanCallOptions AllowanceOnly() {
-        return SkipIsA
-          ? new CanCallOptions(EnclosingFunction, SelfCallAllowanceAlsoForOverride, AllowanceSubstMap, AllowanceReceiver)
-          : this;
+        return SkipIsA ? new CanCallOptions(this, skipIsA: false) : this;
+      }
+
+      /// Copies "source", overriding SkipIsA. Written as a copy rather than as a fresh construction so
+      /// that a field added to this class later is carried over rather than silently dropped.
+      private CanCallOptions(CanCallOptions source, bool skipIsA) {
+        this.SkipIsA = skipIsA;
+        this.EnclosingFunction = source.EnclosingFunction;
+        this.SelfCallAllowanceAlsoForOverride = source.SelfCallAllowanceAlsoForOverride;
+        this.AllowanceSubstMap = source.AllowanceSubstMap;
+        this.AllowanceReceiver = source.AllowanceReceiver;
       }
 
       public CanCallOptions(Function enclosingFunction, bool selfCallAllowanceAlsoForOverride = false,
