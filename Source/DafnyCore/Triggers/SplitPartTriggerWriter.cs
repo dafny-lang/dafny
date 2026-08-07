@@ -107,7 +107,9 @@ class SplitPartTriggerWriter {
               innerBoundVars.Add(bv);
             }
             break;
-          case ComprehensionExpr ce when ce is not QuantifierExpr: // set/map comprehensions and lambdas
+          case ComprehensionExpr ce when ce is not QuantifierExpr && ce != Comprehension:
+            // set/map comprehensions and lambdas, but not the comprehension being rewritten: its own
+            // variables are the ones the rewrite is allowed to hoist, and the visit starts at it.
             foreach (var bv in ce.BoundVars) {
               innerBoundVars.Add(bv);
             }
