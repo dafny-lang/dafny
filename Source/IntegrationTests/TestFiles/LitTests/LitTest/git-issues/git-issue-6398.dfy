@@ -19,11 +19,11 @@ class C<E> extends T<E> {
   function f(): int ensures |c| >= 0 { 0 }
 }
 
-// No override involved: C declares its own f, which reads the inherited const.
-trait T2<E> {
-  static ghost function h2(): seq<E>
-  ghost const c2: seq<E> := h2()
+// No override involved: the class declares a member of its own that reads the inherited const.
+trait GenericTrait<E> {
+  static ghost function staticCall(): seq<E>
+  ghost const inherited: seq<E> := staticCall()
 }
-class C2<E> extends T2<E> {
-  function f2(): int ensures |c2| >= 0 { 0 }
+class ReadInheritedConst<E> extends GenericTrait<E> {
+  function usesIt(): int ensures |inherited| >= 0 { 0 }
 }
