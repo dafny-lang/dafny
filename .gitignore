@@ -84,6 +84,8 @@ Source/IntegrationTests/TestFiles/LitTests/LitTest/comp/**/*.html
 Source/IntegrationTests/TestFiles/LitTests/LitTest/**/*.dtr
 /Source/IntegrationTests/TestFiles/LitTests/LitTest/cli/projectFile/libs/usesLibrary-lib
 /Source/IntegrationTests/TestFiles/LitTests/LitTest/cli/projectFile/libs/usesLibrary.doo
+/Source/IntegrationTests/TestFiles/LitTests/LitTest/stdlibs/Inputs/fileIOProject/usesFileIO-lib
+/Source/IntegrationTests/TestFiles/LitTests/LitTest/stdlibs/Inputs/fileIOProject/usesFileIO.doo
 Source/IntegrationTests/TestFiles/LitTests/LitTest/**/*.deps.json
 Source/IntegrationTests/TestFiles/LitTests/LitTest/**/*.csproj
 /Source/IntegrationTests/TestFiles/LitTests/LitTest/pythonmodule/multimodule/PythonModule2
