@@ -57,4 +57,23 @@ public class ResourceCountOverflowTest {
 
     Assert.Contains($"Total resources used is {ExpectedTotal}", writer.ToString());
   }
+
+  /// <summary>
+  /// measure-complexity keeps its own accumulator. Its --worst-amount option is private, but it
+  /// defaults to 10, which is more than the three runs here, so the summary is reachable anyway.
+  /// </summary>
+  [Fact]
+  public async Task MeasureComplexityReportsTotalWiderThanInt() {
+    var writer = new StringWriter();
+    var options = DafnyOptions.CreateUsingOldParser(writer);
+    var compilation = CliCompilation.Create(options);
+
+    var results = new Subject<CanVerifyResult>();
+    var summary = MeasureComplexityCommand.ReportResourceSummary(compilation, results);
+    results.OnNext(new CanVerifyResult(null, ScopeWithThreeExpensiveRuns().Results));
+    results.OnCompleted();
+    await summary;
+
+    Assert.Contains($"The total consumed resources are {ExpectedTotal}", writer.ToString());
+  }
 }
