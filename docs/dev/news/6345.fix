@@ -1,1 +1,1 @@
-No longer crash when using a named class constructor (e.g. `new C.Init(x)`) inside a `match` case
+No longer crash when using a named class constructor (e.g. `new C.Init(x)`) inside a `match` case; and no longer crash when an abstract module imports a module whose own errors left a `match` unresolved
