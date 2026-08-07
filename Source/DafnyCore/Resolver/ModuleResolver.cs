@@ -857,7 +857,13 @@ namespace Microsoft.Dafny {
         Alternatively, we could call all the rewriter.PostResolve methods
       */
 
-      new MatchFlattener(reporter).PostResolve(module);
+      // Only flatten a module that resolved cleanly. Bounds discovery and type inference are
+      // themselves error-gated, so on an erroneous module the AST handed to MatchFlattener still
+      // has null Bounds and null Types, and flattening it crashes instead of reporting the errors.
+      // LiteralModuleDecl.Resolve gates its rewriters the same way.
+      if (reporter.Count(ErrorLevel.Error) == errCount) {
+        new MatchFlattener(reporter).PostResolve(module);
+      }
 
       return sig;
     }
