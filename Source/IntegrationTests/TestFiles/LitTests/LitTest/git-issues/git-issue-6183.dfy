@@ -40,3 +40,21 @@ predicate SetComprehensionCase(a: seq<nat>, n: nat)
 {
   forall i :: 0 <= i < |a| ==> (set j | 0 <= j < n && i + j < |a| && a[i + j] == a[i]) == {}
 }
+
+// let/such-that-bound variable, named in the PR description but not previously covered
+predicate SuchThatCase(a: seq<nat>)
+  requires |a| > 0
+{
+  forall i :: 0 <= i < |a| ==> (var j :| 0 <= j < |a| && a[j] == a[i]; true)
+}
+
+// a binder inside an attribute argument. The looping matches are gathered from
+// ComprehensionExpr.SubExpressions, which yields attribute arguments too, so a binder there has to be
+// collected as well or its variable is hoisted into the range.
+predicate AttributeArgumentCase(ii: seq<Instr>, typing: seq<nat>)
+  requires forall pc :: 0 <= pc < |ii| ==> match ii[pc] case Branch(n) => pc + n < |typing|
+{
+  forall pc {:myattr match ii[pc] case Branch(n) => typing[pc + n] == typing[pc]} ::
+    0 <= pc < |ii| ==> true
+}
+

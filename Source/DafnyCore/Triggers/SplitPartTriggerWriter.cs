@@ -116,10 +116,12 @@ class SplitPartTriggerWriter {
         return true;
       });
     }
-    if (Comprehension.Range != null) {
-      CollectInnerBoundVars(Comprehension.Range);
-    }
-    CollectInnerBoundVars(Comprehension.Term);
+    // Seed from the comprehension itself rather than from Range and Term separately: the looping matches
+    // this guards against are gathered from AllSubExpressions, which walks ComprehensionExpr.SubExpressions
+    // and so also yields the arguments of the comprehension's attributes. Collecting only from Range and
+    // Term left a binder inside an attribute argument unseen, and its variable was then hoisted into the
+    // range, producing "undeclared identifier" in the emitted Boogie.
+    CollectInnerBoundVars(Comprehension);
 
     var substMap = new List<Tuple<Expression, IdentifierExpr>>();
     foreach (var triggerMatch in loopingMatches) {
