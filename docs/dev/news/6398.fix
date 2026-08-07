@@ -1,1 +1,1 @@
-No longer crash when a class overrides a function from a generic trait whose `const` default value calls a static function
+No longer crash when reading a `const` inherited from a generic trait whose default value calls a static function of that trait
