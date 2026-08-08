@@ -90,7 +90,9 @@ Use '--print' to output the content of the formatted files instead of overwritin
 
       string tempFileName = null;
       if (dafnyFile.Uri.Scheme == "stdin") {
-        tempFileName = Path.GetTempFileName() + ".dfy";
+        // Not Path.GetTempFileName(): that creates a 0-byte file, and appending ".dfy" yields a
+        // different path, so the created file is orphaned and never cleaned up below.
+        tempFileName = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".dfy");
         var stdinContent = dafnyFile.GetContent();
         var stdinText = await stdinContent.Reader.ReadToEndAsync();
         SynchronousCliCompilation.WriteFile(tempFileName, stdinText);
