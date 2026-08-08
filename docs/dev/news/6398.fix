@@ -1,0 +1,1 @@
+No longer crash when reading a `const` inherited from a generic trait whose default value calls a static function of that trait
