@@ -1,5 +1,6 @@
 """Runtime enabling Dafny language features."""
 import builtins
+import functools
 from dataclasses import dataclass
 from contextlib import contextmanager
 from fractions import Fraction
@@ -41,6 +42,40 @@ def string_of(value) -> str:
         return "Function"
     else:
         return str(value)
+
+@functools.lru_cache(maxsize=None)
+def tuple_eq_by(ref_mask):
+    """Returns a two-argument comparator for tuples with the given ref_mask.
+
+    The compiler emits binary operators as f(left, right), so the mask is bound here
+    rather than passed as a third argument. The emitted call sits wherever the
+    comparison does -- inside a loop, say -- so the result is cached on the mask,
+    which is a compile-time constant, to avoid building a closure per comparison.
+    """
+    return lambda a, b: tuple_eq(a, b, ref_mask)
+
+def tuple_eq(a, b, ref_mask):
+    """Compare two tuples component-wise, using identity for the components whose
+    corresponding entry in ref_mask is true.
+
+    A Dafny tuple compiles to a native Python tuple, whose __eq__ compares components
+    with ==. That is wrong for a component of a reference type, where Dafny's equality
+    is identity and an extern class is free to define its own __eq__. Tuples cannot be
+    given a custom __eq__, so the compiler emits a call to this instead. A nested tuple
+    appears in ref_mask as its own mask.
+    """
+    if len(a) != len(b):
+        return False
+    for x, y, m in zip(a, b, ref_mask):
+        if m is True:
+            if x is not y:
+                return False
+        elif m is False:
+            if x != y:
+                return False
+        elif not tuple_eq(x, y, m):
+            return False
+    return True
 
 @dataclass
 class Break(Exception):
