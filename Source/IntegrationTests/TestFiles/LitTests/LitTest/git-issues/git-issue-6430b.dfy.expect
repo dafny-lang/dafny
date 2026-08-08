@@ -1,0 +1,12 @@
+git-issue-6430b.dfy(34,0): Error: a postcondition could not be proved on this return path
+git-issue-6430b.dfy(33,10): Related location: this is the postcondition that could not be proved
+git-issue-6430b.dfy(49,0): Error: a postcondition could not be proved on this return path
+git-issue-6430b.dfy(48,10): Related location: this is the postcondition that could not be proved
+git-issue-6430b.dfy(64,0): Error: a postcondition could not be proved on this return path
+git-issue-6430b.dfy(63,10): Related location: this is the postcondition that could not be proved
+git-issue-6430b.dfy(79,0): Error: a postcondition could not be proved on this return path
+git-issue-6430b.dfy(78,10): Related location: this is the postcondition that could not be proved
+git-issue-6430b.dfy(93,0): Error: a postcondition could not be proved on this return path
+git-issue-6430b.dfy(92,10): Related location: this is the postcondition that could not be proved
+
+Dafny program verifier finished with 2 verified, 5 errors
