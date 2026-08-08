@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reactive.Subjects;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
@@ -51,7 +52,7 @@ public class ResourceCountOverflowTest {
 
     var results = new Subject<CanVerifyResult>();
     var summary = VerifyCommand.ReportVerificationSummary(compilation, results);
-    results.OnNext(new CanVerifyResult(null, ScopeWithThreeExpensiveRuns().Results));
+    results.OnNext(new CanVerifyResult(null!, ScopeWithThreeExpensiveRuns().Results));
     results.OnCompleted();
     await summary;
 
@@ -70,10 +71,30 @@ public class ResourceCountOverflowTest {
 
     var results = new Subject<CanVerifyResult>();
     var summary = MeasureComplexityCommand.ReportResourceSummary(compilation, results);
-    results.OnNext(new CanVerifyResult(null, ScopeWithThreeExpensiveRuns().Results));
+    results.OnNext(new CanVerifyResult(null!, ScopeWithThreeExpensiveRuns().Results));
     results.OnCompleted();
     await summary;
 
     Assert.Contains($"The total consumed resources are {ExpectedTotal}", writer.ToString());
+  }
+
+  /// <summary>
+  /// The JSON logger sums independently of the text logger, and its value is consumed by tools
+  /// rather than read by a person, so a wrapped negative number here is the least likely to be
+  /// noticed. Lit tests cannot cover it: logger .expect files scrub resource counts with wildcards.
+  /// </summary>
+  [Fact]
+  public async Task JsonLoggerRoundTripsTotalWiderThanInt() {
+    var logFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".json");
+    var options = DafnyOptions.CreateUsingOldParser(new StringWriter());
+    var logger = new JsonVerificationLogger(new ProofDependencyManager(),
+      new HumanReadableOutputWriter(options));
+    logger.Initialize(new Dictionary<string, string> { ["LogFileName"] = logFile });
+    logger.LogScopeResults(ScopeWithThreeExpensiveRuns());
+    await logger.Flush();
+
+    var scopes = JsonNode.Parse(await File.ReadAllTextAsync(logFile))!["verificationResults"]!.AsArray();
+    File.Delete(logFile);
+    Assert.Equal(ExpectedTotal, scopes[0]!["resourceCount"]!.GetValue<long>());
   }
 }
