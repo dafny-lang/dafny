@@ -71,6 +71,9 @@ class {:autocontracts} ExtensibleArray<T> {
     Contents := Contents[i := t];
   }
 
+  // Needs about 1.9e8 since #6431 strengthened the arrow-type frame axiom premises,
+  // against about 2.5e7 before it and the 5e7 the test suite passes by default.
+  @ResourceLimit("3e8")
   method Append(t: T)
     ensures Contents == old(Contents) + [t]
     decreases |Contents|

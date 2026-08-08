@@ -820,6 +820,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
         label L2:
         AppendOptimized(builder, next, stack);
         assert builder.Value() == old@L2(builder.Value()) + next.Value() + ConcatValueOnStack(old@L2(stack.Value()));
+        // Establish the postcondition against the method-entry state here rather than
+        // leaving it to the single assertion after the outer if, which would have to
+        // relate old@L2 back to old and costs about 16x as much to verify.
+        assert builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()));
       }
     } else {
       // I'd prefer to just call Sequence.ToArray(),

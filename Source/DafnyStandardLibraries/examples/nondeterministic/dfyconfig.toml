@@ -2,7 +2,9 @@
 standard-libraries = true
 reads-clauses-on-methods = false
 enforce-determinism = false
-resource-limit = 1000000
+# ActionsExamples.FibonacciExample sits close to this limit on any recent
+# verifier (about 75% here, 89% before #6431), so it tips over on slower runners.
+resource-limit = 3000000
 # This gives too many false positives right now, but should be enabled in the future
 warn-redundant-assumptions = false
 warn-contradictory-assumptions = true
