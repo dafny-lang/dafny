@@ -118,7 +118,7 @@
       <LinkBase>DafnyRuntimeJs</LinkBase>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimePython\**\*.py">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimePython\**\*.py" Exclude="..\DafnyRuntime\DafnyRuntimePython\tests\**">
       <LinkBase>DafnyRuntimePython</LinkBase>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>

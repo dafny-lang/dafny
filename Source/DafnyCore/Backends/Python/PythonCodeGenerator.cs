@@ -242,6 +242,74 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
+    /// <summary>
+    /// The Python operator for Dafny equality at the given type. Dafny reference
+    /// types have identity equality, which extern classes can subvert by
+    /// overriding __eq__, so they are compared with "is". This only covers
+    /// statically known reference types: equality at an abstract type parameter
+    /// still compiles to "==", like the universal-equality fallbacks of the other
+    /// backends (e.g. java.util.Objects.equals), because the runtime type is not
+    /// known here. See https://github.com/dafny-lang/dafny/issues/6491.
+    /// </summary>
+    private string EqualityOperator(Type type, bool negated) {
+      var isRefType = DatatypeWrapperEraser.SimplifyType(Options, type).IsRefType;
+      return isRefType ? (negated ? "is not" : "is") : (negated ? "!=" : "==");
+    }
+
+    /// Renders the comparison of one datatype field in the generated __eq__.
+    private string FieldEquality(Formal f) {
+      var lhs = $"self.{IdProtect(f.CompileName)}";
+      var rhs = $"__o.{IdProtect(f.CompileName)}";
+      return NeedsTupleEquality(f.Type)
+        ? $"{DafnyRuntimeModule}.tuple_eq({lhs}, {rhs}, {TupleRefMask(f.Type)})"
+        : $"{lhs} {EqualityOperator(f.Type, negated: false)} {rhs}";
+    }
+
+    /// <summary>
+    /// A Dafny tuple compiles to a native Python tuple, whose __eq__ compares components with "==".
+    /// That is wrong for a component of a reference type, whose Dafny equality is identity, and a
+    /// native tuple cannot be given a custom __eq__. So a tuple is compared by the runtime's
+    /// tuple_eq instead, told which components are references.
+    /// </summary>
+    private TupleTypeDecl AsTupleTypeDecl(Type type) {
+      return DatatypeWrapperEraser.SimplifyType(Options, type) is UserDefinedType { ResolvedClass: TupleTypeDecl tt }
+        ? tt : null;
+    }
+
+    private bool NeedsTupleEquality(Type type) {
+      var tt = AsTupleTypeDecl(type);
+      if (tt == null) {
+        return false;
+      }
+      return NonGhostTupleArguments(type)
+        .Any(a => DatatypeWrapperEraser.SimplifyType(Options, a).IsRefType || NeedsTupleEquality(a));
+    }
+
+    /// Builds the ref-mask literal that tuple_eq takes: True for a reference component, False for a
+    /// value component, and a nested mask for a nested tuple.
+    private string TupleRefMask(Type type) {
+      // Only the non-ghost components are present in the emitted tuple, so the mask has to skip the
+      // ghost ones or it would be misaligned with the values it describes.
+      var entries = NonGhostTupleArguments(type).Select(a =>
+        // A nested tuple only needs a mask of its own if it actually contains a reference; otherwise
+        // "False" lets tuple_eq compare it with "==" in one step instead of recursing through it.
+        NeedsTupleEquality(a)
+          ? TupleRefMask(a)
+          : DatatypeWrapperEraser.SimplifyType(Options, a).IsRefType ? "True" : "False").ToList();
+      // A 1-element Python tuple needs the trailing comma.
+      var joined = string.Join(", ", entries);
+      return entries.Count == 1 ? $"({joined},)" : $"({joined})";
+    }
+
+    private List<Type> NonGhostTupleArguments(Type type) {
+      var simplified = (UserDefinedType)DatatypeWrapperEraser.SimplifyType(Options, type);
+      var tupleDecl = (TupleTypeDecl)simplified.ResolvedClass;
+      Contract.Assert(simplified.TypeArgs.Count == tupleDecl.ArgumentGhostness.Count);
+      return simplified.TypeArgs
+        .Where((_, i) => !tupleDecl.ArgumentGhostness[i])
+        .ToList();
+    }
+
     private static string MangleName(string name) {
       if (ReservedNames.Contains(name)) {
         name = $"{name}_";
@@ -466,7 +534,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var argList = ctor.Formals
         .Where(f => !f.IsGhost)
-        .Select(f => $"self.{IdProtect(f.CompileName)} == __o.{IdProtect(f.CompileName)}");
+        .Select(f => FieldEquality(f));
       var suffix = args.Length > 0 ? $" and {string.Join(" and ", argList)}" : "";
 
       wr.NewBlockPy("def __eq__(self, __o: object) -> bool:")
@@ -758,7 +826,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitNullTest(bool testIsNull, ConcreteSyntaxTree wr) {
       var wrTarget = wr.ForkInParens();
-      wr.Write(testIsNull ? " == None" : " != None");
+      // "is"/"is not" rather than "=="/"!=": the operand is a reference (this is only reached for a
+      // NonNullTypeDecl) and an extern class is free to define __eq__, in which case Python's default
+      // __ne__ inverts it and "!= None" can report a real object as null.
+      wr.Write(testIsNull ? " is None" : " is not None");
       return wrTarget;
     }
 
@@ -1758,14 +1829,29 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Prefix:
           opString = "<="; break;
 
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+          if (NeedsTupleEquality(e0Type)) {
+            staticCallString = $"{DafnyRuntimeModule}.tuple_eq_by({TupleRefMask(e0Type)})";
+          } else {
+            opString = EqualityOperator(e0Type, negated: false);
+          }
+          break;
+
         case BinaryExpr.ResolvedOpcode.SeqEq:
         case BinaryExpr.ResolvedOpcode.SetEq:
         case BinaryExpr.ResolvedOpcode.MapEq:
-        case BinaryExpr.ResolvedOpcode.EqCommon:
         case BinaryExpr.ResolvedOpcode.MultiSetEq:
           opString = "=="; break;
 
         case BinaryExpr.ResolvedOpcode.NeqCommon:
+          if (NeedsTupleEquality(e0Type)) {
+            staticCallString = $"{DafnyRuntimeModule}.tuple_eq_by({TupleRefMask(e0Type)})";
+            preOpString = "not ";
+          } else {
+            opString = EqualityOperator(e0Type, negated: true);
+          }
+          break;
+
         case BinaryExpr.ResolvedOpcode.SeqNeq:
         case BinaryExpr.ResolvedOpcode.SetNeq:
         case BinaryExpr.ResolvedOpcode.MapNeq:
