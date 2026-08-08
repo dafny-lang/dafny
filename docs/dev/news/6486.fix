@@ -1,0 +1,1 @@
+Diagnostics anchored in `.doo` files now show the relevant source line instead of raw archive bytes, and `dafny build -t=lib` announces when modules from a positionally-passed `.doo` dependency are embedded in the produced library
