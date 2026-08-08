@@ -1,0 +1,1 @@
+With `--reads-clauses-on-methods`, reads-clause compliance is now checked for array initializer expressions (the dimensions, the initializer function, and explicit-display elements), matching the behaviour for `seq()` constructors
