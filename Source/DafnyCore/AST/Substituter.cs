@@ -1033,7 +1033,9 @@ namespace Microsoft.Dafny {
             var usa = (UserSuppliedAttributes)attrs;
             return new UserSuppliedAttributes(usa.Origin, usa.OpenBrace, usa.CloseBrace, newArgs, prev);
           } else {
-            return new Attributes(attrs.Name, newArgs, prev);
+            return new Attributes(attrs.Name, newArgs, prev) {
+              IsResolverGenerated = attrs.IsResolverGenerated
+            };
           }
         }
       }
