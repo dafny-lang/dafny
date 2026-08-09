@@ -1,3 +1,6 @@
+// The memory-location syntax below (`s`x`, `s`[0]`) is only supported by the new resolver, which
+// rejects it otherwise with "Requires --type-system-refresh to resolve", so this cannot use
+// %testDafnyForEachResolver the way git-issue-6378.dfy does.
 // RUN: %exits-with 4 %verify --referrers --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
