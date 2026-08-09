@@ -879,7 +879,10 @@ public partial class BoogieGenerator {
     var canCall = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool));
     var f0canCall = new Bpl.NAryExpr(f.Origin, canCall, f0argsCanCall);
     var f1canCall = new Bpl.NAryExpr(f.Origin, canCall, f1argsCanCall);
-    wellFormed = BplAnd(wellFormed, Bpl.Expr.Or(
+    // The `&&` is what the comment above specifies. This was `||` from #5654 until #6431,
+    // which let the axiom fire on the h0 side alone, never requiring the h1-side premise.
+    // That is unsound for `reads *`, where GetWhereClause emits a heap-dependent $IsAlloc.
+    wellFormed = BplAnd(wellFormed, BplAnd(
       BplOr(f0canCall, fwf0),
       BplOr(f1canCall, fwf1)));
     /*

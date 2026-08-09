@@ -194,8 +194,8 @@ public partial class BoogieGenerator {
 
         var isness = BplAnd(
           Snoc(Map(Enumerable.Range(0, arity), i =>
-            BplAnd(MkIs(boxes[i], types[i], true), Bpl.Expr.True)),
-          BplAnd(MkIs(f, ClassTyCon(ad, types)), Bpl.Expr.True)));
+            BplAnd(MkIs(boxes[i], types[i], true), MkIsAlloc(boxes[i], types[i], h0, true))),
+          BplAnd(MkIs(f, ClassTyCon(ad, types)), MkIsAlloc(f, ClassTyCon(ad, types), h0))));
 
         Action<Bpl.Expr, string> AddFrameForFunction = (hN, fname) => {
 
@@ -207,7 +207,10 @@ public partial class BoogieGenerator {
           var inner_forall = new Bpl.ForallExpr(tok, [], ivars, BplImp(
             BplAnd(
               Bpl.Expr.Neq(o, Predef.Null),
-              // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
+              // The MkIsAlloc conjuncts of "isness" (above) imply that the function value and its
+              // arguments are allocated in "h0", which by HeapSucc(h0,h1) also holds in "h1". Those
+              // conjuncts were `Bpl.Expr.True` placeholders before this fix even though this comment
+              // already assumed them; see issue #6430.
               IsSetMember(tok,
                 FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(hN, Cons(f, boxes)))),
                 FunctionCall(tok, BuiltinFunction.Box, null, o),

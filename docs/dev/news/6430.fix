@@ -1,0 +1,1 @@
+Fix unsoundness in the frame axioms for functions with `reads *`, which allowed proving `false`, both for direct calls and for uses via function handles and lambdas
