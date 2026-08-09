@@ -1795,7 +1795,8 @@ compilers treat it differently.
 Because Dafny models objects by reference, the reference types (`class` and
 `trait` types) have object identity: `x == y` holds exactly when `x` and `y`
 denote the same object. The verifier reasons about equality on these types, and
-about the `set`, `multiset`, and `map` collections built over them, on the
+about every construct built over them — the `set`, `multiset`, `map` and `seq`
+collections, and `==` at a type parameter instantiated with them — on the
 assumption that object identity is their only equality, and this assumption is
 not checked against external code. An `{:extern}` `class` is therefore expected
 to preserve object identity in the target language. If the external
