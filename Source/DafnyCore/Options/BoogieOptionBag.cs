@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Transactions;
@@ -21,8 +22,26 @@ public static class BoogieOptionBag {
 
     var value = result.Tokens[^1].Value;
     if (value.EndsWith('%')) {
-      if (double.TryParse(value.Substring(0, value.Length - 1), out var percentage)) {
-        return Math.Max(1U, (uint)(percentage / 100.0 * Environment.ProcessorCount));
+      // Invariant culture: a command-line value is not written in the ambient locale's number
+      // format. Without this, "50.5%" is read with the ambient separators, which can be silently
+      // WRONG rather than merely rejected: under a culture where "." groups digits (e.g. en-DE)
+      // it parses as 505%, so --cores:50.5% asks for five times the machine's cores. Float rather
+      // than Number, so a thousands separator is rejected instead of guessed at -- "1,000" means
+      // 1 under some cultures and 1000 under others.
+      if (double.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float,
+            CultureInfo.InvariantCulture, out var percentage)) {
+        // NumberStyles.Float also accepts "NaN" and "Infinity", and casting either to uint is
+        // unchecked: NaN would silently become 0 (then 1 core) and infinity uint.MaxValue. Reject
+        // them rather than act on a number the user cannot have meant. A merely large percentage is
+        // left alone, since the non-percentage branch already accepts any positive count.
+        var cores = percentage / 100.0 * Environment.ProcessorCount;
+        if (double.IsFinite(cores) && cores <= uint.MaxValue) {
+          return Math.Max(1U, (uint)cores);
+        }
+
+        result.ErrorMessage =
+          $"Percentage {value} does not denote a usable number of cores on this machine";
+        return 1;
       }
 
       result.ErrorMessage = $"Could not parse percentage {value}";
