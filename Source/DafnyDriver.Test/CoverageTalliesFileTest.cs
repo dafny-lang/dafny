@@ -7,16 +7,17 @@ using Xunit;
 
 namespace DafnyDriver.Test;
 
-// Same collection as LanguageServerProcessTest: these tests redirect TMPDIR process-wide, and that
-// test spawns processes which drop their own temp files, so they must not run concurrently.
+// Same collection as LanguageServerProcessTest: these tests redirect the temp directory
+// process-wide, and that test spawns processes which drop their own temp files there, so they must
+// not run concurrently.
 [Collection("Sequential Collection")]
 public class CoverageTalliesFileTest {
 
   /// <summary>
   /// The instrumented program writes its branch tallies to a file in the temp directory. That file
   /// used to be left behind on every invocation. Asserting on the shared temp directory would race
-  /// with other processes, so this points TMPDIR at a directory of its own -- Path.GetTempPath()
-  /// reads the variable on each call rather than caching it -- and requires that nothing remains.
+  /// with other processes, so this points the temp directory at one of its own and requires that
+  /// nothing remains.
   /// </summary>
   [Fact]
   public async Task ExecutionCoverageLeavesNoTemporaryFile() {
@@ -27,10 +28,8 @@ public class CoverageTalliesFileTest {
     await File.WriteAllTextAsync(source,
       "method Main() { var i := 0; if i == 0 { print \"a\\n\"; } else { print \"b\\n\"; } }\n");
 
-    var originalTemp = Environment.GetEnvironmentVariable("TMPDIR");
+    var restoreTemp = RedirectTempTo(temp);
     try {
-      Environment.SetEnvironmentVariable("TMPDIR", temp + Path.DirectorySeparatorChar);
-      Assert.Equal(temp + Path.DirectorySeparatorChar, Path.GetTempPath());
 
       var output = new StringWriter();
       var exitCode = await DafnyBackwardsCompatibleCli.MainWithWriters(output, output, TextReader.Null,
@@ -41,7 +40,7 @@ public class CoverageTalliesFileTest {
       AssertNoTalliesFileRemains(temp);
     }
     finally {
-      Environment.SetEnvironmentVariable("TMPDIR", originalTemp);
+      restoreTemp();
       try {
         Directory.Delete(sandbox, true);
       } catch (IOException) {
@@ -62,9 +61,8 @@ public class CoverageTalliesFileTest {
     var source = Path.Combine(sandbox, "cov.dfy");
     await File.WriteAllTextAsync(source, "method Main() { print \"a\\n\"; }\n");
 
-    var originalTemp = Environment.GetEnvironmentVariable("TMPDIR");
+    var restoreTemp = RedirectTempTo(temp);
     try {
-      Environment.SetEnvironmentVariable("TMPDIR", temp + Path.DirectorySeparatorChar);
       var output = new StringWriter();
       await DafnyBackwardsCompatibleCli.MainWithWriters(output, output, TextReader.Null,
         ["run", "--target:py", "--coverage-report", Path.Combine(sandbox, "report"), source]);
@@ -74,7 +72,7 @@ public class CoverageTalliesFileTest {
       AssertNoTalliesFileRemains(temp);
     }
     finally {
-      Environment.SetEnvironmentVariable("TMPDIR", originalTemp);
+      restoreTemp();
       try {
         Directory.Delete(sandbox, true);
       } catch (IOException) {
@@ -83,7 +81,7 @@ public class CoverageTalliesFileTest {
   }
 
   /// <summary>
-  /// Asserts that no tallies file remains. TMPDIR is process-wide, so sibling tests running
+  /// Asserts that no tallies file remains. The temp directory is process-wide, so sibling tests running
   /// concurrently drop unrelated files (CLR debug pipes, assemblies they build) into the same
   /// directory; asserting the directory is empty would flake. A tallies file is identified by its
   /// content instead: one unsigned integer per line, one line per instrumented branch.
@@ -109,5 +107,25 @@ public class CoverageTalliesFileTest {
         $"tallies file left behind: {Path.GetFileName(file)}, " +
         (lines.Length == 0 ? "empty" : $"containing {string.Join(",", lines)}"));
     }
+  }
+
+  /// <summary>
+  /// Points Path.GetTempPath() at "directory" and returns an action restoring the previous value.
+  /// The variable consulted differs by platform -- TMPDIR on Unix, TMP/TEMP on Windows -- so all
+  /// three are set. GetTempPath reads them on each call rather than caching, so this takes effect
+  /// immediately.
+  /// </summary>
+  private static Action RedirectTempTo(string directory) {
+    string[] variables = ["TMPDIR", "TMP", "TEMP"];
+    var previous = variables.Select(Environment.GetEnvironmentVariable).ToArray();
+    foreach (var variable in variables) {
+      Environment.SetEnvironmentVariable(variable, directory + Path.DirectorySeparatorChar);
+    }
+    Assert.Equal(directory + Path.DirectorySeparatorChar, Path.GetTempPath());
+    return () => {
+      for (var i = 0; i < variables.Length; i++) {
+        Environment.SetEnvironmentVariable(variables[i], previous[i]);
+      }
+    };
   }
 }
