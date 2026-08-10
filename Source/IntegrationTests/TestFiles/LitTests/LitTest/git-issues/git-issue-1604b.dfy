@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --error-limit:0 --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --error-limit:0 --relax-definite-assignment --enforce-determinism
 
 // Double constraints. Will this still work?
 

@@ -1,1 +1,1 @@
-// CHECK-L: error[E0425]: cannot find value `_hresult` in this scope
+(0,-1): Error: Unsupported Invalid Operation: The Rust compiler requires `--enforce-determinism`
