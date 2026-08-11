@@ -1,0 +1,1 @@
+Parse the `--cores` percentage with the invariant culture, so a fractional percentage such as `--cores:50.5%` means the same on every machine
