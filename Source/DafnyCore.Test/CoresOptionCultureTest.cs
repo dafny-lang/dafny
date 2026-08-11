@@ -15,10 +15,10 @@ public class CoresOptionCultureTest {
   /// somewhere, but xunit runs test classes in parallel on pool threads it reuses, so mutating the
   /// caller's culture could be observed by a concurrently running test.
   /// </summary>
-  private static (uint Cores, string Error) ParseCores(string value, string culture) {
+  private static (uint Cores, string? Error) ParseCores(string value, string culture) {
     uint cores = 0;
-    string error = null;
-    Exception failure = null;
+    string? error = null;
+    Exception? failure = null;
     var thread = new Thread(() => {
       CultureInfo.CurrentCulture = new CultureInfo(culture);
       try {
