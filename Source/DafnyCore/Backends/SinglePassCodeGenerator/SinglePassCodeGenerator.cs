@@ -70,12 +70,12 @@ namespace Microsoft.Dafny.Compilers {
     protected Function enclosingFunction;  // non-null when a function body is being translated
     protected Declaration enclosingDeclaration; // non-null when a declaration body is being translated
 
-    protected internal readonly CodeGenIdGenerator idGenerator = new CodeGenIdGenerator();
+    public readonly CodeGenIdGenerator idGenerator = new CodeGenIdGenerator();
 
-    protected internal CodeGenIdGenerator currentIdGenerator => enclosingDeclaration?.CodeGenIdGenerator ?? idGenerator;
+    public CodeGenIdGenerator currentIdGenerator => enclosingDeclaration?.CodeGenIdGenerator ?? idGenerator;
 
-    private protected string ProtectedFreshId(string prefix) => IdProtect(currentIdGenerator.FreshId(prefix));
-    private protected string ProtectedFreshNumericId(string prefix) => IdProtect(currentIdGenerator.FreshNumericId(prefix));
+    protected string ProtectedFreshId(string prefix) => IdProtect(currentIdGenerator.FreshId(prefix));
+    protected string ProtectedFreshNumericId(string prefix) => IdProtect(currentIdGenerator.FreshNumericId(prefix));
 
     Dictionary<Expression, int> uniqueAstNumbers = new Dictionary<Expression, int>();
     int GetUniqueAstNumber(Expression expr) {
@@ -348,7 +348,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr);
     protected abstract void EmitJumpToTailCallStart(ConcreteSyntaxTree wr);
 
-    internal abstract string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member = null);
+    public abstract string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member = null);
     // For cases where a type looks different when it's an argument, such as (*sigh*) Java primitives
     protected virtual string TypeArgumentName(Type type, ConcreteSyntaxTree wr, IOrigin tok) {
       return TypeName(type, wr, tok);
@@ -377,12 +377,13 @@ namespace Microsoft.Dafny.Compilers {
     }
     protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs,
       ConcreteSyntaxTree wr, IOrigin tok, bool omitTypeArguments);
-    abstract internal string/*?*/ TypeName_Companion(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member);
+
+    public abstract string/*?*/ TypeName_Companion(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member);
     protected virtual void EmitTypeName_Companion(Type type, ConcreteSyntaxTree wr, ConcreteSyntaxTree surrounding, IOrigin tok, MemberDecl/*?*/ member) {
       wr.Write(TypeName_Companion(type, surrounding, tok, member));
     }
 
-    internal string TypeName_Companion(TopLevelDecl cls, ConcreteSyntaxTree wr, IOrigin tok) {
+    public string TypeName_Companion(TopLevelDecl cls, ConcreteSyntaxTree wr, IOrigin tok) {
       Contract.Requires(cls != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
@@ -1148,7 +1149,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    protected internal List<TypeArgumentInstantiation> ForTypeParameters(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
+    public List<TypeArgumentInstantiation> ForTypeParameters(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
       Contract.Requires(member is ConstantField || member is Function || member is MethodOrConstructor);
       Contract.Requires(typeArgs != null);
       var memberHasBody =
