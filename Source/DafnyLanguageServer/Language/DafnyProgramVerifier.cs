@@ -19,10 +19,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this verifier serializes all invocations.
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
+    private readonly IPerformanceLogger performanceLogger;
     private readonly ILogger<DafnyProgramVerifier> logger;
     private readonly SemaphoreSlim mutex = new(1);
 
-    public DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
+    public DafnyProgramVerifier(IPerformanceLogger performanceLogger, ILogger<DafnyProgramVerifier> logger) {
+      this.performanceLogger = performanceLogger;
       this.logger = logger;
     }
 
@@ -50,7 +52,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             ReportRanges = program.Options.Get(Snippets.ShowSnippets)
           };
           var translator = new BoogieGenerator(errorReporter, resolution.ResolvedProgram.ProofDependencyManager, translatorFlags);
-          return translator.DoTranslation(resolution.ResolvedProgram, moduleDefinition);
+          var translatedProgram = performanceLogger.Track("DoTranslation", [moduleDefinition.Name], () => 
+            translator.DoTranslation(resolution.ResolvedProgram, moduleDefinition));
+          return translatedProgram;
         }, cancellationToken);
         var suffix = moduleDefinition.SanitizedName;
 
@@ -62,7 +66,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
         }
 
-        return await engine.GetVerificationTasks(boogieProgram, cancellationToken);
+        return await performanceLogger.TrackAsync("GetVerificationTasks", [moduleDefinition.Name], 
+          () => engine.GetVerificationTasks(boogieProgram, cancellationToken));
       }
       finally {
         mutex.Release();

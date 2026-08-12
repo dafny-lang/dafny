@@ -7,6 +7,7 @@ public class WildcardExpr : Expression, ICloneable<WildcardExpr> {  // a Wildcar
   public WildcardExpr(Cloner cloner, WildcardExpr original) : base(cloner, original) {
   }
 
+  [SyntaxConstructor]
   public WildcardExpr(IOrigin origin)
     : base(origin) {
     Contract.Requires(origin != null);

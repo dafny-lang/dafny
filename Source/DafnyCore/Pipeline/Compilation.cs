@@ -17,12 +17,14 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
 using VCGeneration;
+using Action = System.Action;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
 
 public delegate Compilation CreateCompilation(
   ExecutionEngine boogieEngine,
+  IPerformanceLogger performanceLogger,
   CompilationInput compilation);
 
 public record FilePosition(Uri Uri, Position Position);
@@ -35,6 +37,7 @@ public record FilePosition(Uri Uri, Position Position);
 public class Compilation : IDisposable {
 
   private readonly ILogger logger;
+  private readonly IPerformanceLogger performanceLogger;
   private readonly IFileSystem fileSystem;
   private readonly ITextDocumentLoader documentLoader;
   private readonly IProgramVerifier verifier;
@@ -79,6 +82,7 @@ public class Compilation : IDisposable {
 
   public Compilation(
     ILogger<Compilation> logger,
+    IPerformanceLogger performanceLogger,
     IFileSystem fileSystem,
     ITextDocumentLoader documentLoader,
     IProgramVerifier verifier,
@@ -90,6 +94,7 @@ public class Compilation : IDisposable {
 
     this.documentLoader = documentLoader;
     this.logger = logger;
+    this.performanceLogger = performanceLogger;
     this.fileSystem = fileSystem;
     this.verifier = verifier;
 
@@ -368,8 +373,9 @@ public class Compilation : IDisposable {
       IReadOnlyDictionary<ICanVerify, IReadOnlyList<IVerificationTask>> tasksForModule;
       try {
         tasksForModule = await translatedModules.GetOrAdd(containingModule, async () => {
-          var result = await verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
-            cancellationSource.Token);
+          var result = await performanceLogger.TrackAsync("GetVerificationTasksAsync", [containingModule.Name], 
+            () => verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
+            cancellationSource.Token));
 
           return result.GroupBy(t => {
             var dafnyToken = (CanVerifyOrigin)t.ScopeToken;
@@ -418,7 +424,6 @@ public class Compilation : IDisposable {
         }
 
         foreach (var task in tasks.Where(taskFilter)) {
-
           var seededTask = randomSeed == null ? task : task.FromSeed(randomSeed.Value);
           VerifyTask(canVerify, seededTask);
         }
