@@ -2772,11 +2772,7 @@ pub mod array {
         placebos_box_usize(n.to_usize().unwrap())
     }
     pub fn placebos_box_usize<T>(n_usize: usize) -> Box<[MaybeUninit<T>]> {
-        // This code is optimized to take a constant time. See:
-        // https://users.rust-lang.org/t/allocate-a-boxed-array-of-maybeuninit/110169/7
-        std::iter::repeat_with(MaybeUninit::uninit)
-            .take(n_usize)
-            .collect()
+        Box::new_uninit_slice(n_usize)
     }
 
     pub fn initialize<T>(n: &DafnyInt, initializer: Rc<dyn Fn(&DafnyInt) -> T>) -> Ptr<[T]> {
