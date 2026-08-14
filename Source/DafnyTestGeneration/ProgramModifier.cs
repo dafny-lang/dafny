@@ -46,7 +46,7 @@ namespace DafnyTestGeneration {
         attribute.Next = implementation.Attributes;
         implementation.Attributes = attribute;
       }
-      if (options.TestGenOptions.Mode is TestGenerationOptions.Modes.Block or TestGenerationOptions.Modes.Path) {
+      if (options.TestGenOptions.Mode is TestGenerationOptions.Modes.Block or TestGenerationOptions.Modes.Path or TestGenerationOptions.Modes.Spec) {
         program = new AnnotationVisitor(options).VisitProgram(program);
       }
       AddAxioms(options, program);

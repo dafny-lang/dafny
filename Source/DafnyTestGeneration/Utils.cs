@@ -198,5 +198,152 @@ namespace DafnyTestGeneration {
       }
       return allInlinedDeclarations;
     }
+
+    public static IEnumerable<MemberDecl> AllMemberDeclarations(TopLevelDecl decl) {
+      HashSet<MemberDecl> allInlinedDeclarations = [];
+      if (decl is LiteralModuleDecl moduleDecl) {
+        foreach (var child in moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>()) {
+          allInlinedDeclarations.UnionWith(AllMemberDeclarations(child));
+        }
+      }
+      if (decl is TopLevelDeclWithMembers withMembers) {
+        foreach (var memberDecl in withMembers.Members) {
+          allInlinedDeclarations.Add(memberDecl);
+        }
+      }
+      return allInlinedDeclarations;
+    }
+
+    public static async Task<Program> GetFreshProgram(Program program) {
+      await using var stringWriter = new StringWriter();
+      var printer = new Printer(stringWriter, program.Options);
+      printer.PrintProgram(program, true);
+      string code = stringWriter.ToString();
+
+      Program freshProgram = await Parse(
+        new BatchErrorReporter(program.Options),
+        code,
+        false,
+        new Uri(program.FullName)
+      );
+
+      return freshProgram;
+    }
+
+    /// <summary>
+    /// Returns additional constraints for collections, in order to avoid repetitive tests with empty collections.
+    /// </summary>
+    public static IEnumerable<Expression> GetNestedConstraints(Expression identifier, Expression valueExpr, Token validTok) {
+      var constraints = new List<Expression>();
+
+      switch (valueExpr) {
+        case SeqDisplayExpr seqExpr: {
+            for (int i = 0; i < seqExpr.Elements.Count; i++) {
+              var innerExpr = seqExpr.Elements[i];
+
+              if (IsCollectionOrTuple(innerExpr)) {
+                var indexExpr = new Microsoft.Dafny.LiteralExpr(validTok, i);
+                var accessExpr = new SeqSelectExpr(validTok, true, identifier, indexExpr, null);
+
+                constraints.AddRange(BuildConstraintsForAccess(accessExpr, innerExpr, validTok));
+                constraints.AddRange(GetNestedConstraints(accessExpr, innerExpr, validTok));
+              }
+            }
+            break;
+          }
+        case MapDisplayExpr mapExpr: {
+            foreach (var entry in mapExpr.Elements) {
+              var keyExpr = entry.A;
+              var valExpr = entry.B;
+
+              if (IsCollectionOrTuple(valExpr)) {
+                var accessExpr = new SeqSelectExpr(validTok, true, identifier, keyExpr, null);
+
+                constraints.AddRange(BuildConstraintsForAccess(accessExpr, valExpr, validTok));
+                constraints.AddRange(GetNestedConstraints(accessExpr, valExpr, validTok));
+              }
+            }
+            break;
+          }
+        case DatatypeValue tupleDisplay when tupleDisplay.DatatypeName.StartsWith("_tuple#"): {
+            var innerExpressions = new List<Expression>();
+
+            if (tupleDisplay.Arguments != null) {
+              innerExpressions.AddRange(tupleDisplay.Arguments);
+            } else if (tupleDisplay.Bindings != null) {
+              var bindingsList = tupleDisplay.Bindings.ArgumentBindings;
+
+              foreach (var binding in bindingsList) {
+                if (binding.Actual != null) {
+                  innerExpressions.Add(binding.Actual);
+                }
+              }
+            }
+
+
+            for (int i = 0; i < innerExpressions.Count; i++) {
+              var innerExpr = innerExpressions[i];
+
+              if (IsCollectionOrTuple(innerExpr)) {
+                var tupleFieldName = new Name(validTok, i.ToString());
+                var accessExpr = new ExprDotName(validTok, identifier, tupleFieldName, null);
+
+                constraints.AddRange(BuildConstraintsForAccess(accessExpr, innerExpr, validTok));
+                constraints.AddRange(GetNestedConstraints(accessExpr, innerExpr, validTok));
+              }
+            }
+            break;
+          }
+        case SetDisplayExpr setDisplay: {
+            foreach (var innerExpr in setDisplay.Elements) {
+              if (IsCollectionOrTuple(innerExpr)) {
+                var notInExpr = new BinaryExpr(validTok, BinaryExpr.Opcode.NotIn, innerExpr, identifier);
+                constraints.Add(notInExpr);
+              }
+            }
+            break;
+          }
+      }
+      return constraints;
+    }
+
+    /// <summary>
+    /// Helper to identify if an expression is a nested structure.
+    /// </summary>
+    private static bool IsCollectionOrTuple(Expression expr) {
+      return expr is SeqDisplayExpr ||
+             expr is SetDisplayExpr ||
+             expr is MapDisplayExpr ||
+             (expr is DatatypeValue dt && dt.DatatypeName.StartsWith("_tuple#"));
+    }
+
+    /// <summary>
+    /// Safely gets the size of a collection AST node.
+    /// </summary>
+    private static int GetCollectionSize(Expression expr) {
+      return expr switch {
+        SeqDisplayExpr seq => seq.Elements.Count,
+        SetDisplayExpr set => set.Elements.Count,
+        MapDisplayExpr map => map.Elements.Count,
+        _ => 0
+      };
+    }
+
+    /// <summary>
+    /// Builds the value and cardinality blocking constraints.
+    /// </summary>
+    private static IEnumerable<Expression> BuildConstraintsForAccess(Expression accessExpr, Expression innerExpr, Token validTok) {
+      var constraints = new List<Expression>();
+
+      constraints.Add(new BinaryExpr(validTok, BinaryExpr.Opcode.Neq, accessExpr, innerExpr));
+
+      if (innerExpr is SeqDisplayExpr or SetDisplayExpr or MapDisplayExpr) {
+        var innerCard = new UnaryOpExpr(validTok, UnaryOpExpr.Opcode.Cardinality, accessExpr);
+        var innerLenLiteral = new Microsoft.Dafny.LiteralExpr(validTok, GetCollectionSize(innerExpr));
+        constraints.Add(new BinaryExpr(validTok, BinaryExpr.Opcode.Neq, innerCard, innerLenLiteral));
+      }
+
+      return constraints;
+    }
   }
 }
