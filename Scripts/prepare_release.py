@@ -8,6 +8,7 @@ import sys
 import datetime
 from pathlib import Path
 from textwrap import indent
+from urllib.parse import quote as urlquote
 from urllib.request import Request, urlopen
 from shlex import quote
 from xml.etree import ElementTree
@@ -334,9 +335,6 @@ class Release:
         run_one(f"Updating `{self.build_props_path}`...",
                 self._update_build_props_file)
 
-    # Still TODO:
-    # - Run deep test as part of release workflow
-
     def prepare(self):
         assert_one("Can we run `git`?",
                    self._has_git)
@@ -387,11 +385,18 @@ class Release:
         progress("Done!")
         progress()
 
-        DEEPTESTS_URL = "https://github.com/dafny-lang/dafny/actions/workflows/nightly-build.yml"
-        progress(f"Now, start a deep-tests workflow manually for branch {self.release_branch_name} at\n"
+        # Phrased as the rule rather than as a claim about this run: under
+        # --dry-run nothing was pushed, and a mainline branch that predates
+        # `release-branch-deep-tests.yml` will not have the workflow at all.
+        DEEPTESTS_URL = ("https://github.com/dafny-lang/dafny/actions/workflows/"
+                         "release-branch-deep-tests.yml?query=branch%3A"
+                         + urlquote(self.release_branch_name, safe=""))
+        progress("The `Release branch deep tests` workflow runs automatically when a\n"
+                 f"release branch is pushed. Find the run for {self.release_branch_name} at\n"
                  f"<{DEEPTESTS_URL}>\n"
-                 f"To do so, click Run workflow, use workflow from {self.release_branch_name},\n"
-                 f"Once it completes, just re-run this script as `./Scripts/prepare_release.py {self.version} release` to tag the branch and push it to trigger the release.")
+                 "It runs the same tests that gate the release itself, so a pass here means\n"
+                 "the tag will not be rejected for test failures.\n"
+                 f"Once it is green, just re-run this script as `./Scripts/prepare_release.py {self.version} release` to tag the branch and push it to trigger the release.")
         progress()
 
     def _tag_release(self):

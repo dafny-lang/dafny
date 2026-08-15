@@ -1,0 +1,49 @@
+
+# Deep tests for release branches.
+#
+# `Scripts/prepare_release.py <version> prepare` pushes a `release-<version>`
+# branch, which triggers this workflow. A maintainer waits for it to pass before
+# running `prepare_release.py <version> release`, which creates and pushes the
+# `v<version>` tag.
+#
+# The inputs below deliberately match the `deep-integration-tests` job in
+# publish-release.yml, which gates the release itself: `all_platforms: true`,
+# `num_shards: 5`, and no `compilers` restriction (so every backend, including
+# Rust, is exercised). Keep them in sync -- if this workflow tested less than
+# that job, passing here would not predict passing there, which is the whole
+# point of running it before the tag exists.
+#
+# The `if` below terminates the workflow immediately on any repo (like a fork)
+# that is not the main dafny-lang/dafny repo.
+
+name: Release branch deep tests
+
+on:
+  push:
+    branches:
+      # `Release.release_branch_name` is `release-<version>`, so require a digit
+      # after the dash. A bare `release-*` would also match ordinary work branches
+      # like `release-notes-cleanup` and start a full all-platform matrix on them.
+      # (A version whose identifier contains a `/` would not match, because `*`
+      # does not cross a path separator. No release has ever used one.)
+      - 'release-[0-9]*'
+
+concurrency:
+  # `prepare` force-pushes when it is re-run, and step 9 of the release checklist
+  # pushes the set-next-version commit to this same branch. Supersede the old run
+  # rather than stacking another all-platform matrix beside it.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deep-integration-tests:
+    if: github.repository_owner == 'dafny-lang'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/integration-tests-reusable.yml
+    with:
+      # Pin to the pushed commit, not the branch name: `prepare` force-pushes, and
+      # a run identified only by branch would silently change what it is testing.
+      ref: ${{ github.sha }}
+      all_platforms: true
+      num_shards: 5
