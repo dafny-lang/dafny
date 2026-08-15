@@ -1,5 +1,5 @@
 # Run these tasks even if eponymous files or folders exist
-.PHONY: test-dafny exe
+.PHONY: test-dafny exe news-check news-check-test
 
 DIR=$(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 
@@ -106,6 +106,12 @@ clean:
 
 bumpversion-test:
 	node ./Scripts/bump_version_number.js --test 1.2.3
+
+news-check:
+	(cd "${DIR}"; python3 ./Scripts/check_news_fragments.py)
+
+news-check-test:
+	(cd "${DIR}"; python3 -m unittest Scripts.test_check_news_fragments)
 
 update-cs-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime; make update-system-module)

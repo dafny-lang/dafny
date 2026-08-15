@@ -1,0 +1,34 @@
+
+# Cheap PR-time checks on the release tooling itself.
+#
+# Deliberately a standalone workflow rather than a job in msbuild.yml: the
+# `singletons` job there is gated on `needs.check-deep-tests.result == 'success'`,
+# so it is skipped whenever master's last nightly failed -- exactly when you
+# would least want a release-hygiene check to go quiet.
+
+name: Release tooling
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  news-fragments:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Dafny
+      uses: actions/checkout@v7
+    - name: Check that release notes are where the release script reads them
+      run: make news-check
+    - name: Test the release-note check itself
+      run: make news-check-test
