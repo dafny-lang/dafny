@@ -1,5 +1,5 @@
 # Run these tasks even if eponymous files or folders exist
-.PHONY: test-dafny exe news-check news-check-test
+.PHONY: test-dafny exe news-check news-check-test prepare-release-test
 
 DIR=$(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 
@@ -48,6 +48,9 @@ test-dafny:
 
 tests-verbose:
 	(cd "${DIR}"; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )
+
+prepare-release-test:
+	(cd "${DIR}"; python3 -m unittest Scripts.test_prepare_release)
 
 ${DIR}/boogie/Binaries/Boogie.exe:
 	(cd "${DIR}"/boogie ; dotnet build -c Release Source/Boogie.sln )

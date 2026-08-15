@@ -91,7 +91,11 @@ class NewsFragment(NamedTuple):
 
     @property
     def sortkey(self):
-        return self.pr, self.path
+        # `None` is not comparable to `int`, so a category holding both a resolved
+        # and an unresolved PR number would crash `render()` -- which runs after
+        # `prepare` has already created the release branch and rewritten the build
+        # props.  Unresolved entries sort last instead.
+        return self.pr is None, self.pr or 0, str(self.path)
 
 class NewsFragments:
     r"""A collection of release note entries.
@@ -153,7 +157,7 @@ class NewsFragments:
             rendered.append(f"## {title}")
             for fr in sorted(self.fragments[ext], key=lambda f: f.sortkey):
                 contents = fr.contents.strip()
-                sep = "\n" if fr.link and "\n" in contents else " "
+                sep = ("\n" if "\n" in contents else " ") if fr.link else ""
                 entry = indent(f"- {contents}{sep}{fr.link}", "  ").lstrip()
                 rendered.append(entry)
         return "\n\n".join(rendered)
@@ -208,9 +212,6 @@ class Release:
     def _in_git_root() -> bool:
         return Path(".git").exists()
 
-    def _has_origin(self) -> bool:
-        return git("remote", "url", self.REMOTE).returncode == 0
-
     @staticmethod
     def _has_git() -> bool:
         return git("rev-parse", "--verify", "HEAD").returncode == 0
@@ -262,7 +263,11 @@ class Release:
 
     @classmethod
     def _head_up_to_date(cls) -> bool:
-        git("fetch")
+        # `git()` does not check return codes, so without this a failed fetch would
+        # leave the comparison below reading stale remote-tracking refs and passing.
+        if git("fetch").returncode != 0:
+            progress("`git fetch` failed... ", end="")
+            return False
         return "behind" not in git("status", "--short", "--branch").stdout
 
     @staticmethod
@@ -284,7 +289,11 @@ class Release:
         return git("rev-parse", "--quiet", "--verify", self.release_branch_path).returncode == 1
 
     def _no_release_tag(self) -> bool:
-        return git("tag", "--verify", self.tag).returncode == 1
+        # Not `git tag --verify`: that verifies a *signature*, so it exits nonzero
+        # both for a missing tag and for the existing unsigned annotated tag that
+        # `_tag_release` creates, which made this check always pass.
+        return git("rev-parse", "--quiet", "--verify",
+                   f"refs/tags/{self.tag}").returncode == 1
 
     def _update_build_props_file(self) -> None:
         vernum = Version.from_string(self.version)
@@ -421,6 +430,12 @@ class Release:
                  f"<{PR_URL}>.")
 
 class DryRunRelease(Release):
+    # Every method that writes a file, changes this repo, or contacts the remote
+    # must be overridden here. _update_build_props_file was missing, so a dry run
+    # rewrote Source/Directory.Build.props -- and the duplicated definitions below
+    # were the sign that keeping this list correct by hand does not work.
+    def _update_build_props_file(self):
+        pass
     def _create_release_branch(self):
         pass
     def _consolidate_news_fragments(self):
@@ -431,11 +446,7 @@ class DryRunRelease(Release):
         pass
     def _push_release_branch(self):
         pass
-    def _create_release_branch(self):
-        pass
     def _tag_release(self):
-        pass
-    def _push_release_tag(self):
         pass
     def _push_release_tag(self):
         pass
