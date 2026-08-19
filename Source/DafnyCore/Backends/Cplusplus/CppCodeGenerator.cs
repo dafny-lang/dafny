@@ -1529,7 +1529,11 @@ namespace Microsoft.Dafny.Compilers {
 
       if (nativeType == null) {
         throw new UnsupportedFeatureException(Token.NoToken, Feature.UnboundedIntegers, "EmitBitvectorTruncation with BigInteger value");
-      } else if (bvType.Width < nativeType.Bitwidth) {
+      } else if (bvType.Width < 64) {
+        // Mask to the width. bv8 and bv16 need this too, since C++ promotes
+        // uint8/uint16 to int. Width 64 is excluded: a uint64 carrier needs no
+        // mask. (It also couldn't use this branch: C# wraps the shift count mod 64,
+        // so 1UL << 64 equals 1, making the mask (1<<0)-1, which is 0.)
         wr.Write("((");
         var middle = wr.Fork();
         // print in hex, because that looks nice

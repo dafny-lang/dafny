@@ -1,0 +1,10 @@
+bv8 add: ok
+bv8 sub: ok
+bv8 mul: ok
+bv8 not: ok
+bv8 lsb: ok
+bv16 add: ok
+bv16 sub: ok
+bv16 mul: ok
+bv16 not: ok
+bv16 lsb: ok
