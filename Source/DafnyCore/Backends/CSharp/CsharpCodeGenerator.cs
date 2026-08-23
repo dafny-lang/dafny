@@ -20,13 +20,22 @@ namespace Microsoft.Dafny.Compilers {
   public class CsharpCodeGenerator : SinglePassCodeGenerator {
     protected bool Synthesize = false;
 
-    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
-      Feature.FloatingPointTypes,
-      Feature.SubsetTypeTests,
-      Feature.TuplesWiderThan20,
-      Feature.ArraysWithMoreThan16Dims,
-      Feature.ArrowsWithMoreThan16Arguments
-    };
+    public override IReadOnlySet<Feature> UnsupportedFeatures {
+      get {
+        var features = new HashSet<Feature> {
+          Feature.SubsetTypeTests,
+          Feature.TuplesWiderThan20,
+          Feature.ArraysWithMoreThan16Dims,
+          Feature.ArrowsWithMoreThan16Arguments
+        };
+        // Compiled fp is refused unless the development opt-in is given; see
+        // CommonOptionBag.ExperimentalFpCompilation.
+        if (!Options.Get(CommonOptionBag.ExperimentalFpCompilation)) {
+          features.Add(Feature.FloatingPointTypes);
+        }
+        return features;
+      }
+    }
 
     public CsharpCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
     }

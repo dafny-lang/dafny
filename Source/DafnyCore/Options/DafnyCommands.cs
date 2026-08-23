@@ -62,6 +62,7 @@ public static class DafnyCommands {
     IExecutableBackend.TranslationRecords,
     ModuleDefinition.LegacyModuleNames,
     CommonOptionBag.TranslateStandardLibrary,
+    CommonOptionBag.ExperimentalFpCompilation,
   }.Concat(VerificationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ExecutionOptions = new Option[] {
