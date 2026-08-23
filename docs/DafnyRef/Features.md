@@ -48,7 +48,7 @@
 | [Execution coverage report](#sec-dafny-test) |  X  |  |  |  |  |  |  |
 | [Standard libraries](#sec-dafny-standard-libraries) |  X  |  X  |  X  |  X  |  X  |  |  X  |
 | [Standard library ActionsExterns](#sec-dafny-standard-libraries) |  X  |  |  |  X  |  |  |  X  |
-| [Floating-point types (fp32 and fp64)](#sec-floating-point-type) |  |  |  |  |  |  |  X  |
+| [Floating-point types (fp32 and fp64)](#sec-floating-point-type) |  X  |  |  |  |  |  |  X  |
 
 [^compiler-feature-forall-note]: 'Sequentializing' a `forall` statement refers to compiling it directly to a series of nested loops
     with the statement's body directly inside. The alternative, default compilation strategy

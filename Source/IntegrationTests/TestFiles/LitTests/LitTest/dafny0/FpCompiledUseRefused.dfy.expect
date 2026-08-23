@@ -1,7 +1,3 @@
 
 Dafny program verifier finished with 2 verified, 0 errors
-FpCompiledUseRefused.dfy(12,6): Error: Feature not supported for this compilation target: Floating-point types (fp32 and fp64)
-   |
-12 |   var s: set<fp64> := {0.0, -0.0};
-   |       ^
-
+FpCompiledUseRefused.dfy(15,0): Error: Feature not supported for this compilation target: Floating-point types (fp32 and fp64)

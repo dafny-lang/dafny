@@ -90,52 +90,6 @@ public class DivisorNonZero : ProofObligationDescription {
   }
 }
 
-public class FloatEqualityPrecondition : ProofObligationDescription {
-  private readonly string floatTypeName;
-  private readonly Expression operand;
-
-  public FloatEqualityPrecondition(Expression operand, Type floatType) {
-    this.operand = operand;
-    this.floatTypeName = floatType.FloatRepresentation.Name;
-  }
-
-  public override string SuccessDescription =>
-    $"{floatTypeName} operand is never NaN for equality comparison";
-
-  public override string FailureDescription =>
-    $"{floatTypeName} equality comparison requires that operands are not NaN";
-
-  public override string ShortDescription => $"{floatTypeName} equality precondition";
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new LiteralExpr(operand.Origin, true);
-  }
-}
-
-public class FloatSignedZeroEqualityPrecondition : ProofObligationDescription {
-  private readonly string floatTypeName;
-  private readonly Expression operand0;
-  private readonly Expression operand1;
-
-  public FloatSignedZeroEqualityPrecondition(Expression operand0, Expression operand1, Type floatType) {
-    this.operand0 = operand0;
-    this.operand1 = operand1;
-    this.floatTypeName = floatType.FloatRepresentation.Name;
-  }
-
-  public override string SuccessDescription =>
-    $"{floatTypeName} equality comparison never compares +0.0 with -0.0";
-
-  public override string FailureDescription =>
-    $"{floatTypeName} equality comparison requires that signed zeros have the same sign";
-
-  public override string ShortDescription => $"{floatTypeName} signed zero equality precondition";
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new LiteralExpr(operand0.Origin, true);
-  }
-}
-
 public class FloatInvalidOperationPrecondition : ProofObligationDescription {
   private readonly string operation;
   private readonly Expression operand0;
@@ -183,54 +137,6 @@ public class FloatNaNPrecondition : ProofObligationDescription {
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
     return new LiteralExpr(operand.Origin, true);
-  }
-}
-
-public class FloatCollectionEqualityWellformedness : ProofObligationDescription {
-  private readonly Type collectionType;
-  private readonly FloatFacts floatFacts;
-  private string floatTypeName => floatFacts.Name;
-
-  public FloatCollectionEqualityWellformedness(Type collectionType, Type floatType) {
-    this.collectionType = collectionType.NormalizeExpand();
-    this.floatFacts = floatType.FloatRepresentation;
-  }
-
-  public override string SuccessDescription =>
-    "equality comparison is supported for this type";
-
-  public override string FailureDescription {
-    get {
-      string typeName = GetTypeName();
-      return $"equality comparison of {typeName} is not supported in compiled code (use ghost context or compare elements individually)";
-    }
-  }
-
-  public override string ShortDescription => $"{floatTypeName} collection equality";
-
-  private string GetTypeName() {
-    if (collectionType is SetType) {
-      return $"set<{floatTypeName}>";
-    } else if (collectionType is SeqType) {
-      return $"seq<{floatTypeName}>";
-    } else if (collectionType is MultiSetType) {
-      return $"multiset<{floatTypeName}>";
-    } else if (collectionType is MapType mapType) {
-      bool domainIsFloat = mapType.Domain.FloatRepresentation == floatFacts;
-      bool rangeIsFloat = mapType.Range.FloatRepresentation == floatFacts;
-      return domainIsFloat ?
-        (rangeIsFloat ? $"map<{floatTypeName}, {floatTypeName}>" : $"map<{floatTypeName}, _>") :
-        $"map<_, {floatTypeName}>";
-    } else if (collectionType is UserDefinedType udt && udt.ResolvedClass != null) {
-      return $"datatype '{udt.ResolvedClass.Name}' containing {floatTypeName}";
-    } else if (collectionType != null) {
-      return $"type containing {floatTypeName}";
-    }
-    return $"type containing {floatTypeName}";
-  }
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new LiteralExpr(collectionType?.Origin ?? Microsoft.Dafny.Token.NoToken, false);
   }
 }
 

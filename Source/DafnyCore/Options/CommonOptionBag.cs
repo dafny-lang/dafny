@@ -25,13 +25,6 @@ public class CommonOptionBag {
   /// once; this option lifts that for C# only, so the codegen work can be tested step by step
   /// without any intermediate state shipping unsoundness. Delete once C# compilation is sound.
   /// </summary>
-  public static readonly Option<bool> ExperimentalFpCompilation =
-    new("--experimental-fp-compilation",
-      "Allow compiling fp32/fp64 to C#. Unsound: the generated code does not agree with the " +
-      "verifier. For development of the feature only.") {
-      IsHidden = true
-    };
-
   public enum ProgressLevel { None, Symbol, Batch }
   public static readonly Option<ProgressLevel> ProgressOption =
     new("--progress", $"While verifying, output information that helps track progress. " +
@@ -716,7 +709,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(WaitForDebugger, OptionScope.Cli);
     OptionRegistry.RegisterOption(IgnoreIndentation, OptionScope.Cli);
     OptionRegistry.RegisterOption(CheckSourceLocationConsistency, OptionScope.Cli);
-    OptionRegistry.RegisterOption(ExperimentalFpCompilation, OptionScope.Cli);
   }
 }
 

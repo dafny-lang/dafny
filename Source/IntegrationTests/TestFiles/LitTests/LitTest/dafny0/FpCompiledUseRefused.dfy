@@ -1,14 +1,16 @@
-// RUN: %exits-with 3 %build --target cs "%s" > "%t"
+// RUN: %exits-with 3 %build --target java "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// fp32/fp64 are verification-only. Their Boogie encoding is equality on the SMT
-// FloatingPoint sort, which keeps +0.0 and -0.0 apart and identifies NaN with itself;
-// no backend's runtime reproduces that, and for collections the verifier never guards
-// element equality or hashing at all. So the verifier proves |s| == 2 below while .NET
-// would give 1. Compiling any of this is refused; see Feature.FloatingPointTypes.
+// C# compiles fp32/fp64; no other backend does yet. Dafny's "==" on these types is value
+// identity in the SMT FloatingPoint sort, which keeps +0.0 and -0.0 apart and identifies NaN
+// with itself, so |s| below is 2. A backend whose floats are raw IEEE doubles would say 1, and
+// for collections it would also hash them wrongly, so compiling this at all is refused until the
+// backend has a faithful representation. See Feature.FloatingPointTypes and Dafny.Fp64 in the C#
+// runtime for what that takes.
+//
 // The check is whole-program rather than per-position, so a program that mentions fp only in
 // specifications is refused too. An earlier per-position version leaked twice -- on subset-type
-// witnesses and on const initialisers -- and fp is verification-only either way.
+// witnesses and on const initialisers.
 
 method CompiledCollection() {
   var s: set<fp64> := {0.0, -0.0};

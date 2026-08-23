@@ -20,22 +20,12 @@ namespace Microsoft.Dafny.Compilers {
   public class CsharpCodeGenerator : SinglePassCodeGenerator {
     protected bool Synthesize = false;
 
-    public override IReadOnlySet<Feature> UnsupportedFeatures {
-      get {
-        var features = new HashSet<Feature> {
-          Feature.SubsetTypeTests,
-          Feature.TuplesWiderThan20,
-          Feature.ArraysWithMoreThan16Dims,
-          Feature.ArrowsWithMoreThan16Arguments
-        };
-        // Compiled fp is refused unless the development opt-in is given; see
-        // CommonOptionBag.ExperimentalFpCompilation.
-        if (!Options.Get(CommonOptionBag.ExperimentalFpCompilation)) {
-          features.Add(Feature.FloatingPointTypes);
-        }
-        return features;
-      }
-    }
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.SubsetTypeTests,
+      Feature.TuplesWiderThan20,
+      Feature.ArraysWithMoreThan16Dims,
+      Feature.ArrowsWithMoreThan16Arguments
+    };
 
     public CsharpCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
     }
@@ -1576,10 +1566,18 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    /// <summary>
+    /// The C# type a Dafny floating-point type compiles to. These are wrapper structs rather than
+    /// float/double because Dafny's "==" on fp32/fp64 is value identity in the SMT FloatingPoint
+    /// sort -- one NaN, two zeros -- while C#'s "==" on float/double is IEEE fp.eq, which
+    /// disagrees on exactly those values. Compiling to the raw types would produce programs that
+    /// contradict what was verified. The wrappers also carry the classification predicates and the
+    /// unchecked fp*.* built-ins, so all floating-point semantics live in one place.
+    /// </summary>
     private static string CSharpFloatTypeName(Type type) {
       var facts = type.FloatRepresentation;
       Contract.Assert(facts != null, "CSharpFloatTypeName on a non-floating-point type");
-      return facts.IsFp32 ? "float" : "double";
+      return facts.IsFp32 ? "Dafny.Fp32" : "Dafny.Fp64";
     }
 
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
@@ -1609,10 +1607,10 @@ namespace Microsoft.Dafny.Compilers {
         return "BigInteger";
       } else if (xType is RealType) {
         return "Dafny.BigRational";
-      } else if (xType.IsFp32Type) {
-        return "float";
-      } else if (xType.IsFp64Type) {
-        return "double";
+      } else if (xType.IsFloatingPointType) {
+        // The declared-type test on purpose: a newtype over fp32 is compiled as its own type by
+        // the AsNewtype case below, so this must not drill through to the representation.
+        return CSharpFloatTypeName(xType);
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger";
@@ -1720,10 +1718,8 @@ namespace Microsoft.Dafny.Compilers {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
         return "Dafny.BigRational.ZERO";
-      } else if (xType.IsFp32Type) {
-        return "0.0f";
-      } else if (xType.IsFp64Type) {
-        return "0.0";
+      } else if (xType.IsFloatingPointType) {
+        return $"{CSharpFloatTypeName(xType)}.Zero";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? "0" : "BigInteger.Zero";
@@ -2234,7 +2230,7 @@ namespace Microsoft.Dafny.Compilers {
         // Okay, so '\0' _is_ a value of type "char", but it's so unpleasant to deal with in test files, etc.
         // By returning false here, a different value will be chosen.
         return false;
-      } else if (t is BoolType or IntType or BigOrdinalType or RealType or BitvectorType or Fp64Type) {
+      } else if (t is BoolType or IntType or BigOrdinalType or RealType or BitvectorType or Fp32Type or Fp64Type) {
         return true;
       } else if (t is CollectionType) {
         return false;
@@ -2291,17 +2287,13 @@ namespace Microsoft.Dafny.Compilers {
           if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
             // Use exact IEEE 754 value from resolution
             var bigFloat = decLit.ResolvedFloatValue.Value;
-            var s = "";
+            var typeName = CSharpFloatTypeName(e.Type);
             if (bigFloat.IsInfinity) {
-              var typeName = e.Type.IsFp32Type ? "float" : "double";
-              s += $"{typeName}.";
-              s += bigFloat.IsPositive ? "Positive" : "Negative";
-              s += "Infinity";
+              wr.Write($"{typeName}.{(bigFloat.IsPositive ? "Positive" : "Negative")}Infinity");
             } else {
               var suffix = e.Type.IsFp32Type ? 'f' : 'd';
-              s = bigFloat.ToDecimalString() + suffix;
+              wr.Write($"new {typeName}({bigFloat.ToDecimalString()}{suffix})");
             }
-            wr.Write(s);
           } else {
             Contract.Assert(false, $"float literal without ResolvedFloatValue: {e.Value} (type: {e.GetType().Name})");
           }
@@ -2430,15 +2422,15 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type from, Type to, IOrigin tok, ConcreteSyntaxTree wr, Type toOrig = null) {
       if (from != null && to != null) {
-        if (from.IsNumericBased(Type.NumericPersuasion.Real) && !from.IsFp64Type && to.IsFp64Type) {
-          // real to fp64
-          wr.Write("(");
+        if (from.IsNumericBased(Type.NumericPersuasion.Real) && !from.IsFloatingPointType && to.IsFloatingPointType) {
+          // real to fp32/fp64
+          wr.Write($"{CSharpFloatTypeName(to)}.FromReal(");
           var w = wr.Fork();
-          wr.Write(").ToDouble()");
+          wr.Write(")");
           return w;
-        } else if (from.IsFp64Type && to.IsNumericBased(Type.NumericPersuasion.Real) && !to.IsFp64Type) {
-          // fp64 to real
-          wr.Write("Dafny.BigRational.FromDouble(");
+        } else if (from.IsFloatingPointType && to.IsNumericBased(Type.NumericPersuasion.Real) && !to.IsFloatingPointType) {
+          // fp32/fp64 to real
+          wr.Write($"{CSharpFloatTypeName(from)}.ToReal(");
           var w = wr.Fork();
           wr.Write(")");
           return w;
@@ -2698,67 +2690,33 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField.ID.New:
           compiledName = "_new";
           break;
+        // Every floating-point classification predicate and constant is a member of the same name
+        // on Dafny.Fp32/Fp64, so the runtime is the single definition of what each one means. That
+        // matters beyond tidiness: System.Double's near-equivalents are not all the same functions.
+        // double.IsNegative(double.NaN) is true because .NET's NaN has its sign bit set, whereas
+        // fp.isNegative(NaN) -- which is what the verifier assumes -- is false.
         case SpecialField.ID.IsNaN:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.IsNaN(";
-          postString = ")";
-          break;
         case SpecialField.ID.IsFinite:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.IsFinite(";
-          postString = ")";
-          break;
         case SpecialField.ID.IsInfinite:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.IsInfinity(";
-          postString = ")";
-          break;
         case SpecialField.ID.IsNormal:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.IsNormal(";
-          postString = ")";
-          break;
         case SpecialField.ID.IsSubnormal:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.IsSubnormal(";
-          postString = ")";
-          break;
         case SpecialField.ID.IsZero:
-          preString = "(";
-          postString = receiverType.IsFp32Type ? " == 0.0f)" : " == 0.0)";
-          break;
         case SpecialField.ID.IsNegative:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.IsNegative(";
-          postString = ")";
-          break;
         case SpecialField.ID.IsPositive:
-          preString = receiverType.IsFp32Type ? "Dafny.Helpers.Fp32IsPositive(" : "Dafny.Helpers.Fp64IsPositive(";
+          preString = $"{CSharpFloatTypeName(receiverType)}.{id}(";
           postString = ")";
           break;
         case SpecialField.ID.NaN:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.NaN";
-          break;
         case SpecialField.ID.PositiveInfinity:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.PositiveInfinity";
-          break;
         case SpecialField.ID.NegativeInfinity:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.NegativeInfinity";
-          break;
         case SpecialField.ID.Pi:
-          preString = receiverType.IsFp32Type ? "(float)Math.PI" : "Math.PI";
-          break;
         case SpecialField.ID.E:
-          preString = receiverType.IsFp32Type ? "(float)Math.E" : "Math.E";
-          break;
         case SpecialField.ID.MaxValue:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.MaxValue";
-          break;
         case SpecialField.ID.MinValue:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.MinValue";
-          break;
         case SpecialField.ID.MinNormal:
-          preString = receiverType.IsFp32Type ? "1.17549435e-38f" : "2.2250738585072014e-308";
-          break;
         case SpecialField.ID.MinSubnormal:
-          preString = $"{(CSharpFloatTypeName(receiverType))}.Epsilon";
-          break;
         case SpecialField.ID.Epsilon:
-          preString = receiverType.IsFp32Type ? "(float)Math.Pow(2, -23)" : "Math.Pow(2, -52)";
+          preString = $"{CSharpFloatTypeName(receiverType)}.{id}";
           break;
         default:
           Contract.Assert(false); // unexpected ID
@@ -2766,142 +2724,39 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void EmitFloatBinary(FunctionCallExpr e, string op, ConcreteSyntaxTree wr, bool inLetExprBody,
-        ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      wr.Write("(");
-      tr(e.Args[0], wr, inLetExprBody, wStmts);
-      wr.Write(op);
-      tr(e.Args[1], wr, inLetExprBody, wStmts);
-      wr.Write(")");
-    }
-
     /// <summary>
-    /// IEEE minNum/maxNum: NaN operands are ignored rather than propagated, matching SMT-LIB
-    /// fp.min/fp.max. Both arguments are emitted twice, so this is only correct for side-effect-free
-    /// arguments -- which fp expressions are, having no allocation or method calls.
+    /// The fp32/fp64 built-ins that Dafny exposes as functions. Each is a static of the same name
+    /// on Dafny.Fp32/Fp64, so translating one is just naming the type. Keeping the list explicit
+    /// means a newly added built-in fails here rather than silently emitting a call to a method
+    /// that does not exist.
+    ///
+    /// This is also where the wrapper earns its keep. fp*.Equal and fp*.Less are IEEE fp.eq and
+    /// fp.lt, while Dafny's "==" and "<" are value identity and the order refined so that
+    /// -0.0 &lt; +0.0. On raw doubles both pairs would be spelled "==" and "&lt;", so one could be
+    /// emitted where the other was meant; here they have names of their own.
     /// </summary>
-    private void EmitFloatMinMax(FunctionCallExpr e, string which, bool isFp32, ConcreteSyntaxTree wr,
-        bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
-      var typeName = isFp32 ? "float" : "double";
-      void Arg(int i) => tr(e.Args[i], wr, inLetExprBody, wStmts);
-      wr.Write($"({typeName}.IsNaN(");
-      Arg(0);
-      wr.Write(") ? ");
-      Arg(1);
-      wr.Write($" : {typeName}.IsNaN(");
-      Arg(1);
-      wr.Write(") ? ");
-      Arg(0);
-      wr.Write($" : Math.{which}(");
-      Arg(0);
-      wr.Write(", ");
-      Arg(1);
-      wr.Write("))");
-    }
+    private static readonly ISet<string> FloatBuiltInFunctions = new HashSet<string> {
+      "Equal", "Less", "LessOrEqual", "Greater", "GreaterOrEqual",
+      "Add", "Sub", "Mul", "Div", "Neg",
+      "Abs", "Floor", "Ceiling", "Round", "Sqrt", "Min", "Max",
+      "FromReal", "FromFp64", "ToInt"
+    };
 
     protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced = false) {
 
-      // Handle fp32 and fp64 special functions
-      if (e.Function is SpecialFunction && e.Function.EnclosingClass?.Name is "fp32" or "fp64") {
-        var isFp32 = e.Function.EnclosingClass?.Name == "fp32";
-        switch (e.Function.Name) {
-          case "Equal":
-            wr.Write("(");
-            tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write(" == ");
-            tr(e.Args[1], wr, inLetExprBody, wStmts);
-            wr.Write(")");
-            return;
-          case "FromReal":
-            wr.Write("(");
-            tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write(isFp32 ? ").ToSingle()" : ").ToDouble()");
-            return;
-          case "ToInt":
-            wr.Write("((System.Numerics.BigInteger)Math.Truncate(");
-            tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write("))");
-            return;
-          // Math.Min/Max propagate NaN, but SMT-LIB fp.min/fp.max return the other operand, which
-          // the verifier relies on: fp.min(NaN, 1.0) == 1.0 is forced. Emit IEEE minNum/maxNum
-          // rather than leaving the non-NaN operand obligation load-bearing for soundness.
-          case "Min":
-            EmitFloatMinMax(e, "Min", isFp32, wr, inLetExprBody, wStmts, tr);
-            return;
-          case "Max":
-            EmitFloatMinMax(e, "Max", isFp32, wr, inLetExprBody, wStmts, tr);
-            return;
-
-          // The unchecked family: the counterparts of the operators, without their well-formedness
-          // obligations. Comparisons go to the IEEE operators, deliberately NOT to CompareTo --
-          // fp*.Less keeps IEEE semantics while "<" is Dafny's order refined so that -0.0 < +0.0.
-          case "Add":
-            EmitFloatBinary(e, " + ", wr, inLetExprBody, wStmts, tr);
-            return;
-          case "Sub":
-            EmitFloatBinary(e, " - ", wr, inLetExprBody, wStmts, tr);
-            return;
-          case "Mul":
-            EmitFloatBinary(e, " * ", wr, inLetExprBody, wStmts, tr);
-            return;
-          case "Div":
-            EmitFloatBinary(e, " / ", wr, inLetExprBody, wStmts, tr);
-            return;
-          case "Less":
-            EmitFloatBinary(e, " < ", wr, inLetExprBody, wStmts, tr);
-            return;
-          case "LessOrEqual":
-            EmitFloatBinary(e, " <= ", wr, inLetExprBody, wStmts, tr);
-            return;
-          case "Greater":
-            EmitFloatBinary(e, " > ", wr, inLetExprBody, wStmts, tr);
-            return;
-          case "GreaterOrEqual":
-            EmitFloatBinary(e, " >= ", wr, inLetExprBody, wStmts, tr);
-            return;
-          case "Neg":
-            wr.Write("(-(");
-            tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write("))");
-            return;
-          case "FromFp64":
-            // Narrowing, rounds to nearest. The only rounding fp64 -> fp32 conversion, since
-            // "as fp32" asserts exact representability.
-            wr.Write("((float)(");
-            tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write("))");
-            return;
-          case "Abs":
-            wr.Write("Math.Abs(");
-            tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write(")");
-            return;
-          case "Floor":
-            if (isFp32) wr.Write("(float)");
-            wr.Write("Math.Floor(");
-            tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write(")");
-            return;
-          case "Ceiling":
-            if (isFp32) wr.Write("(float)");
-            wr.Write("Math.Ceiling(");
-            tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write(")");
-            return;
-          case "Round":
-            if (isFp32) wr.Write("(float)");
-            wr.Write("Math.Round(");
-            tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write(", MidpointRounding.ToEven)");
-            return;
-          case "Sqrt":
-            if (isFp32) wr.Write("(float)");
-            wr.Write("Math.Sqrt(");
-            tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write(")");
-            return;
+      if (e.Function is SpecialFunction && e.Function.EnclosingClass is { Name: "fp32" or "fp64" } fpDecl) {
+        Contract.Assert(FloatBuiltInFunctions.Contains(e.Function.Name),
+          $"floating-point built-in without a C# runtime counterpart: {fpDecl.Name}.{e.Function.Name}");
+        wr.Write($"Dafny.{(fpDecl.Name == "fp32" ? "Fp32" : "Fp64")}.{e.Function.Name}(");
+        for (var i = 0; i < e.Args.Count; i++) {
+          if (i != 0) {
+            wr.Write(", ");
+          }
+          tr(e.Args[i], wr, inLetExprBody, wStmts);
         }
+        wr.Write(")");
+        return;
       }
 
       base.CompileFunctionCallExpr(e, wr, inLetExprBody, wStmts, tr, alreadyCoerced);
@@ -3523,13 +3378,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.NormalizeToAncestorType().IsBitVectorType || fromType.IsCharType) {
-        if (toType.IsFp64Type) {
+        if (toType.IsFloatingPointType) {
           if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
-            wr.Write("(double)");
+            wr.Write($"{CSharpFloatTypeName(toType)}.FromInt(");
             EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
+            wr.Write(")");
           } else {
             // This should be prevented by the type checker
-            Contract.Assert(false, $"Direct conversion from {fromType} to fp64 is not allowed");
+            Contract.Assert(false, $"Direct conversion from {fromType} to {toType} is not allowed");
           }
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
@@ -3602,15 +3458,14 @@ namespace Microsoft.Dafny.Compilers {
             }
           }
         }
-      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !fromType.IsFp64Type) {
-        // Handle real conversions but exclude fp64 (which has NumericPersuasion.Real)
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !fromType.IsFloatingPointType) {
+        // Handle real conversions but exclude fp32/fp64, which are also NumericPersuasion.Real
         Contract.Assert(AsNativeType(fromType) == null);
-        if (toType.IsFp64Type) {
-          // real to fp64 (exact conversion only)
-          // For exact conversions, we expect simple rationals that can be exactly represented
-          wr.Write("(");
+        if (toType.IsFloatingPointType) {
+          // real -> fp32/fp64. FromReal rounds, but "as" has asserted exact representability.
+          wr.Write($"{CSharpFloatTypeName(toType)}.FromReal(");
           EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
-          wr.Write(").ToDouble()");
+          wr.Write(")");
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(toType) == null);
@@ -3649,24 +3504,29 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           Contract.Assert(false, $"not implemented for C#: {fromType} -> {toType}");
         }
-      } else if (fromType.IsFp64Type) {
-        // fp64 conversions
-        if (toType.IsFp64Type) {
-          // fp64 -> fp64, no conversion needed
+      } else if (fromType.IsFloatingPointType) {
+        // Every "as" out of a floating-point type carries an exactness obligation -- finite and
+        // integral for int, exactly representable for the other targets -- so on any execution the
+        // verifier accepted, the rounding these conversions perform is the identity.
+        var fromName = CSharpFloatTypeName(fromType);
+        if (toType.IsFloatingPointType && fromType.IsFp32Type == toType.IsFp32Type) {
+          // same width, nothing to do
           wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
         } else if (toType.IsFp32Type) {
-          wr.Write("(float)");
-          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+          wr.Write("Dafny.Fp32.FromFp64(");
+          EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
+          wr.Write(")");
+        } else if (toType.IsFp64Type) {
+          wr.Write("Dafny.Fp64.FromFp32(");
+          EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
+          wr.Write(")");
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
-          // fp64 -> int (exact conversion only)
-          // C# truncates towards zero, which matches what we want for exact integers
-          wr.Write("(BigInteger)");
-          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+          wr.Write($"{fromName}.ToInt(");
+          EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
+          wr.Write(")");
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
-          // fp64 -> real (exact for finite values)
-          // Convert double to BigRational through decimal for better precision
-          wr.Write("Dafny.BigRational.FromDouble(");
-          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+          wr.Write($"{fromName}.ToReal(");
+          EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
           wr.Write(")");
         } else {
           Contract.Assert(false, $"not implemented for C#: {fromType} -> {toType}");
