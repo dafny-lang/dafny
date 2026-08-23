@@ -117,6 +117,40 @@ public class FpTest {
     Assert.Equal(expected, new Fp64(value).ToString());
   }
 
+  [Theory]
+  // Extreme values print in scientific form, written the way a Dafny literal is written -- a
+  // lowercase marker and no "+" -- so that printed output can be read back as source.
+  [InlineData(double.MaxValue, "1.7976931348623157e308")]
+  [InlineData(double.MinValue, "-1.7976931348623157e308")]
+  [InlineData(double.Epsilon, "5e-324")]
+  [InlineData(1e-300, "1e-300")]
+  [InlineData(1e21, "1e21")]
+  public void ToStringUsesDafnyLiteralSyntax(double value, string expected) {
+    Assert.Equal(expected, new Fp64(value).ToString());
+  }
+
+  [Fact]
+  public void ToStringReadsBackAsTheSameValue() {
+    // The point of the formatting: every printed value is a literal denoting the value it came
+    // from. Checked here with the platform parser, which is the same rounding the C# compiler
+    // applies to a literal.
+    foreach (var v in new[] {
+      1.5, -1.5, 0.1, 1e300, 1e-300, 1e21, double.MaxValue, double.MinValue, double.Epsilon,
+      Math.PI, 1.0 / 3.0, 0.0, -0.0
+    }) {
+      var printed = new Fp64(v).ToString();
+      var back = double.Parse(printed, System.Globalization.NumberStyles.Float,
+                              System.Globalization.CultureInfo.InvariantCulture);
+      Assert.True(new Fp64(back) == new Fp64(v), $"{printed} did not read back as {v:R}");
+    }
+    foreach (var v in new[] { 1.5f, 0.1f, float.MaxValue, float.Epsilon, -0.0f }) {
+      var printed = new Fp32(v).ToString();
+      var back = float.Parse(printed, System.Globalization.NumberStyles.Float,
+                             System.Globalization.CultureInfo.InvariantCulture);
+      Assert.True(new Fp32(back) == new Fp32(v), $"{printed} did not read back as {v:R}");
+    }
+  }
+
   [Fact]
   public void Fp32BehavesLikeFp64() {
     var pos = new Fp32(0.0f);

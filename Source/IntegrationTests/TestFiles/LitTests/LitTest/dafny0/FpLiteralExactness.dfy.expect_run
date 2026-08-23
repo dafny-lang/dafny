@@ -8,4 +8,7 @@ exact literals: 0.5 2.0
 signed zeros: -0.0 0.0 distinct: true
 largest fp64 is MaxValue: true
 5e-324 is MinSubnormal: true
-1e-300: 1E-300
+1e-300: 1e-300
+printed constants read back: true true true true true
+and print as: 1.7976931348623157e308 5e-324 2.220446049250313e-16
+             3.4028235e38 1e-45

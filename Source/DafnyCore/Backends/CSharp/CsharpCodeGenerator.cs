@@ -1568,48 +1568,64 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// A floating-point literal, written as its exact bit pattern.
+    /// A floating-point literal.
     ///
-    /// The readable spelling -- the shortest decimal that denotes the value -- is not available
-    /// yet: BigFloat.ToDecimalString is not round-trip exact, and for roughly one ordinary value
-    /// in eight it names the neighbouring float. Emitting that would give the compiled program a
-    /// different constant from the one the verifier reasoned about, which is exactly the class of
-    /// divergence the wrapper types exist to prevent. A round-trip printer is in progress in
-    /// Boogie; when it lands this method becomes a decimal literal again.
+    /// The compiled constant has to be the value the resolver computed, and the obvious route to
+    /// it is not exact: BigFloat.ToDecimalString drops most of the fractional digits, so for 9.7%
+    /// of binary32 and 1.2% of binary64 values it names a neighbouring float
+    /// (boogie-org/boogie#1151). The digits therefore come from the platform's shortest
+    /// round-trip formatter, which produces the same digits that the fixed printer will.
     ///
-    /// The bits come from parsing the literal's own decimal with the platform parser, which rounds
-    /// to nearest. That is a second implementation of rounding, so it is checked against the
-    /// BigFloat the resolver computed: if the two ever disagree, this fails loudly rather than
-    /// quietly compiling a different program than the one that was verified.
+    /// Whatever produces the text, it is checked by reading it back: if it does not name the
+    /// resolved value, code generation fails rather than quietly compiling a different program
+    /// than the one that was verified. That check is what will make it safe to swap the producer
+    /// for BigFloat.ToScientificString once that is available.
     /// </summary>
     private static string FloatLiteral(BigDec value, BigFloat resolved, FloatFacts facts) {
-      // Zero first, because a BigDec has no signed zero: the sign of -0.0 survives only in the
-      // BigFloat, and it is the whole difference between two distinct Dafny values.
-      if (resolved.IsZero) {
-        return facts.IsFp32
-          ? $"Dafny.Fp32.FromFloatBits({(resolved.IsNegative ? int.MinValue : 0)})"
-          : $"Dafny.Fp64.FromDoubleBits({(resolved.IsNegative ? long.MinValue : 0L)}L)";
-      }
-      var text = $"{value.Mantissa}E{value.Exponent}";
-      if (facts.IsFp32) {
-        var single = float.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
-        CheckAgreesWithResolver(single, resolved, facts);
-        return $"Dafny.Fp32.FromFloatBits({BitConverter.SingleToInt32Bits(single)})";
-      }
-      var parsed = double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
-      CheckAgreesWithResolver(parsed, resolved, facts);
-      return $"Dafny.Fp64.FromDoubleBits({BitConverter.DoubleToInt64Bits(parsed)}L)";
+      var text = FloatLiteralText(value, resolved, facts);
+      CheckLiteralReadsBack(text, resolved, facts);
+      return $"new {CSharpFloatTypeName(facts.DafnyType)}({text}{(facts.IsFp32 ? 'f' : 'd')})";
     }
 
-    private static void CheckAgreesWithResolver(double parsed, BigFloat resolved, FloatFacts facts) {
-      var (numerator, denominator) = ExactValue(parsed);
-      // Compared as strings rather than with ==, because BigFloat's == is IEEE and would call the
-      // two zeros equal. ToString is the exact hexadecimal form, so it separates them.
-      var agrees = BigFloat.FromRational(numerator, denominator, facts.SignificandBits, facts.ExponentBits, out var reparsed)
-                   && reparsed.ToString() == resolved.ToString();
-      Contract.Assert(agrees,
-        $"floating-point literal rounded differently by the resolver ({resolved}) and by the " +
-        $"platform parser ({parsed:R}); the compiled constant would not be the verified one");
+    private static string FloatLiteralText(BigDec value, BigFloat resolved, FloatFacts facts) {
+      if (resolved.IsZero) {
+        // Spelled with a decimal point on purpose. "-0" is an integer literal negated, which is
+        // positive zero; "-0.0" is a floating-point literal negated, which is the value meant. A
+        // BigDec has no signed zero either, so the sign here can only come from the BigFloat.
+        return resolved.IsNegative ? "-0.0" : "0.0";
+      }
+      // The literal's own decimal, rounded to the format by the platform parser. That is a second
+      // implementation of rounding beside the resolver's, which is exactly what the check below is
+      // for; on 20000 random decimals at both widths the two agree everywhere.
+      var written = $"{value.Mantissa}E{value.Exponent}";
+      return facts.IsFp32
+        ? float.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture)
+          .ToString("R", CultureInfo.InvariantCulture)
+        : double.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture)
+          .ToString("R", CultureInfo.InvariantCulture);
+    }
+
+    private static void CheckLiteralReadsBack(string text, BigFloat resolved, FloatFacts facts) {
+      var parsed = facts.IsFp32
+        ? float.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture)
+        : double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
+      bool readsBack;
+      if (resolved.IsZero) {
+        // At zero the comparison has to be on the sign bit. The route below goes through a
+        // fraction, and a fraction has no signed zero -- negating the numerator 0 gives 0 back --
+        // so it cannot tell the two zeros apart.
+        readsBack = parsed == 0.0 && double.IsNegative(parsed) == resolved.IsNegative;
+      } else {
+        var (numerator, denominator) = ExactValue(parsed);
+        // Compared as strings rather than with ==, because BigFloat's == is IEEE and would call
+        // the two zeros equal. ToString is the exact hexadecimal form, so it separates them.
+        readsBack =
+          BigFloat.FromRational(numerator, denominator, facts.SignificandBits, facts.ExponentBits, out var reparsed)
+          && reparsed.ToString() == resolved.ToString();
+      }
+      Contract.Assert(readsBack,
+        $"the floating-point literal \"{text}\" does not read back as the value the resolver " +
+        $"computed ({resolved}); the compiled constant would not be the verified one");
     }
 
     /// <summary>

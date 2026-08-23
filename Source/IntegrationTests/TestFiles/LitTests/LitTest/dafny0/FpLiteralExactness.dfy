@@ -57,9 +57,33 @@ method ExtremeLiterals() {
   print "1e-300: ", tiny, "\n";
 }
 
+// Printed output is written the way a Dafny literal is written, so it can be read back. These
+// literals are exactly what the program above prints for the same constants.
+method PrintedOutputReadsBack() {
+  var largest: fp64 := ~1.7976931348623157e308;
+  var smallest: fp64 := ~5e-324;
+  var eps: fp64 := ~2.220446049250313e-16;
+  var largest32: fp32 := ~3.4028235e38;
+  var smallest32: fp32 := ~1e-45;
+
+  assert largest == fp64.MaxValue;
+  assert smallest == fp64.MinSubnormal;
+  assert eps == fp64.Epsilon;
+  assert largest32 == fp32.MaxValue;
+  assert smallest32 == fp32.MinSubnormal;
+
+  print "printed constants read back: ",
+        largest == fp64.MaxValue, " ", smallest == fp64.MinSubnormal, " ",
+        eps == fp64.Epsilon, " ", largest32 == fp32.MaxValue, " ",
+        smallest32 == fp32.MinSubnormal, "\n";
+  print "and print as: ", largest, " ", smallest, " ", eps, "\n";
+  print "             ", largest32, " ", smallest32, "\n";
+}
+
 method Main() {
   AdjacentFp64Literals();
   AdjacentFp32Literals();
   ExactLiterals();
   ExtremeLiterals();
+  PrintedOutputReadsBack();
 }

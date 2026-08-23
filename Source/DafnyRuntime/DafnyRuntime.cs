@@ -138,6 +138,20 @@ namespace Dafny {
   // double.IsNegative/IsFinite/IsNormal/IsSubnormal and
   // BitConverter.SingleToInt32Bits are unavailable here.
   // ---------------------------------------------------------------------------
+  /// <summary>
+  /// Renders what "R" produced in the way Dafny writes a floating-point literal, so that printed
+  /// output can be read back as source: a lowercase exponent marker with no "+", and a decimal
+  /// point when there is no exponent at all. "R" already gives the shortest digits that identify
+  /// the value, which are the same digits Dafny's own literal printer produces, so only the
+  /// punctuation differs.
+  /// </summary>
+  internal static class FpFormat {
+    internal static string DafnyLiteralForm(string rendered) {
+      var s = rendered.Replace("E+", "e").Replace("E", "e");
+      return s.IndexOf('.') < 0 && s.IndexOf('e') < 0 ? s + ".0" : s;
+    }
+  }
+
   public readonly struct Fp64 : IEquatable<Fp64> {
     private readonly double value;
 
@@ -159,15 +173,21 @@ namespace Dafny {
     /// This value's identity in the SMT FloatingPoint sort: the raw bits, except that every NaN
     /// maps to one pattern. Two Fp64s are the same Dafny value exactly when their keys are equal.
     /// </summary>
-    private long EqualityKey {
-      get {
-        var bits = BitConverter.DoubleToInt64Bits(value);
-        var isNaN = (bits & ExponentMask) == ExponentMask && (bits & SignificandMask) != 0;
-        return isNaN ? NaNCanonicalBits : bits;
-      }
-    }
+    private static bool IsNaNBits(long bits) =>
+      (bits & ExponentMask) == ExponentMask && (bits & SignificandMask) != 0;
 
-    public bool Equals(Fp64 other) => EqualityKey == other.EqualityKey;
+    private long EqualityKey => IsNaNBits(BitConverter.DoubleToInt64Bits(value))
+      ? NaNCanonicalBits
+      : BitConverter.DoubleToInt64Bits(value);
+
+    public bool Equals(Fp64 other) {
+      var a = BitConverter.DoubleToInt64Bits(value);
+      var b = BitConverter.DoubleToInt64Bits(other.value);
+      // Equal bit patterns are the same value. Differing ones can still be the same value only
+      // when both are NaN, because the sort has exactly one NaN -- that is the entire difference
+      // between this and comparing the raw doubles.
+      return a == b || (IsNaNBits(a) && IsNaNBits(b));
+    }
     public override bool Equals(object obj) => obj is Fp64 other && Equals(other);
     public override int GetHashCode() => EqualityKey.GetHashCode();
 
@@ -237,7 +257,7 @@ namespace Dafny {
     private static long Exponent(double d) => BitConverter.DoubleToInt64Bits(d) & ExponentMask;
     private static long Significand(double d) => BitConverter.DoubleToInt64Bits(d) & SignificandMask;
 
-    public static bool IsNaN(Fp64 a) => Exponent(a.value) == ExponentMask && Significand(a.value) != 0;
+    public static bool IsNaN(Fp64 a) => IsNaNBits(BitConverter.DoubleToInt64Bits(a.value));
     public static bool IsInfinite(Fp64 a) => Exponent(a.value) == ExponentMask && Significand(a.value) == 0;
     public static bool IsFinite(Fp64 a) => Exponent(a.value) != ExponentMask;
     public static bool IsZero(Fp64 a) => Exponent(a.value) == 0 && Significand(a.value) == 0;
@@ -337,9 +357,7 @@ namespace Dafny {
       // Spelled out because .NET Framework's "R" drops the sign on negative zero, and here the
       // sign is the whole difference between two distinct Dafny values.
       if (IsNegativeZero) { return "-0.0"; }
-      var s = value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
-      // Match how Dafny prints "real": always carry a decimal point.
-      return s.IndexOf('.') < 0 && s.IndexOf('E') < 0 && s.IndexOf('e') < 0 ? s + ".0" : s;
+      return FpFormat.DafnyLiteralForm(value.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
     }
   }
 
@@ -371,15 +389,17 @@ namespace Dafny {
 
     public static readonly Fp32 Zero = new Fp32(0.0f);
 
-    private int EqualityKey {
-      get {
-        var bits = ToBits(value);
-        var isNaN = (bits & ExponentMask) == ExponentMask && (bits & SignificandMask) != 0;
-        return isNaN ? NaNCanonicalBits : bits;
-      }
-    }
+    private static bool IsNaNBits(int bits) =>
+      (bits & ExponentMask) == ExponentMask && (bits & SignificandMask) != 0;
 
-    public bool Equals(Fp32 other) => EqualityKey == other.EqualityKey;
+    private int EqualityKey => IsNaNBits(ToBits(value)) ? NaNCanonicalBits : ToBits(value);
+
+    public bool Equals(Fp32 other) {
+      var a = ToBits(value);
+      var b = ToBits(other.value);
+      // See Fp64.Equals: only NaNs can differ in bits and still be the same value.
+      return a == b || (IsNaNBits(a) && IsNaNBits(b));
+    }
     public override bool Equals(object obj) => obj is Fp32 other && Equals(other);
     public override int GetHashCode() => EqualityKey.GetHashCode();
 
@@ -435,7 +455,7 @@ namespace Dafny {
     private static int Exponent(float d) => ToBits(d) & ExponentMask;
     private static int Significand(float d) => ToBits(d) & SignificandMask;
 
-    public static bool IsNaN(Fp32 a) => Exponent(a.value) == ExponentMask && Significand(a.value) != 0;
+    public static bool IsNaN(Fp32 a) => IsNaNBits(ToBits(a.value));
     public static bool IsInfinite(Fp32 a) => Exponent(a.value) == ExponentMask && Significand(a.value) == 0;
     public static bool IsFinite(Fp32 a) => Exponent(a.value) != ExponentMask;
     public static bool IsZero(Fp32 a) => Exponent(a.value) == 0 && Significand(a.value) == 0;
@@ -510,9 +530,7 @@ namespace Dafny {
       // Spelled out because .NET Framework's "R" drops the sign on negative zero, and here the
       // sign is the whole difference between two distinct Dafny values.
       if (IsNegativeZero) { return "-0.0"; }
-      var s = value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
-      // Match how Dafny prints "real": always carry a decimal point.
-      return s.IndexOf('.') < 0 && s.IndexOf('E') < 0 && s.IndexOf('e') < 0 ? s + ".0" : s;
+      return FpFormat.DafnyLiteralForm(value.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
     }
   }
 
