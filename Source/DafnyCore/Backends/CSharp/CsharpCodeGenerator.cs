@@ -1623,9 +1623,14 @@ namespace Microsoft.Dafny.Compilers {
           BigFloat.FromRational(numerator, denominator, facts.SignificandBits, facts.ExponentBits, out var reparsed)
           && reparsed.ToString() == resolved.ToString();
       }
-      Contract.Assert(readsBack,
-        $"the floating-point literal \"{text}\" does not read back as the value the resolver " +
-        $"computed ({resolved}); the compiled constant would not be the verified one");
+      if (!readsBack) {
+        // Thrown rather than asserted: Contract.Assert is [Conditional("DEBUG")], so it would
+        // vanish from the release build, which is the one that ships. The whole value of this
+        // check is that it holds in the compiler people actually run.
+        throw new InvalidOperationException(
+          $"the floating-point literal \"{text}\" does not read back as the value the resolver " +
+          $"computed ({resolved}); the compiled constant would not be the verified one");
+      }
     }
 
     /// <summary>
@@ -2825,8 +2830,12 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced = false) {
 
       if (e.Function is SpecialFunction && e.Function.EnclosingClass is { Name: "fp32" or "fp64" } fpDecl) {
-        Contract.Assert(FloatBuiltInFunctions.Contains(e.Function.Name),
-          $"floating-point built-in without a C# runtime counterpart: {fpDecl.Name}.{e.Function.Name}");
+        if (!FloatBuiltInFunctions.Contains(e.Function.Name)) {
+          // Thrown for the same reason as in CheckLiteralReadsBack: an assert would be compiled
+          // out of the release build, and the fallback is generated code that does not compile.
+          throw new InvalidOperationException(
+            $"floating-point built-in without a C# runtime counterpart: {fpDecl.Name}.{e.Function.Name}");
+        }
         wr.Write($"Dafny.{(fpDecl.Name == "fp32" ? "Fp32" : "Fp64")}.{e.Function.Name}(");
         for (var i = 0; i < e.Args.Count; i++) {
           if (i != 0) {
