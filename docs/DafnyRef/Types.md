@@ -488,50 +488,40 @@ one NaN, so all NaN payloads and both NaN signs are the same value — `x.IsNaN 
 implies `x == y`. Only the two zeros are distinguished. Correspondingly, `x.IsNegative` and
 `x.IsPositive` are both false for a NaN, since a NaN has no sign.
 
-- In **compiled contexts** the `==` operator has **well-formedness conditions** that
-  require operands to not be NaN and, if they are zeros, to have the same sign.
-  Under these conditions, `==` behaves like IEEE 754 equality.
+`==` means the same thing in compiled code as in specifications and has no side conditions
+in either, so a comparison can be moved freely between a specification and the code it
+specifies. Collections and datatypes with floating-point components inherit this notion of
+equality: `{0.0, -0.0}` has two elements and `{fp64.NaN} == {fp64.NaN}` holds, when
+executed as well as when reasoned about.
 
-- In **ghost contexts** (specifications, assertions): The well-formedness conditions are
-  relaxed, so value identity is directly observable.
-
-- The static methods `fp32.Equal(a, b)` and `fp64.Equal(a, b)` provide IEEE 754 equality
-  semantics without well-formedness restrictions (NaN is not equal to anything including itself,
-  and ±0 are equal).
+For IEEE 754 equality, use the static methods `fp32.Equal(a, b)` and `fp64.Equal(a, b)`:
+there, NaN is equal to nothing, not even itself, and the two zeros are equal.
 
 <!-- %check-verify -->
 ```dafny
-method EqualityExample(x: fp64, y: fp64) {
+method EqualityExample(x: fp64) {
   var nan := fp64.NaN;
   var posZero: fp64 := 0.0;
   var negZero: fp64 := -0.0;
 
-  // In ghost context - no well-formedness restrictions
-  assert nan == nan;           // true (there is exactly one NaN value)
-  assert posZero != negZero;   // true (different bit patterns)
+  assert nan == nan;           // true: there is exactly one NaN value
+  assert posZero != negZero;   // true: the two zeros are different values
 
-  // In compiled context - well-formedness restrictions verified statically
-  // var b1 := x == y;              // ERROR: verifier cannot prove x and y are not NaN
-  // var b2 := posZero == negZero;  // ERROR: verifier knows they have different signs
+  // The same comparisons are available in compiled code, on arbitrary values.
+  var isNaN := x == nan;       // true exactly when x is a NaN
+  assert isNaN == x.IsNaN;
+  var b := posZero == negZero;
+  assert !b;
 
-  // Valid use of == when preconditions can be verified
-  if !x.IsNaN {
-    // Can compare posZero with x since we know posZero is not NaN,
-    // and if x is also zero, we'd need to check signs match
-    if !x.IsZero || !x.IsNegative {
-      var equal := posZero == x;  // OK: not NaN, and no sign mismatch
-      print "0.0 == ", x, ": ", equal, "\n";
-    }
-  }
+  // Collections agree.
+  var zeros: set<fp64> := {posZero, negZero};
+  assert |zeros| == 2;
+  var nans: set<fp64> := {nan, nan};
+  assert |nans| == 1;
 
-  // Simpler: just use fp64.Equal when unsure about values
-  var maybeNaN := if !x.IsNaN && x.IsNegative then fp64.NaN else x;
-  // var bad := maybeNaN == x;  // ERROR: cannot prove maybeNaN is not NaN
-  var safe := fp64.Equal(maybeNaN, x);  // Always works, no preconditions
-
-  // fp64.Equal always uses IEEE 754 semantics
-  assert !fp64.Equal(nan, nan);        // NaN != NaN
-  assert fp64.Equal(posZero, negZero); // ±0 are equal
+  // fp64.Equal is IEEE 754 equality, which differs on exactly these values.
+  assert !fp64.Equal(nan, nan);        // NaN equals nothing
+  assert fp64.Equal(posZero, negZero); // the zeros are equal
 }
 ```
 
@@ -774,6 +764,38 @@ method ToIntWellformednessExamples() {
 | Special values | None | None | NaN, ±∞ |
 | Modulus operator | Yes | No | No |
 | Hardware mapping | BigInteger | BigRational | IEEE 754 binary64 |
+
+#### 5.2.3.11. Compilation
+
+C# is currently the only target that compiles `fp32` and `fp64`; the other backends refuse a
+program that mentions either type at all, including one that mentions it only in
+specifications. See the [supported features table](#sec-supported-features-by-target-language) for the
+current state.
+
+In C# the two types compile to the structs `Dafny.Fp32` and `Dafny.Fp64` rather than to
+`float` and `double`. The wrapper is what makes compiled behaviour match what was verified:
+C#'s `==` on `float` and `double` is IEEE `fp.eq`, which says `+0.0 == -0.0` and says
+`NaN != NaN`, and Dafny's `==` says the opposite of both. The struct's `Equals` and
+`GetHashCode` implement value identity, so hash-based and comparison-based collections keyed
+on a floating-point value behave the way the specification says they do.
+
+Consequences worth knowing when reading or writing the generated code:
+
+* `Dafny.Fp64` deliberately does not implement `IComparable`. Dafny does not order NaN, so
+  NaN's position in a sorted container has no Dafny meaning, and it should not be possible to
+  acquire one by accident. Where a total order is genuinely needed, pass the explicit
+  comparer `Dafny.Fp64.DafnyOrderComparer.Instance`, which extends Dafny's order by placing
+  NaN above every number and agrees with `Equals` — `Compare(x, y) == 0` exactly when
+  `x.Equals(y)`.
+* The underlying `double` is reachable as the `Value` property and through an explicit
+  conversion, so interoperating with an external library that takes a `double` is a cast
+  away. Going the other direction, wrap with `new Dafny.Fp64(d)`.
+* An `{:extern}` declaration whose Dafny signature mentions `fp64` must use `Dafny.Fp64` on
+  the C# side. This matters for more than the type check: an external function is trusted to
+  behave like its Dafny signature, and a Dafny function has one result per argument. A C#
+  implementation that returns a NaN whose payload varies between calls still satisfies that,
+  because all NaNs are one Dafny value, but one that returns `-0.0` where the specification
+  says it returns `0.0` does not.
 
 ### 5.2.4. Bit-vector Types ([grammar](#g-basic-type)) {#sec-bit-vector-types}
 

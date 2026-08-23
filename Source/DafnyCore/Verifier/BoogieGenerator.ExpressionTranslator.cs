@@ -892,7 +892,11 @@ namespace Microsoft.Dafny {
             return MaybeLit(Boogie.Expr.Literal(n));
           }
         } else if (e.Value is BigDec) {
-          if (e.Type.IsFloatingPointType) {
+          // FloatRepresentation rather than IsFloatingPointType: a newtype over fp32 is translated
+          // to the fp32 Boogie type, so its literals have to be fp literals as well. With the
+          // declared-type test this fell through to the "real" branch below and Boogie rejected the
+          // program with "cannot assign real to float24e8".
+          if (e.Type.FloatRepresentation is { }) {
             // For DecimalLiteralExpr with floating point type, use the precomputed float value if available
             if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
               return MaybeLit(new Bpl.LiteralExpr(GetToken(e), decLit.ResolvedFloatValue.Value), BoogieGenerator.TrType(e.Type));

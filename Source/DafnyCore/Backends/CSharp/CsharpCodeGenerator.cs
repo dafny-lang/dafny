@@ -2282,7 +2282,9 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is BigInteger bigInteger) {
         EmitIntegerLiteral(bigInteger, wr);
       } else if (e.Value is BigDec n) {
-        if (e.Type.IsFloatingPointType) {
+        // FloatRepresentation, not IsFloatingPointType: a newtype over fp32 is compiled as its
+        // representation, so its literals have to be built as that representation too.
+        if (e.Type.FloatRepresentation is { } literalFacts) {
           // Use precomputed float value for floating-point decimal literals
           if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
             // Use exact IEEE 754 value from resolution
@@ -2291,7 +2293,7 @@ namespace Microsoft.Dafny.Compilers {
             if (bigFloat.IsInfinity) {
               wr.Write($"{typeName}.{(bigFloat.IsPositive ? "Positive" : "Negative")}Infinity");
             } else {
-              var suffix = e.Type.IsFp32Type ? 'f' : 'd';
+              var suffix = literalFacts.IsFp32 ? 'f' : 'd';
               wr.Write($"new {typeName}({bigFloat.ToDecimalString()}{suffix})");
             }
           } else {
@@ -2422,13 +2424,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type from, Type to, IOrigin tok, ConcreteSyntaxTree wr, Type toOrig = null) {
       if (from != null && to != null) {
-        if (from.IsNumericBased(Type.NumericPersuasion.Real) && !from.IsFloatingPointType && to.IsFloatingPointType) {
+        if (from.IsNumericBased(Type.NumericPersuasion.Real) && to.FloatRepresentation is { }) {
           // real to fp32/fp64
           wr.Write($"{CSharpFloatTypeName(to)}.FromReal(");
           var w = wr.Fork();
           wr.Write(")");
           return w;
-        } else if (from.IsFloatingPointType && to.IsNumericBased(Type.NumericPersuasion.Real) && !to.IsFloatingPointType) {
+        } else if (from.FloatRepresentation is { } && to.IsNumericBased(Type.NumericPersuasion.Real)) {
           // fp32/fp64 to real
           wr.Write($"{CSharpFloatTypeName(from)}.ToReal(");
           var w = wr.Fork();
@@ -3378,7 +3380,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.NormalizeToAncestorType().IsBitVectorType || fromType.IsCharType) {
-        if (toType.IsFloatingPointType) {
+        if (toType.FloatRepresentation is { }) {
           if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
             wr.Write($"{CSharpFloatTypeName(toType)}.FromInt(");
             EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
@@ -3458,10 +3460,10 @@ namespace Microsoft.Dafny.Compilers {
             }
           }
         }
-      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !fromType.IsFloatingPointType) {
-        // Handle real conversions but exclude fp32/fp64, which are also NumericPersuasion.Real
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        // Only "real" reaches here: fp32/fp64 are NumericPersuasion.Float, not Real.
         Contract.Assert(AsNativeType(fromType) == null);
-        if (toType.IsFloatingPointType) {
+        if (toType.FloatRepresentation is { }) {
           // real -> fp32/fp64. FromReal rounds, but "as" has asserted exact representability.
           wr.Write($"{CSharpFloatTypeName(toType)}.FromReal(");
           EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
@@ -3504,22 +3506,20 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           Contract.Assert(false, $"not implemented for C#: {fromType} -> {toType}");
         }
-      } else if (fromType.IsFloatingPointType) {
+      } else if (fromType.FloatRepresentation is { } fromFacts) {
         // Every "as" out of a floating-point type carries an exactness obligation -- finite and
         // integral for int, exactly representable for the other targets -- so on any execution the
         // verifier accepted, the rounding these conversions perform is the identity.
         var fromName = CSharpFloatTypeName(fromType);
-        if (toType.IsFloatingPointType && fromType.IsFp32Type == toType.IsFp32Type) {
-          // same width, nothing to do
-          wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
-        } else if (toType.IsFp32Type) {
-          wr.Write("Dafny.Fp32.FromFp64(");
-          EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
-          wr.Write(")");
-        } else if (toType.IsFp64Type) {
-          wr.Write("Dafny.Fp64.FromFp32(");
-          EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
-          wr.Write(")");
+        if (toType.FloatRepresentation is { } toFacts) {
+          if (fromFacts.IsFp32 == toFacts.IsFp32) {
+            // same width, nothing to do
+            wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+          } else {
+            wr.Write(toFacts.IsFp32 ? "Dafny.Fp32.FromFp64(" : "Dafny.Fp64.FromFp32(");
+            EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
+            wr.Write(")");
+          }
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
           wr.Write($"{fromName}.ToInt(");
           EmitExpr(fromExpr, inLetExprBody, wr, wStmts);

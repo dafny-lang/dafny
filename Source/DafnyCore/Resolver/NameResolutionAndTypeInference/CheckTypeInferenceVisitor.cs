@@ -192,10 +192,13 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       if (toCheck is DecimalLiteralExpr decLit) {
         var resolvedType = e.Type.Normalize();
 
-        if (resolvedType.IsFloatingPointType) {
+        // FloatRepresentation rather than IsFloatingPointType: a literal whose type is a newtype
+        // over fp32 still denotes an fp32 value, and both the verifier and the code generator
+        // require every such literal to carry its ResolvedFloatValue.
+        if (resolvedType.FloatRepresentation is { } facts) {
           var decValue = (BigDec)decLit.Value;
-          var (significandBits, exponentBits) = resolvedType.FloatRepresentation;
-          var (isExact, floatValue) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
+          var (isExact, floatValue) =
+            FloatLiteralValidator.ValidateAndCompute(decValue, facts.SignificandBits, facts.ExponentBits);
 
           decLit.ResolvedFloatValue = floatValue;
         }
@@ -220,17 +223,19 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       if (e is DecimalLiteralExpr decimalLiteral && e.Value is BigDec decValue) {
         var normalizedType = e.Type.Normalize();
 
-        if (!normalizedType.IsFloatingPointType) {
+        // FloatRepresentation rather than IsFloatingPointType, so that a newtype over fp32 gets
+        // the same treatment as fp32 itself: the exactness diagnostic below, and a
+        // ResolvedFloatValue for the verifier and the code generator to use.
+        if (normalizedType.FloatRepresentation is not { } facts) {
           return;
         }
 
         if (decimalLiteral.IsApproximate) {
-          var (significandBits, exponentBits) = normalizedType.FloatRepresentation;
-          var (isExact, _) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
+          var (isExact, _) =
+            FloatLiteralValidator.ValidateAndCompute(decValue, facts.SignificandBits, facts.ExponentBits);
           if (isExact) {
-            var typeName = normalizedType.FloatRepresentation.Name;
             resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
-              $"The approximate literal prefix ~ is not allowed on value {decValue} which is exactly representable as {typeName}. Remove the ~ prefix.");
+              $"The approximate literal prefix ~ is not allowed on value {decValue} which is exactly representable as {facts.Name}. Remove the ~ prefix.");
           }
           return;
         }
@@ -239,20 +244,19 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         bool wasNull = decimalLiteral.ResolvedFloatValue == null;
         bool needsRecompute = wasNull;
         if (!needsRecompute) {
-          var (currentMantissa, currentExponent) = normalizedType.FloatRepresentation;
           var storedValue = decimalLiteral.ResolvedFloatValue.Value;
-          needsRecompute = currentMantissa != storedValue.SignificandSize || currentExponent != storedValue.ExponentSize;
+          needsRecompute = facts.SignificandBits != storedValue.SignificandSize
+                           || facts.ExponentBits != storedValue.ExponentSize;
         }
 
         if (needsRecompute) {
-          var (significandBits, exponentBits) = normalizedType.FloatRepresentation;
-          var (isExact, floatValue) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
+          var (isExact, floatValue) =
+            FloatLiteralValidator.ValidateAndCompute(decValue, facts.SignificandBits, facts.ExponentBits);
           decimalLiteral.ResolvedFloatValue = floatValue;
           // Report inexact error only on first computation (not on type precision changes)
           if (!isExact && wasNull) {
-            var typeName = normalizedType.FloatRepresentation.Name;
             resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
-              $"The literal {decValue} is not exactly representable as an {typeName} value. " +
+              $"The literal {decValue} is not exactly representable as an {facts.Name} value. " +
               $"Use the approximate literal syntax ~{decValue} to explicitly acknowledge rounding.");
           }
         }
