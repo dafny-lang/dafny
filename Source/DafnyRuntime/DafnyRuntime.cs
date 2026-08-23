@@ -116,6 +116,223 @@ namespace Dafny {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Dafny's fp32/fp64 are value identity on the SMT FloatingPoint sort: there is
+  // exactly one NaN, and +0.0 and -0.0 are distinct. C#'s float/double reproduce
+  // neither -- "==" is IEEE (NaN != NaN, +0.0 == -0.0) and Equals is a third
+  // relation again (NaN == NaN and +0.0 == -0.0). So fp values are represented by
+  // these wrappers, whose Equals/GetHashCode implement the verifier's semantics
+  // and whose arithmetic delegates to float/double.
+  //
+  // The wrapped value is stored VERBATIM; NaN payloads are never rewritten.
+  // Canonicalization happens only in EqualityKey, the one place that observes it.
+  // The struct therefore has NO representation invariant, which is what makes it
+  // safe against MemoryMarshal.Cast and other bit-level interop: Equals is a
+  // function of the bit pattern that is constant on each equivalence class, so
+  // any representative gives the same answer.
+  //
+  // Deliberately NOT IComparable: .NET requires a total order and Dafny's order
+  // is undefined on NaN, so an order is offered as an explicit comparer instead.
+  //
+  // This file compiles against netstandard2.0 and net452 at LangVersion 7.3, so
+  // double.IsNegative/IsFinite/IsNormal/IsSubnormal and
+  // BitConverter.SingleToInt32Bits are unavailable here.
+  // ---------------------------------------------------------------------------
+  public readonly struct Fp64 : IEquatable<Fp64> {
+    private readonly double value;
+
+    private const long NaNCanonicalBits = unchecked((long)0x7ff8000000000000UL);
+    private const long SignBit = unchecked((long)0x8000000000000000UL);
+    private const long ExponentMask = unchecked((long)0x7ff0000000000000UL);
+    private const long SignificandMask = unchecked((long)0x000fffffffffffffUL);
+
+    public Fp64(double value) { this.value = value; }
+
+    public double Value => value;
+
+    public static Fp64 FromDoubleBits(long bits) => new Fp64(BitConverter.Int64BitsToDouble(bits));
+    public long ToDoubleBits() => BitConverter.DoubleToInt64Bits(value);
+
+    public static readonly Fp64 Zero = new Fp64(0.0);
+
+    /// <summary>
+    /// This value's identity in the SMT FloatingPoint sort: the raw bits, except that every NaN
+    /// maps to one pattern. Two Fp64s are the same Dafny value exactly when their keys are equal.
+    /// </summary>
+    private long EqualityKey {
+      get {
+        var bits = BitConverter.DoubleToInt64Bits(value);
+        var isNaN = (bits & ExponentMask) == ExponentMask && (bits & SignificandMask) != 0;
+        return isNaN ? NaNCanonicalBits : bits;
+      }
+    }
+
+    public bool Equals(Fp64 other) => EqualityKey == other.EqualityKey;
+    public override bool Equals(object obj) => obj is Fp64 other && Equals(other);
+    public override int GetHashCode() => EqualityKey.GetHashCode();
+
+    // Dafny's "==". NOT IEEE equality; fp64.Equal maps to IeeeEqual below.
+    public static bool operator ==(Fp64 a, Fp64 b) => a.Equals(b);
+    public static bool operator !=(Fp64 a, Fp64 b) => !a.Equals(b);
+
+    // fp64.Equal: IEEE fp.eq.
+    public static bool IeeeEqual(Fp64 a, Fp64 b) => a.value == b.value;
+
+    private bool IsNegativeZero => BitConverter.DoubleToInt64Bits(value) == SignBit;
+    private bool IsPositiveZero => BitConverter.DoubleToInt64Bits(value) == 0L;
+
+    // Dafny's "<" and "<=": IEEE fp.lt/fp.leq refined so that -0.0 < +0.0, which is what makes
+    // the order agree with "==". Mirrors FpLess/FpAtMost in the verifier. NaN operands make both
+    // false, as in IEEE.
+    public static bool operator <(Fp64 a, Fp64 b) =>
+      a.value < b.value || (a.IsNegativeZero && b.IsPositiveZero);
+    public static bool operator <=(Fp64 a, Fp64 b) =>
+      a.value <= b.value && !(a.IsPositiveZero && b.IsNegativeZero);
+    public static bool operator >(Fp64 a, Fp64 b) => b < a;
+    public static bool operator >=(Fp64 a, Fp64 b) => b <= a;
+
+    // fp64.Less and friends keep raw IEEE, mirroring fp64.Equal versus "==".
+    public static bool IeeeLess(Fp64 a, Fp64 b) => a.value < b.value;
+    public static bool IeeeLessOrEqual(Fp64 a, Fp64 b) => a.value <= b.value;
+
+    public static Fp64 operator +(Fp64 a, Fp64 b) => new Fp64(a.value + b.value);
+    public static Fp64 operator -(Fp64 a, Fp64 b) => new Fp64(a.value - b.value);
+    public static Fp64 operator *(Fp64 a, Fp64 b) => new Fp64(a.value * b.value);
+    public static Fp64 operator /(Fp64 a, Fp64 b) => new Fp64(a.value / b.value);
+    public static Fp64 operator -(Fp64 a) => new Fp64(-a.value);
+
+    public static explicit operator double(Fp64 a) => a.value;
+    public static explicit operator Fp64(double d) => new Fp64(d);
+
+    [Obsolete("Compare Dafny.Fp64 with Dafny.Fp64; wrap the double as new Dafny.Fp64(d).", true)]
+    public bool Equals(double other) => throw new NotSupportedException();
+
+    /// <summary>
+    /// Dafny's order extended to a total order for sorted containers. Offered explicitly rather
+    /// than as IComparable because Dafny does not order NaN, so NaN's position here (above every
+    /// number) is a runtime-only choice with no Dafny meaning. The key is computed from the
+    /// CANONICALIZED value, so all NaN payloads share one position and CompareTo == 0 iff Equals.
+    /// </summary>
+    public sealed class DafnyOrderComparer : System.Collections.Generic.IComparer<Fp64> {
+      public static readonly DafnyOrderComparer Instance = new DafnyOrderComparer();
+
+      public int Compare(Fp64 x, Fp64 y) => OrderKey(x).CompareTo(OrderKey(y));
+
+      private static long OrderKey(Fp64 v) {
+        var bits = v.EqualityKey;
+        // Map sign-magnitude onto a monotone two's-complement key. The "- 1" is what keeps -0.0
+        // strictly below +0.0; without it the two collide and SortedSet disagrees with HashSet.
+        return bits < 0 ? long.MinValue - bits - 1 : bits;
+      }
+    }
+
+    public override string ToString() {
+      if (double.IsNaN(value)) { return "NaN"; }
+      if (double.IsPositiveInfinity(value)) { return "Infinity"; }
+      if (double.IsNegativeInfinity(value)) { return "-Infinity"; }
+      // Spelled out because .NET Framework's "R" drops the sign on negative zero, and here the
+      // sign is the whole difference between two distinct Dafny values.
+      if (IsNegativeZero) { return "-0.0"; }
+      var s = value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+      // Match how Dafny prints "real": always carry a decimal point.
+      return s.IndexOf('.') < 0 && s.IndexOf('E') < 0 && s.IndexOf('e') < 0 ? s + ".0" : s;
+    }
+  }
+
+  public readonly struct Fp32 : IEquatable<Fp32> {
+    private readonly float value;
+
+    private const int NaNCanonicalBits = unchecked((int)0x7fc00000U);
+    private const int SignBit = unchecked((int)0x80000000U);
+    private const int ExponentMask = unchecked((int)0x7f800000U);
+    private const int SignificandMask = unchecked((int)0x007fffffU);
+
+    // netstandard2.0 has no BitConverter.SingleToInt32Bits, and going via GetBytes would allocate
+    // on every comparison, so reinterpret through an explicit-layout union.
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
+    private struct Bits {
+      [System.Runtime.InteropServices.FieldOffset(0)] public float F;
+      [System.Runtime.InteropServices.FieldOffset(0)] public int I;
+    }
+
+    private static int ToBits(float f) { var b = new Bits(); b.F = f; return b.I; }
+    private static float OfBits(int i) { var b = new Bits(); b.I = i; return b.F; }
+
+    public Fp32(float value) { this.value = value; }
+
+    public float Value => value;
+
+    public static Fp32 FromFloatBits(int bits) => new Fp32(OfBits(bits));
+    public int ToFloatBits() => ToBits(value);
+
+    public static readonly Fp32 Zero = new Fp32(0.0f);
+
+    private int EqualityKey {
+      get {
+        var bits = ToBits(value);
+        var isNaN = (bits & ExponentMask) == ExponentMask && (bits & SignificandMask) != 0;
+        return isNaN ? NaNCanonicalBits : bits;
+      }
+    }
+
+    public bool Equals(Fp32 other) => EqualityKey == other.EqualityKey;
+    public override bool Equals(object obj) => obj is Fp32 other && Equals(other);
+    public override int GetHashCode() => EqualityKey.GetHashCode();
+
+    public static bool operator ==(Fp32 a, Fp32 b) => a.Equals(b);
+    public static bool operator !=(Fp32 a, Fp32 b) => !a.Equals(b);
+
+    public static bool IeeeEqual(Fp32 a, Fp32 b) => a.value == b.value;
+
+    private bool IsNegativeZero => ToBits(value) == SignBit;
+    private bool IsPositiveZero => ToBits(value) == 0;
+
+    public static bool operator <(Fp32 a, Fp32 b) =>
+      a.value < b.value || (a.IsNegativeZero && b.IsPositiveZero);
+    public static bool operator <=(Fp32 a, Fp32 b) =>
+      a.value <= b.value && !(a.IsPositiveZero && b.IsNegativeZero);
+    public static bool operator >(Fp32 a, Fp32 b) => b < a;
+    public static bool operator >=(Fp32 a, Fp32 b) => b <= a;
+
+    public static bool IeeeLess(Fp32 a, Fp32 b) => a.value < b.value;
+    public static bool IeeeLessOrEqual(Fp32 a, Fp32 b) => a.value <= b.value;
+
+    public static Fp32 operator +(Fp32 a, Fp32 b) => new Fp32(a.value + b.value);
+    public static Fp32 operator -(Fp32 a, Fp32 b) => new Fp32(a.value - b.value);
+    public static Fp32 operator *(Fp32 a, Fp32 b) => new Fp32(a.value * b.value);
+    public static Fp32 operator /(Fp32 a, Fp32 b) => new Fp32(a.value / b.value);
+    public static Fp32 operator -(Fp32 a) => new Fp32(-a.value);
+
+    public static explicit operator float(Fp32 a) => a.value;
+    public static explicit operator Fp32(float f) => new Fp32(f);
+
+    [Obsolete("Compare Dafny.Fp32 with Dafny.Fp32; wrap the float as new Dafny.Fp32(f).", true)]
+    public bool Equals(float other) => throw new NotSupportedException();
+
+    public sealed class DafnyOrderComparer : System.Collections.Generic.IComparer<Fp32> {
+      public static readonly DafnyOrderComparer Instance = new DafnyOrderComparer();
+
+      public int Compare(Fp32 x, Fp32 y) => OrderKey(x).CompareTo(OrderKey(y));
+
+      private static int OrderKey(Fp32 v) {
+        var bits = v.EqualityKey;
+        return bits < 0 ? int.MinValue - bits - 1 : bits;
+      }
+    }
+
+    public override string ToString() {
+      if (float.IsNaN(value)) { return "NaN"; }
+      if (float.IsPositiveInfinity(value)) { return "Infinity"; }
+      if (float.IsNegativeInfinity(value)) { return "-Infinity"; }
+      // Spelled out because .NET Framework's "R" drops the sign on negative zero, and here the
+      // sign is the whole difference between two distinct Dafny values.
+      if (IsNegativeZero) { return "-0.0"; }
+      var s = value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+      // Match how Dafny prints "real": always carry a decimal point.
+      return s.IndexOf('.') < 0 && s.IndexOf('E') < 0 && s.IndexOf('e') < 0 ? s + ".0" : s;
+    }
+  }
+
   public interface ISet<out T> {
     int Count { get; }
     long LongCount { get; }
