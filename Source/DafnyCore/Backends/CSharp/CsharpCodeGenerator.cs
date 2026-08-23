@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
@@ -1567,6 +1568,67 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
+    /// A floating-point literal, written as its exact bit pattern.
+    ///
+    /// The readable spelling -- the shortest decimal that denotes the value -- is not available
+    /// yet: BigFloat.ToDecimalString is not round-trip exact, and for roughly one ordinary value
+    /// in eight it names the neighbouring float. Emitting that would give the compiled program a
+    /// different constant from the one the verifier reasoned about, which is exactly the class of
+    /// divergence the wrapper types exist to prevent. A round-trip printer is in progress in
+    /// Boogie; when it lands this method becomes a decimal literal again.
+    ///
+    /// The bits come from parsing the literal's own decimal with the platform parser, which rounds
+    /// to nearest. That is a second implementation of rounding, so it is checked against the
+    /// BigFloat the resolver computed: if the two ever disagree, this fails loudly rather than
+    /// quietly compiling a different program than the one that was verified.
+    /// </summary>
+    private static string FloatLiteral(BigDec value, BigFloat resolved, FloatFacts facts) {
+      // Zero first, because a BigDec has no signed zero: the sign of -0.0 survives only in the
+      // BigFloat, and it is the whole difference between two distinct Dafny values.
+      if (resolved.IsZero) {
+        return facts.IsFp32
+          ? $"Dafny.Fp32.FromFloatBits({(resolved.IsNegative ? int.MinValue : 0)})"
+          : $"Dafny.Fp64.FromDoubleBits({(resolved.IsNegative ? long.MinValue : 0L)}L)";
+      }
+      var text = $"{value.Mantissa}E{value.Exponent}";
+      if (facts.IsFp32) {
+        var single = float.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
+        CheckAgreesWithResolver(single, resolved, facts);
+        return $"Dafny.Fp32.FromFloatBits({BitConverter.SingleToInt32Bits(single)})";
+      }
+      var parsed = double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
+      CheckAgreesWithResolver(parsed, resolved, facts);
+      return $"Dafny.Fp64.FromDoubleBits({BitConverter.DoubleToInt64Bits(parsed)}L)";
+    }
+
+    private static void CheckAgreesWithResolver(double parsed, BigFloat resolved, FloatFacts facts) {
+      var (numerator, denominator) = ExactValue(parsed);
+      // Compared as strings rather than with ==, because BigFloat's == is IEEE and would call the
+      // two zeros equal. ToString is the exact hexadecimal form, so it separates them.
+      var agrees = BigFloat.FromRational(numerator, denominator, facts.SignificandBits, facts.ExponentBits, out var reparsed)
+                   && reparsed.ToString() == resolved.ToString();
+      Contract.Assert(agrees,
+        $"floating-point literal rounded differently by the resolver ({resolved}) and by the " +
+        $"platform parser ({parsed:R}); the compiled constant would not be the verified one");
+    }
+
+    /// <summary>
+    /// A finite double as an exact fraction. Every finite floating-point value is m * 2^e for
+    /// integers m and e, so no approximation is involved.
+    /// </summary>
+    private static (BigInteger, BigInteger) ExactValue(double value) {
+      var bits = BitConverter.DoubleToInt64Bits(value);
+      var biasedExponent = (int)((bits >> 52) & 0x7ff);
+      var mantissa = bits & 0xfffffffffffffL;
+      var significand = biasedExponent == 0 ? mantissa : mantissa | (1L << 52);
+      var exponent = (biasedExponent == 0 ? 1 : biasedExponent) - 1075;
+      var numerator = bits < 0 ? -new BigInteger(significand) : new BigInteger(significand);
+      return exponent >= 0
+        ? (numerator * BigInteger.Pow(2, exponent), BigInteger.One)
+        : (numerator, BigInteger.Pow(2, -exponent));
+    }
+
+    /// <summary>
     /// The C# type a Dafny floating-point type compiles to. These are wrapper structs rather than
     /// float/double because Dafny's "==" on fp32/fp64 is value identity in the SMT FloatingPoint
     /// sort -- one NaN, two zeros -- while C#'s "==" on float/double is IEEE fp.eq, which
@@ -2293,8 +2355,7 @@ namespace Microsoft.Dafny.Compilers {
             if (bigFloat.IsInfinity) {
               wr.Write($"{typeName}.{(bigFloat.IsPositive ? "Positive" : "Negative")}Infinity");
             } else {
-              var suffix = literalFacts.IsFp32 ? 'f' : 'd';
-              wr.Write($"new {typeName}({bigFloat.ToDecimalString()}{suffix})");
+              wr.Write(FloatLiteral(n, bigFloat, literalFacts));
             }
           } else {
             Contract.Assert(false, $"float literal without ResolvedFloatValue: {e.Value} (type: {e.GetType().Name})");
