@@ -1527,8 +1527,29 @@ namespace Microsoft.Dafny.Compilers {
       modules = program.CompileModules.ToList();
     }
 
+    /// <summary>
+    /// Refuses fp32/fp64 in any program being compiled. Their Boogie encoding is equality on the
+    /// SMT FloatingPoint sort, which no backend's runtime reproduces: .NET unifies +0.0 with -0.0,
+    /// so a verified program can observe a different value at run time, including through
+    /// collections, whose element equality and hashing the verifier never guards.
+    ///
+    /// Deliberately whole-program rather than per-position. An earlier version walked only the
+    /// compiled positions so that fp used purely in specifications still compiled, and it leaked
+    /// twice -- on subset-type witnesses and on const initialisers -- each time letting compiled fp
+    /// arithmetic run. FloatWidths is populated for every fp use, ghost or not, so this cannot miss
+    /// one. fp is verification-only until a backend can represent it faithfully.
+    /// </summary>
+    private void CheckForCompiledFloatingPoint(Program program) {
+      if (UnsupportedFeatures.Contains(Feature.FloatingPointTypes)
+          && program.SystemModuleManager.FloatWidths.Count > 0) {
+        throw new UnsupportedFeatureException(program.GetStartOfFirstFileToken(), Feature.FloatingPointTypes);
+      }
+    }
+
     public void Compile(Program program, ConcreteSyntaxTree wrx) {
       Contract.Requires(program != null);
+
+      CheckForCompiledFloatingPoint(program);
 
       EmitHeader(program, wrx);
       EmitBuiltInDecls(program.SystemModuleManager, wrx);

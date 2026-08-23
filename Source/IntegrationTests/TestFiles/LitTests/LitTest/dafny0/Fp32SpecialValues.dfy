@@ -179,6 +179,11 @@ method TestUsefulDerivedConstants() {
   // Verify some properties
   assert ~3.14 < pi < ~3.15;
   assert ~2.71 < e < ~2.72;
+
+  // Pin the values exactly. The range checks above are too loose to catch a
+  // mistyped constant, so also compare against the nearest binary32 value.
+  assert pi == 3.1415927410125732421875;  // 13176795 * 2^(-22)
+  assert e == 2.71828174591064453125;     // 11401300 * 2^(-22)
 }
 
 method TestHardcodedLiterals() {

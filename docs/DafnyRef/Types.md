@@ -394,7 +394,10 @@ Both `fp32` and `fp64` types include IEEE 754 special values as static members:
 Additional constants include:
 - `MaxValue` - Largest finite positive value
 - `MinValue` - Most negative finite value
-- `Epsilon` - Smallest positive value such that `1.0 + Epsilon != 1.0`
+- `Epsilon` - The difference between `1.0` and the next larger representable value
+  (`2^-23` for `fp32`, `2^-52` for `fp64`). Note that this is *not* the smallest positive
+  value `e` with `1.0 + e != 1.0`: under round-to-nearest the smallest such value is just
+  above `Epsilon / 2`.
 - `MinNormal` - Smallest positive normal number
 - `MinSubnormal` - Smallest positive subnormal number
 - `Pi` - The mathematical constant π (pi)
@@ -445,6 +448,17 @@ Both `fp32` and `fp64` types support standard arithmetic operations following IE
 
 These well-formedness checks are performed by Dafny. To help it, use the classification predicates (`.IsNaN`, `.IsInfinite`, `.IsZero`).
 
+**Ordering**: because NaN is excluded by the well-formedness check above, `<` is a strict
+total order on the remaining values, and it agrees with `==`. In particular `-0.0 < 0.0`,
+which IEEE comparison leaves unordered but `==` distinguishes; ordering them is what makes
+trichotomy (`x < y || x == y || y < x`) and antisymmetry
+(`a <= b && b <= a ==> a == b`) hold. This is IEEE 754-2019 `totalOrder` restricted to
+non-NaN values, so `==` and `<` come from a single order rather than two incompatible ones.
+
+Raw IEEE comparison, which leaves `-0.0` and `0.0` unordered, remains available through the
+unchecked static methods described in Section 5.2.3.6 — just as `fp32.Equal`/`fp64.Equal`
+provide IEEE equality while `==` is value identity.
+
 <!-- %check-verify -->
 ```dafny
 method FloatingPointArithmetic() {
@@ -465,15 +479,21 @@ method SafeArithmetic(x: fp64, y: fp64) returns (result: fp64)
 
 #### 5.2.3.5. Equality
 
-Both `fp32` and `fp64` types have equality semantics that differ from IEEE 754. Equality is defined based on the bit representation:
+Both `fp32` and `fp64` types have equality semantics that differ from IEEE 754. `==` is
+*value identity* on the floating-point domain: `NaN == NaN` is true, and `-0.0 == 0.0` is
+false.
+
+Note that this is value identity, not comparison of bit patterns. The domain has exactly
+one NaN, so all NaN payloads and both NaN signs are the same value — `x.IsNaN && y.IsNaN`
+implies `x == y`. Only the two zeros are distinguished. Correspondingly, `x.IsNegative` and
+`x.IsPositive` are both false for a NaN, since a NaN has no sign.
 
 - In **compiled contexts** the `==` operator has **well-formedness conditions** that
   require operands to not be NaN and, if they are zeros, to have the same sign.
   Under these conditions, `==` behaves like IEEE 754 equality.
 
 - In **ghost contexts** (specifications, assertions): The well-formedness conditions are
-  relaxed, and `==` performs bitwise comparison where NaN equals itself and positive/negative
-  zero are distinct.
+  relaxed, so value identity is directly observable.
 
 - The static methods `fp32.Equal(a, b)` and `fp64.Equal(a, b)` provide IEEE 754 equality
   semantics without well-formedness restrictions (NaN is not equal to anything including itself,
@@ -487,7 +507,7 @@ method EqualityExample(x: fp64, y: fp64) {
   var negZero: fp64 := -0.0;
 
   // In ghost context - no well-formedness restrictions
-  assert nan == nan;           // true (bitwise comparison)
+  assert nan == nan;           // true (there is exactly one NaN value)
   assert posZero != negZero;   // true (different bit patterns)
 
   // In compiled context - well-formedness restrictions verified statically
@@ -672,6 +692,29 @@ method ConversionExamples() {
   may cause verification timeouts due to Z3's difficulty combining quantifiers and floats.
 
 To avoid this limitation, use direct literal conversions where possible.
+
+**Note**: The reverse direction, `fp32`/`fp64` `as int`, has the same limitation and it is
+more restrictive in practice. The conversion requires the value to be finite and to be
+exactly an integer, and the verifier can currently discharge that only for literals — it
+fails even when integrality is supplied as an explicit hypothesis:
+
+<!-- %check-verify -->
+```dafny
+method LiteralWorks() {
+  var x: fp64 := 42.0;
+  var i := x as int;              // OK
+}
+method HypothesisDoesNotHelp(x: fp64)
+  requires x.IsFinite
+  requires fp64.Floor(x) == x     // x is an integer, stated explicitly
+{
+  // var i := x as int;           // ERROR: cannot be proved, despite the hypothesis
+  var i := fp64.ToInt(x);         // OK: requires only finiteness
+}
+```
+
+For a value that is not a literal, use `fp32.ToInt`/`fp64.ToInt` instead: those require only
+finiteness, truncate toward zero, and do discharge for symbolic values. See Section 5.2.3.9.
 
 #### 5.2.3.9. Inexact Conversion Methods
 

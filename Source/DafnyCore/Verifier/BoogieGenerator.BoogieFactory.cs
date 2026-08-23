@@ -25,9 +25,10 @@ namespace Microsoft.Dafny {
     public Bpl.Type BplFp32Type => new Bpl.FloatType(Token.NoToken, 24, 8);
     public Bpl.Type BplFp64Type => new Bpl.FloatType(Token.NoToken, 53, 11);
 
-    public Bpl.Type BplFloatType(Type dafnyType) {
-      Contract.Requires(dafnyType.IsFloatingPointType);
-      return dafnyType.IsFp32Type ? BplFp32Type : BplFp64Type;
+    // Takes the facts rather than the Type: the callers already had to ask "is this fp?", and
+    // re-deriving the width here from an unnormalized type sent a newtype over fp to fp64.
+    public Bpl.Type BplFloatType(FloatFacts facts) {
+      return new Bpl.FloatType(Token.NoToken, facts.SignificandBits, facts.ExponentBits);
     }
 
     internal Bpl.Expr BplBvLiteralExpr(Bpl.IToken tok, BaseTypes.BigNum n, BitvectorType bitvectorType) {
@@ -813,6 +814,50 @@ namespace Microsoft.Dafny {
         eq = BplOr(eq, d);
       }
       return eq;
+    }
+
+    private static Bpl.Expr FpZero(Bpl.IToken tok, FloatFacts facts, bool negative) {
+      return new Bpl.LiteralExpr(tok,
+        BaseTypes.BigFloat.CreateZero(negative, facts.SignificandBits, facts.ExponentBits));
+    }
+
+    /// <summary>
+    /// Dafny's "&lt;" on fp32/fp64: IEEE fp.lt refined so that -0.0 &lt; +0.0.
+    ///
+    /// Dafny's "==" on floating point is structural equality on the SMT FloatingPoint sort, which
+    /// keeps -0.0 and +0.0 apart. Raw fp.lt leaves them tied, and the combination is incoherent:
+    /// trichotomy fails and "a &lt;= b &amp;&amp; b &lt;= a ==&gt; a == b" is refutable. Breaking the tie in the
+    /// direction IEEE 754-2019 clause 5.10 totalOrder already specifies makes "&lt;" a strict total
+    /// order on non-NaN values that agrees with "==", so both relations come from one IEEE-defined
+    /// order rather than two incompatible ones. NaN stays outside the order: comparison carries an
+    /// unconditional non-NaN well-formedness obligation, and full totalOrder would additionally
+    /// distinguish NaN signs and payloads, which this encoding does not model.
+    ///
+    /// Raw IEEE comparison remains available as fp32.IeeeLess / fp64.IeeeLess, mirroring how
+    /// fp*.Equal keeps IEEE equality while "==" is structural.
+    ///
+    /// The tie is spelled as structural equalities against the zero literals rather than
+    /// isZero/isNegative predicates; the two agree on every input (a zero that is negative *is*
+    /// -0.0) and the literal form measured cheaper.
+    /// </summary>
+    public static Bpl.Expr FpLess(Bpl.IToken tok, FloatFacts facts, Bpl.Expr e0, Bpl.Expr e1) {
+      var ieeeLess = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Lt, e0, e1);
+      var negZeroBelowPosZero = BplAnd(
+        Bpl.Expr.Eq(e0, FpZero(tok, facts, true)),
+        Bpl.Expr.Eq(e1, FpZero(tok, facts, false)));
+      return BplOr(ieeeLess, negZeroBelowPosZero);
+    }
+
+    /// <summary>
+    /// Dafny's "&lt;=" on fp32/fp64, consistent with FpLess: IEEE fp.leq minus the one pair that
+    /// fp.leq wrongly admits, namely +0.0 &lt;= -0.0.
+    /// </summary>
+    public static Bpl.Expr FpAtMost(Bpl.IToken tok, FloatFacts facts, Bpl.Expr e0, Bpl.Expr e1) {
+      var ieeeAtMost = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Le, e0, e1);
+      var posZeroAboveNegZero = BplAnd(
+        Bpl.Expr.Eq(e0, FpZero(tok, facts, false)),
+        Bpl.Expr.Eq(e1, FpZero(tok, facts, true)));
+      return BplAnd(ieeeAtMost, Bpl.Expr.Not(posZeroAboveNegZero));
     }
 
     public static Bpl.Expr BplOr(Bpl.Expr a, Bpl.Expr b) {

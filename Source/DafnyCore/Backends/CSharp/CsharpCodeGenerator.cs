@@ -21,6 +21,7 @@ namespace Microsoft.Dafny.Compilers {
     protected bool Synthesize = false;
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.FloatingPointTypes,
       Feature.SubsetTypeTests,
       Feature.TuplesWiderThan20,
       Feature.ArraysWithMoreThan16Dims,
@@ -1567,7 +1568,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private static string CSharpFloatTypeName(Type type) {
-      return type.IsFp32Type ? "float" : "double";
+      var facts = type.FloatRepresentation;
+      Contract.Assert(facts != null, "CSharpFloatTypeName on a non-floating-point type");
+      return facts.IsFp32 ? "float" : "double";
     }
 
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {

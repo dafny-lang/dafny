@@ -251,11 +251,13 @@ namespace Microsoft.Dafny {
 
     private void CheckFloatNaN(Expression operand, string operation, BoogieStmtListBuilder builder,
                                ExpressionTranslator etran, WFOptions wfOptions) {
-      if (operand.Type.IsFp32Type) {
+      // Normalized: unnormalized, a newtype over fp got no obligation at all.
+      var operandType = operand.Type.NormalizeToAncestorType();
+      if (operandType.IsFp32Type) {
         var isNaN = FunctionCall(operand.Origin, "fp32_is_nan", Bpl.Type.Bool, etran.TrExpr(operand));
         builder.Add(Assert(GetToken(operand), Bpl.Expr.Not(isNaN),
           new FloatNaNPrecondition(operation, operand, new Fp32Type()), builder.Context, wfOptions.AssertKv));
-      } else if (operand.Type.IsFp64Type) {
+      } else if (operandType.IsFp64Type) {
         var isNaN = FunctionCall(operand.Origin, "fp64_is_nan", Bpl.Type.Bool, etran.TrExpr(operand));
         builder.Add(Assert(GetToken(operand), Bpl.Expr.Not(isNaN),
           new FloatNaNPrecondition(operation, operand, new Fp64Type()), builder.Context, wfOptions.AssertKv));
@@ -1001,7 +1003,7 @@ namespace Microsoft.Dafny {
               CheckWellformed(e.E, wfOptions, locals, builder, etran);
             }
 
-            if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Negate } && e.E.Type.IsFloatingPointType) {
+            if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Negate } && e.E.Type.NormalizeToAncestorType().IsFloatingPointType) {
               CheckFloatNaN(e.E, "negation", builder, etran, wfOptions);
             }
 
@@ -1033,16 +1035,23 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.Sub:
               case BinaryExpr.ResolvedOpcode.Mul:
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-                if (e.E0.Type.IsFloatingPointType) {
+                // Normalize: IsFloatingPointType/IsFp32Type do not see through a newtype, so on
+                // "newtype MyF = fp64" every obligation below was skipped -- silently, and for
+                // every arithmetic and comparison operator. funcPrefix must be derived from the
+                // normalized type too, or a newtype over fp32 would call fp64_is_infinite on a
+                // float24e8 and emit ill-typed Boogie.
+                var arith0Facts = e.E0.Type.FloatRepresentation;
+                var arith1Facts = e.E1.Type.FloatRepresentation;
+                if (arith0Facts != null) {
                   CheckFloatNaN(e.E0, "arithmetic", builder, etran, wfOptions);
                 }
-                if (e.E1.Type.IsFloatingPointType) {
+                if (arith1Facts != null) {
                   CheckFloatNaN(e.E1, "arithmetic", builder, etran, wfOptions);
                 }
-                if (e.E0.Type.IsFloatingPointType && e.E1.Type.IsFloatingPointType) {
+                if (arith0Facts != null && arith1Facts != null) {
                   var e0 = etran.TrExpr(e.E0);
                   var e1 = etran.TrExpr(e.E1);
-                  string funcPrefix = e.E0.Type.IsFp32Type ? "fp32" : "fp64";
+                  string funcPrefix = arith0Facts.Name;
 
                   if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
                     var e0IsInf = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e0);
@@ -1051,7 +1060,7 @@ namespace Microsoft.Dafny {
                     var e1IsPos = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_positive", Bpl.Type.Bool, e1);
                     var invalidInfAdd = Bpl.Expr.And(Bpl.Expr.And(e0IsInf, e1IsInf), Bpl.Expr.Neq(e0IsPos, e1IsPos));
                     builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(invalidInfAdd),
-                      new FloatInvalidOperationPrecondition("addition", e.E0, e.E1, e.E0.Type), builder.Context, wfOptions.AssertKv));
+                      new FloatInvalidOperationPrecondition("addition", e.E0, e.E1, arith0Facts.DafnyType), builder.Context, wfOptions.AssertKv));
                   } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub) {
                     var e0IsInf = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e0);
                     var e1IsInf = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e1);
@@ -1059,7 +1068,7 @@ namespace Microsoft.Dafny {
                     var e1IsPos = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_positive", Bpl.Type.Bool, e1);
                     var invalidInfSub = Bpl.Expr.And(Bpl.Expr.And(e0IsInf, e1IsInf), Bpl.Expr.Eq(e0IsPos, e1IsPos));
                     builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(invalidInfSub),
-                      new FloatInvalidOperationPrecondition("subtraction", e.E0, e.E1, e.E0.Type), builder.Context, wfOptions.AssertKv));
+                      new FloatInvalidOperationPrecondition("subtraction", e.E0, e.E1, arith0Facts.DafnyType), builder.Context, wfOptions.AssertKv));
                   } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Mul) {
                     var e0IsInf = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e0);
                     var e1IsInf = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e1);
@@ -1067,7 +1076,7 @@ namespace Microsoft.Dafny {
                     var e1IsZero = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_zero", Bpl.Type.Bool, e1);
                     var invalidInfMul = Bpl.Expr.Or(Bpl.Expr.And(e0IsInf, e1IsZero), Bpl.Expr.And(e1IsInf, e0IsZero));
                     builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(invalidInfMul),
-                      new FloatInvalidOperationPrecondition("multiplication", e.E0, e.E1, e.E0.Type), builder.Context, wfOptions.AssertKv));
+                      new FloatInvalidOperationPrecondition("multiplication", e.E0, e.E1, arith0Facts.DafnyType), builder.Context, wfOptions.AssertKv));
                   }
                 }
                 if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsBigOrdinalType) {
@@ -1098,35 +1107,37 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.Div:
               case BinaryExpr.ResolvedOpcode.Mod: {
                   Bpl.Expr zero;
-                  if (e.E1.Type.NormalizeToAncestorType() is BitvectorType bitvectorType) {
+                  // Normalized, or a newtype over fp falls through to the integer zero below.
+                  var divisorType = e.E1.Type.NormalizeToAncestorType();
+                  var dividendType = e.E0.Type.NormalizeToAncestorType();
+                  if (divisorType is BitvectorType bitvectorType) {
                     zero = BplBvLiteralExpr(e.Origin, BaseTypes.BigNum.ZERO, bitvectorType);
-                  } else if (e.E1.Type.IsFp32Type) {
-                    zero = Bpl.Expr.Literal(BaseTypes.BigFloat.CreateZero(false, 24, 8));
-                  } else if (e.E1.Type.IsFp64Type) {
-                    zero = Bpl.Expr.Literal(BaseTypes.BigFloat.CreateZero(false, 53, 11));
-                  } else if (e.E1.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+                  } else if (divisorType.FloatRepresentation is { } divisorFacts) {
+                    zero = Bpl.Expr.Literal(BaseTypes.BigFloat.CreateZero(
+                      false, divisorFacts.SignificandBits, divisorFacts.ExponentBits));
+                  } else if (divisorType.IsNumericBased(Type.NumericPersuasion.Real)) {
                     zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
                   } else {
                     zero = Bpl.Expr.Literal(0);
                   }
                   CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-                  if (e.E0.Type.IsFloatingPointType) {
+                  if (dividendType.IsFloatingPointType) {
                     CheckFloatNaN(e.E0, "division", builder, etran, wfOptions);
                   }
-                  if (e.E1.Type.IsFloatingPointType) {
+                  if (divisorType.IsFloatingPointType) {
                     CheckFloatNaN(e.E1, "division", builder, etran, wfOptions);
                   }
-                  if (e.E0.Type.IsFloatingPointType && e.E1.Type.IsFloatingPointType) {
+                  if (dividendType.IsFloatingPointType && divisorType.IsFloatingPointType) {
                     var e0 = etran.TrExpr(e.E0);
                     var e1 = etran.TrExpr(e.E1);
-                    string funcPrefix = e.E0.Type.IsFp32Type ? "fp32" : "fp64";
+                    string funcPrefix = dividendType.IsFp32Type ? "fp32" : "fp64";
                     var e0IsZero = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_zero", Bpl.Type.Bool, e0);
                     var e1IsZero = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_zero", Bpl.Type.Bool, e1);
                     var e0IsInf = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e0);
                     var e1IsInf = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e1);
                     var invalidDiv = Bpl.Expr.Or(Bpl.Expr.And(e0IsZero, e1IsZero), Bpl.Expr.And(e0IsInf, e1IsInf));
                     builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(invalidDiv),
-                      new FloatInvalidOperationPrecondition("division", e.E0, e.E1, e.E0.Type), builder.Context, wfOptions.AssertKv));
+                      new FloatInvalidOperationPrecondition("division", e.E0, e.E1, dividendType), builder.Context, wfOptions.AssertKv));
                   }
                   builder.Add(Assert(GetToken(expr), Bpl.Expr.Neq(etran.TrExpr(e.E1), zero),
                     new DivisorNonZero(e.E1), builder.Context, wfOptions.AssertKv));
@@ -1331,10 +1342,10 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.Ge:
               case BinaryExpr.ResolvedOpcode.Gt:
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-                if (e.E0.Type.IsFloatingPointType) {
+                if (e.E0.Type.NormalizeToAncestorType().IsFloatingPointType) {
                   CheckFloatNaN(e.E0, "comparison", builder, etran, wfOptions);
                 }
-                if (e.E1.Type.IsFloatingPointType) {
+                if (e.E1.Type.NormalizeToAncestorType().IsFloatingPointType) {
                   CheckFloatNaN(e.E1, "comparison", builder, etran, wfOptions);
                 }
                 break;

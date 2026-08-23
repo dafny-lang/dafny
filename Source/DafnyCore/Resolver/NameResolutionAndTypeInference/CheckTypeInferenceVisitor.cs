@@ -125,7 +125,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Float)) {
           var d = (BigDec)lit.Value;
           Contract.Assert(!d.IsNegative);
-          var (significandBits, exponentBits) = e.E.Type.FloatPrecision;
+          var (significandBits, exponentBits) = e.E.Type.FloatRepresentation;
 
           if (d.IsZero) {
             resolved = new DecimalLiteralExpr(e.Origin, BigDec.ZERO) {
@@ -156,8 +156,9 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         }
       }
       if (resolved == null) {
-        // For floating-point types, use UnaryOpExpr with Negate opcode for IEEE 754 compliance
-        if (e.E.Type.IsFloatingPointType) {
+        // Use UnaryOpExpr with Negate for IEEE 754 compliance. Normalized, or a newtype over fp
+        // is diverted into the "0 - e" branch below, which synthesizes an untyped fp zero.
+        if (e.E.Type.NormalizeToAncestorType().IsFloatingPointType) {
           resolved = new UnaryOpExpr(e.Origin, UnaryOpExpr.Opcode.Negate, e.E);
         } else {
           // Treat all other expressions "-e" as "0 - e"
@@ -193,7 +194,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
 
         if (resolvedType.IsFloatingPointType) {
           var decValue = (BigDec)decLit.Value;
-          var (significandBits, exponentBits) = resolvedType.FloatPrecision;
+          var (significandBits, exponentBits) = resolvedType.FloatRepresentation;
           var (isExact, floatValue) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
 
           decLit.ResolvedFloatValue = floatValue;
@@ -224,10 +225,10 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         }
 
         if (decimalLiteral.IsApproximate) {
-          var (significandBits, exponentBits) = normalizedType.FloatPrecision;
+          var (significandBits, exponentBits) = normalizedType.FloatRepresentation;
           var (isExact, _) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
           if (isExact) {
-            var typeName = normalizedType.FloatTypeName;
+            var typeName = normalizedType.FloatRepresentation.Name;
             resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
               $"The approximate literal prefix ~ is not allowed on value {decValue} which is exactly representable as {typeName}. Remove the ~ prefix.");
           }
@@ -238,18 +239,18 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         bool wasNull = decimalLiteral.ResolvedFloatValue == null;
         bool needsRecompute = wasNull;
         if (!needsRecompute) {
-          var (currentMantissa, currentExponent) = normalizedType.FloatPrecision;
+          var (currentMantissa, currentExponent) = normalizedType.FloatRepresentation;
           var storedValue = decimalLiteral.ResolvedFloatValue.Value;
           needsRecompute = currentMantissa != storedValue.SignificandSize || currentExponent != storedValue.ExponentSize;
         }
 
         if (needsRecompute) {
-          var (significandBits, exponentBits) = normalizedType.FloatPrecision;
+          var (significandBits, exponentBits) = normalizedType.FloatRepresentation;
           var (isExact, floatValue) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
           decimalLiteral.ResolvedFloatValue = floatValue;
           // Report inexact error only on first computation (not on type precision changes)
           if (!isExact && wasNull) {
-            var typeName = normalizedType.FloatTypeName;
+            var typeName = normalizedType.FloatRepresentation.Name;
             resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
               $"The literal {decValue} is not exactly representable as an {typeName} value. " +
               $"Use the approximate literal syntax ~{decValue} to explicitly acknowledge rounding.");

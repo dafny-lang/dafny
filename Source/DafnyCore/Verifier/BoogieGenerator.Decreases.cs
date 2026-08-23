@@ -357,6 +357,21 @@ public partial class BoogieGenerator {
       less = FunctionCall(tok, "lt_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
       atmost = FunctionCall(tok, "le_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
 
+    } else if (ty0.IsFloatingPointType) {
+      // fp32/fp64 have finitely many values, so -- exactly as for the bitvector and char arms
+      // above -- any strict order on them is well founded and no lower bound is needed. Only
+      // "real", being dense, needs its "e0 <= e1 - 1" trick.
+      // "less" is Dafny's fp order (FpLess: IEEE fp.lt refined so that -0.0 < +0.0) and "eq" is
+      // structural equality, so the two agree and the pair is a strict total order on non-NaN.
+      // NaN is outside the order, so a metric that is NaN simply never decreases -- conservative,
+      // never unsound.
+      eq = Bpl.Expr.Eq(e0, e1);
+      less = FpLess(tok, ty0.FloatRepresentation, e0, e1);
+      // Deliberately BplOr(less, eq) rather than fp.leq: fp.leq admits +0.0 <= -0.0, which would
+      // let the allowNoChange branch of DecreasesCheck accept a -0.0 -> +0.0 -> -0.0 cycle as a
+      // strict decrease.
+      atmost = BplOr(less, eq);
+
     } else if (ty0 is BigOrdinalType) {
       eq = Bpl.Expr.Eq(e0, e1);
       less = FunctionCall(tok, "ORD#Less", Bpl.Type.Bool, e0, e1);

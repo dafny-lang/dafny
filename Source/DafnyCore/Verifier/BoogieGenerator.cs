@@ -1085,27 +1085,6 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Eq(bv2nat, smt_bv2nat));
         var ax = new Bpl.ForallExpr(tok, [bVar], BplTrigger(bv2nat), body);
         sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
-
-        // Signed conversion for bv64 (for fp64 to int)
-        if (w == 64 && program.SystemModuleManager.FloatWidths.Contains(64)) {
-          sink.AddTopLevelDeclaration(new Bpl.Function(tok, "int_from_bv64", [],
-            [BplFormalVar(null, bv, true)], BplFormalVar(null, Bpl.Type.Int, false), null, null));
-
-          var intBVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b", BplBvType(64)));
-          var intB = new Bpl.IdentifierExpr(tok, intBVar);
-          var intFromBv = FunctionCall(tok, "int_from_bv64", Bpl.Type.Int, intB);
-          var natFromBv = FunctionCall(tok, "nat_from_bv64", Bpl.Type.Int, intB);
-          var signBit = Bpl.Expr.Literal(BaseTypes.BigNum.FromBigInt(BigInteger.One << 63));
-          var pow64 = Bpl.Expr.Literal(BaseTypes.BigNum.FromBigInt(BigInteger.One << 64));
-
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(tok,
-            new Bpl.ForallExpr(tok, [intBVar], BplTrigger(intFromBv),
-              Bpl.Expr.Eq(intFromBv,
-                new NAryExpr(tok, new IfThenElse(tok),
-                  [Bpl.Expr.Ge(natFromBv, signBit),
-                    Bpl.Expr.Neg(Bpl.Expr.Sub(pow64, natFromBv)),
-                    natFromBv])))));
-        }
       }
     }
 
@@ -1272,7 +1251,6 @@ namespace Microsoft.Dafny {
       AddFp64Function("fp64_round", "fp.roundToIntegral RNE", [fp64Type], fp64Type);
       AddFp64Function("fp64_truncate", "fp.roundToIntegral RTZ", [fp64Type], fp64Type);
       AddFp64Function("fp64_sqrt", "fp.sqrt RNE", [fp64Type], fp64Type);
-      AddFp64Function("fp64_to_sbv64_RTZ", "(_ fp.to_sbv 64) RTZ", [fp64Type], bv64Type);
     }
 
     private void AddFp64Function(string name, string builtinName, List<Bpl.Type> argTypes, Bpl.Type returnType) {
@@ -1335,31 +1313,11 @@ namespace Microsoft.Dafny {
       AddFp32Function("fp32_round", "fp.roundToIntegral RNE", [fp32Type], fp32Type);
       AddFp32Function("fp32_truncate", "fp.roundToIntegral RTZ", [fp32Type], fp32Type);
       AddFp32Function("fp32_sqrt", "fp.sqrt RNE", [fp32Type], fp32Type);
-      AddFp32Function("fp32_to_sbv32_RTZ", "(_ fp.to_sbv 32) RTZ", [fp32Type], bv32Type);
 
       // Conversion functions between fp32 and fp64
       var fp64Type = new Bpl.FloatType(tok, 53, 11);
       AddFp32Function("fp32_to_fp64", "(_ to_fp 11 53) RNE", [fp32Type], fp64Type);
       AddFp64Function("fp64_to_fp32_RNE", "(_ to_fp 8 24) RNE", [fp64Type], fp32Type);
-
-      // int_from_bv32 helper function for fp32 to int conversion
-      sink.AddTopLevelDeclaration(new Bpl.Function(tok, "int_from_bv32", [],
-        [(Bpl.Variable)BplFormalVar(null, bv32Type, true)], BplFormalVar(null, Bpl.Type.Int, false), null, null));
-
-      var intBVar32 = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b", bv32Type));
-      var intB32 = new Bpl.IdentifierExpr(tok, intBVar32);
-      var intFromBv32 = FunctionCall(tok, "int_from_bv32", Bpl.Type.Int, intB32);
-      var natFromBv32 = FunctionCall(tok, "nat_from_bv32", Bpl.Type.Int, intB32);
-      var signBit32 = Bpl.Expr.Literal(BaseTypes.BigNum.FromBigInt(BigInteger.One << 31));
-      var pow32 = Bpl.Expr.Literal(BaseTypes.BigNum.FromBigInt(BigInteger.One << 32));
-
-      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok,
-        new Bpl.ForallExpr(tok, [intBVar32], BplTrigger(intFromBv32),
-          Bpl.Expr.Eq(intFromBv32,
-            new NAryExpr(tok, new IfThenElse(tok),
-              [Bpl.Expr.Ge(natFromBv32, signBit32),
-                Bpl.Expr.Neg(Bpl.Expr.Sub(pow32, natFromBv32)),
-                natFromBv32])))));
     }
 
     private void AddFp32Function(string name, string builtinName, List<Bpl.Type> argTypes, Bpl.Type returnType) {
