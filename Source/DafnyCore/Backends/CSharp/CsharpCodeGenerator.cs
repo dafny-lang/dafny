@@ -2766,6 +2766,39 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private void EmitFloatBinary(FunctionCallExpr e, string op, ConcreteSyntaxTree wr, bool inLetExprBody,
+        ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
+      wr.Write("(");
+      tr(e.Args[0], wr, inLetExprBody, wStmts);
+      wr.Write(op);
+      tr(e.Args[1], wr, inLetExprBody, wStmts);
+      wr.Write(")");
+    }
+
+    /// <summary>
+    /// IEEE minNum/maxNum: NaN operands are ignored rather than propagated, matching SMT-LIB
+    /// fp.min/fp.max. Both arguments are emitted twice, so this is only correct for side-effect-free
+    /// arguments -- which fp expressions are, having no allocation or method calls.
+    /// </summary>
+    private void EmitFloatMinMax(FunctionCallExpr e, string which, bool isFp32, ConcreteSyntaxTree wr,
+        bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
+      var typeName = isFp32 ? "float" : "double";
+      void Arg(int i) => tr(e.Args[i], wr, inLetExprBody, wStmts);
+      wr.Write($"({typeName}.IsNaN(");
+      Arg(0);
+      wr.Write(") ? ");
+      Arg(1);
+      wr.Write($" : {typeName}.IsNaN(");
+      Arg(1);
+      wr.Write(") ? ");
+      Arg(0);
+      wr.Write($" : Math.{which}(");
+      Arg(0);
+      wr.Write(", ");
+      Arg(1);
+      wr.Write("))");
+    }
+
     protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced = false) {
 
@@ -2790,19 +2823,54 @@ namespace Microsoft.Dafny.Compilers {
             tr(e.Args[0], wr, inLetExprBody, wStmts);
             wr.Write("))");
             return;
+          // Math.Min/Max propagate NaN, but SMT-LIB fp.min/fp.max return the other operand, which
+          // the verifier relies on: fp.min(NaN, 1.0) == 1.0 is forced. Emit IEEE minNum/maxNum
+          // rather than leaving the non-NaN operand obligation load-bearing for soundness.
           case "Min":
-            wr.Write("Math.Min(");
-            tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write(", ");
-            tr(e.Args[1], wr, inLetExprBody, wStmts);
-            wr.Write(")");
+            EmitFloatMinMax(e, "Min", isFp32, wr, inLetExprBody, wStmts, tr);
             return;
           case "Max":
-            wr.Write("Math.Max(");
+            EmitFloatMinMax(e, "Max", isFp32, wr, inLetExprBody, wStmts, tr);
+            return;
+
+          // The unchecked family: the counterparts of the operators, without their well-formedness
+          // obligations. Comparisons go to the IEEE operators, deliberately NOT to CompareTo --
+          // fp*.Less keeps IEEE semantics while "<" is Dafny's order refined so that -0.0 < +0.0.
+          case "Add":
+            EmitFloatBinary(e, " + ", wr, inLetExprBody, wStmts, tr);
+            return;
+          case "Sub":
+            EmitFloatBinary(e, " - ", wr, inLetExprBody, wStmts, tr);
+            return;
+          case "Mul":
+            EmitFloatBinary(e, " * ", wr, inLetExprBody, wStmts, tr);
+            return;
+          case "Div":
+            EmitFloatBinary(e, " / ", wr, inLetExprBody, wStmts, tr);
+            return;
+          case "Less":
+            EmitFloatBinary(e, " < ", wr, inLetExprBody, wStmts, tr);
+            return;
+          case "LessOrEqual":
+            EmitFloatBinary(e, " <= ", wr, inLetExprBody, wStmts, tr);
+            return;
+          case "Greater":
+            EmitFloatBinary(e, " > ", wr, inLetExprBody, wStmts, tr);
+            return;
+          case "GreaterOrEqual":
+            EmitFloatBinary(e, " >= ", wr, inLetExprBody, wStmts, tr);
+            return;
+          case "Neg":
+            wr.Write("(-(");
             tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write(", ");
-            tr(e.Args[1], wr, inLetExprBody, wStmts);
-            wr.Write(")");
+            wr.Write("))");
+            return;
+          case "FromFp64":
+            // Narrowing, rounds to nearest. The only rounding fp64 -> fp32 conversion, since
+            // "as fp32" asserts exact representability.
+            wr.Write("((float)(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write("))");
             return;
           case "Abs":
             wr.Write("Math.Abs(");
