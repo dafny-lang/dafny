@@ -1,0 +1,7 @@
+FpUnsoundLoopAndDivision.dfy(17,2): Error: decreases expression could not be proved to decrease
+FpUnsoundLoopAndDivision.dfy(30,9): Error: fp64 division has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpUnsoundLoopAndDivision.dfy(30,9): Error: possible division by zero
+FpUnsoundLoopAndDivision.dfy(37,9): Error: fp64 division has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpUnsoundLoopAndDivision.dfy(37,9): Error: possible division by zero
+
+Dafny program verifier finished with 0 verified, 5 errors

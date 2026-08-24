@@ -15,3 +15,5 @@ field is NaN: true
 seq: [1.0, -0.0, 0.0, NaN, Infinity]
 set: {1.0}
 map: map[1.0 := -0.0]
+generic fp64 array: 2 0.0
+generic fp32 array: 1 0.0

@@ -1112,9 +1112,6 @@ namespace Microsoft.Dafny {
                   var dividendType = e.E0.Type.NormalizeToAncestorType();
                   if (divisorType is BitvectorType bitvectorType) {
                     zero = BplBvLiteralExpr(e.Origin, BaseTypes.BigNum.ZERO, bitvectorType);
-                  } else if (divisorType.FloatRepresentation is { } divisorFacts) {
-                    zero = Bpl.Expr.Literal(BaseTypes.BigFloat.CreateZero(
-                      false, divisorFacts.SignificandBits, divisorFacts.ExponentBits));
                   } else if (divisorType.IsNumericBased(Type.NumericPersuasion.Real)) {
                     zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
                   } else {
@@ -1130,7 +1127,7 @@ namespace Microsoft.Dafny {
                   if (dividendType.IsFloatingPointType && divisorType.IsFloatingPointType) {
                     var e0 = etran.TrExpr(e.E0);
                     var e1 = etran.TrExpr(e.E1);
-                    string funcPrefix = dividendType.IsFp32Type ? "fp32" : "fp64";
+                    var funcPrefix = dividendType.FloatRepresentation.Name;
                     var e0IsZero = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_zero", Bpl.Type.Bool, e0);
                     var e1IsZero = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_zero", Bpl.Type.Bool, e1);
                     var e0IsInf = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e0);
@@ -1139,8 +1136,18 @@ namespace Microsoft.Dafny {
                     builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(invalidDiv),
                       new FloatInvalidOperationPrecondition("division", e.E0, e.E1, dividendType), builder.Context, wfOptions.AssertKv));
                   }
-                  builder.Add(Assert(GetToken(expr), Bpl.Expr.Neq(etran.TrExpr(e.E1), zero),
-                    new DivisorNonZero(e.E1), builder.Context, wfOptions.AssertKv));
+                  if (divisorType.FloatRepresentation is { } divisorFacts) {
+                    // fp.isZero, not "!= 0.0". Equality on floats is structural, so it keeps the two
+                    // zeros apart and a divisor of -0.0 satisfies "!= +0.0" -- which let x / -0.0
+                    // through while x / +0.0 was refused.
+                    var divisorIsZero = FunctionCall(e.E1.Origin, $"{divisorFacts.Name}_is_zero",
+                      Bpl.Type.Bool, etran.TrExpr(e.E1));
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(divisorIsZero),
+                      new DivisorNonZero(e.E1), builder.Context, wfOptions.AssertKv));
+                  } else {
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Neq(etran.TrExpr(e.E1), zero),
+                      new DivisorNonZero(e.E1), builder.Context, wfOptions.AssertKv));
+                  }
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.LeftShift:

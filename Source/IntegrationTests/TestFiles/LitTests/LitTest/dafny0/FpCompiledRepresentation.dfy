@@ -105,6 +105,22 @@ method Printing() {
   print "map: ", m, "\n";
 }
 
+// A generic instantiated at fp needs a runtime type descriptor for the width. Allocating through a
+// type parameter with the (0) characteristic is what forces the descriptor's default value to exist;
+// with no arm for fp the code generator hit an unreachable case and terminated without a diagnostic.
+method Alloc<T(0)>(n: nat) returns (a: array<T>)
+  ensures a.Length == n
+{
+  a := new T[n];
+}
+
+method GenericAtBothWidths() {
+  var a := Alloc<fp64>(2);
+  var b := Alloc<fp32>(1);
+  print "generic fp64 array: ", a.Length, " ", a[0], "\n";
+  print "generic fp32 array: ", b.Length, " ", b[0], "\n";
+}
+
 method Main() {
   NewtypeLiterals();
   NewtypeArithmetic();
@@ -113,4 +129,5 @@ method Main() {
   Arrays();
   Fields();
   Printing();
+  GenericAtBothWidths();
 }

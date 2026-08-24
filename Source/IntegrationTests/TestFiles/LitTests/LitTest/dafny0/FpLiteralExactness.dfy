@@ -4,7 +4,9 @@
 // to be: the verifier holds the exact rounded value, while the generated code holds whatever
 // decimal the compiler chose to write, and a decimal that is one digit short names the
 // neighbouring float. BigFloat.ToDecimalString has exactly that defect -- for the fp64 nearest to
-// 4/7 it prints 0.5714285714285713 -- so literals are emitted as bit patterns instead.
+// 4/7 it prints 0.5714285714285713. Literals are therefore emitted as the shortest round-trip
+// decimal computed here, and read back and compared against the value the resolver computed before
+// being written out.
 //
 // The pairs below are adjacent floats whose shortest decimals differ only in the last digit. If a
 // literal were ever rounded or shortened on the way to the generated code, the two members of a
@@ -91,6 +93,21 @@ method PinnedUntilTheBoogieBump() {
   print "~1e-5 resolves to: ", offByOne, "\n";
 }
 
+// A real literal converted to a floating-point type is folded to a literal at compile time, while a
+// non-literal real goes through the runtime conversion. Both must round once, and at the TARGET
+// width: folding through fp64 first would give 1.0 here, one ULP below the correctly rounded fp32,
+// and would range-check 1e39 against fp64 and emit an identifier that does not compile.
+method FoldedAndUnfoldedAgree() {
+  var r: real := 1.000000059604644775390626;
+  var folded: fp32 := fp32.FromReal(1.000000059604644775390626);
+  var viaRuntime: fp32 := fp32.FromReal(r);
+  print "folded == via runtime: ", folded == viaRuntime, "\n";
+  print "  both: ", folded, " ", viaRuntime, "\n";
+
+  var big: real := 1e39;
+  print "1e39 as fp32 overflows to: ", fp32.FromReal(1e39), " ", fp32.FromReal(big), "\n";
+}
+
 method Main() {
   AdjacentFp64Literals();
   AdjacentFp32Literals();
@@ -98,4 +115,5 @@ method Main() {
   ExtremeLiterals();
   PrintedOutputReadsBack();
   PinnedUntilTheBoogieBump();
+  FoldedAndUnfoldedAgree();
 }

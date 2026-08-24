@@ -1620,9 +1620,9 @@ namespace Microsoft.Dafny.Compilers {
     /// A real literal converted to a floating-point type, folded into a floating-point literal, or
     /// null if this is not that case.
     ///
-    /// The value does not change: both the verifier and the runtime round this conversion to
-    /// nearest -- the verifier models it as SMT-LIB's (_ to_fp) with RNE -- and the platform
-    /// parser used here rounds the same way. What folding avoids is constructing a BigRational and
+    /// The value does not change, provided the decimal is rounded once and at the target width:
+    /// the verifier models this conversion as SMT-LIB's (_ to_fp) with RNE, and a parse straight to
+    /// the target format rounds the same way. What folding avoids is constructing a BigRational and
     /// rounding it on every evaluation of a constant, and it makes the constant legible: the
     /// generated code says new Dafny.Fp64(1.5d) instead of
     /// Dafny.Fp64.FromReal(new Dafny.BigRational(new BigInteger(15), BigInteger.Parse("10"))).
@@ -1634,25 +1634,37 @@ namespace Microsoft.Dafny.Compilers {
       if (source.Resolved is not LiteralExpr { Value: BigDec decimalValue }) {
         return null;
       }
+      // Parsed AT THE TARGET WIDTH, not parsed as a double and narrowed. Going through double would
+      // round twice, which is not the same as rounding once: 1.000000059604644775390626 reaches
+      // fp32 as 1.0 that way, where the correctly rounded value is one ULP above it. It would also
+      // range-check against the wrong format, so a value that overflows fp32 but not fp64 -- 1e39 --
+      // would survive the test below and be emitted as the identifier "Infinityf".
       var written = $"{decimalValue.Mantissa}E{decimalValue.Exponent}";
-      var parsed = double.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture);
-      if (double.IsNaN(parsed) || double.IsInfinity(parsed)) {
-        // Out of range for the target. "as" would have failed to verify; leave it to the runtime
-        // conversion rather than inventing a literal for infinity.
-        return null;
+      string text;
+      if (facts.IsFp32) {
+        var single = float.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture);
+        if (float.IsNaN(single) || float.IsInfinity(single)) {
+          // Out of range for the target. Leave it to the runtime conversion rather than inventing a
+          // literal for infinity; "as" would have failed to verify anyway.
+          return null;
+        }
+        text = single.ToString("R", CultureInfo.InvariantCulture);
+      } else {
+        var value = double.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture);
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+          return null;
+        }
+        text = value.ToString("R", CultureInfo.InvariantCulture);
       }
-      var text = facts.IsFp32
-        ? ((float)parsed).ToString("R", CultureInfo.InvariantCulture)
-        : parsed.ToString("R", CultureInfo.InvariantCulture);
       // The formatting step has to be lossless, or the folded constant is not the value converted.
       var readBack = facts.IsFp32
-        ? BitConverter.SingleToInt32Bits(float.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture))
-          == BitConverter.SingleToInt32Bits((float)parsed)
-        : BitConverter.DoubleToInt64Bits(double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture))
-          == BitConverter.DoubleToInt64Bits(parsed);
+        ? text == float.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture)
+            .ToString("R", CultureInfo.InvariantCulture)
+        : text == double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture)
+            .ToString("R", CultureInfo.InvariantCulture);
       if (!readBack) {
         throw new InvalidOperationException(
-          $"the folded floating-point literal \"{text}\" does not read back as {parsed:R}");
+          $"the folded floating-point literal \"{text}\" does not read back as itself");
       }
       return $"new {CSharpFloatTypeName(toType)}({text}{(facts.IsFp32 ? "f" : "d")})";
     }
@@ -2012,6 +2024,8 @@ namespace Microsoft.Dafny.Compilers {
         return "Dafny.Helpers.INT";
       } else if (type is RealType) {
         return "Dafny.Helpers.REAL";
+      } else if (type.FloatRepresentation is { } floatFacts) {
+        return floatFacts.IsFp32 ? "Dafny.Helpers.FP32" : "Dafny.Helpers.FP64";
       } else if (type is BitvectorType) {
         var t = (BitvectorType)type;
         if (t.NativeType != null) {

@@ -1875,6 +1875,8 @@ namespace Dafny {
     public static readonly TypeDescriptor<Rune> RUNE = new TypeDescriptor<Rune>(new Rune('D'));  // See CharType.DefaultValue in Dafny source code
     public static readonly TypeDescriptor<BigInteger> INT = new TypeDescriptor<BigInteger>(BigInteger.Zero);
     public static readonly TypeDescriptor<BigRational> REAL = new TypeDescriptor<BigRational>(BigRational.ZERO);
+    public static readonly TypeDescriptor<Fp32> FP32 = new TypeDescriptor<Fp32>(Fp32.Zero);
+    public static readonly TypeDescriptor<Fp64> FP64 = new TypeDescriptor<Fp64>(Fp64.Zero);
     public static readonly TypeDescriptor<byte> UINT8 = new TypeDescriptor<byte>(0);
     public static readonly TypeDescriptor<ushort> UINT16 = new TypeDescriptor<ushort>(0);
     public static readonly TypeDescriptor<uint> UINT32 = new TypeDescriptor<uint>(0);
