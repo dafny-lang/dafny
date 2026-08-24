@@ -11,7 +11,7 @@ newtype -(1.5): -1.5
 subset type 1.5: 1.5
 array defaults: 0.0 0.0
 array default is positive zero: true
-a[0] == a[1] after storing -0.0: false
+stored -0.0 and 0.0 differ: true, ordered: true
 field is negative zero: true
 field is NaN: true
 seq: [1.0, -0.0, 0.0, NaN, Infinity]
