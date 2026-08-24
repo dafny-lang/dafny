@@ -148,7 +148,17 @@ namespace Dafny {
   internal static class FpFormat {
     internal static string DafnyLiteralForm(string rendered) {
       var s = rendered.Replace("E+", "e").Replace("E", "e");
-      return s.IndexOf('.') < 0 && s.IndexOf('e') < 0 ? s + ".0" : s;
+      var marker = s.IndexOf('e');
+      if (marker < 0) {
+        return s.IndexOf('.') < 0 ? s + ".0" : s;
+      }
+      // "R" pads an exponent to two digits, so 1e-9 arrives as 1e-09. Strip the padding: an
+      // unpadded exponent is how a Dafny literal is written, and how every other shortest-form
+      // printer renders it.
+      var exponent = s.Substring(marker + 1);
+      var sign = exponent.Length > 0 && exponent[0] == '-' ? "-" : "";
+      var digits = (sign.Length > 0 ? exponent.Substring(1) : exponent).TrimStart('0');
+      return s.Substring(0, marker + 1) + sign + (digits.Length == 0 ? "0" : digits);
     }
   }
 

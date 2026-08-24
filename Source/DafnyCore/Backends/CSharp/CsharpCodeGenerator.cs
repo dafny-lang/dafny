@@ -1594,15 +1594,58 @@ namespace Microsoft.Dafny.Compilers {
         // BigDec has no signed zero either, so the sign here can only come from the BigFloat.
         return resolved.IsNegative ? "-0.0" : "0.0";
       }
-      // The literal's own decimal, rounded to the format by the platform parser. That is a second
-      // implementation of rounding beside the resolver's, which is exactly what the check below is
-      // for; on 20000 random decimals at both widths the two agree everywhere.
+      // The value to emit is the one the RESOLVER computed, which is not always what the platform
+      // parser makes of the same source decimal. Boogie's decimal-to-BigFloat conversion is not
+      // correctly rounded -- "1e-5" comes out one ULP low, and about one decimal literal in twenty
+      // is affected at both widths -- and it is the resolver's value that the proof is about. So
+      // reading the source decimal ourselves and emitting that would mean verifying one program and
+      // running another.
+      //
+      // Start from the platform's reading, then step through neighbouring machine values until one
+      // reproduces the resolver's BigFloat. The comparison is on BigFloat's own exact hexadecimal
+      // form, so this assumes nothing about how either side rounds.
       var written = $"{value.Mantissa}E{value.Exponent}";
-      return facts.IsFp32
-        ? float.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture)
-          .ToString("R", CultureInfo.InvariantCulture)
-        : double.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture)
-          .ToString("R", CultureInfo.InvariantCulture);
+      foreach (var candidate in Neighbourhood(written, facts)) {
+        if (Describes(candidate, resolved, facts)) {
+          return facts.IsFp32
+            ? ((float)candidate).ToString("R", CultureInfo.InvariantCulture)
+            : candidate.ToString("R", CultureInfo.InvariantCulture);
+        }
+      }
+      throw new InvalidOperationException(
+        $"no machine value near {written} reproduces the value the resolver computed ({resolved})");
+    }
+
+    /// <summary>
+    /// The machine values within two steps of how the platform parser reads "written". Two is
+    /// margin: the observed disagreement between the resolver's rounding and the platform's is one
+    /// step, and running out of candidates is reported rather than guessed at.
+    /// </summary>
+    private static IEnumerable<double> Neighbourhood(string written, FloatFacts facts) {
+      for (var offset = -2; offset <= 2; offset++) {
+        if (facts.IsFp32) {
+          var start = BitConverter.SingleToInt32Bits(
+            float.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture));
+          var candidate = BitConverter.Int32BitsToSingle(start + offset);
+          if (!float.IsNaN(candidate) && !float.IsInfinity(candidate)) {
+            yield return candidate;
+          }
+        } else {
+          var start = BitConverter.DoubleToInt64Bits(
+            double.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture));
+          var candidate = BitConverter.Int64BitsToDouble(start + offset);
+          if (!double.IsNaN(candidate) && !double.IsInfinity(candidate)) {
+            yield return candidate;
+          }
+        }
+      }
+    }
+
+    /// <summary>Whether this machine value is exactly the value the resolver computed.</summary>
+    private static bool Describes(double candidate, BigFloat resolved, FloatFacts facts) {
+      var (numerator, denominator) = ExactValue(candidate);
+      return BigFloat.FromRational(numerator, denominator, facts.SignificandBits, facts.ExponentBits, out var asFloat)
+             && asFloat.ToString() == resolved.ToString();
     }
 
     private static void CheckLiteralReadsBack(string text, BigFloat resolved, FloatFacts facts) {

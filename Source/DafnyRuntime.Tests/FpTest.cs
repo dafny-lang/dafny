@@ -125,6 +125,10 @@ public class FpTest {
   [InlineData(double.Epsilon, "5e-324")]
   [InlineData(1e-300, "1e-300")]
   [InlineData(1e21, "1e21")]
+  // "R" pads a one-digit exponent to two; the padding must not survive into the literal form.
+  [InlineData(1e-9, "1e-9")]
+  [InlineData(1e-5, "1e-5")]
+  [InlineData(1e18, "1e18")]
   public void ToStringUsesDafnyLiteralSyntax(double value, string expected) {
     Assert.Equal(expected, new Fp64(value).ToString());
   }
