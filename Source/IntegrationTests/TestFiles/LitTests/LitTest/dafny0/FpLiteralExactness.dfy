@@ -80,10 +80,25 @@ method PrintedOutputReadsBack() {
   print "             ", largest32, " ", smallest32, "\n";
 }
 
+// A literal where the resolver and a correctly-rounding parser disagree, because the pinned
+// Boogie's decimal-to-BigFloat conversion rounds twice (boogie-org/boogie#1141 fixes it but is not
+// in a release). The resolver reads ~1e-5 as the double one ULP below 1e-5, and the compiled
+// constant has to be the resolver's, because that is the value the proof is about.
+//
+// THIS TEST IS A REMINDER WITH AN EXPIRY DATE. When Boogie is bumped past #1141 the line below will
+// print 1e-5 and this test will fail. That failure is the signal that the neighbourhood search in
+// CsharpCodeGenerator.FloatLiteralText is now dead code and should be deleted, along with this
+// method. Until then, the search is what keeps the compiled constant equal to the verified one.
+method PinnedUntilTheBoogieBump() {
+  var offByOne: fp64 := ~1e-5;
+  print "~1e-5 resolves to: ", offByOne, "\n";
+}
+
 method Main() {
   AdjacentFp64Literals();
   AdjacentFp32Literals();
   ExactLiterals();
   ExtremeLiterals();
   PrintedOutputReadsBack();
+  PinnedUntilTheBoogieBump();
 }
