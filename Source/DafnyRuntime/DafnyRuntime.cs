@@ -2357,24 +2357,13 @@ namespace Dafny {
         return isNegative ? double.NegativeInfinity : double.PositiveInfinity;
       }
 
-      // Handle underflow and subnormals
+      // Handle underflow and subnormals. Far underflow needs no special case: the shift below is
+      // computed from the biased exponent, so a value hundreds of binades beneath the smallest
+      // subnormal gets a correspondingly large shift and rounds to zero, and a value exactly halfway
+      // to the smallest subnormal rounds to even, which is zero. An earlier special case shifted by
+      // the quotient's own width instead, which ignores how far below the range the value sits, so
+      // 1e-400 came back as the smallest subnormal rather than zero.
       if (biasedExponent <= 0) {
-        var minBiasedExp = 2 - significandSize;
-        if (biasedExponent < minBiasedExp) {
-          // Special case: exactly at the halfway point
-          if (biasedExponent == minBiasedExp - 1 && quotient == BigInteger.One << (quotientBits - 1)) {
-            // Exactly halfway between 0 and smallest subnormal - round to even (0)
-            return isNegative ? -0.0 : 0.0;
-          }
-
-          // Otherwise, check if rounding brings us to smallest subnormal
-          var rounded = ApplyRoundedRightShift(quotient, quotientBits);
-          if (rounded > 0) {
-            // Rounds up to smallest subnormal
-            return ConvertSubnormalToDouble(1, significandSize, bias, significandFieldBits, isNegative);
-          }
-          return isNegative ? -0.0 : 0.0;
-        }
         var shiftAmount = quotientBits - significandSize - biasedExponent + 1;
         if (shiftAmount > 0) {
           quotient = ApplyRoundedRightShift(quotient, shiftAmount);

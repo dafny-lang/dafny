@@ -434,6 +434,38 @@ public class BigRationalToFloatTest {
   }
 
   [Fact]
+  public void CorrectlyRoundedAcrossTheExponentRange() {
+    // The two tests above draw numerator and denominator from [1, 1000000), so every sample lands in
+    // [1e-6, 1e6] and neither can see underflow or overflow. Scaling by powers of ten reaches the
+    // subnormal range, far underflow, and overflow -- where a value hundreds of binades below the
+    // smallest subnormal was coming back AS the smallest subnormal instead of zero.
+    var random = new Random(17);
+    foreach (var scale in new[] { 0, 30, 100, 200, 300, 310, 320, 324, 330, 400 }) {
+      for (var i = 0; i < 200; i++) {
+        BigInteger num = random.Next(1, 1000);
+        var den = new BigInteger(random.Next(1, 1000)) * BigInteger.Pow(10, scale);
+        var small = new BigRational(num, den).ToDouble();
+        Assert.True(IsNearest(num, den, small, false), $"{num}/({den}) converted to {small:R}");
+        // And the same magnitudes upward: either the value overflows to infinity, or it is finite and
+        // must still be the nearest representable one.
+        BigInteger bigNum = num * BigInteger.Pow(10, scale);
+        BigInteger bigDen = random.Next(1, 1000);
+        var big = new BigRational(bigNum, bigDen).ToDouble();
+        Assert.False(double.IsNaN(big));
+        if (!double.IsInfinity(big)) {
+          Assert.True(IsNearest(bigNum, bigDen, big, false), $"{bigNum}/{bigDen} converted to {big:R}");
+        }
+      }
+    }
+    // The specific values that were wrong, at both widths.
+    Assert.Equal(0.0, new BigRational(1, BigInteger.Pow(10, 400)).ToDouble());
+    Assert.Equal(0.0f, new BigRational(1, BigInteger.Pow(10, 60)).ToSingle());
+    // A genuine subnormal must survive.
+    Assert.True(new BigRational(1, BigInteger.Pow(10, 320)).ToDouble() > 0.0);
+    Assert.True(Fp64.IsSubnormal(new Fp64(new BigRational(1, BigInteger.Pow(10, 320)).ToDouble())));
+  }
+
+  [Fact]
   public void RepresentableValuesConvertExactly() {
     // "r as fp64" asserts that r is exactly representable, so these are the only inputs it reaches.
     var random = new Random(5);
