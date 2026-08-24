@@ -1,7 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s"
-// NONUNIFORM: C# is the only backend that compiles floating point
-// RUN: %run --no-verify --target cs "%s" > "%t"
-// RUN: %diff "%s.expect_run" "%t"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 // Every member of fp32 and fp64 that can appear in compiled code, used once.
 //

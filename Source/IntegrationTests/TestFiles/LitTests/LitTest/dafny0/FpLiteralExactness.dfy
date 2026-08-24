@@ -1,7 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s"
-// NONUNIFORM: C# is the only backend that compiles floating point
-// RUN: %run --no-verify --target cs "%s" > "%t"
-// RUN: %diff "%s.expect_run" "%t"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 // A compiled literal has to be the same value the verifier reasoned about. It is easy for it not
 // to be: the verifier holds the exact rounded value, while the generated code holds whatever

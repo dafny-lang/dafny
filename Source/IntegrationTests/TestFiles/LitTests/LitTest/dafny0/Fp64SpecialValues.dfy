@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=0 "%s"
+// RUN: %testDafnyForEachResolver "%s"
 
 // Test for fp64 additional special values
 // Tests special constants like PositiveZero, NegativeZero, MaxValue, MinValue, etc.

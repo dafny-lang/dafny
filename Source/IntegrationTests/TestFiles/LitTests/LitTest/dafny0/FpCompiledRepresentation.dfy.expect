@@ -1,2 +1,17 @@
-
-Dafny program verifier finished with 9 verified, 0 errors
+newtype 1.5: 1.5
+newtype -0.0 == 0.0: false
+newtype -0.0 < 0.0: true
+newtype -0.0 is negative: true
+newtype 1.5 + 1.5: 3.0
+newtype 1.5 * 1.5: 2.25
+newtype -(1.5): -1.5
+|newtype {+0.0, -0.0}|: 2
+subset type 1.5: 1.5
+array defaults: 0.0 0.0
+array default is positive zero: true
+stored -0.0 and 0.0 differ: true, ordered: true
+field is negative zero: true
+field is NaN: true
+seq: [1.0, -0.0, 0.0, NaN, Infinity]
+set: {1.0}
+map: map[1.0 := -0.0]

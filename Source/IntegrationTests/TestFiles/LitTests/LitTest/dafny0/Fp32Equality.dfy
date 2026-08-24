@@ -1,7 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s"
-// NONUNIFORM: C# is the only backend that compiles floating point
-// RUN: %run --no-verify --target cs "%s" > "%t"
-// RUN: %diff "%s.expect_run" "%t"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 // Dafny's "==" on fp32 is value identity in the SMT FloatingPoint sort:
 //   - there is one NaN, so NaN == NaN
@@ -11,7 +8,7 @@
 //
 // The two halves of this file are checked against each other. Each "assert" is what the verifier
 // proves; each "print" is what the compiled program does. If the runtime ever stops agreeing with
-// the verifier, either verification fails here or the .expect_run diff does.
+// the verifier, either verification fails here or the expected-output diff does.
 //
 // Every "==" below is in compiled code and needs no precondition. Earlier versions of fp32/fp64
 // demanded that compiled operands be provably non-NaN and never two zeros of opposite sign,

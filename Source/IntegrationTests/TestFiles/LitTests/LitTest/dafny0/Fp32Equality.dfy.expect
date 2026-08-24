@@ -1,2 +1,23 @@
-
-Dafny program verifier finished with 9 verified, 0 errors
+1.0 == 1.0: true
+NaN == NaN: true
++Inf == +Inf: true
+1.0 == 2.0: false
+1.0 == NaN: false
++Inf == -Inf: false
++0.0 == -0.0: false
++0.0 == +0.0: true
+-0.0 is zero and negative: true true
+fp32.Equal(+0.0, -0.0): true
+fp32.Equal(NaN, NaN): false
+fp32.Equal(1.0, 1.0): true
+1.0 != 2.0: true
+NaN != NaN: false
+!fp32.Equal(1.0, NaN): true
+|{+0.0, -0.0, NaN}|: 3
+{+0.0} == {-0.0}: false
+|{NaN, NaN}|: 1
+|map[+0.0 := 1, -0.0 := 2]|: 2, m[+0.0]=1
+[1.0, NaN] == [1.0, NaN]: true
+Wrapper(NaN) == Wrapper(NaN): true
+Wrapper(+0.0) == Wrapper(-0.0): false
+NestedWrapper({1.0}) == NestedWrapper({1.0}): true

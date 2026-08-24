@@ -19,12 +19,6 @@ public class CommonOptionBag {
       IsHidden = true
     };
 
-  /// <summary>
-  /// Scaffolding for bringing up fp32/fp64 compilation on the C# backend. Compiled floating point
-  /// is refused by default (Feature.FloatingPointTypes) because it is unsound in several ways at
-  /// once; this option lifts that for C# only, so the codegen work can be tested step by step
-  /// without any intermediate state shipping unsoundness. Delete once C# compilation is sound.
-  /// </summary>
   public enum ProgressLevel { None, Symbol, Batch }
   public static readonly Option<ProgressLevel> ProgressOption =
     new("--progress", $"While verifying, output information that helps track progress. " +

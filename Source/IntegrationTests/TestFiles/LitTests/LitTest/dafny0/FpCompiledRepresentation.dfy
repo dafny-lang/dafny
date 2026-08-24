@@ -1,7 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s"
-// NONUNIFORM: C# is the only backend that compiles floating point
-// RUN: %run --no-verify --target cs "%s" > "%t"
-// RUN: %diff "%s.expect_run" "%t"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 // Floating point reached through something other than a bare fp32/fp64 type: a newtype, a subset
 // type, an array element, a field, a collection element. Each of these asks a different part of

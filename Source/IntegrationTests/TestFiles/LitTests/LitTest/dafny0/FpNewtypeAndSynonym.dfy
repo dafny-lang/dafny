@@ -1,6 +1,11 @@
 // RUN: %exits-with 4 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
+// Deliberately not %testDafnyForEachResolver, which the other fp tests use: the legacy resolver
+// emits NONE of the arithmetic well-formedness obligations below for a newtype over fp, because it
+// does not inherit fp64's members into the newtype in the first place. Running both resolvers here
+// would mean keeping a second golden file that records that gap as though it were intended.
+
 // Dafny's fp type tests (IsFp32Type / IsFp64Type / IsFloatingPointType) are defined via
 // NormalizeExpand(), which sees through type synonyms and subset types but NOT newtypes, while
 // IsNumericBased(Float) and NormalizeToAncestorType() do see through newtypes. Any site that asks
