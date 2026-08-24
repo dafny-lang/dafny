@@ -1,18 +1,5 @@
-`fp32` and `fp64` now compile to C#, and their verification is sound.
+`fp32` and `fp64` now compile to C#, and their verification is sound. Four defects that let the verifier prove false statements about its own floating-point model are fixed, including an `as int` encoding under which a value at least 2^64 was provably below 2^63. `<` is now IEEE 754-2019 `totalOrder` restricted to non-NaN, so it agrees with `==`: `-0.0 < 0.0` holds, and trichotomy and antisymmetry hold with it. Raw IEEE comparison remains available through `fp32.Less`/`fp64.Less` and friends, as raw IEEE equality already was through `fp32.Equal`/`fp64.Equal`.
 
-Four defects that let the verifier prove false statements about its own floating-point model are
-fixed, including an `as int` encoding under which a value at least 2^64 was provably below 2^63.
-`<` is now IEEE 754-2019 `totalOrder` restricted to non-NaN, so it agrees with `==`: `-0.0 < 0.0`
-holds, and trichotomy and antisymmetry hold with it. Raw IEEE comparison remains available through
-`fp32.Less`/`fp64.Less` and friends, as raw IEEE equality already was through `fp32.Equal`/`fp64.Equal`.
+Compiled code now agrees with what was verified, because `fp32` and `fp64` compile to wrapper types whose equality is Dafny's rather than C#'s. As a result `==` on floating-point values no longer carries well-formedness conditions in compiled code, and equality on collections and datatypes containing floating-point values is allowed there, so programs that were previously rejected now verify.
 
-Compiled code now agrees with what was verified, because `fp32` and `fp64` compile to wrapper types
-whose equality is Dafny's rather than C#'s. As a result, `==` on floating-point values no longer
-carries well-formedness conditions in compiled code, and equality on collections and datatypes
-containing floating-point values is allowed there: programs that were previously rejected now verify.
-
-Two user-visible consequences worth noting. Printed floating-point values are now written the way a
-Dafny literal is written, so `print` output can be read back as source — a program that pinned the
-old output will see a different string. And backends other than C# now refuse a program that
-mentions `fp32` or `fp64` at all, including one that mentions it only in specifications, rather than
-compiling it unfaithfully.
+Two user-visible consequences worth noting: printed floating-point values are now written the way a Dafny literal is written, so `print` output can be read back as source, and a program that pinned the old output will see a different string; and backends other than C# now refuse a program that mentions `fp32` or `fp64` at all, including one that mentions it only in specifications, rather than compiling it unfaithfully.
