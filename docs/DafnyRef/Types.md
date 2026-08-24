@@ -786,7 +786,11 @@ Consequences worth knowing when reading or writing the generated code:
   acquire one by accident. Where a total order is genuinely needed, pass the explicit
   comparer `Dafny.Fp64.DafnyOrderComparer.Instance`, which extends Dafny's order by placing
   NaN above every number and agrees with `Equals` — `Compare(x, y) == 0` exactly when
-  `x.Equals(y)`.
+  `x.Equals(y)`. Note that this is not where .NET puts NaN: `System.Double.CompareTo` places it
+  *below* negative infinity and returns 0 for the two zeros, so it is not consistent with an
+  equality that tells the zeros apart. Ordering NaN above every number instead agrees with
+  `java.lang.Double.compare` and with Julia's `isless`, and it is what allows the comparer to be
+  used with `SortedSet` and `SortedDictionary` at all.
 * The underlying `double` is reachable as the `Value` property and through an explicit
   conversion, so interoperating with an external library that takes a `double` is a cast
   away. Going the other direction, wrap with `new Dafny.Fp64(d)`.

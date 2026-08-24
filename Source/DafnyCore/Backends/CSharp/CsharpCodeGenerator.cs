@@ -1617,6 +1617,47 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
+    /// A real literal converted to a floating-point type, folded into a floating-point literal, or
+    /// null if this is not that case.
+    ///
+    /// The value does not change: both the verifier and the runtime round this conversion to
+    /// nearest -- the verifier models it as SMT-LIB's (_ to_fp) with RNE -- and the platform
+    /// parser used here rounds the same way. What folding avoids is constructing a BigRational and
+    /// rounding it on every evaluation of a constant, and it makes the constant legible: the
+    /// generated code says new Dafny.Fp64(1.5d) instead of
+    /// Dafny.Fp64.FromReal(new Dafny.BigRational(new BigInteger(15), BigInteger.Parse("10"))).
+    /// </summary>
+    private static string FoldRealLiteralToFloat(Expression source, Type toType) {
+      if (toType.FloatRepresentation is not { } facts) {
+        return null;
+      }
+      if (source.Resolved is not LiteralExpr { Value: BigDec decimalValue }) {
+        return null;
+      }
+      var written = $"{decimalValue.Mantissa}E{decimalValue.Exponent}";
+      var parsed = double.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture);
+      if (double.IsNaN(parsed) || double.IsInfinity(parsed)) {
+        // Out of range for the target. "as" would have failed to verify; leave it to the runtime
+        // conversion rather than inventing a literal for infinity.
+        return null;
+      }
+      var text = facts.IsFp32
+        ? ((float)parsed).ToString("R", CultureInfo.InvariantCulture)
+        : parsed.ToString("R", CultureInfo.InvariantCulture);
+      // The formatting step has to be lossless, or the folded constant is not the value converted.
+      var readBack = facts.IsFp32
+        ? BitConverter.SingleToInt32Bits(float.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture))
+          == BitConverter.SingleToInt32Bits((float)parsed)
+        : BitConverter.DoubleToInt64Bits(double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture))
+          == BitConverter.DoubleToInt64Bits(parsed);
+      if (!readBack) {
+        throw new InvalidOperationException(
+          $"the folded floating-point literal \"{text}\" does not read back as {parsed:R}");
+      }
+      return $"new {CSharpFloatTypeName(toType)}({text}{(facts.IsFp32 ? "f" : "d")})";
+    }
+
+    /// <summary>
     /// The machine values within two steps of how the platform parser reads "written". Two is
     /// margin: the observed disagreement between the resolver's rounding and the platform's is one
     /// step, and running out of candidates is reported rather than guessed at.
@@ -2873,6 +2914,12 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced = false) {
 
       if (e.Function is SpecialFunction && e.Function.EnclosingClass is { Name: "fp32" or "fp64" } fpDecl) {
+        // A real literal handed to FromReal is a constant, so fold it rather than building a
+        // BigRational and rounding it at run time.
+        if (e.Function.Name == "FromReal" && FoldRealLiteralToFloat(e.Args[0], e.Type) is { } folded) {
+          wr.Write(folded);
+          return;
+        }
         if (!FloatBuiltInFunctions.Contains(e.Function.Name)) {
           // Thrown for the same reason as in CheckLiteralReadsBack: an assert would be compiled
           // out of the release build, and the fallback is generated code that does not compile.
@@ -3594,9 +3641,13 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(AsNativeType(fromType) == null);
         if (toType.FloatRepresentation is { }) {
           // real -> fp32/fp64. FromReal rounds, but "as" has asserted exact representability.
-          wr.Write($"{CSharpFloatTypeName(toType)}.FromReal(");
-          EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
-          wr.Write(")");
+          if (FoldRealLiteralToFloat(fromExpr, toType) is { } folded) {
+            wr.Write(folded);
+          } else {
+            wr.Write($"{CSharpFloatTypeName(toType)}.FromReal(");
+            EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
+            wr.Write(")");
+          }
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(toType) == null);

@@ -242,6 +242,12 @@ namespace Dafny {
     /// than as IComparable because Dafny does not order NaN, so NaN's position here (above every
     /// number) is a runtime-only choice with no Dafny meaning. The key is computed from the
     /// CANONICALIZED value, so all NaN payloads share one position and CompareTo == 0 iff Equals.
+    ///
+    /// That last property is why this differs from fp64's platform counterpart. System.Double.CompareTo
+    /// returns 0 for the two zeros and places NaN BELOW negative infinity, so it is not consistent
+    /// with an equality that separates the zeros. Ordering NaN above every number instead follows
+    /// java.lang.Double.compare and Julia's isless, and it is what makes this usable as a
+    /// SortedSet or SortedDictionary comparer at all.
     /// </summary>
     public sealed class DafnyOrderComparer : System.Collections.Generic.IComparer<Fp64> {
       public static readonly DafnyOrderComparer Instance = new DafnyOrderComparer();
@@ -443,6 +449,8 @@ namespace Dafny {
     [Obsolete("Compare Dafny.Fp32 with Dafny.Fp32; wrap the float as new Dafny.Fp32(f).", true)]
     public bool Equals(float other) => throw new NotSupportedException();
 
+    /// <summary>As Fp64.DafnyOrderComparer, including why NaN sits above every number here and
+    /// below every number in System.Single.CompareTo.</summary>
     public sealed class DafnyOrderComparer : System.Collections.Generic.IComparer<Fp32> {
       public static readonly DafnyOrderComparer Instance = new DafnyOrderComparer();
 
@@ -2322,9 +2330,16 @@ namespace Dafny {
       var scaledNum = absNum << scaleBits;
       var quotient = BigInteger.DivRem(scaledNum, absDen, out var remainder);
 
-      // Round to nearest even
-      if (remainder * 2 > absDen || (remainder * 2 == absDen && !quotient.IsEven)) {
-        quotient++;
+      // Fold the remainder into a sticky bit rather than rounding it away here. The narrowing
+      // further down rounds to nearest, ties to even, and rounding twice is not the same as
+      // rounding once: the first rounding destroys the residual that decides the second, which
+      // lands about one conversion in twenty-five on the neighbouring value.
+      //
+      // An OR is enough. The scaling above always leaves at least two bits below the narrowing
+      // point, so bit 0 is discarded there; and if bit 0 is already set then the discarded tail is
+      // already non-zero, so it cannot be the exact tie that the sticky bit exists to break.
+      if (!remainder.IsZero) {
+        quotient |= BigInteger.One;
       }
 
       if (quotient.IsZero) {

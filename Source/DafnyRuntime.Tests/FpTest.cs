@@ -363,3 +363,98 @@ public class FpToRealTest {
     Assert.Throws<ArgumentException>(() => Fp64.ToReal(Fp64.NaN));
   }
 }
+
+/// <summary>
+/// BigRational.ToDouble and ToSingle are the runtime half of "r as fp64" and of fp64.FromReal, and
+/// the verifier models that conversion as SMT-LIB's (_ to_fp) with round-to-nearest-even. So they
+/// have to be correctly rounded, which they were not: they rounded the scaled quotient and then
+/// rounded again when narrowing it, and rounding twice is not rounding once.
+/// </summary>
+public class BigRationalToFloatTest {
+  /// <summary>The exact value of a finite double, as a fraction.</summary>
+  private static (BigInteger, BigInteger) Exact(double value) {
+    var bits = BitConverter.DoubleToInt64Bits(value);
+    var biasedExponent = (int)((bits >> 52) & 0x7ff);
+    var mantissa = bits & 0xfffffffffffffL;
+    var significand = biasedExponent == 0 ? mantissa : mantissa | (1L << 52);
+    var exponent = (biasedExponent == 0 ? 1 : biasedExponent) - 1075;
+    var numerator = bits < 0 ? -new BigInteger(significand) : new BigInteger(significand);
+    return exponent >= 0
+      ? (numerator * BigInteger.Pow(2, exponent), BigInteger.One)
+      : (numerator, BigInteger.Pow(2, -exponent));
+  }
+
+  /// <summary>
+  /// Whether "candidate" is the nearest representable value to num/den, decided by exact integer
+  /// arithmetic over its neighbours rather than by trusting another conversion.
+  /// </summary>
+  private static bool IsNearest(BigInteger num, BigInteger den, double candidate, bool single) {
+    var bits = single ? BitConverter.SingleToInt32Bits((float)candidate) : BitConverter.DoubleToInt64Bits(candidate);
+    BigInteger bestError = -1, bestScale = 1;
+    long best = bits;
+    for (long offset = -2; offset <= 2; offset++) {
+      var neighbour = single
+        ? (double)BitConverter.Int32BitsToSingle((int)(bits + offset))
+        : BitConverter.Int64BitsToDouble(bits + offset);
+      if (double.IsNaN(neighbour) || double.IsInfinity(neighbour)) {
+        continue;
+      }
+      var (n, d) = Exact(neighbour);
+      var error = BigInteger.Abs(num * d - n * den);
+      var scale = den * d;
+      if (bestError < 0 || error * bestScale < bestError * scale) {
+        bestError = error;
+        bestScale = scale;
+        best = bits + offset;
+      }
+    }
+    return best == bits;
+  }
+
+  [Fact]
+  public void ToDoubleIsCorrectlyRounded() {
+    var random = new Random(11);
+    for (var i = 0; i < 5000; i++) {
+      BigInteger num = random.Next(1, 1000000);
+      BigInteger den = random.Next(1, 1000000);
+      var converted = new BigRational(num, den).ToDouble();
+      Assert.True(IsNearest(num, den, converted, false), $"{num}/{den} converted to {converted:R}");
+    }
+  }
+
+  [Fact]
+  public void ToSingleIsCorrectlyRounded() {
+    var random = new Random(13);
+    for (var i = 0; i < 5000; i++) {
+      BigInteger num = random.Next(1, 1000000);
+      BigInteger den = random.Next(1, 1000000);
+      var converted = new BigRational(num, den).ToSingle();
+      Assert.True(IsNearest(num, den, converted, true), $"{num}/{den} converted to {converted:R}");
+    }
+  }
+
+  [Fact]
+  public void RepresentableValuesConvertExactly() {
+    // "r as fp64" asserts that r is exactly representable, so these are the only inputs it reaches.
+    var random = new Random(5);
+    for (var i = 0; i < 5000; i++) {
+      var significand = (long)(random.NextDouble() * 9007199254740992L) | 1;
+      var scale = random.Next(0, 60);
+      var expected = significand / Math.Pow(2, scale);
+      if (double.IsInfinity(expected) || expected == 0) {
+        continue;
+      }
+      var rational = new BigRational(new BigInteger(significand), BigInteger.Pow(2, scale));
+      Assert.Equal(expected, rational.ToDouble());
+    }
+  }
+
+  [Fact]
+  public void TheDoubleRoundingCaseThatMotivatedThis() {
+    // 834650/960706 came out as 0.8687881620391671 when the quotient was rounded before narrowing;
+    // the nearest double is 0.868788162039167.
+    var converted = new BigRational(834650, 960706).ToDouble();
+    Assert.Equal(0.868788162039167, converted);
+    Assert.True(IsNearest(834650, 960706, converted, false));
+  }
+}
