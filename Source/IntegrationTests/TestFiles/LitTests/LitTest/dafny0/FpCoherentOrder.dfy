@@ -65,3 +65,29 @@ lemma OrdinaryValues() {
   var negOne: fp64 := -1.0;
   assert negOne < one && negOne < 0.0 && 0.0 < one;
 }
+
+// Totality and trichotomy hold of the order, but Z3 does not discharge them from the refined
+// definition unaided: "assert a <= b || b <= a" under these preconditions times out past a minute.
+// Establishing the IEEE disjunction first is enough, because the refinement only adds the pair of
+// zeros, and once the solver has the IEEE case split it can finish. This is worth pinning both ways
+// round: the properties are real, and the stepping stone is what a user will need.
+lemma TotalityNeedsTheIeeeSteppingStone(a: fp64, b: fp64)
+  requires !a.IsNaN && !b.IsNaN
+{
+  assert fp64.LessOrEqual(a, b) || fp64.LessOrEqual(b, a);
+  assert a <= b || b <= a;
+}
+
+lemma TrichotomyNeedsTheIeeeSteppingStone(a: fp64, b: fp64)
+  requires !a.IsNaN && !b.IsNaN
+{
+  assert fp64.Less(a, b) || fp64.Equal(a, b) || fp64.Less(b, a);
+  assert a < b || a == b || b < a;
+}
+
+lemma AntisymmetryHolds(a: fp64, b: fp64)
+  requires !a.IsNaN && !b.IsNaN
+  requires a <= b && b <= a
+  ensures a == b
+{
+}

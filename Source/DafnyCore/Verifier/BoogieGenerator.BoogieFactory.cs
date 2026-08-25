@@ -829,7 +829,11 @@ namespace Microsoft.Dafny {
     /// trichotomy fails and "a &lt;= b &amp;&amp; b &lt;= a ==&gt; a == b" is refutable. Breaking the tie in the
     /// direction IEEE 754-2019 clause 5.10 totalOrder already specifies makes "&lt;" a strict total
     /// order on non-NaN values that agrees with "==", so both relations come from one IEEE-defined
-    /// order rather than two incompatible ones. NaN stays outside the order: comparison carries an
+    /// order rather than two incompatible ones. Note that this is a property of the model, not of
+    /// what the solver discharges unaided: totality and trichotomy over the refined definition
+    /// generally need the corresponding fp*.LessOrEqual or fp*.Less disjunction established first,
+    /// which supplies the IEEE case split. FpCoherentOrder.dfy pins both the property and the
+    /// stepping stone. NaN stays outside the order: comparison carries an
     /// unconditional non-NaN well-formedness obligation, and full totalOrder would additionally
     /// distinguish NaN signs and payloads, which this encoding does not model.
     ///

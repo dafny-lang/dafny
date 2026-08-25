@@ -258,6 +258,50 @@ public class FpClassificationTest {
   }
 
   [Fact]
+  public void Fp32ClassifiesLikeFp64() {
+    // The classification predicates are written out per width, so Fp64 passing says nothing about
+    // Fp32. The NaN-sign hazard is the reason: System.Single.IsNegative reports the sign bit, and
+    // float.NaN carries it, so delegating would answer true where fp.isNegative answers false.
+    Assert.True(float.IsNegative(float.NaN)); // what must NOT be delegated to
+    foreach (var nan in new[] {
+      new Fp32(float.NaN),
+      Fp32.FromFloatBits(unchecked((int)0x7fc00000U)),
+      Fp32.FromFloatBits(unchecked((int)0xffc00000U)),
+      Fp32.FromFloatBits(unchecked((int)0x7f800001U))
+    }) {
+      Assert.True(Fp32.IsNaN(nan));
+      Assert.False(Fp32.IsNegative(nan));
+      Assert.False(Fp32.IsPositive(nan));
+      Assert.False(Fp32.IsFinite(nan));
+      Assert.False(Fp32.IsInfinite(nan));
+      Assert.False(Fp32.IsNormal(nan));
+      Assert.False(Fp32.IsSubnormal(nan));
+      Assert.False(Fp32.IsZero(nan));
+    }
+
+    var pos = new Fp32(0.0f);
+    var neg = new Fp32(-0.0f);
+    Assert.True(Fp32.IsZero(pos) && Fp32.IsZero(neg));
+    Assert.True(Fp32.IsPositive(pos) && !Fp32.IsNegative(pos));
+    Assert.True(Fp32.IsNegative(neg) && !Fp32.IsPositive(neg));
+    Assert.False(Fp32.IsNormal(pos) || Fp32.IsSubnormal(pos));
+
+    Assert.True(Fp32.IsNormal(new Fp32(1.0f)));
+    Assert.True(Fp32.IsNormal(Fp32.MinNormal));
+    Assert.True(Fp32.IsSubnormal(Fp32.MinSubnormal));
+    Assert.False(Fp32.IsNormal(Fp32.MinSubnormal));
+    Assert.True(Fp32.IsSubnormal(Fp32.FromFloatBits(Fp32.MinNormal.ToFloatBits() - 1)));
+    Assert.True(Fp32.IsInfinite(Fp32.PositiveInfinity) && Fp32.IsNegative(Fp32.NegativeInfinity));
+
+    // And the unchecked family keeps IEEE at this width too.
+    Assert.True(Fp32.Equal(pos, neg));
+    Assert.False(pos == neg);
+    Assert.False(Fp32.Less(neg, pos));
+    Assert.True(neg < pos);
+    Assert.True(Fp32.Min(new Fp32(float.NaN), new Fp32(1.5f)) == new Fp32(1.5f));
+  }
+
+  [Fact]
   public void MinAndMaxIgnoreNaNRatherThanPropagateIt() {
     var nan = new Fp64(double.NaN);
     var one = new Fp64(1.5);
@@ -298,11 +342,66 @@ public class FpClassificationTest {
     Assert.Equal(new BigInteger(1), Fp64.ToInt(new Fp64(1.7)));
     Assert.Equal(2.0f, Fp32.Round(new Fp32(2.5f)).Value);
     Assert.Equal(3.0f, Fp32.Sqrt(new Fp32(9.0f)).Value);
-    // fp32 Sqrt must be correctly rounded, not merely computed in double and truncated.
-    for (var i = 1; i < 2000; i++) {
+    // fp32 Sqrt computes in double and rounds back, which the implementation argues is correctly
+    // rounded because double carries at least 2p+2 bits. Check that against an oracle that never
+    // takes a square root: the result is nearest iff x lies between the squares of the midpoints to
+    // its two neighbours, which is exact integer arithmetic over the floats' own values. Comparing
+    // against (float)Math.Sqrt((double)x) instead would just restate the implementation.
+    for (var i = 1; i < 3000; i++) {
       var x = (float)i / 7.0f;
-      Assert.Equal((float)Math.Sqrt((double)x), Fp32.Sqrt(new Fp32(x)).Value);
+      var root = Fp32.Sqrt(new Fp32(x)).Value;
+      Assert.True(IsCorrectlyRoundedSqrt(x, root), $"sqrt({x:R}) gave {root:R}");
     }
+    // The oracle has to have teeth, or this test is as empty as comparing against the
+    // implementation: a root off by one step in either direction must be rejected.
+    for (var i = 1; i < 200; i++) {
+      var x = (float)i / 7.0f;
+      var bits = BitConverter.SingleToInt32Bits(Fp32.Sqrt(new Fp32(x)).Value);
+      Assert.False(IsCorrectlyRoundedSqrt(x, BitConverter.Int32BitsToSingle(bits + 1)),
+        $"the oracle accepted a root one step above the correct one for {x:R}");
+      Assert.False(IsCorrectlyRoundedSqrt(x, BitConverter.Int32BitsToSingle(bits - 1)),
+        $"the oracle accepted a root one step below the correct one for {x:R}");
+    }
+  }
+
+  /// <summary>The exact value of a finite float, as a fraction.</summary>
+  private static (BigInteger, BigInteger) ExactSingle(float value) {
+    var bits = BitConverter.SingleToInt32Bits(value);
+    var biasedExponent = (bits >> 23) & 0xff;
+    var mantissa = bits & 0x7fffff;
+    var significand = biasedExponent == 0 ? mantissa : mantissa | (1 << 23);
+    var exponent = (biasedExponent == 0 ? 1 : biasedExponent) - 150;
+    BigInteger numerator = significand;
+    return exponent >= 0
+      ? (numerator * BigInteger.Pow(2, exponent), BigInteger.One)
+      : (numerator, BigInteger.Pow(2, -exponent));
+  }
+
+  /// <summary>
+  /// Whether "root" is the nearest float to the square root of "x", decided by squaring rather than
+  /// by rooting. The midpoint between "root" and a neighbour is exact, so comparing its square
+  /// against x says which side of the rounding boundary x falls on.
+  /// </summary>
+  private static bool IsCorrectlyRoundedSqrt(float x, float root) {
+    if (x == 0.0f || float.IsInfinity(x)) {
+      return root == x;
+    }
+    var (xn, xd) = ExactSingle(x);
+    var bits = BitConverter.SingleToInt32Bits(root);
+
+    // sign of (midpoint(root, neighbour)^2 - x)
+    int MidpointSquaredVersusX(int neighbourBits) {
+      var (an, ad) = ExactSingle(root);
+      var (bn, bd) = ExactSingle(BitConverter.Int32BitsToSingle(neighbourBits));
+      var mn = an * bd + bn * ad;      // midpoint = mn / md
+      var md = 2 * ad * bd;
+      return (mn * mn * xd).CompareTo(xn * md * md);
+    }
+
+    // x must not be below the lower boundary, nor above the upper one.
+    var aboveLower = bits == 0 || MidpointSquaredVersusX(bits - 1) <= 0;
+    var belowUpper = MidpointSquaredVersusX(bits + 1) >= 0;
+    return aboveLower && belowUpper;
   }
 }
 
