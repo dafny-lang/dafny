@@ -837,7 +837,7 @@ namespace Microsoft.Dafny {
     /// unconditional non-NaN well-formedness obligation, and full totalOrder would additionally
     /// distinguish NaN signs and payloads, which this encoding does not model.
     ///
-    /// Raw IEEE comparison remains available as fp32.IeeeLess / fp64.IeeeLess, mirroring how
+    /// Raw IEEE comparison remains available as fp32.Less / fp64.Less, mirroring how
     /// fp*.Equal keeps IEEE equality while "==" is structural.
     ///
     /// The tie is spelled as structural equalities against the zero literals rather than

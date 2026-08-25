@@ -17,7 +17,8 @@ method CompiledCollection() {
   assert |s| == 2;
 }
 
-// Refused by the same check, though only the first offending use is reported:
+// Refused by the same check. The position reported is the start of the program, not any of these
+// uses: the check is whole-program, so it has no offending position to point at.
 method CompiledScalar(x: fp64) returns (y: fp64) { y := x; }
 method CompiledMap() {
   var m: map<fp64, int> := map[0.0 := 1, -0.0 := 2];

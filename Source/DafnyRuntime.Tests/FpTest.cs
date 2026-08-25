@@ -25,7 +25,8 @@ public class FpTest {
   [Fact]
   public void EqualityIsValueIdentityNotIeee() {
     Assert.False(PosZero == NegZero);
-    Assert.True(NaN == NaN);
+    var anotherNaN = new Fp64(double.NaN);
+    Assert.True(NaN == anotherNaN);
     Assert.True(NaN == NaNPayload);
     Assert.True(NaN == NegNaN);
   }

@@ -1219,7 +1219,6 @@ namespace Microsoft.Dafny {
       var fp64Type = new Bpl.FloatType(tok, 53, 11);
       var realType = Bpl.Type.Real;
       var boolType = Bpl.Type.Bool;
-      var bv64Type = BplBvType(64);
 
       EnsureFp64TypeConstantExists();
 
@@ -1281,7 +1280,6 @@ namespace Microsoft.Dafny {
       var fp32Type = new Bpl.FloatType(tok, 24, 8);
       var realType = Bpl.Type.Real;
       var boolType = Bpl.Type.Bool;
-      var bv32Type = BplBvType(32);
 
       EnsureFp32TypeConstantExists();
 

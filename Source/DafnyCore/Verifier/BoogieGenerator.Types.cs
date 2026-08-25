@@ -1362,28 +1362,6 @@ public partial class BoogieGenerator {
         Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
       }
       return r;
-    } else if (fromType.IsFp64Type) {
-      if (toType.IsFp64Type) {
-        // do nothing
-      } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
-        // fp64 to int: read off the exact real value. This conversion asserts that the
-        // source is finite and already integral, so no rounding step belongs here --
-        // unlike fp64.ToInt, which only requires finiteness and truncates toward zero.
-        // Deliberately not fp.to_sbv: that is unspecified for finite inputs outside the
-        // bitvector's range, and wrapping it in a total int_from_bv definition made
-        // out-of-range conversions provably (and wrongly) fall inside [-2^63, 2^63).
-        r = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, r);
-        r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
-      } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
-        // fp64 to real: use SMT-LIB fp.to_real (only defined for finite values)
-        var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, r);
-        var finiteConversion = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, r);
-        var zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
-        r = new NAryExpr(tok, new IfThenElse(tok), new List<Bpl.Expr> { isFinite, finiteConversion, zero });
-      } else {
-        Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
-      }
-      return r;
     } else if (fromType.IsRefType && toType.IsRefType) {
       return r;
     } else if (fromType.IsRefType) {

@@ -84,12 +84,37 @@ method MathematicalFunctions() {
   var x: fp64 := 1.5;
   var nine: fp64 := 9.0;
 
+  assert fp64.Abs(-x) == 1.5 && fp64.Abs(x) == 1.5;
+  assert fp64.Floor(x) == 1.0 && fp64.Ceiling(x) == 2.0;
+  assert fp64.Round(2.5) == 2.0 && fp64.Round(3.5) == 4.0;   // ties to even
+  assert fp64.Sqrt(nine) == 3.0;
+  assert fp64.Min(x, nine) == x && fp64.Max(x, nine) == nine;
+  assert fp32.Sqrt(9.0) == 3.0;
+
   print "Abs: ", fp64.Abs(-x), " ", fp64.Abs(x), "\n";
   print "Floor/Ceiling: ", fp64.Floor(x), " ", fp64.Ceiling(x), "\n";
   print "Round ties to even: ", fp64.Round(2.5), " ", fp64.Round(3.5), "\n";
   print "Sqrt: ", fp64.Sqrt(nine), "\n";
   print "Min/Max: ", fp64.Min(x, nine), " ", fp64.Max(x, nine), "\n";
   print "fp32 Sqrt: ", fp32.Sqrt(9.0), "\n";
+}
+
+// The conversions whose value the verifier can pin. These are separated from the method below
+// because "as int" and "as real" go through fp.to_real, which is expensive enough that sharing a
+// proof context with them pushes the whole method past its time limit.
+method ConversionsWithProvableValues() {
+  var f: fp32 := 4.0;
+
+  assert f as fp64 == 4.0;            // widening: exact
+  assert 3 as fp64 == 3.0;            // int to fp
+  assert fp32.FromFp64(1.5) == 1.5;   // exactly representable, so the narrowing is exact
+
+  // Deliberately absent: no assertion about a real-to-fp conversion's VALUE. Neither
+  // "1.5 as fp64 == 1.5" nor "fp64.FromReal(1.5) == 1.5" verifies, at either width. The conversion
+  // is modelled as SMT-LIB's (_ to_fp) with RNE, and the solver will not evaluate that on a
+  // constant, so the result is opaque even when the source is a literal. The other three directions
+  // above are fine, which locates the gap precisely.
+  print "conversions with provable values: ok\n";
 }
 
 method Conversions() {
@@ -112,5 +137,6 @@ method Main() {
   Constants();
   UncheckedOperations();
   MathematicalFunctions();
+  ConversionsWithProvableValues();
   Conversions();
 }

@@ -28,6 +28,7 @@ Round ties to even: 2.0 4.0
 Sqrt: 3.0
 Min/Max: 1.5 9.0
 fp32 Sqrt: 3.0
+conversions with provable values: ok
 fp64 as int: 2
 fp32 as int: 4
 fp32 as fp64: 4.0
