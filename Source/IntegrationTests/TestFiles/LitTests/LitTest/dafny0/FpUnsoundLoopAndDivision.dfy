@@ -3,11 +3,11 @@
 
 // Three things that were accepted and should not be.
 //
-// The first two share a cause: Boogie's interval abstract domain is unsound for floating point. It
-// compares floats numerically, so it treats -0.0 and +0.0 as one point, and the invariant it infers
-// is then used as Boogie's equality on floats, which is structural and tells them apart. Any fp
-// program is exposed, not just one with a decreases clause, so the translator turns the analysis off
-// for a program that mentions fp at all.
+// The first two share a cause: Boogie's interval inference is unsound for a float assigned in a loop
+// whose body branches on it. Reduced to Boogie alone, the same shape with ordinary values such as 1.0
+// and 2.0 also proves a false assertion, while an int or a bool in that shape does not -- so this is
+// not about the signed zeros, and not about decreases. Any fp program is exposed, so the translator
+// turns the analysis off for a program that mentions fp at all.
 //
 // This is not specific to this feature's ordering refinement, and predates it: the second method
 // below has no decreases clause over fp and proved a false assertion. What the refinement changed is
@@ -24,14 +24,15 @@ method Diverge() returns (r: int)
   }
 }
 
-// The mechanism, isolated: termination here is by an int counter, and the only fp involvement is a
-// local that alternates between the two zeros. The assertion is false, because m may be -0.0, and
-// the interval domain proved it.
-method FalseAssertionFromIntervalNarrowing() {
+// The same defect without a decreases clause over fp: termination is by an int counter, and the fp
+// local is only assigned in a loop that branches on it. The iteration count is ODD, so on exit m is
+// -0.0 and the assertion is false. The count matters -- with an even count the assertion is TRUE and
+// the test would pin the solver's incompleteness rather than its soundness.
+method FalseAssertionUnderIntervalInference() {
   var m: fp64 := 0.0;
   var i := 0;
-  while i < 10
-    decreases 10 - i
+  while i < 11
+    decreases 11 - i
   {
     m := if m == 0.0 then -0.0 else 0.0;
     i := i + 1;
