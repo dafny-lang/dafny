@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --unicode-char false
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 // Regression test for bitvector-width truncation (issue #6512): the cpp backend
 // left fixed-width bv8/bv16 arithmetic un-masked while cs/java/py truncated it.
