@@ -40,14 +40,6 @@ jobs:
         id: populate-os-mapping
         run: |
           echo "os-mapping={\"ubuntu-24.04\": \"ubuntu\", \"macos-14\": \"macos\", \"windows-2022\": \"windows\"}" >> $GITHUB_OUTPUT
-      - name: Populate target runtime version list (all platforms)
-        id: populate-target-runtime-version-all
-        if: inputs.all_platforms
-        run: echo "target-runtime-version=[\"oldest\", \"newest\"]" >> $GITHUB_OUTPUT
-      - name: Populate target runtime version list (one platform)
-        id: populate-target-runtime-version-one
-        if: "!inputs.all_platforms"
-        run: echo "target-runtime-version=[\"oldest\"]" >> $GITHUB_OUTPUT
       - name: Populate shard list
         id: populate-shard-list
         run: echo "shard-list=[`seq -s , 1 ${{ inputs.num_shards }}`]" >> $GITHUB_OUTPUT
@@ -81,17 +73,16 @@ jobs:
       if: matrix.os == 'ubuntu-24.04'
       run: |
         sudo apt-get install -y build-essential
+    # NOTE: this job's matrix has only `os` and `shard` dimensions, so there is no
+    # target-language-version to branch on. The two JDK steps that used to be guarded by
+    # `matrix.target-language-version` therefore resolved to "oldest always, newest never",
+    # which is the behaviour preserved here. Restoring coverage of the newest supported JDK
+    # means adding a real matrix dimension and doubling the matrix; that is a separate
+    # decision, deliberately not made in this PR.
     - name: Set up oldest supported JDK
-      if: matrix.target-language-version != 'newest'
       uses: actions/setup-java@v5
       with:
         java-version: 8
-        distribution: corretto
-    - name: Set up newest supported JDK
-      if: matrix.target-language-version == 'newest'
-      uses: actions/setup-java@v5
-      with:
-        java-version: 18
         distribution: corretto
     - name: Set up oldest supported Go
       uses: actions/setup-go@v7
