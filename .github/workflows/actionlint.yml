@@ -1,12 +1,5 @@
-# Static analysis of the workflow files themselves.
-#
-# This exists because an invalid workflow file fails in the most expensive way available:
-# `startup_failure`, with no jobs and no logs to inspect. In July 2025 a bare `if: prerelease`
-# (an undefined context, so the whole reusable workflow was invalid) stopped the nightly build
-# from producing anything at all for 22 consecutive nights before anyone noticed, and the
-# merge gate reported it as "No completed runs found" rather than as a broken file.
-#
-# actionlint catches exactly that class of mistake statically, in the PR that introduces it.
+# An invalid workflow file fails as `startup_failure`: no jobs, no logs, easy to miss.
+# actionlint catches that statically, in the PR that introduces it.
 
 name: Lint workflows
 
@@ -25,9 +18,7 @@ jobs:
     permissions:
       contents: read
     env:
-      # Pinned by version *and* checksum on purpose: a floating third-party action pin is what
-      # broke the nightly release for four nights in April 2026, when setup-tectonic@v3 stopped
-      # being able to resolve its tool version.
+      # Pinned by version and checksum rather than a floating action reference.
       ACTIONLINT_VERSION: 1.7.7
       ACTIONLINT_SHA256: 023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
     steps:
@@ -51,11 +42,6 @@ jobs:
           ./actionlint --version
 
       - name: Lint workflows
-        # shellcheck integration is off deliberately. GitHub runners ship shellcheck, so enabling
-        # it here reports 37 pre-existing findings across the existing workflows - almost all
-        # style-level (SC2006, SC2086), plus two SC1072/SC1073 "couldn't parse" errors in
-        # release-downloads-nuget.yml that are artifacts of shellcheck reading a `${{ }}`
-        # interpolation as an arithmetic expansion. Cleaning those up is worth doing, but it is a
-        # separate change: the point of this job is to reject workflow files that GitHub itself
-        # cannot process, which is the failure mode that cost 22 nights of nightly builds.
+        # shellcheck off: it flags 37 pre-existing findings in existing workflows, 33 of them
+        # style or informational. Worth fixing separately; this job is about workflow validity.
         run: ./actionlint -color -shellcheck=
