@@ -51,4 +51,11 @@ jobs:
           ./actionlint --version
 
       - name: Lint workflows
-        run: ./actionlint -color
+        # shellcheck integration is off deliberately. GitHub runners ship shellcheck, so enabling
+        # it here reports 37 pre-existing findings across the existing workflows - almost all
+        # style-level (SC2006, SC2086), plus two SC1072/SC1073 "couldn't parse" errors in
+        # release-downloads-nuget.yml that are artifacts of shellcheck reading a `${{ }}`
+        # interpolation as an arithmetic expansion. Cleaning those up is worth doing, but it is a
+        # separate change: the point of this job is to reject workflow files that GitHub itself
+        # cannot process, which is the failure mode that cost 22 nights of nightly builds.
+        run: ./actionlint -color -shellcheck=
