@@ -12,7 +12,7 @@ import sys
 import time
 from urllib import request
 from http.client import IncompleteRead
-from urllib.error import HTTPError
+from urllib.error import URLError
 import zipfile
 import shutil
 import ntpath
@@ -24,6 +24,8 @@ Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/sna
 
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
+# Doubles per attempt, so 5 attempts wait 2 + 4 + 8 + 16 = 30s in total.
+Z3_DOWNLOAD_RETRY_BASE_SECONDS = 2
 
 ## Allowed Dafny release names
 DAFNY_RELEASE_REGEX = re.compile("\\d+\\.\\d+\\.\\d+(-[\w\d_-]+)?$")
@@ -126,9 +128,19 @@ class Release:
                                 writer.write(reader.read())
                         flush("done!")
                         break
-                    except (IncompleteRead, HTTPError):
+                    # The retries below need to back off. Without a delay all
+                    # Z3_MAX_DOWNLOAD_ATTEMPTS are spent within milliseconds, which is no use
+                    # against the transient server-side conditions that actually occur here: a
+                    # bare 504 from the release CDN takes seconds to clear, so an immediate retry
+                    # just returns the same 504. This failed the nightly release on 2026-05-01 and
+                    # 2026-07-24, and the same download runs in the test matrix as "Create
+                    # release", which accounts for three more red nights.
+                    except (IncompleteRead, URLError) as e:
                         if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
                             raise
+                        delay = Z3_DOWNLOAD_RETRY_BASE_SECONDS * (2 ** currentAttempt)
+                        flush("failed ({}), retrying in {}s ... ".format(e, delay))
+                        time.sleep(delay)
 
 
     @staticmethod

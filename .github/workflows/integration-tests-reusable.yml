@@ -193,8 +193,18 @@ jobs:
       run: |
         ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests
+    # A transient failure uploading test results should not fail a job whose tests passed:
+    # this cost the nightly build five red nights between 2026-04 and 2026-08, each time after
+    # the test run itself had already succeeded.
+    #
+    # Caveat for reviewers: this artifact carries both .trx diagnostics *and* the coverage report
+    # that test-coverage-analysis consumes with fail_below_min. If a shard's upload is ever
+    # skipped, coverage will be computed from fewer shards. If that turns out to matter, the
+    # follow-up is to upload diagnostics and coverage as two separate artifacts so only the
+    # diagnostics one tolerates failure.
     - uses: actions/upload-artifact@v7
       if: always()
+      continue-on-error: true
       with:
         name: integration-test-results-${{ matrix.os }}-${{ matrix.shard }}
         path: |
