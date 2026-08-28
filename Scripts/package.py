@@ -128,13 +128,8 @@ class Release:
                                 writer.write(reader.read())
                         flush("done!")
                         break
-                    # The retries below need to back off. Without a delay all
-                    # Z3_MAX_DOWNLOAD_ATTEMPTS are spent within milliseconds, which is no use
-                    # against the transient server-side conditions that actually occur here: a
-                    # bare 504 from the release CDN takes seconds to clear, so an immediate retry
-                    # just returns the same 504. This failed the nightly release on 2026-05-01 and
-                    # 2026-07-24, and the same download runs in the test matrix as "Create
-                    # release", which accounts for three more red nights.
+                    # Back off: with no delay the attempts all go out in quick succession, which
+                    # is little use against a server-side 504.
                     except (IncompleteRead, URLError) as e:
                         if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
                             raise

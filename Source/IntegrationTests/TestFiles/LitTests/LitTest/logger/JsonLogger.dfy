@@ -1,7 +1,5 @@
-// The CHECK directives below assert an *ordering* of vcResults, but the logger emits them in VC
-// completion order, and with assertions isolated the VCs are verified in parallel. Verify with a
-// single core so that order is deterministic, as every other test that pins per-VC or per-assertion
-// output already does (see verification/progress.dfy and verification/proofDivision/*).
+// The CHECKs pin an ordering, but vcResults is emitted in completion order and the VCs are
+// verified in parallel. Verify on one core, as the other order-pinning tests do.
 // RUN: %exits-with 4 %baredafny verify --show-snippets:false --log-format:json --isolate-assertions --cores=1 "%s" > "%t"
 // Also test old CLI
 // RUN: %exits-with 4 %baredafny /compile:0 /verificationLogger:json /vcsSplitOnEveryAssert /vcsCores:1 "%s" >> "%t"

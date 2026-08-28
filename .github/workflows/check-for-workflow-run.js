@@ -18,11 +18,8 @@ module.exports = async ({github, context, core, workflow_id, sha, ...config}) =>
   const workflow_runs_completed = workflow_runs.filter(run => run.status === "completed")
   // The status property can be one of: “queued”, “in_progress”, or “completed”.
   const workflow_runs_in_progress = workflow_runs.filter(run => run.status !== "completed")
-  // Conclusions that are neither a pass nor a fail (see the list below) are skipped, so that an
-  // older successful run can still satisfy the gate. They are collected here purely so that the
-  // final message can say what was actually found: reporting "No completed runs found" when there
-  // were completed runs with, say, a startup_failure sends the reader looking for a missing run
-  // instead of a broken workflow file. That happened for 22 consecutive nights in July 2025.
+  // Conclusions other than success and failure/timed_out are skipped, so an older success can
+  // still satisfy the gate; collected only so the final message can say what it actually found.
   const inconclusive = []
   for (const run of workflow_runs_completed) {
     // The conclusion property can be one of:

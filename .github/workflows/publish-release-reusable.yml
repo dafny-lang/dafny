@@ -107,10 +107,8 @@ jobs:
       if: ${{ inputs.release_nuget }}
       # Need --skip-duplicate for cases where we release a new Dafny
       # version but the runtime hasn't changed and is still the old
-      # version. It also makes the retry below safe to repeat.
-      #
-      # `dotnet nuget push` defaults to a 300s timeout. On 2026-03-18 the nightly release failed
-      # after exactly 301s against an unresponsive nuget.org, so allow longer and retry.
+      # version, and it makes the retry below safe to repeat. The default push timeout is 300s,
+      # which a slow nuget.org has hit, so raise it.
       env:
         NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
       run: |
