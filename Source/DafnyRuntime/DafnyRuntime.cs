@@ -370,8 +370,11 @@ namespace Dafny {
       if (!IsFinite(a)) {
         throw new ArgumentException("Can't convert " + a + " to a rational.");
       }
+      // Required, and not only because reals have no signed zero so that -0.0 has to land here too:
+      // the reduction loop below shifts while the low bit is clear, which never terminates on a zero
+      // significand. Removing this branch hangs on BOTH zeros rather than answering wrongly.
       if (IsZero(a)) {
-        return new BigRational(0);  // reals have no signed zero, so -0.0 also lands here
+        return new BigRational(0);
       }
       var bits = BitConverter.DoubleToInt64Bits(a.value);
       var biasedExponent = (int)((bits & ExponentMask) >> 52);
@@ -379,7 +382,8 @@ namespace Dafny {
       // Subnormals have no implicit leading one, and their exponent is that of the smallest normal.
       var significand = biasedExponent == 0 ? mantissa : mantissa | (SignificandMask + 1);
       var exponent = (biasedExponent == 0 ? 1 : biasedExponent) - 1075;
-      // Cancel the common powers of two, so 1.5 comes out as 3/2.
+      // Cancel the common powers of two, so 1.5 comes out as 3/2. Terminates because the significand
+      // is nonzero here, per the guard above.
       while ((significand & 1) == 0) {
         significand >>= 1;
         exponent++;

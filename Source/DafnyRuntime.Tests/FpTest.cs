@@ -503,12 +503,36 @@ public class FpToRealTest {
   [InlineData(-1.5, "-3/2")]
   [InlineData(2.0, "2/1")]
   [InlineData(0.0, "0/1")]
-  [InlineData(-0.0, "0/1")]     // reals have no signed zero
   [InlineData(0.25, "1/4")]
   [InlineData(-0.125, "-1/8")]
   public void ExactAndReduced(double value, string expected) {
     var r = Fp64.ToReal(new Fp64(value));
     Assert.Equal(expected, $"{r.num}/{r.den}");
+  }
+
+  /// <summary>
+  /// -0.0 and 0.0 are two fp64 values but "real" has one zero, so both convert to the same
+  /// rational. Spelled as a Fact rather than a seventh InlineData row: xUnit's analyzer reports
+  /// 0.0 and -0.0 as duplicate data, because Double.Equals identifies them, even though the
+  /// attribute metadata does preserve the sign bit and the two rows would exercise different
+  /// inputs. Naming the property is better than suppressing the warning over a table.
+  /// </summary>
+  [Fact]
+  public void BothZerosConvertToTheSingleRealZero() {
+    var fromPos = Fp64.ToReal(new Fp64(0.0));
+    var fromNeg = Fp64.ToReal(new Fp64(-0.0));
+    Assert.Equal("0/1", $"{fromPos.num}/{fromPos.den}");
+    Assert.Equal("0/1", $"{fromNeg.num}/{fromNeg.den}");
+
+    var from32Pos = Fp32.ToReal(new Fp32(0.0f));
+    var from32Neg = Fp32.ToReal(new Fp32(-0.0f));
+    Assert.Equal("0/1", $"{from32Pos.num}/{from32Pos.den}");
+    Assert.Equal("0/1", $"{from32Neg.num}/{from32Neg.den}");
+
+    // Not a tautology: the two arguments are distinct Dafny values, which is the whole point.
+    Assert.False(new Fp64(0.0) == new Fp64(-0.0));
+    Assert.True(Fp64.IsNegative(new Fp64(-0.0)));
+    Assert.False(Fp64.IsNegative(new Fp64(0.0)));
   }
 
   [Fact]
