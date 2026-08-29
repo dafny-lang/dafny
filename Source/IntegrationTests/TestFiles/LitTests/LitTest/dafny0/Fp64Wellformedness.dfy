@@ -19,11 +19,15 @@ method InvalidInfinity() {
   var _ := inf / inf;     // ERROR: ∞ / ∞
 }
 
+// Comparison carries NO NaN obligation, unlike the arithmetic above: its result is a bool, so there
+// is no unrequested NaN to prevent, and the order is total with NaN above every number. This method
+// now generates no proof obligation at all, which is why it adds nothing to the "verified" count;
+// what pins the change is the absence of its errors from the .expect file.
 method ComparisonNaN(x: fp64, y: fp64) {
-  var _ := x < y;   // ERROR x2: requires !x.IsNaN && !y.IsNaN
-  var _ := x <= y;  // ERROR x2
-  var _ := x > y;   // ERROR x2
-  var _ := x >= y;  // ERROR x2
+  var _ := x < y;   // OK on arbitrary operands
+  var _ := x <= y;  // OK
+  var _ := x > y;   // OK
+  var _ := x >= y;  // OK
 }
 
 method MathFunctionsNaN(x: fp64, y: fp64) {

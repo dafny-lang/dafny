@@ -22,6 +22,14 @@ Equal(-0.0, 0.0): true
 Less/LessOrEqual: true true
 Greater/GreaterOrEqual: false false
 Less(-0.0, 0.0) is IEEE: false
+1.0 < NaN: true
+inf < NaN: true
+NaN < 1.0: false
+1.0 <= NaN: true NaN <= 1.0: false
+NaN > 1.0: true NaN >= 1.0: true
+NaN < NaN: false NaN <= NaN: true
+fp32 1.0 < NaN: true
+IEEE Less(1.0, NaN): false Less(NaN, 1.0): false
 Abs: 1.5 1.5
 Floor/Ceiling: 1.0 2.0
 Round ties to even: 2.0 4.0

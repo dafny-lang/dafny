@@ -131,8 +131,10 @@ namespace Dafny {
   // function of the bit pattern that is constant on each equivalence class, so
   // any representative gives the same answer.
   //
-  // Deliberately NOT IComparable: .NET requires a total order and Dafny's order
-  // is undefined on NaN, so an order is offered as an explicit comparer instead.
+  // IComparable is implemented, and is Dafny's own order rather than an
+  // approximation of it: the order is total, including at NaN, so .NET's
+  // requirement that CompareTo be a total order consistent with Equals is met
+  // exactly.
   //
   // This file compiles against netstandard2.0 and net452 at LangVersion 7.3, so
   // double.IsNegative/IsFinite/IsNormal/IsSubnormal and
@@ -162,7 +164,7 @@ namespace Dafny {
     }
   }
 
-  public readonly struct Fp64 : IEquatable<Fp64> {
+  public readonly struct Fp64 : IEquatable<Fp64>, IComparable<Fp64>, IComparable {
     private readonly double value;
 
     private const long NaNCanonicalBits = unchecked((long)0x7ff8000000000000UL);
@@ -211,13 +213,20 @@ namespace Dafny {
     private bool IsNegativeZero => BitConverter.DoubleToInt64Bits(value) == SignBit;
     private bool IsPositiveZero => BitConverter.DoubleToInt64Bits(value) == 0L;
 
-    // Dafny's "<" and "<=": IEEE fp.lt/fp.leq refined so that -0.0 < +0.0, which is what makes
-    // the order agree with "==". Mirrors FpLess/FpAtMost in the verifier. NaN operands make both
-    // false, as in IEEE.
+    // Dafny's "<" and "<=": IEEE fp.lt/fp.leq refined so that -0.0 < +0.0 and so that NaN is above
+    // every number. Mirrors FpLess/FpAtMost in the verifier, where the reasons for both refinements
+    // are set out. The result is a strict total order agreeing with "==", so unlike IEEE these are
+    // defined on every pair -- 1.0 < NaN is true and NaN < NaN is false.
+    //
+    // The NaN test here is double.IsNaN rather than the bit form used by IsNaN below. The two agree
+    // on every input, unlike double.IsNegative, and double.IsNaN is "d != d", a single compare where
+    // the bit form needs a reinterpret and two masks. Over 60M comparisons on non-NaN data the bit
+    // form cost about 4% against the earlier partial order, and this form nothing measurable.
     public static bool operator <(Fp64 a, Fp64 b) =>
-      a.value < b.value || (a.IsNegativeZero && b.IsPositiveZero);
+      a.value < b.value || (a.IsNegativeZero && b.IsPositiveZero)
+                        || (!double.IsNaN(a.value) && double.IsNaN(b.value));
     public static bool operator <=(Fp64 a, Fp64 b) =>
-      a.value <= b.value && !(a.IsPositiveZero && b.IsNegativeZero);
+      double.IsNaN(b.value) || (a.value <= b.value && !(a.IsPositiveZero && b.IsNegativeZero));
     public static bool operator >(Fp64 a, Fp64 b) => b < a;
     public static bool operator >=(Fp64 a, Fp64 b) => b <= a;
 
@@ -238,28 +247,37 @@ namespace Dafny {
     public bool Equals(double other) => throw new NotSupportedException();
 
     /// <summary>
-    /// Dafny's order extended to a total order for sorted containers. Offered explicitly rather
-    /// than as IComparable because Dafny does not order NaN, so NaN's position here (above every
-    /// number) is a runtime-only choice with no Dafny meaning. The key is computed from the
-    /// CANONICALIZED value, so all NaN payloads share one position and CompareTo == 0 iff Equals.
+    /// Dafny's order, as .NET's comparison protocol. This is exactly the order the operators above
+    /// implement, so CompareTo is negative precisely where "&lt;" holds and zero precisely where
+    /// Equals holds -- which is what a SortedSet or SortedDictionary requires, and what makes
+    /// Comparer&lt;Fp64&gt;.Default correct for one.
     ///
-    /// That last property is why this differs from fp64's platform counterpart. System.Double.CompareTo
-    /// returns 0 for the two zeros and places NaN BELOW negative infinity, so it is not consistent
-    /// with an equality that separates the zeros. Ordering NaN above every number instead follows
-    /// java.lang.Double.compare and Julia's isless, and it is what makes this usable as a
-    /// SortedSet or SortedDictionary comparer at all.
+    /// The key is computed from the CANONICALIZED value, so all NaN payloads and both NaN signs
+    /// share the single position at the top.
+    ///
+    /// This differs from fp64's platform counterpart. System.Double.CompareTo returns 0 for the two
+    /// zeros, so it is inconsistent with an equality that separates them, and it places NaN BELOW
+    /// negative infinity. java.lang.Double.compare is the same shape as this one, NaN at the top
+    /// included.
     /// </summary>
-    public sealed class DafnyOrderComparer : System.Collections.Generic.IComparer<Fp64> {
-      public static readonly DafnyOrderComparer Instance = new DafnyOrderComparer();
+    public int CompareTo(Fp64 other) => OrderKey(this).CompareTo(OrderKey(other));
 
-      public int Compare(Fp64 x, Fp64 y) => OrderKey(x).CompareTo(OrderKey(y));
-
-      private static long OrderKey(Fp64 v) {
-        var bits = v.EqualityKey;
-        // Map sign-magnitude onto a monotone two's-complement key. The "- 1" is what keeps -0.0
-        // strictly below +0.0; without it the two collide and SortedSet disagrees with HashSet.
-        return bits < 0 ? long.MinValue - bits - 1 : bits;
+    int IComparable.CompareTo(object obj) {
+      if (obj == null) {
+        return 1;
       }
+      if (obj is Fp64 other) {
+        return CompareTo(other);
+      }
+      throw new ArgumentException("Expected a Dafny.Fp64", nameof(obj));
+    }
+
+    private static long OrderKey(Fp64 v) {
+      // Map sign-magnitude onto a monotone two's-complement key. The "- 1" is what keeps -0.0
+      // strictly below +0.0; without it the two collide and SortedSet disagrees with HashSet. The
+      // canonical NaN pattern exceeds +infinity's, so NaN lands at the top with nothing to do.
+      var bits = v.EqualityKey;
+      return bits < 0 ? long.MinValue - bits - 1 : bits;
     }
 
     // -------- Classification --------
@@ -377,7 +395,7 @@ namespace Dafny {
     }
   }
 
-  public readonly struct Fp32 : IEquatable<Fp32> {
+  public readonly struct Fp32 : IEquatable<Fp32>, IComparable<Fp32>, IComparable {
     private readonly float value;
 
     private const int NaNCanonicalBits = unchecked((int)0x7fc00000U);
@@ -427,10 +445,13 @@ namespace Dafny {
     private bool IsNegativeZero => ToBits(value) == SignBit;
     private bool IsPositiveZero => ToBits(value) == 0;
 
+    // As Fp64: a strict total order agreeing with "==", with -0.0 below +0.0 and NaN at the top,
+    // and float.IsNaN for the same reason given there.
     public static bool operator <(Fp32 a, Fp32 b) =>
-      a.value < b.value || (a.IsNegativeZero && b.IsPositiveZero);
+      a.value < b.value || (a.IsNegativeZero && b.IsPositiveZero)
+                        || (!float.IsNaN(a.value) && float.IsNaN(b.value));
     public static bool operator <=(Fp32 a, Fp32 b) =>
-      a.value <= b.value && !(a.IsPositiveZero && b.IsNegativeZero);
+      float.IsNaN(b.value) || (a.value <= b.value && !(a.IsPositiveZero && b.IsNegativeZero));
     public static bool operator >(Fp32 a, Fp32 b) => b < a;
     public static bool operator >=(Fp32 a, Fp32 b) => b <= a;
 
@@ -449,17 +470,23 @@ namespace Dafny {
     [Obsolete("Compare Dafny.Fp32 with Dafny.Fp32; wrap the float as new Dafny.Fp32(f).", true)]
     public bool Equals(float other) => throw new NotSupportedException();
 
-    /// <summary>As Fp64.DafnyOrderComparer, including why NaN sits above every number here and
-    /// below every number in System.Single.CompareTo.</summary>
-    public sealed class DafnyOrderComparer : System.Collections.Generic.IComparer<Fp32> {
-      public static readonly DafnyOrderComparer Instance = new DafnyOrderComparer();
+    /// <summary>As Fp64.CompareTo, including why NaN sits above every number here and below every
+    /// number in System.Single.CompareTo.</summary>
+    public int CompareTo(Fp32 other) => OrderKey(this).CompareTo(OrderKey(other));
 
-      public int Compare(Fp32 x, Fp32 y) => OrderKey(x).CompareTo(OrderKey(y));
-
-      private static int OrderKey(Fp32 v) {
-        var bits = v.EqualityKey;
-        return bits < 0 ? int.MinValue - bits - 1 : bits;
+    int IComparable.CompareTo(object obj) {
+      if (obj == null) {
+        return 1;
       }
+      if (obj is Fp32 other) {
+        return CompareTo(other);
+      }
+      throw new ArgumentException("Expected a Dafny.Fp32", nameof(obj));
+    }
+
+    private static int OrderKey(Fp32 v) {
+      var bits = v.EqualityKey;
+      return bits < 0 ? int.MinValue - bits - 1 : bits;
     }
 
     // -------- Classification --------

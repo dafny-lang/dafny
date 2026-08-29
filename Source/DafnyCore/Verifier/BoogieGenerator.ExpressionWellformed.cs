@@ -249,6 +249,18 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Emit the obligation that an fp32/fp64 operand is not NaN. A no-op on any other type, so
+    /// callers need not test first.
+    ///
+    /// Carried by every operation whose result is a float: +, -, *, /, unary -, Sqrt, Abs, Floor,
+    /// Ceiling, Round, Min and Max. What it prevents in each case is a NaN the program did not ask
+    /// for -- Dafny arithmetic cannot manufacture one, so a NaN can only enter a program explicitly.
+    ///
+    /// Deliberately NOT carried by &lt;, &lt;=, &gt; and &gt;=, whose result is a bool: there is no NaN to
+    /// prevent, and FpLess/FpAtMost order NaN above every number, so a comparison is defined on
+    /// every pair. Nor by "==", which is total for the same reason.
+    /// </summary>
     private void CheckFloatNaN(Expression operand, string operation, BoogieStmtListBuilder builder,
                                ExpressionTranslator etran, WFOptions wfOptions) {
       // Normalized: unnormalized, a newtype over fp got no obligation at all.
@@ -1222,18 +1234,6 @@ namespace Microsoft.Dafny {
                     CheckOperand(e.E0);
                     CheckOperand(e.E1);
                   }
-                }
-                break;
-              case BinaryExpr.ResolvedOpcode.Lt:
-              case BinaryExpr.ResolvedOpcode.Le:
-              case BinaryExpr.ResolvedOpcode.Ge:
-              case BinaryExpr.ResolvedOpcode.Gt:
-                CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-                if (e.E0.Type.NormalizeToAncestorType().IsFloatingPointType) {
-                  CheckFloatNaN(e.E0, "comparison", builder, etran, wfOptions);
-                }
-                if (e.E1.Type.NormalizeToAncestorType().IsFloatingPointType) {
-                  CheckFloatNaN(e.E1, "comparison", builder, etran, wfOptions);
                 }
                 break;
               default:

@@ -439,7 +439,9 @@ Both `fp32` and `fp64` types support standard arithmetic operations following IE
 - Unary negation (`-`)
 - Comparisons (`<`, `<=`, `>`, `>=`)
 
-**Well-formedness checks**: All these arithmetic operations and comparisons require that operands are not NaN. Additionally, certain combinations of infinity values produce invalid operations:
+**Well-formedness checks**: the arithmetic operations — `+`, `-`, `*`, `/` and unary `-` —
+require that operands are not NaN. Additionally, certain combinations of infinity values
+produce invalid operations:
 
 - Addition: `∞ + (-∞)` is invalid
 - Subtraction: `∞ - ∞` is invalid
@@ -448,16 +450,34 @@ Both `fp32` and `fp64` types support standard arithmetic operations following IE
 
 These well-formedness checks are performed by Dafny. To help it, use the classification predicates (`.IsNaN`, `.IsInfinite`, `.IsZero`).
 
-**Ordering**: because NaN is excluded by the well-formedness check above, `<` is a strict
-total order on the remaining values, and it agrees with `==`. In particular `-0.0 < 0.0`,
-which IEEE comparison leaves unordered but `==` distinguishes; ordering them is what makes
-trichotomy (`x < y || x == y || y < x`) and antisymmetry
-(`a <= b && b <= a ==> a == b`) hold. This is IEEE 754-2019 `totalOrder` restricted to
-non-NaN values, so `==` and `<` come from a single order rather than two incompatible ones.
+The comparisons `<`, `<=`, `>` and `>=` carry **no** such check, and may be applied to any
+operands, NaN included. The reason for the difference is that arithmetic would produce a NaN
+the program did not ask for, whereas a comparison produces a `bool`.
 
-Raw IEEE comparison, which leaves `-0.0` and `0.0` unordered, remains available through the
-unchecked static methods described in Section 5.2.3.6 — just as `fp32.Equal`/`fp64.Equal`
-provide IEEE equality while `==` is value identity.
+**Ordering**: `<` is a strict total order on the whole of `fp32`/`fp64`, and it agrees with
+`==`. Two things distinguish it from IEEE comparison.
+
+`-0.0 < 0.0`, which IEEE leaves unordered but `==` distinguishes. Ordering the two zeros is
+what makes trichotomy (`x < y || x == y || y < x`) and antisymmetry
+(`a <= b && b <= a ==> a == b`) hold; the direction is the one IEEE 754-2019 `totalOrder`
+specifies.
+
+NaN is above every number, including the infinities. This is what makes the order *total*
+rather than partial: every pair of values is ordered, `x <= y || y <= x` holds for all `x`
+and `y`, and `<` is well founded, so a floating-point value may be used as a `decreases`
+measure. Since the domain has exactly one NaN, `NaN < NaN` is false while `NaN <= NaN` is
+true, just as for any other value. `totalOrder` does not settle where NaN belongs, as it
+separates NaNs by sign and payload and Dafny does not; putting it at the top agrees with
+`java.lang.Double.compare`.
+
+Raw IEEE comparison — where `-0.0` and `0.0` are tied and every comparison involving NaN is
+false — remains available through the unchecked static methods described in
+Section 5.2.3.6, just as `fp32.Equal`/`fp64.Equal` provide IEEE equality while `==` is value
+identity.
+
+Note that although these properties are true, the solver does not always discharge the
+general, quantified forms of totality, trichotomy and transitivity within the default
+resource limit; concrete comparisons and antisymmetry are unaffected.
 
 <!-- %check-verify -->
 ```dafny
@@ -474,6 +494,19 @@ method SafeArithmetic(x: fp64, y: fp64) returns (result: fp64)
   requires !(x.IsInfinite && y.IsInfinite && x.IsPositive != y.IsPositive)
 {
   result := x + y;  // OK: preconditions established
+}
+
+method Comparison(x: fp64) returns (b: bool) {
+  b := x < 1.0;      // OK on any x: comparison has no precondition
+}
+
+method NaNIsTheTop(x: fp64)
+  requires !x.IsNaN
+{
+  assert x < fp64.NaN;
+  assert fp64.PositiveInfinity < fp64.NaN;
+  assert !(fp64.NaN < x);
+  assert !(fp64.NaN < fp64.NaN) && fp64.NaN <= fp64.NaN;
 }
 ```
 
@@ -544,6 +577,12 @@ For operations that may involve NaN or invalid infinity combinations, both `fp32
 
 These methods follow IEEE 754 semantics exactly, including producing NaN for invalid operations and returning false for all comparisons involving NaN.
 
+For the arithmetic methods, the difference from the operator is that there is no precondition
+to discharge. For the comparison methods, the operators have no precondition either, so the
+difference is in the *answer*: `fp64.Less` and its siblings leave `-0.0` and `0.0` tied and
+report false whenever either operand is NaN, whereas `<` orders the zeros and places NaN above
+every number.
+
 <!-- %check-verify -->
 ```dafny
 method EdgeCaseTesting() {
@@ -553,7 +592,6 @@ method EdgeCaseTesting() {
   // These would fail with operators due to wellformedness checks:
   // var bad1 := nan + 1.0;      // ERROR: fp64 arithmetic requires that operands are not NaN
   // var bad2 := inf - inf;      // ERROR: fp64 subtraction has invalid operand combination
-  // var bad3 := nan < 1.0;      // ERROR: fp64 comparison requires that operands are not NaN
 
   // But work with unchecked static methods:
   var result1 := fp64.Add(nan, 1.0);
@@ -562,7 +600,13 @@ method EdgeCaseTesting() {
 
   assert result1.IsNaN;  // NaN propagates
   assert result2.IsNaN;  // ∞ - ∞ = NaN
-  assert !result3;       // NaN < anything = false
+  assert !result3;       // IEEE: NaN < anything = false
+
+  // Comparison needs no unchecked variant to accept a NaN -- the operator already does. What
+  // the methods offer is the IEEE ANSWER, which differs from the operator's.
+  assert !(nan < 1.0);       // operator: NaN is the maximum, so it is not below 1.0
+  assert 1.0 < nan;          // ... and 1.0 is below it
+  assert !fp64.Less(1.0, nan);  // IEEE: false in both directions
 }
 ```
 
@@ -781,16 +825,13 @@ on a floating-point value behave the way the specification says they do.
 
 Consequences worth knowing when reading or writing the generated code:
 
-* `Dafny.Fp64` deliberately does not implement `IComparable`. Dafny does not order NaN, so
-  NaN's position in a sorted container has no Dafny meaning, and it should not be possible to
-  acquire one by accident. Where a total order is genuinely needed, pass the explicit
-  comparer `Dafny.Fp64.DafnyOrderComparer.Instance`, which extends Dafny's order by placing
-  NaN above every number and agrees with `Equals` — `Compare(x, y) == 0` exactly when
-  `x.Equals(y)`. Note that this is not where .NET puts NaN: `System.Double.CompareTo` places it
-  *below* negative infinity and returns 0 for the two zeros, so it is not consistent with an
-  equality that tells the zeros apart. Ordering NaN above every number instead agrees with
-  `java.lang.Double.compare` and with Julia's `isless`, and it is what allows the comparer to be
-  used with `SortedSet` and `SortedDictionary` at all.
+* `Dafny.Fp64` implements `IComparable<Dafny.Fp64>`, and `CompareTo` is Dafny's order rather
+  than an approximation of it: it is negative exactly where `<` holds and zero exactly where
+  `Equals` holds. `SortedSet` and `SortedDictionary` therefore work with the default comparer,
+  and agree with the hash-based collections. Note that this is not where .NET puts NaN:
+  `System.Double.CompareTo` places it *below* negative infinity and returns 0 for the two zeros,
+  so it is not consistent with an equality that tells the zeros apart.
+  `java.lang.Double.compare` has the same shape as Dafny's, NaN at the top included.
 * The underlying `double` is reachable as the `Value` property and through an explicit
   conversion, so interoperating with an external library that takes a `double` is a cast
   away. Going the other direction, wrap with `new Dafny.Fp64(d)`.

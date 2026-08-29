@@ -59,39 +59,89 @@ public class FpTest {
   }
 
   [Fact]
-  public void NaNIsOutsideTheOrder() {
+  public void NaNIsTheMaximumOfTheOrder() {
     var one = new Fp64(1.0);
-    Assert.False(one < NaN);
+    var posInf = new Fp64(double.PositiveInfinity);
+    // Dafny's order is total, so a NaN operand does not make a comparison false in both
+    // directions the way IEEE does. NaN is above every number, including the infinities.
+    Assert.True(one < NaN);
+    Assert.True(posInf < NaN);
     Assert.False(NaN < one);
-    Assert.False(one <= NaN);
+    Assert.True(one <= NaN);
     Assert.False(NaN <= one);
+    // Strict, so NaN is not below itself, while "<=" is reflexive there because "==" is. Spelled
+    // with two variables of the same value, since these are functions of the value and comparing
+    // one variable with itself only warns.
+    var sameNaN = new Fp64(double.NaN);
+    Assert.False(NaN < sameNaN);
+    Assert.True(NaN <= sameNaN);
+    Assert.False(NaN < NaNPayload);
+    Assert.True(NaN <= NegNaN);
+    // The IEEE predicates are unchanged: there a NaN operand is false in every direction.
+    Assert.False(Fp64.IeeeLess(one, NaN));
+    Assert.False(Fp64.IeeeLess(NaN, one));
+    Assert.False(Fp64.IeeeLessOrEqual(one, NaN));
+    Assert.False(Fp64.IeeeLessOrEqual(NaN, sameNaN));
   }
+
+  /// <summary>
+  /// Every distinct Dafny value, plus a second representative of each of the two classes where the
+  /// bit pattern is not the value.
+  /// </summary>
+  private static readonly Fp64[] OrderSample = {
+    PosZero, NegZero, NaN, NaNPayload, NegNaN, new Fp64(1.0), new Fp64(-1.0),
+    new Fp64(double.PositiveInfinity), new Fp64(double.NegativeInfinity),
+    new Fp64(double.Epsilon), new Fp64(-double.Epsilon),
+    new Fp64(double.MaxValue), new Fp64(double.MinValue)
+  };
 
   [Fact]
   public void HashAndComparisonCollectionsAgree() {
     var values = new[] { PosZero, NegZero, NaN, NaNPayload, NegNaN };
     // Three distinct Dafny values: -0.0, +0.0, NaN.
     Assert.Equal(3, new HashSet<Fp64>(values).Count);
-    var sorted = new SortedSet<Fp64>(values, Fp64.DafnyOrderComparer.Instance);
-    Assert.Equal(3, sorted.Count);
+    // No explicit comparer: the order is total and consistent with Equals, so the default one --
+    // which is CompareTo -- is correct for a SortedSet. That is the whole reason to implement
+    // IComparable rather than offer a separate comparer.
+    Assert.Equal(3, new SortedSet<Fp64>(values).Count);
   }
 
   [Fact]
-  public void ComparerAgreesWithEquality() {
-    // A SortedSet is only consistent with Equals if Compare returns 0 exactly when Equals holds.
-    var values = new[] {
-      PosZero, NegZero, NaN, NaNPayload, NegNaN, new Fp64(1.0), new Fp64(-1.0),
-      new Fp64(double.PositiveInfinity), new Fp64(double.NegativeInfinity),
-      new Fp64(double.Epsilon), new Fp64(-double.Epsilon),
-      new Fp64(double.MaxValue), new Fp64(double.MinValue)
-    };
-    foreach (var a in values) {
-      foreach (var b in values) {
-        var compared = Fp64.DafnyOrderComparer.Instance.Compare(a, b);
+  public void CompareToIsExactlyDafnysOrder() {
+    foreach (var a in OrderSample) {
+      foreach (var b in OrderSample) {
+        var compared = a.CompareTo(b);
+        // Not merely consistent with the operators: the same relation, in all three directions.
+        Assert.Equal(a < b, compared < 0);
         Assert.Equal(a == b, compared == 0);
-        // Where Dafny orders the pair, the comparer must not contradict it.
-        if (a < b) {
-          Assert.True(compared < 0);
+        Assert.Equal(b < a, compared > 0);
+        Assert.Equal(a <= b, compared <= 0);
+        // IComparable.CompareTo must agree, and reject anything else.
+        Assert.Equal(compared, ((IComparable)a).CompareTo(b));
+      }
+      Assert.Equal(1, ((IComparable)a).CompareTo(null));
+      Assert.Throws<ArgumentException>(() => ((IComparable)a).CompareTo(1.0));
+    }
+  }
+
+  [Fact]
+  public void OrderIsAStrictTotalOrderIncludingNaN() {
+    // The five properties Z3 discharges over the verifier's encoding, checked here over the
+    // compiled one, so the two cannot drift apart. Every quantifier ranges over NaN too: totality
+    // is the point of the change, and it is what the partial order lacked. Both loops run over the
+    // same array, so the diagonal is included and irreflexivity falls out of trichotomy there.
+    foreach (var a in OrderSample) {
+      foreach (var b in OrderSample) {
+        Assert.True(a < b || a == b || b < a);                        // totality
+        Assert.Equal(1, (a < b ? 1 : 0) + (a == b ? 1 : 0) + (b < a ? 1 : 0));  // trichotomy
+        Assert.Equal(a <= b && b <= a, a == b);                       // antisymmetry
+        Assert.Equal(a <= b, a < b || a == b);                        // "<=" is the closure of "<"
+        Assert.Equal(a > b, b < a);
+        Assert.Equal(a >= b, b <= a);
+        foreach (var c in OrderSample) {
+          if (a < b && b < c) {
+            Assert.True(a < c);                                       // transitivity
+          }
         }
       }
     }
@@ -160,13 +210,21 @@ public class FpTest {
   public void Fp32BehavesLikeFp64() {
     var pos = new Fp32(0.0f);
     var neg = new Fp32(-0.0f);
+    var nan = new Fp32(float.NaN);
+    var payload = Fp32.FromFloatBits(unchecked((int)0x7fc00123U));
     Assert.False(pos == neg);
     Assert.True(neg < pos);
     Assert.True(Fp32.IeeeEqual(pos, neg));
-    Assert.True(new Fp32(float.NaN) == Fp32.FromFloatBits(unchecked((int)0x7fc00123U)));
-    Assert.Equal(3, new HashSet<Fp32> {
-      pos, neg, new Fp32(float.NaN), Fp32.FromFloatBits(unchecked((int)0x7fc00123U))
-    }.Count);
+    Assert.True(nan == payload);
+    Assert.Equal(3, new HashSet<Fp32> { pos, neg, nan, payload }.Count);
+    // The order is total here too, with NaN at the top.
+    Assert.True(new Fp32(float.PositiveInfinity) < nan);
+    Assert.False(nan < pos);
+    Assert.True(nan <= payload);
+    Assert.False(Fp32.IeeeLess(pos, nan));
+    Assert.Equal(0, nan.CompareTo(payload));
+    Assert.True(pos.CompareTo(nan) < 0);
+    Assert.Equal(3, new SortedSet<Fp32> { pos, neg, nan, payload }.Count);
   }
 
   [Fact]

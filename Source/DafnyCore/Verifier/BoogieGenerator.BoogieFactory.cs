@@ -821,32 +821,44 @@ namespace Microsoft.Dafny {
         BaseTypes.BigFloat.CreateZero(negative, facts.SignificandBits, facts.ExponentBits));
     }
 
+    private static Bpl.Expr FpIsNaN(Bpl.IToken tok, FloatFacts facts, Bpl.Expr e) {
+      return FunctionCall(tok, facts.Name + "_is_nan", Bpl.Type.Bool, e);
+    }
+
     /// <summary>
-    /// Dafny's "&lt;" on fp32/fp64: IEEE fp.lt refined so that -0.0 &lt; +0.0.
+    /// Dafny's "&lt;" on fp32/fp64: a strict total order on the whole domain that agrees with "==".
     ///
-    /// Dafny's "==" on floating point is structural equality on the SMT FloatingPoint sort, which
-    /// keeps -0.0 and +0.0 apart. Raw fp.lt leaves them tied, and the combination is incoherent:
-    /// trichotomy fails and "a &lt;= b &amp;&amp; b &lt;= a ==&gt; a == b" is refutable. Breaking the tie in the
-    /// direction IEEE 754-2019 clause 5.10 totalOrder already specifies makes "&lt;" a strict total
-    /// order on non-NaN values that agrees with "==", so both relations come from one IEEE-defined
-    /// order rather than two incompatible ones. Note that this is a property of the model, not of
-    /// what the solver discharges unaided: totality and trichotomy over the refined definition
-    /// generally need the corresponding fp*.LessOrEqual or fp*.Less disjunction established first,
-    /// which supplies the IEEE case split. FpCoherentOrder.dfy pins both the property and the
-    /// stepping stone. NaN stays outside the order: comparison carries an
-    /// unconditional non-NaN well-formedness obligation, and full totalOrder would additionally
-    /// distinguish NaN signs and payloads, which this encoding does not model.
+    /// Two refinements of IEEE fp.lt get it there.
     ///
-    /// Taken as a relation rather than as an operator, FpAtMost is a partial order on the whole
-    /// domain that agrees with "==": it is reflexive even at NaN, since "==" is, and NaN is
-    /// incomparable with every other value. The well-formedness obligation on comparison confines a
-    /// program to the part where it is total, so the partiality is not observable from Dafny -- but
-    /// the decreases translation does rely on the NaN case, and says why there.
+    /// First, -0.0 &lt; +0.0. Dafny's "==" on floating point is structural equality on the SMT
+    /// FloatingPoint sort, which keeps the two zeros apart, while raw fp.lt leaves them tied; the
+    /// combination is incoherent, in that trichotomy fails and "a &lt;= b &amp;&amp; b &lt;= a ==&gt; a == b" is
+    /// refutable. IEEE 754-2019 clause 5.10 totalOrder specifies which way to break the tie.
     ///
-    /// Raw IEEE comparison remains available as fp32.Less / fp64.Less, mirroring how
-    /// fp*.Equal keeps IEEE equality while "==" is structural.
+    /// Second, NaN is above every number. This is what makes the order total rather than partial,
+    /// and it is the reason comparison carries no NaN well-formedness obligation while arithmetic
+    /// does: a comparison yields a bool, so there is no unrequested NaN for an obligation to
+    /// prevent, whereas arithmetic would manufacture one. totalOrder does not settle where NaN
+    /// goes, since it splits NaNs by sign across both ends of the line and this encoding has
+    /// quotiented that away -- the sort has exactly one NaN. Placing it at the top follows
+    /// java.lang.Double.compare, and it is free in the compiled comparison, where the
+    /// canonicalized NaN bit pattern already sorts above every other.
     ///
-    /// The tie is spelled as structural equalities against the zero literals rather than
+    /// Totality, trichotomy, antisymmetry, transitivity and irreflexivity all hold unconditionally,
+    /// where the partial version needed a non-NaN hypothesis and an fp*.Less stepping stone to
+    /// supply the IEEE case split. Being true is not the same as being provable here, though:
+    /// antisymmetry and irreflexivity go through under Dafny's default solver options
+    /// (FpCoherentOrder.dfy), while totality, trichotomy and transitivity exhaust the resource limit
+    /// under them and need smt.case_split=0, which Z3 then finishes in hundredths of a second
+    /// (FpTotalOrderNeedsCaseSplitZero.dfy, which measures both). That setting is the third
+    /// floating-point incompleteness traced to smt.case_split=3; see the TODOs on the conversion
+    /// exactness checks in BoogieGenerator.Types.cs for the other two.
+    ///
+    /// Raw IEEE comparison remains available as fp32.Less / fp64.Less, mirroring how fp*.Equal
+    /// keeps IEEE equality while "==" is structural. That is where NaN is unordered and the two
+    /// zeros are tied.
+    ///
+    /// The zero tie is spelled as structural equalities against the zero literals rather than
     /// isZero/isNegative predicates; the two agree on every input (a zero that is negative *is*
     /// -0.0) and the literal form measured cheaper.
     /// </summary>
@@ -855,19 +867,25 @@ namespace Microsoft.Dafny {
       var negZeroBelowPosZero = BplAnd(
         Bpl.Expr.Eq(e0, FpZero(tok, facts, true)),
         Bpl.Expr.Eq(e1, FpZero(tok, facts, false)));
-      return BplOr(ieeeLess, negZeroBelowPosZero);
+      // Strict, so a NaN e0 is below nothing -- not even a NaN e1.
+      var belowNaN = BplAnd(Bpl.Expr.Not(FpIsNaN(tok, facts, e0)), FpIsNaN(tok, facts, e1));
+      return BplOr(BplOr(ieeeLess, negZeroBelowPosZero), belowNaN);
     }
 
     /// <summary>
-    /// Dafny's "&lt;=" on fp32/fp64, consistent with FpLess: IEEE fp.leq minus the one pair that
-    /// fp.leq wrongly admits, namely +0.0 &lt;= -0.0.
+    /// Dafny's "&lt;=" on fp32/fp64: the reflexive closure of FpLess, and so total as well. Spelled
+    /// out rather than as "FpLess(e0, e1) || e0 == e1", which would repeat each operand four times
+    /// over rather than the two and three below.
     /// </summary>
     public static Bpl.Expr FpAtMost(Bpl.IToken tok, FloatFacts facts, Bpl.Expr e0, Bpl.Expr e1) {
       var ieeeAtMost = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Le, e0, e1);
+      // The one pair fp.leq wrongly admits, given that -0.0 < +0.0.
       var posZeroAboveNegZero = BplAnd(
         Bpl.Expr.Eq(e0, FpZero(tok, facts, false)),
         Bpl.Expr.Eq(e1, FpZero(tok, facts, true)));
-      return BplAnd(ieeeAtMost, Bpl.Expr.Not(posZeroAboveNegZero));
+      // A NaN e1 settles it: NaN is the maximum, and "<=" is reflexive there because "==" is. When
+      // e1 is not NaN, fp.leq already answers false for a NaN e0.
+      return BplOr(FpIsNaN(tok, facts, e1), BplAnd(ieeeAtMost, Bpl.Expr.Not(posZeroAboveNegZero)));
     }
 
     public static Bpl.Expr BplOr(Bpl.Expr a, Bpl.Expr b) {

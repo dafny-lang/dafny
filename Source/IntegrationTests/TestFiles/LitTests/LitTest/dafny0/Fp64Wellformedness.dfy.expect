@@ -4,10 +4,8 @@ Fp64Wellformedness.dfy(7,13): Error: fp64 subtraction has invalid operand combin
 Fp64Wellformedness.dfy(8,13): Error: fp64 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
 Fp64Wellformedness.dfy(9,13): Error: possible division by zero
 Fp64Wellformedness.dfy(15,15): Error: fp64 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
-Fp64Wellformedness.dfy(23,11): Error: fp64 comparison requires that operands are not NaN
-Fp64Wellformedness.dfy(23,15): Error: fp64 comparison requires that operands are not NaN
-Fp64Wellformedness.dfy(30,22): Error: fp64 Floor requires that operands are not NaN
-Fp64Wellformedness.dfy(34,20): Error: fp64.Sqrt requires a non-negative argument (negative values produce NaN)
-Fp64Wellformedness.dfy(35,20): Error: fp64.Sqrt requires a non-negative argument (negative values produce NaN)
+Fp64Wellformedness.dfy(34,22): Error: fp64 Floor requires that operands are not NaN
+Fp64Wellformedness.dfy(38,20): Error: fp64.Sqrt requires a non-negative argument (negative values produce NaN)
+Fp64Wellformedness.dfy(39,20): Error: fp64.Sqrt requires a non-negative argument (negative values produce NaN)
 
-Dafny program verifier finished with 1 verified, 11 errors
+Dafny program verifier finished with 1 verified, 9 errors

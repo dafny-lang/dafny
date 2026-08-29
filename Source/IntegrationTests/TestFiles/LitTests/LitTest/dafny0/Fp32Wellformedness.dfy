@@ -19,11 +19,13 @@ method InvalidInfinity() {
   var _ := inf / inf;     // ERROR: ∞ / ∞
 }
 
+// As Fp64Wellformedness.ComparisonNaN: comparison carries no NaN obligation, because the order is
+// total and the result is a bool rather than a float.
 method ComparisonNaN(x: fp32, y: fp32) {
-  var _ := x < y;   // ERROR x2: requires !x.IsNaN && !y.IsNaN
-  var _ := x <= y;  // ERROR x2
-  var _ := x > y;   // ERROR x2
-  var _ := x >= y;  // ERROR x2
+  var _ := x < y;   // OK on arbitrary operands
+  var _ := x <= y;  // OK
+  var _ := x > y;   // OK
+  var _ := x >= y;  // OK
 }
 
 method MathFunctionsNaN(x: fp32, y: fp32) {

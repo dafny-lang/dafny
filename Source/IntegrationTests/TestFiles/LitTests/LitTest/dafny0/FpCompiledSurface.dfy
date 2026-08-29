@@ -80,6 +80,41 @@ method UncheckedOperations() {
   print "Less(-0.0, 0.0) is IEEE: ", fp64.Less(negZero, posZero), "\n";
 }
 
+// Dafny's order is total, with NaN above every number, so a comparison against NaN is answered
+// rather than refused. This is the point in the whole feature where the compiled answer is furthest
+// from the platform's: in C#, every comparison against double.NaN is false, so each of the first
+// four lines below would be wrong if Dafny.Fp64 delegated to double. Every claim is asserted before
+// it is printed, so the runtime is checked against the verifier rather than against itself.
+method TotalOrderIncludingNaN() {
+  var one: fp64 := 1.0;
+  var nan := fp64.NaN;
+  var inf := fp64.PositiveInfinity;
+  var f: fp32 := 1.0;
+
+  assert one < nan;
+  assert inf < nan;              // above the infinities, not merely above the finite values
+  assert !(nan < one);
+  assert one <= nan;
+  assert !(nan <= one);
+  assert nan > one && nan >= one;
+  assert !(nan < nan);           // strict
+  assert nan <= nan;             // but reflexive, because "==" is
+  assert f < fp32.NaN;
+  // The IEEE family is unchanged: false in both directions, which is what C# would give for all of
+  // the above.
+  assert !fp64.Less(one, nan) && !fp64.Less(nan, one);
+  assert !fp64.LessOrEqual(one, nan) && !fp64.LessOrEqual(nan, nan);
+
+  print "1.0 < NaN: ", one < nan, "\n";
+  print "inf < NaN: ", inf < nan, "\n";
+  print "NaN < 1.0: ", nan < one, "\n";
+  print "1.0 <= NaN: ", one <= nan, " NaN <= 1.0: ", nan <= one, "\n";
+  print "NaN > 1.0: ", nan > one, " NaN >= 1.0: ", nan >= one, "\n";
+  print "NaN < NaN: ", nan < nan, " NaN <= NaN: ", nan <= nan, "\n";
+  print "fp32 1.0 < NaN: ", f < fp32.NaN, "\n";
+  print "IEEE Less(1.0, NaN): ", fp64.Less(one, nan), " Less(NaN, 1.0): ", fp64.Less(nan, one), "\n";
+}
+
 method MathematicalFunctions() {
   var x: fp64 := 1.5;
   var nine: fp64 := 9.0;
@@ -136,6 +171,7 @@ method Main() {
   Classification();
   Constants();
   UncheckedOperations();
+  TotalOrderIncludingNaN();
   MathematicalFunctions();
   ConversionsWithProvableValues();
   Conversions();
