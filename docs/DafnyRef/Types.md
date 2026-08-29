@@ -626,10 +626,21 @@ require that operands are not NaN, and some have additional preconditions:
 - `fp32.Min(x, y)` / `fp64.Min(x, y)` - Minimum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
 - `fp32.Max(x, y)` / `fp64.Max(x, y)` - Maximum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
 
-  These two are IEEE `fp.min`/`fp.max`, which *discard* a NaN operand rather than propagating
-  it — `fp.max(NaN, x)` is `x`. Since `<` places NaN above every number, allowing a NaN here
-  would mean `Max` did not return the maximum. The precondition is what confines both to the
-  values on which IEEE and Dafny's order agree.
+  These two are IEEE `fp.min`/`fp.max`, and are *not* the minimum and maximum of the ordering
+  described in Section 5.2.3.4. They differ at both of the places where that ordering departs
+  from IEEE. A NaN operand is *discarded* rather than propagated — `fp.max(NaN, x)` is `x` —
+  which is what the precondition keeps out of reach. And given two zeros of opposite sign, the
+  result is left unspecified, so nothing is provable about `fp64.Min(-0.0, 0.0)` at all. Away
+  from NaN and the zeros the two notions coincide.
+
+  If you want the ordering's minimum, write it: `if x < y then x else y`. That needs no
+  precondition, since `<` is total, and it gives the expected answers at the signed zeros and
+  at NaN.
+
+  On the zeros, note that the freedom comes from SMT-LIB rather than from the current standard:
+  IEEE 754-2019 `minimum` does specify `minimum(-0.0, 0.0) == -0.0`, having replaced 2008's
+  underspecified `minNum` for this reason, and target-language implementations follow it. So a
+  compiled program will give a definite answer here even though Dafny promises none.
 - `fp32.Floor(x)` / `fp64.Floor(x)` - Round down to nearest integer. **Requires**: `!x.IsNaN`.
 - `fp32.Ceiling(x)` / `fp64.Ceiling(x)` - Round up to nearest integer. **Requires**: `!x.IsNaN`.
 - `fp32.Round(x)` / `fp64.Round(x)` - Round to nearest integer, ties to even. **Requires**: `!x.IsNaN`.

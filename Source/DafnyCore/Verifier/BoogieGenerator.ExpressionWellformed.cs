@@ -260,12 +260,13 @@ namespace Microsoft.Dafny {
     /// (Manufacturing a NaN from non-NaN operands, as in inf - inf or 0/0, is a separate obligation:
     /// see FloatInvalidOperationPrecondition, emitted alongside this one.)
     ///
-    /// Min and Max additionally need it for a reason of their own, and it is the sharper one. IEEE
-    /// fp.min/fp.max do not propagate a NaN, they SWALLOW it: Z3 forces fp.max(NaN, x) == x for
-    /// non-NaN x. Under Dafny's order NaN is the maximum, so without the obligation a program could
-    /// prove both "1.0 &lt; fp64.NaN" and "fp64.Max(fp64.NaN, 1.0) == 1.0" -- Max would not return the
-    /// maximum. The obligation confines both to the non-NaN values, where IEEE and Dafny's order
-    /// agree, which is what makes the names honest.
+    /// Min and Max are the exception to that description, and worth a note. IEEE fp.min/fp.max do not
+    /// propagate a NaN, they DISCARD it: Z3 forces fp.max(NaN, x) == x for non-NaN x. So here the
+    /// obligation is not stopping propagation but keeping a silent disappearance out of reach -- and
+    /// incidentally keeping the pair away from where they would visibly not be order operations, since
+    /// Dafny's order makes NaN the maximum. They are IEEE fp.min/fp.max and not the order's minimum
+    /// and maximum; a caller who wants those writes "if x &lt; y then x else y", which needs no
+    /// precondition because the order is total. FpCoherentOrder.dfy sets out both.
     ///
     /// Deliberately NOT carried by &lt;, &lt;=, &gt; and &gt;=, whose result is a bool: there is no float
     /// result for a NaN to propagate into, and FpLess/FpAtMost order NaN above every number, so a

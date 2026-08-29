@@ -126,6 +126,31 @@ lemma UncheckedMethodsLeaveNaNUnordered(x: fp64)
   assert !fp64.LessOrEqual(fp64.NaN, fp64.NaN);
 }
 
+// fp*.Min and fp*.Max are IEEE fp.min/fp.max, not the order's minimum and maximum, and they part
+// company with the order at both of the places where Dafny departs from IEEE. At NaN, IEEE DISCARDS
+// rather than propagates -- fp.max(NaN, x) is x -- and the non-NaN obligation keeps that out of
+// reach. At the signed zeros, SMT-LIB leaves the result free to be either zero, so nothing about
+// that case is provable. Away from both, the two coincide, which is the region where anything is at
+// stake.
+//
+// Nothing needs fixing there: a user who wants the order's minimum writes it, and the result is
+// better behaved than fp.min -- total, so no precondition, and correct at the zeros and at NaN.
+// FpTotalOrderNeedsCaseSplitZero.dfy carries the quantified bound properties.
+function OrderMin(x: fp64, y: fp64): fp64 { if x < y then x else y }
+function OrderMax(x: fp64, y: fp64): fp64 { if x < y then y else x }
+
+lemma TheOrdersMinAndMaxAreOneLine() {
+  assert OrderMin(-0.0, 0.0) == -0.0 && OrderMax(-0.0, 0.0) == 0.0;
+  assert OrderMin(1.0, fp64.NaN) == 1.0 && OrderMax(1.0, fp64.NaN) == fp64.NaN;
+}
+
+lemma IeeeMinAgreesWithTheOrderAwayFromZero(x: fp64, y: fp64)
+  requires !x.IsNaN && !y.IsNaN && !x.IsZero && !y.IsZero
+{
+  assert fp64.Min(x, y) == OrderMin(x, y);
+  assert fp64.Max(x, y) == OrderMax(x, y);
+}
+
 // Ordinary comparisons are unaffected.
 lemma OrdinaryValues() {
   var one: fp64 := 1.0;

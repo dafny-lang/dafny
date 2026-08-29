@@ -56,6 +56,19 @@ lemma TotalityReachesNaN(x: fp64) {
   assert x < fp64.NaN || x == fp64.NaN || fp64.NaN < x;
 }
 
+// The order's minimum and maximum, which a user builds in one line when IEEE fp.min/fp.max are not
+// what they want (see FpCoherentOrder.dfy for why they might not be). Being bounds needs no non-NaN
+// hypothesis, which is the whole benefit: totality is what makes an order-based min total.
+function OrderMin(x: fp64, y: fp64): fp64 { if x < y then x else y }
+function OrderMax(x: fp64, y: fp64): fp64 { if x < y then y else x }
+
+lemma TheOrdersMinAndMaxAreBounds(x: fp64, y: fp64) {
+  assert OrderMin(x, y) <= x && OrderMin(x, y) <= y;
+  assert x <= OrderMax(x, y) && y <= OrderMax(x, y);
+  assert OrderMin(x, y) == x || OrderMin(x, y) == y;
+  assert OrderMax(x, y) == x || OrderMax(x, y) == y;
+}
+
 // The identity that totality buys and partiality did not: "<=" is the complement of the reversed
 // "<". It is what makes the compiled "<=" a negation of the compiled "<", and it is also why the
 // translator does NOT define FpAtMost that way -- doing so turns antisymmetry into trichotomy, and
