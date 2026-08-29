@@ -1,0 +1,33 @@
+FpNewtypeAndSynonym.dfy(31,12): Error: fp64 negation requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(32,13): Error: fp64 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(32,15): Error: fp64 arithmetic requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(33,13): Error: fp64 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(34,13): Error: fp64 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(39,12): Error: fp64 negation requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(40,13): Error: fp64 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(40,15): Error: fp64 arithmetic requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(41,13): Error: fp64 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(42,13): Error: fp64 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(47,12): Error: fp64 negation requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(48,13): Error: fp64 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(48,15): Error: fp64 arithmetic requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(49,13): Error: fp64 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(50,13): Error: fp64 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(55,12): Error: fp64 negation requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(56,13): Error: fp64 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(56,15): Error: fp64 arithmetic requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(57,13): Error: fp64 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(58,13): Error: fp64 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(63,12): Error: fp64 negation requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(64,13): Error: fp64 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(64,15): Error: fp64 arithmetic requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(65,13): Error: fp64 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(66,13): Error: fp64 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(73,11): Error: fp32 arithmetic requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(73,13): Error: fp32 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+FpNewtypeAndSynonym.dfy(73,15): Error: fp32 arithmetic requires that operands are not NaN
+FpNewtypeAndSynonym.dfy(78,13): Error: fp64 value to be converted could not be proved to fit in real
+FpNewtypeAndSynonym.dfy(79,13): Error: the fp64 value must be finite and an integer (if you want truncation toward zero, use fp64.ToInt)
+FpNewtypeAndSynonym.dfy(86,12): Error: fp64 value to be converted could not be proved to fit in real
+
+Dafny program verifier finished with 5 verified, 31 errors

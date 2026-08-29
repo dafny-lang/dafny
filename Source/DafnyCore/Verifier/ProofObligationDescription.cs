@@ -90,52 +90,6 @@ public class DivisorNonZero : ProofObligationDescription {
   }
 }
 
-public class FloatEqualityPrecondition : ProofObligationDescription {
-  private readonly string floatTypeName;
-  private readonly Expression operand;
-
-  public FloatEqualityPrecondition(Expression operand, Type floatType) {
-    this.operand = operand;
-    this.floatTypeName = floatType.FloatTypeName;
-  }
-
-  public override string SuccessDescription =>
-    $"{floatTypeName} operand is never NaN for equality comparison";
-
-  public override string FailureDescription =>
-    $"{floatTypeName} equality comparison requires that operands are not NaN";
-
-  public override string ShortDescription => $"{floatTypeName} equality precondition";
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new LiteralExpr(operand.Origin, true);
-  }
-}
-
-public class FloatSignedZeroEqualityPrecondition : ProofObligationDescription {
-  private readonly string floatTypeName;
-  private readonly Expression operand0;
-  private readonly Expression operand1;
-
-  public FloatSignedZeroEqualityPrecondition(Expression operand0, Expression operand1, Type floatType) {
-    this.operand0 = operand0;
-    this.operand1 = operand1;
-    this.floatTypeName = floatType.FloatTypeName;
-  }
-
-  public override string SuccessDescription =>
-    $"{floatTypeName} equality comparison never compares +0.0 with -0.0";
-
-  public override string FailureDescription =>
-    $"{floatTypeName} equality comparison requires that signed zeros have the same sign";
-
-  public override string ShortDescription => $"{floatTypeName} signed zero equality precondition";
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new LiteralExpr(operand0.Origin, true);
-  }
-}
-
 public class FloatInvalidOperationPrecondition : ProofObligationDescription {
   private readonly string operation;
   private readonly Expression operand0;
@@ -146,7 +100,7 @@ public class FloatInvalidOperationPrecondition : ProofObligationDescription {
     this.operation = operation;
     this.operand0 = operand0;
     this.operand1 = operand1;
-    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
+    this.floatTypeName = floatType.FloatRepresentation.Name;
   }
 
   public override string SuccessDescription =>
@@ -170,7 +124,7 @@ public class FloatNaNPrecondition : ProofObligationDescription {
   public FloatNaNPrecondition(string operation, Expression operand, Type floatType) {
     this.operation = operation;
     this.operand = operand;
-    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
+    this.floatTypeName = floatType.FloatRepresentation.Name;
   }
 
   public override string SuccessDescription =>
@@ -183,55 +137,6 @@ public class FloatNaNPrecondition : ProofObligationDescription {
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
     return new LiteralExpr(operand.Origin, true);
-  }
-}
-
-public class FloatCollectionEqualityWellformedness : ProofObligationDescription {
-  private readonly Type collectionType;
-  private readonly string floatTypeName;
-
-  public FloatCollectionEqualityWellformedness(Type collectionType, Type floatType) {
-    this.collectionType = collectionType.NormalizeExpand();
-    this.floatTypeName = floatType.FloatTypeName;
-  }
-
-  public override string SuccessDescription =>
-    "equality comparison is supported for this type";
-
-  public override string FailureDescription {
-    get {
-      string typeName = GetTypeName();
-      return $"equality comparison of {typeName} is not supported in compiled code (use ghost context or compare elements individually)";
-    }
-  }
-
-  public override string ShortDescription => $"{floatTypeName} collection equality";
-
-  private string GetTypeName() {
-    if (collectionType is SetType) {
-      return $"set<{floatTypeName}>";
-    } else if (collectionType is SeqType) {
-      return $"seq<{floatTypeName}>";
-    } else if (collectionType is MultiSetType) {
-      return $"multiset<{floatTypeName}>";
-    } else if (collectionType is MapType mapType) {
-      bool domainIsFloat = (floatTypeName == "fp32" && mapType.Domain is Fp32Type) ||
-                           (floatTypeName == "fp64" && mapType.Domain is Fp64Type);
-      bool rangeIsFloat = (floatTypeName == "fp32" && mapType.Range is Fp32Type) ||
-                          (floatTypeName == "fp64" && mapType.Range is Fp64Type);
-      return domainIsFloat ?
-        (rangeIsFloat ? $"map<{floatTypeName}, {floatTypeName}>" : $"map<{floatTypeName}, _>") :
-        $"map<_, {floatTypeName}>";
-    } else if (collectionType is UserDefinedType udt && udt.ResolvedClass != null) {
-      return $"datatype '{udt.ResolvedClass.Name}' containing {floatTypeName}";
-    } else if (collectionType != null) {
-      return $"type containing {floatTypeName}";
-    }
-    return $"type containing {floatTypeName}";
-  }
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new LiteralExpr(collectionType?.Origin ?? Microsoft.Dafny.Token.NoToken, false);
   }
 }
 
@@ -520,11 +425,20 @@ public class ConversionPositive : ProofObligationDescription {
 }
 
 public class IsInteger : ProofObligationDescription {
+  // An fp source needs different advice: ".Floor" is a real member with no fp analogue, and the
+  // fp obligation also requires finiteness. fp*.ToInt requires only finiteness and truncates.
+  private Type SourceType => expr.Type?.NormalizeToAncestorType();
+  private bool SourceIsFloat => SourceType is { } sourceType && sourceType.IsFloatingPointType;
+
   public override string SuccessDescription =>
-    $"{prefix}the real-based number is an integer";
+    SourceIsFloat
+      ? $"{prefix}the {SourceType.FloatRepresentation.Name} value is a finite integer"
+      : $"{prefix}the real-based number is an integer";
 
   public override string FailureDescription =>
-    $"{prefix}the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)";
+    SourceIsFloat
+      ? $"{prefix}the {SourceType.FloatRepresentation.Name} value must be finite and an integer (if you want truncation toward zero, use {SourceType.FloatRepresentation.Name}.ToInt)"
+      : $"{prefix}the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)";
 
   public override string ShortDescription => "is integer";
 
@@ -537,6 +451,11 @@ public class IsInteger : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
+    if (SourceIsFloat) {
+      // ".Floor" does not typecheck on an fp value, and there is no equally direct Dafny
+      // expression for "this fp value is a finite integer", so do not offer one.
+      return null;
+    }
     return new BinaryExpr(
       expr.Origin,
       BinaryExpr.Opcode.Eq,
@@ -555,7 +474,7 @@ public class IsExactlyRepresentableAsFloat : ProofObligationDescription {
   public IsExactlyRepresentableAsFloat(Expression expr, Type floatType, string prefix = "") {
     this.expr = expr;
     this.floatType = floatType;
-    this.floatTypeName = floatType.FloatTypeName;
+    this.floatTypeName = floatType.FloatRepresentation.Name;
     this.prefix = prefix;
   }
 
@@ -575,9 +494,9 @@ public class IsExactlyRepresentableAsFloat : ProofObligationDescription {
     Type targetType;
     if (sourceType.IsNumericBased(Type.NumericPersuasion.Real)) {
       targetType = Type.Real;
-    } else if (floatType.IsFp32Type && sourceType is Fp64Type) {
+    } else if (floatType.FloatRepresentation == FloatFacts.Fp32 && sourceType.FloatRepresentation == FloatFacts.Fp64) {
       targetType = new Fp64Type();
-    } else if (floatType is Fp64Type && sourceType.IsFp32Type) {
+    } else if (floatType.FloatRepresentation == FloatFacts.Fp64 && sourceType.FloatRepresentation == FloatFacts.Fp32) {
       targetType = new Fp32Type();
     } else {
       targetType = Type.Real; // fallback
@@ -594,36 +513,13 @@ public class IsExactlyRepresentableAsFloat : ProofObligationDescription {
   }
 }
 
-public class FloatSqrtNonNegativePrecondition : ProofObligationDescription {
-  private readonly Expression expr;
-  private readonly string floatTypeName;
-
-  public FloatSqrtNonNegativePrecondition(Expression expr, Type floatType) {
-    this.expr = expr;
-    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
-  }
-
-  public override string SuccessDescription =>
-    $"{floatTypeName}.Sqrt argument is always non-negative";
-
-  public override string FailureDescription =>
-    $"{floatTypeName}.Sqrt requires a non-negative argument (negative values produce NaN)";
-
-  public override string ShortDescription => $"{floatTypeName}.Sqrt non-negative precondition";
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    var zero = Expression.CreateRealLiteral(expr.Origin, BaseTypes.BigDec.ZERO);
-    return new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Ge, expr, zero);
-  }
-}
-
 public class FloatToIntFinitePrecondition : ProofObligationDescription {
   private readonly Expression operand;
   private readonly string floatTypeName;
 
   public FloatToIntFinitePrecondition(Expression operand, Type floatType) {
     this.operand = operand;
-    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
+    this.floatTypeName = floatType.FloatRepresentation.Name;
   }
 
   public override string SuccessDescription =>

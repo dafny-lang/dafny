@@ -1,8 +1,8 @@
 Fp32Fp64Conversions.dfy(70,43): Error: the value must be exactly representable as fp32 (if you want rounding, use the approximation operator ~)
 Fp32Fp64Conversions.dfy(76,21): Error: fp32 value to be converted could not be proved to fit in real
 Fp32Fp64Conversions.dfy(82,21): Error: fp64 value to be converted could not be proved to fit in real
-Fp32Fp64Conversions.dfy(88,18): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-Fp32Fp64Conversions.dfy(94,18): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
+Fp32Fp64Conversions.dfy(88,18): Error: the fp32 value must be finite and an integer (if you want truncation toward zero, use fp32.ToInt)
+Fp32Fp64Conversions.dfy(94,18): Error: the fp64 value must be finite and an integer (if you want truncation toward zero, use fp64.ToInt)
 Fp32Fp64Conversions.dfy(99,21): Error: the real value must be exactly representable as fp64 (if you want rounding, use the approximation operator ~)
 Fp32Fp64Conversions.dfy(104,21): Error: the real value must be exactly representable as fp64 (if you want rounding, use the approximation operator ~)
 Fp32Fp64Conversions.dfy(109,34): Error: the integer value must be exactly representable as fp64 (integers outside ±2^53 cannot be exactly represented)

@@ -1527,8 +1527,30 @@ namespace Microsoft.Dafny.Compilers {
       modules = program.CompileModules.ToList();
     }
 
+    /// <summary>
+    /// Refuses fp32/fp64 for a backend that cannot represent them faithfully. Their Boogie encoding
+    /// is equality on the SMT FloatingPoint sort, which a runtime's native floats do not reproduce:
+    /// .NET's == on double unifies +0.0 with -0.0 and separates NaN from itself, so a verified
+    /// program would observe different values at run time, including through collections, whose
+    /// element equality and hashing nothing would guard. C# compiles these types because
+    /// Dafny.Fp32/Dafny.Fp64 implement the verifier's notion instead of the platform's; every other
+    /// backend still lists Feature.FloatingPointTypes and so lands here.
+    ///
+    /// Whole-program rather than per-position. Walking only the compiled positions, so that fp used
+    /// purely in specifications still compiles, leaks through subset-type witnesses and const
+    /// initialisers. FloatWidths is populated for every fp use, ghost or not, so this cannot miss one.
+    /// </summary>
+    private void CheckForCompiledFloatingPoint(Program program) {
+      if (UnsupportedFeatures.Contains(Feature.FloatingPointTypes)
+          && program.SystemModuleManager.FloatWidths.Count > 0) {
+        throw new UnsupportedFeatureException(program.GetStartOfFirstFileToken(), Feature.FloatingPointTypes);
+      }
+    }
+
     public void Compile(Program program, ConcreteSyntaxTree wrx) {
       Contract.Requires(program != null);
+
+      CheckForCompiledFloatingPoint(program);
 
       EmitHeader(program, wrx);
       EmitBuiltInDecls(program.SystemModuleManager, wrx);

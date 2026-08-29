@@ -348,10 +348,16 @@ public abstract class Type : NodeWithOrigin {
   public bool IsFloatingPointType => IsFp32Type || IsFp64Type;
 
   /// <summary>
-  /// Returns the Dafny type name for floating-point types ("fp32" or "fp64").
-  /// Should only be called on types where IsFloatingPointType is true.
+  /// The representation-level floating-point facts, or null if the representation is not floating
+  /// point. Sees through synonyms, subset types and newtypes, so this is the accessor for
+  /// representation questions; IsFp32Type and friends are declared-type questions. See FloatFacts.
   /// </summary>
-  public string FloatTypeName => IsFp32Type ? "fp32" : "fp64";
+  public FloatFacts FloatRepresentation => NormalizeToAncestorType() switch {
+    Fp32Type => FloatFacts.Fp32,
+    Fp64Type => FloatFacts.Fp64,
+    _ => null
+  };
+
   public bool IsStringType => AsSeqType?.Arg.IsCharType == true;
   public BitvectorType AsBitVectorType => NormalizeExpand() as BitvectorType;
 
@@ -381,11 +387,7 @@ public abstract class Type : NodeWithOrigin {
     }
   }
 
-  public (int significandBits, int exponentBits) FloatPrecision => this switch {
-    Fp32Type => (24, 8),
-    Fp64Type => (53, 11),
-    _ => throw new ArgumentException($"Not a float type: {this}")
-  };
+  // Width-dependent facts come from FloatRepresentation, so that the guard and the fact agree.
 
   /// <summary>
   /// Returns true if the type has two representations at run time, the ordinary representation and a
