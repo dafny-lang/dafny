@@ -134,6 +134,31 @@ method MathematicalFunctions() {
   print "fp32 Sqrt: ", fp32.Sqrt(9.0), "\n";
 }
 
+// The fp64.* family on the arguments it used to refuse. These became expressible when the family
+// was made uniformly IEEE -- Sqrt, Abs, Floor, Ceiling, Round, Min and Max dropped their
+// obligations, matching fp64.Div, which could always produce a NaN. So this is the first time the
+// compiled behaviour on these inputs is reachable at all, which is exactly why it is worth pinning:
+// every line is asserted before it is printed.
+method IeeeFamilyOnArgumentsItUsedToRefuse() {
+  var nan := fp64.NaN;
+  var negZero: fp64 := -0.0;
+
+  assert fp64.Sqrt(-1.0).IsNaN;          // IEEE: a negative gives NaN
+  assert fp64.Sqrt(negZero) == negZero;  // but -0.0 gives -0.0, which the old obligation refused too
+  assert fp64.Sqrt(nan).IsNaN;
+  assert fp64.Abs(nan).IsNaN;
+  assert fp64.Floor(nan).IsNaN && fp64.Ceiling(nan).IsNaN && fp64.Round(nan).IsNaN;
+  assert fp64.Min(nan, 1.0) == 1.0;      // IEEE discards a NaN rather than propagating it
+  assert fp64.Max(nan, 1.0) == 1.0;
+  assert fp32.Sqrt(-1.0).IsNaN;
+
+  print "Sqrt(-1.0): ", fp64.Sqrt(-1.0), "   Sqrt(-0.0): ", fp64.Sqrt(negZero), "\n";
+  print "Sqrt(NaN): ", fp64.Sqrt(nan), "   Abs(NaN): ", fp64.Abs(nan), "\n";
+  print "Floor/Ceiling/Round(NaN): ", fp64.Floor(nan), " ", fp64.Ceiling(nan), " ", fp64.Round(nan), "\n";
+  print "Min(NaN, 1.0): ", fp64.Min(nan, 1.0), "   Max(NaN, 1.0): ", fp64.Max(nan, 1.0), "\n";
+  print "fp32 Sqrt(-1.0): ", fp32.Sqrt(-1.0), "\n";
+}
+
 // The conversions whose value the verifier can pin. These are separated from the method below
 // because "as int" and "as real" go through fp.to_real, which is expensive enough that sharing a
 // proof context with them pushes the whole method past its time limit.
@@ -173,6 +198,7 @@ method Main() {
   UncheckedOperations();
   TotalOrderIncludingNaN();
   MathematicalFunctions();
+  IeeeFamilyOnArgumentsItUsedToRefuse();
   ConversionsWithProvableValues();
   Conversions();
 }

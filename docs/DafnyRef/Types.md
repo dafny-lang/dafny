@@ -448,7 +448,10 @@ produce invalid operations:
 - Multiplication: `∞ * 0` is invalid
 - Division: `0 / 0` and `∞ / ∞` are invalid
 
-These well-formedness checks are performed by Dafny. To help it, use the classification predicates (`.IsNaN`, `.IsInfinite`, `.IsZero`).
+These well-formedness checks are performed by Dafny. To help it, use the classification predicates
+(`.IsNaN`, `.IsInfinite`, `.IsZero`). They apply to the *operators* only; the `fp32.`/`fp64.` static
+methods are the IEEE operations and carry no obligations at all — see Section 5.2.3.6, which states
+the rule.
 
 The comparisons `<`, `<=`, `>` and `>=` carry **no** such check, and may be applied to any
 operands, NaN included. The reason for the difference is that arithmetic would produce a NaN
@@ -561,6 +564,27 @@ method EqualityExample(x: fp64) {
 
 #### 5.2.3.6. IEEE Arithmetic and Comparison Methods
 
+There is one rule covering the whole of `fp32` and `fp64`, and it is worth stating before the lists
+below:
+
+> **The operators are Dafny's and carry well-formedness obligations; the `fp32.`/`fp64.` static
+> methods are the IEEE operations and carry none.** The sole exception is `ToInt`.
+
+So `x + y` requires you to prove that neither operand is NaN and that the combination of infinities
+is valid, while `fp64.Add(x, y)` requires nothing and may answer NaN. Likewise `<` is the total
+ordering of Section 5.2.3.4 and `fp64.Less` is IEEE comparison; `==` is value identity and
+`fp64.Equal` is IEEE equality; `r as fp64` checks that the real `r` is exactly representable while
+`fp64.FromReal(r)` rounds without complaint.
+
+`ToInt` is the exception because it is the only member with no IEEE result to fall back on:
+converting a NaN or an infinity to an integer is *unspecified* rather than NaN-valued, so it keeps a
+`IsFinite` precondition and has no unchecked counterpart.
+
+Dropping an obligation from a method costs less than it may appear, because the arithmetic operators
+check their own operands wherever a NaN came from. Given `var q := fp64.Div(0.0, 0.0);`, it is
+`q + 1.0` that fails to verify — the diagnostic moves to the point of use rather than disappearing —
+and a NaN that is only compared or printed needs no diagnostic, comparison being total.
+
 Both `fp32` and `fp64` provide static methods that follow IEEE 754 semantics exactly, including
 producing NaN for invalid operations and returning false for every comparison involving NaN:
 
@@ -618,33 +642,37 @@ an invalid combination of infinities; for comparison, to get IEEE's answer rathe
 
 #### 5.2.3.7. Mathematical Functions
 
-Both `fp32` and `fp64` types provide static methods for common mathematical operations. All functions
-require that operands are not NaN, and some have additional preconditions:
+Both `fp32` and `fp64` types provide static methods for common mathematical operations. Like the
+methods of the previous section these are the IEEE operations, so each is total and none has a
+precondition: where the operation has no numeric result it answers NaN.
 
-- `fp32.Abs(x)` / `fp64.Abs(x)` - Absolute value. **Requires**: `!x.IsNaN`.
-- `fp32.Sqrt(x)` / `fp64.Sqrt(x)` - Square root. **Requires**: `!x.IsNaN` and `x ≥ 0.0` (non-negative). Returns √x for finite x ≥ 0, returns +∞ for x = +∞.
-- `fp32.Min(x, y)` / `fp64.Min(x, y)` - Minimum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
-- `fp32.Max(x, y)` / `fp64.Max(x, y)` - Maximum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
+- `fp32.Abs(x)` / `fp64.Abs(x)` - Absolute value.
+- `fp32.Sqrt(x)` / `fp64.Sqrt(x)` - Square root. Returns √x for finite x ≥ 0, `+∞` for `+∞`, `-0.0`
+  for `-0.0`, and NaN for a negative argument.
+- `fp32.Min(x, y)` / `fp64.Min(x, y)` - Minimum of two values.
+- `fp32.Max(x, y)` / `fp64.Max(x, y)` - Maximum of two values.
 
   These two are IEEE `fp.min`/`fp.max`, and are *not* the minimum and maximum of the ordering
   described in Section 5.2.3.4. They differ at both of the places where that ordering departs
-  from IEEE. A NaN operand is *discarded* rather than propagated — `fp.max(NaN, x)` is `x` —
-  which is what the precondition keeps out of reach. And given two zeros of opposite sign, the
-  result is left unspecified, so nothing is provable about `fp64.Min(-0.0, 0.0)` at all. Away
-  from NaN and the zeros the two notions coincide.
+  from IEEE. A NaN operand is *discarded* rather than propagated, so `fp64.Max(fp64.NaN, x)` is
+  `x` even though `x < fp64.NaN`. And given two zeros of opposite sign, the result is left
+  unspecified, so nothing is provable about `fp64.Min(-0.0, 0.0)` at all. Away from NaN and the
+  zeros the two notions coincide.
 
-  If you want the ordering's minimum, write it: `if x < y then x else y`. That needs no
-  precondition, since `<` is total, and it gives the expected answers at the signed zeros and
-  at NaN.
+  If you want the ordering's minimum, write it: `if x < y then x else y`. That is total too,
+  since `<` is, and it gives the expected answers at the signed zeros and at NaN.
 
   On the zeros, note that the freedom comes from SMT-LIB rather than from the current standard:
   IEEE 754-2019 `minimum` does specify `minimum(-0.0, 0.0) == -0.0`, having replaced 2008's
   underspecified `minNum` for this reason, and target-language implementations follow it. So a
   compiled program will give a definite answer here even though Dafny promises none.
-- `fp32.Floor(x)` / `fp64.Floor(x)` - Round down to nearest integer. **Requires**: `!x.IsNaN`.
-- `fp32.Ceiling(x)` / `fp64.Ceiling(x)` - Round up to nearest integer. **Requires**: `!x.IsNaN`.
-- `fp32.Round(x)` / `fp64.Round(x)` - Round to nearest integer, ties to even. **Requires**: `!x.IsNaN`.
-- `fp32.ToInt(x)` / `fp64.ToInt(x)` - Convert to integer. **Requires**: `x.IsFinite`.
+- `fp32.Floor(x)` / `fp64.Floor(x)` - Round down to nearest integer.
+- `fp32.Ceiling(x)` / `fp64.Ceiling(x)` - Round up to nearest integer.
+- `fp32.Round(x)` / `fp64.Round(x)` - Round to nearest integer, ties to even.
+- `fp32.ToInt(x)` / `fp64.ToInt(x)` - Convert to integer. **Requires**: `x.IsFinite`. This is the
+  one method with a precondition, and the reason is that it is the only one with no IEEE result to
+  fall back on: converting a NaN or an infinity to an integer yields an *unspecified* integer rather
+  than a NaN, so without the check a program could conclude anything about the result.
 
 <!-- %check-verify -->
 ```dafny

@@ -1,11 +1,11 @@
-Fp32Wellformedness.dfy(6,13): Error: fp32 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
-Fp32Wellformedness.dfy(6,15): Error: fp32 arithmetic requires that operands are not NaN
-Fp32Wellformedness.dfy(7,13): Error: fp32 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
-Fp32Wellformedness.dfy(8,13): Error: fp32 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
-Fp32Wellformedness.dfy(9,13): Error: possible division by zero
-Fp32Wellformedness.dfy(15,15): Error: fp32 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
-Fp32Wellformedness.dfy(32,22): Error: fp32 Floor requires that operands are not NaN
-Fp32Wellformedness.dfy(36,20): Error: fp32.Sqrt requires a non-negative argument (negative values produce NaN)
-Fp32Wellformedness.dfy(37,20): Error: fp32.Sqrt requires a non-negative argument (negative values produce NaN)
+Fp32Wellformedness.dfy(7,13): Error: fp32 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(7,15): Error: fp32 arithmetic requires that operands are not NaN
+Fp32Wellformedness.dfy(8,13): Error: fp32 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(9,13): Error: fp32 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(10,13): Error: possible division by zero
+Fp32Wellformedness.dfy(16,15): Error: fp32 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(54,21): Error: fp32.ToInt requires a finite argument (not NaN or infinity)
+Fp32Wellformedness.dfy(58,21): Error: fp32.ToInt requires a finite argument (not NaN or infinity)
+Fp32Wellformedness.dfy(62,21): Error: fp32.ToInt requires a finite argument (not NaN or infinity)
 
 Dafny program verifier finished with 1 verified, 9 errors

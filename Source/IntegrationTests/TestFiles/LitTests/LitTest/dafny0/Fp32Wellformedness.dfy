@@ -1,6 +1,7 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
 
-// Test wellformedness checks on fp32 operators
+// As Fp64Wellformedness.dfy, at the other width: the operators carry obligations, the fp32.*
+// static methods are IEEE and carry none, and fp32.ToInt is the single exception.
 
 method ArithmeticNaN(x: fp32, y: fp32) {
   var _ := x + y;  // ERROR x2: requires !x.IsNaN && !y.IsNaN
@@ -28,17 +29,36 @@ method ComparisonNaN(x: fp32, y: fp32) {
   var _ := x >= y;  // OK
 }
 
-method MathFunctionsNaN(x: fp32, y: fp32) {
-  var _ := fp32.Floor(x);    // ERROR: requires !x.IsNaN
-  var _ := fp32.Ceiling(x);  // ERROR
-  var _ := fp32.Round(x);    // ERROR
-  var _ := fp32.Abs(x);      // ERROR
-  var _ := fp32.Sqrt(x);     // ERROR x2: requires !x.IsNaN && !x.IsNegative
-  var _ := fp32.Sqrt(-1.0);  // ERROR: requires !x.IsNegative
-  var _ := fp32.Min(x, y);   // ERROR x2: requires !x.IsNaN && !y.IsNaN
-  var _ := fp32.Max(x, y);   // ERROR x2
+// As Fp64Wellformedness.TheFamilyIsUniformlyIeee: the fp32.* methods are the IEEE operations and
+// carry no obligations, so each is total on arbitrary arguments.
+method TheFamilyIsUniformlyIeee(x: fp32, y: fp32) {
+  var _ := fp32.Add(x, y);
+  var _ := fp32.Div(x, y);
+  var _ := fp32.Neg(x);
+  var _ := fp32.Sqrt(x);
+  var _ := fp32.Sqrt(-1.0);   // IEEE: NaN
+  var _ := fp32.Sqrt(-0.0);   // IEEE: -0.0
+  var _ := fp32.Floor(x);
+  var _ := fp32.Ceiling(x);
+  var _ := fp32.Round(x);
+  var _ := fp32.Abs(x);
+  var _ := fp32.Min(x, y);
+  var _ := fp32.Max(x, y);
+  var _ := fp32.Less(x, y);
+  var _ := fp32.Equal(x, y);
+}
+
+// ToInt keeps its obligation: fp.to_sbv of a NaN or infinity is an unspecified integer, not a NaN,
+// so no IEEE version can exist. One call per method, since ToInt is expensive to prove about.
+method ToIntIsTheOneCheckedMethod(x: fp32) {
   var _ := fp32.ToInt(x);    // ERROR: requires x.IsFinite
+}
+
+method ToIntRefusesInfinity() {
   var _ := fp32.ToInt(fp32.PositiveInfinity);  // ERROR
+}
+
+method ToIntRefusesNaN() {
   var _ := fp32.ToInt(fp32.NaN);               // ERROR
 }
 

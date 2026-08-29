@@ -253,24 +253,24 @@ namespace Microsoft.Dafny {
     /// Emit the obligation that an fp32/fp64 operand is not NaN. A no-op on any other type, so
     /// callers need not test first.
     ///
-    /// Carried by every operation whose result is a float: +, -, *, /, unary -, Sqrt, Abs, Floor,
-    /// Ceiling, Round, Min and Max. What it stops is NaN PROPAGATION -- each of these returns a NaN
-    /// given one, so without the obligation a NaN would spread through a computation silently. A NaN
-    /// result has to be asked for, whether by naming fp*.NaN or by using the IEEE static methods.
-    /// (Manufacturing a NaN from non-NaN operands, as in inf - inf or 0/0, is a separate obligation:
-    /// see FloatInvalidOperationPrecondition, emitted alongside this one.)
+    /// Carried by the arithmetic OPERATORS and nothing else: +, -, *, / and unary -. Those are where
+    /// Dafny promises a result that is not a NaN, so a NaN operand has to be ruled out. Manufacturing
+    /// a NaN from non-NaN operands, as in inf - inf or 0/0, is a separate obligation emitted
+    /// alongside; see FloatInvalidOperationPrecondition.
     ///
-    /// Min and Max are the exception to that description, and worth a note. IEEE fp.min/fp.max do not
-    /// propagate a NaN, they DISCARD it: Z3 forces fp.max(NaN, x) == x for non-NaN x. So here the
-    /// obligation is not stopping propagation but keeping a silent disappearance out of reach -- and
-    /// incidentally keeping the pair away from where they would visibly not be order operations, since
-    /// Dafny's order makes NaN the maximum. They are IEEE fp.min/fp.max and not the order's minimum
-    /// and maximum; a caller who wants those writes "if x &lt; y then x else y", which needs no
-    /// precondition because the order is total. FpCoherentOrder.dfy sets out both.
+    /// Deliberately NOT carried by the fp32/fp64 static methods -- not by fp*.Add and friends, which
+    /// exist precisely to reach IEEE without an obligation, and equally not by fp*.Sqrt, Abs, Floor,
+    /// Ceiling, Round, Min or Max. Those seven used to carry it, which made the family incoherent:
+    /// fp*.Div(0.0, 0.0) was allowed to produce a NaN while fp*.Sqrt(-1.0) was refused, with nothing
+    /// in the names to say which was which. They buy no safety either, because a NaN arriving from
+    /// anywhere is stopped by these very obligations at the point where it reaches arithmetic: given
+    /// "var q := fp64.Div(0.0, 0.0)", it is "q + 1.0" that fails. Dropping them moves the diagnostic
+    /// to that point rather than removing it, and a result that is only compared or printed needs no
+    /// diagnostic at all. fp*.ToInt is the one exception, and CheckWellformedSpecialFunction says why.
     ///
-    /// Deliberately NOT carried by &lt;, &lt;=, &gt; and &gt;=, whose result is a bool: there is no float
-    /// result for a NaN to propagate into, and FpLess/FpAtMost order NaN above every number, so a
-    /// comparison is defined on every pair. Nor by "==", which is total for the same reason.
+    /// Nor carried by &lt;, &lt;=, &gt; and &gt;=, whose result is a bool: there is no float result for a NaN
+    /// to reach, and FpLess/FpAtMost order NaN above every number, so a comparison is defined on
+    /// every pair. Nor by "==", which is total for the same reason.
     /// </summary>
     private void CheckFloatNaN(Expression operand, string operation, BoogieStmtListBuilder builder,
                                ExpressionTranslator etran, WFOptions wfOptions) {
@@ -1654,48 +1654,20 @@ namespace Microsoft.Dafny {
           new ShiftLowerBound(false, arg), builder.Context, options.AssertKv));
         builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(arg), Bpl.Expr.Literal(w)),
           new ShiftUpperBound(w, false, arg), builder.Context, options.AssertKv));
-      } else if (expr.Function.Name == "ToInt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
-        // fp64.ToInt requires the argument to be finite (not NaN or infinity)
-        Contract.Assert(expr.Args.Count == 1);
-        var arg = etran.TrExpr(expr.Args[0]);
-        var isFinite = FunctionCall(GetToken(expr), "fp64_is_finite", Bpl.Type.Bool, arg);
-        builder.Add(Assert(GetToken(expr), isFinite,
-          new FloatToIntFinitePrecondition(expr.Args[0], new Fp64Type()), builder.Context, options.AssertKv));
-      } else if (expr.Function.Name == "ToInt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp32" }) {
-        // fp32.ToInt requires the argument to be finite (not NaN or infinity)
-        Contract.Assert(expr.Args.Count == 1);
-        var arg = etran.TrExpr(expr.Args[0]);
-        var isFinite = FunctionCall(GetToken(expr), "fp32_is_finite", Bpl.Type.Bool, arg);
-        builder.Add(Assert(GetToken(expr), isFinite,
-          new FloatToIntFinitePrecondition(expr.Args[0], new Fp32Type()), builder.Context, options.AssertKv));
-      } else if (expr.Function.Name == "Sqrt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
-        // fp64.Sqrt requires !NaN and non-negative
-        Contract.Assert(expr.Args.Count == 1);
-        CheckFloatNaN(expr.Args[0], "Sqrt", builder, etran, options);
-        var arg = etran.TrExpr(expr.Args[0]);
-        var isNotNegative = Bpl.Expr.Not(FunctionCall(GetToken(expr), "fp64_is_negative", Bpl.Type.Bool, arg));
-        builder.Add(Assert(GetToken(expr), isNotNegative,
-          new FloatSqrtNonNegativePrecondition(expr.Args[0], new Fp64Type()), builder.Context, options.AssertKv));
-      } else if (expr.Function.Name == "Sqrt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp32" }) {
-        // fp32.Sqrt requires !NaN and non-negative
-        Contract.Assert(expr.Args.Count == 1);
-        CheckFloatNaN(expr.Args[0], "Sqrt", builder, etran, options);
-        var arg = etran.TrExpr(expr.Args[0]);
-        var isNotNegative = Bpl.Expr.Not(FunctionCall(GetToken(expr), "fp32_is_negative", Bpl.Type.Bool, arg));
-        builder.Add(Assert(GetToken(expr), isNotNegative,
-          new FloatSqrtNonNegativePrecondition(expr.Args[0], new Fp32Type()), builder.Context, options.AssertKv));
-      } else if ((expr.Function.Name == "Floor" || expr.Function.Name == "Ceiling" ||
-                  expr.Function.Name == "Round" || expr.Function.Name == "Abs") &&
+      } else if (expr.Function.Name == "ToInt" &&
                  expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp32" or "fp64" }) {
-        // These functions require !NaN
+        // The only fp32/fp64 member with an obligation, and the reason is that it is the only one
+        // with nowhere to fall back to. Every other member of the family is the IEEE operation and
+        // is total, answering NaN where the operation has no numeric result -- so an obligation
+        // there would buy nothing that the operators do not already enforce at the point of use.
+        // fp.to_sbv is different in kind: on a NaN or an infinity it yields an UNSPECIFIED integer,
+        // not a NaN, so without this check a program could conclude anything about the result.
         Contract.Assert(expr.Args.Count == 1);
-        CheckFloatNaN(expr.Args[0], expr.Function.Name, builder, etran, options);
-      } else if ((expr.Function.Name == "Min" || expr.Function.Name == "Max") &&
-                 expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp32" or "fp64" }) {
-        // Min/Max require both operands !NaN
-        Contract.Assert(expr.Args.Count == 2);
-        CheckFloatNaN(expr.Args[0], expr.Function.Name, builder, etran, options);
-        CheckFloatNaN(expr.Args[1], expr.Function.Name, builder, etran, options);
+        var facts = expr.Args[0].Type.NormalizeToAncestorType().FloatRepresentation;
+        var arg = etran.TrExpr(expr.Args[0]);
+        var isFinite = FunctionCall(GetToken(expr), facts.Name + "_is_finite", Bpl.Type.Bool, arg);
+        builder.Add(Assert(GetToken(expr), isFinite,
+          new FloatToIntFinitePrecondition(expr.Args[0], facts.DafnyType), builder.Context, options.AssertKv));
       }
     }
 

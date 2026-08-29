@@ -513,29 +513,6 @@ public class IsExactlyRepresentableAsFloat : ProofObligationDescription {
   }
 }
 
-public class FloatSqrtNonNegativePrecondition : ProofObligationDescription {
-  private readonly Expression expr;
-  private readonly string floatTypeName;
-
-  public FloatSqrtNonNegativePrecondition(Expression expr, Type floatType) {
-    this.expr = expr;
-    this.floatTypeName = floatType.FloatRepresentation.Name;
-  }
-
-  public override string SuccessDescription =>
-    $"{floatTypeName}.Sqrt argument is always non-negative";
-
-  public override string FailureDescription =>
-    $"{floatTypeName}.Sqrt requires a non-negative argument (negative values produce NaN)";
-
-  public override string ShortDescription => $"{floatTypeName}.Sqrt non-negative precondition";
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    var zero = Expression.CreateRealLiteral(expr.Origin, BaseTypes.BigDec.ZERO);
-    return new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Ge, expr, zero);
-  }
-}
-
 public class FloatToIntFinitePrecondition : ProofObligationDescription {
   private readonly Expression operand;
   private readonly string floatTypeName;

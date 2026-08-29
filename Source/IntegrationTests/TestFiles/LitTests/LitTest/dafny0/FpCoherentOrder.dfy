@@ -128,10 +128,10 @@ lemma UncheckedMethodsLeaveNaNUnordered(x: fp64)
 
 // fp*.Min and fp*.Max are IEEE fp.min/fp.max, not the order's minimum and maximum, and they part
 // company with the order at both of the places where Dafny departs from IEEE. At NaN, IEEE DISCARDS
-// rather than propagates -- fp.max(NaN, x) is x -- and the non-NaN obligation keeps that out of
-// reach. At the signed zeros, SMT-LIB leaves the result free to be either zero, so nothing about
-// that case is provable. Away from both, the two coincide, which is the region where anything is at
-// stake.
+// rather than propagates -- fp.max(NaN, x) is x, so the maximum of a NaN and a number is the
+// number, where the order says NaN is the larger. At the signed zeros, SMT-LIB leaves the result
+// free to be either zero, so nothing about that case is provable. Away from both they coincide,
+// which is the region where anything is at stake.
 //
 // Nothing needs fixing there: a user who wants the order's minimum writes it, and the result is
 // better behaved than fp.min -- total, so no precondition, and correct at the zeros and at NaN.
@@ -149,6 +149,19 @@ lemma IeeeMinAgreesWithTheOrderAwayFromZero(x: fp64, y: fp64)
 {
   assert fp64.Min(x, y) == OrderMin(x, y);
   assert fp64.Max(x, y) == OrderMax(x, y);
+}
+
+// And where they disagree, that is now sayable: fp*.Min and fp*.Max carry no obligations, so a NaN
+// argument can be passed and the discarding observed. This was four errors before the fp*. family
+// was made uniformly IEEE.
+lemma IeeeMinAndMaxDiscardANaN(x: fp64)
+  requires !x.IsNaN
+{
+  assert fp64.Min(fp64.NaN, x) == x;
+  assert fp64.Max(fp64.NaN, x) == x;    // IEEE: the number wins
+  assert x < fp64.NaN;                  // the order: NaN is the larger
+  assert fp64.Max(fp64.NaN, x) != OrderMax(fp64.NaN, x);
+  assert fp64.Min(fp64.NaN, fp64.NaN).IsNaN;   // two NaNs leave nothing to discard
 }
 
 // Ordinary comparisons are unaffected.
