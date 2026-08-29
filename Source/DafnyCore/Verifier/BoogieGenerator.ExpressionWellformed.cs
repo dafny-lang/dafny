@@ -254,12 +254,22 @@ namespace Microsoft.Dafny {
     /// callers need not test first.
     ///
     /// Carried by every operation whose result is a float: +, -, *, /, unary -, Sqrt, Abs, Floor,
-    /// Ceiling, Round, Min and Max. What it prevents in each case is a NaN the program did not ask
-    /// for -- Dafny arithmetic cannot manufacture one, so a NaN can only enter a program explicitly.
+    /// Ceiling, Round, Min and Max. What it stops is NaN PROPAGATION -- each of these returns a NaN
+    /// given one, so without the obligation a NaN would spread through a computation silently. A NaN
+    /// result has to be asked for, whether by naming fp*.NaN or by using the IEEE static methods.
+    /// (Manufacturing a NaN from non-NaN operands, as in inf - inf or 0/0, is a separate obligation:
+    /// see FloatInvalidOperationPrecondition, emitted alongside this one.)
     ///
-    /// Deliberately NOT carried by &lt;, &lt;=, &gt; and &gt;=, whose result is a bool: there is no NaN to
-    /// prevent, and FpLess/FpAtMost order NaN above every number, so a comparison is defined on
-    /// every pair. Nor by "==", which is total for the same reason.
+    /// Min and Max additionally need it for a reason of their own, and it is the sharper one. IEEE
+    /// fp.min/fp.max do not propagate a NaN, they SWALLOW it: Z3 forces fp.max(NaN, x) == x for
+    /// non-NaN x. Under Dafny's order NaN is the maximum, so without the obligation a program could
+    /// prove both "1.0 &lt; fp64.NaN" and "fp64.Max(fp64.NaN, 1.0) == 1.0" -- Max would not return the
+    /// maximum. The obligation confines both to the non-NaN values, where IEEE and Dafny's order
+    /// agree, which is what makes the names honest.
+    ///
+    /// Deliberately NOT carried by &lt;, &lt;=, &gt; and &gt;=, whose result is a bool: there is no float
+    /// result for a NaN to propagate into, and FpLess/FpAtMost order NaN above every number, so a
+    /// comparison is defined on every pair. Nor by "==", which is total for the same reason.
     /// </summary>
     private void CheckFloatNaN(Expression operand, string operation, BoogieStmtListBuilder builder,
                                ExpressionTranslator etran, WFOptions wfOptions) {

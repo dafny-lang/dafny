@@ -471,13 +471,14 @@ separates NaNs by sign and payload and Dafny does not; putting it at the top agr
 `java.lang.Double.compare`.
 
 Raw IEEE comparison — where `-0.0` and `0.0` are tied and every comparison involving NaN is
-false — remains available through the unchecked static methods described in
-Section 5.2.3.6, just as `fp32.Equal`/`fp64.Equal` provide IEEE equality while `==` is value
-identity.
+false — remains available through the static methods described in Section 5.2.3.6, just as
+`fp32.Equal`/`fp64.Equal` provide IEEE equality while `==` is value identity.
 
-Note that although these properties are true, the solver does not always discharge the
-general, quantified forms of totality, trichotomy and transitivity within the default
-resource limit; concrete comparisons and antisymmetry are unaffected.
+These properties are all true, but the solver does not discharge the general, quantified forms
+of totality, trichotomy and transitivity within the default resource limit — only the concrete
+and semi-concrete cases, along with antisymmetry and the closure properties. If you need one of
+the three as a lemma, verify with `--boogie /proverOpt:O:smt.case_split=0`, under which all of
+them go through in well under a second.
 
 <!-- %check-verify -->
 ```dafny
@@ -558,9 +559,10 @@ method EqualityExample(x: fp64) {
 }
 ```
 
-#### 5.2.3.6. Unchecked Arithmetic and Comparison Methods
+#### 5.2.3.6. IEEE Arithmetic and Comparison Methods
 
-For operations that may involve NaN or invalid infinity combinations, both `fp32` and `fp64` provide unchecked static methods:
+Both `fp32` and `fp64` provide static methods that follow IEEE 754 semantics exactly, including
+producing NaN for invalid operations and returning false for every comparison involving NaN:
 
 **Arithmetic methods:**
 - `fp32.Add(x, y)` / `fp64.Add(x, y)` - Addition without well-formedness checks
@@ -570,18 +572,18 @@ For operations that may involve NaN or invalid infinity combinations, both `fp32
 - `fp32.Neg(x)` / `fp64.Neg(x)` - Negation without well-formedness checks
 
 **Comparison methods:**
-- `fp32.Less(x, y)` / `fp64.Less(x, y)` - Less than without well-formedness checks
-- `fp32.LessOrEqual(x, y)` / `fp64.LessOrEqual(x, y)` - Less than or equal without well-formedness checks
-- `fp32.Greater(x, y)` / `fp64.Greater(x, y)` - Greater than without well-formedness checks
-- `fp32.GreaterOrEqual(x, y)` / `fp64.GreaterOrEqual(x, y)` - Greater than or equal without well-formedness checks
+- `fp32.Less(x, y)` / `fp64.Less(x, y)` - IEEE less than
+- `fp32.LessOrEqual(x, y)` / `fp64.LessOrEqual(x, y)` - IEEE less than or equal
+- `fp32.Greater(x, y)` / `fp64.Greater(x, y)` - IEEE greater than
+- `fp32.GreaterOrEqual(x, y)` / `fp64.GreaterOrEqual(x, y)` - IEEE greater than or equal
 
-These methods follow IEEE 754 semantics exactly, including producing NaN for invalid operations and returning false for all comparisons involving NaN.
-
-For the arithmetic methods, the difference from the operator is that there is no precondition
-to discharge. For the comparison methods, the operators have no precondition either, so the
-difference is in the *answer*: `fp64.Less` and its siblings leave `-0.0` and `0.0` tied and
-report false whenever either operand is NaN, whereas `<` orders the zeros and places NaN above
-every number.
+The two families differ from their operators in different ways, and it is worth keeping them
+apart. For **arithmetic**, the method computes what the operator computes; what it drops is the
+precondition, so it is the way to write an expression that may produce a NaN or take an invalid
+combination of infinities. For **comparison**, the operators have no precondition to drop, so
+what the method offers instead is a different *answer*: `fp64.Less` and its siblings leave
+`-0.0` and `0.0` tied and report false whenever either operand is NaN, whereas `<` orders the
+zeros and places NaN above every number.
 
 <!-- %check-verify -->
 ```dafny
@@ -610,7 +612,9 @@ method EdgeCaseTesting() {
 }
 ```
 
-**Recommendation**: Use operators (`+`, `-`, `*`, `/`, `<`, etc.) by default for their safety guarantees. Only use these unchecked static methods when you specifically need to handle edge cases or rely on IEEE 754 behavior.
+**Recommendation**: Use the operators (`+`, `-`, `*`, `/`, `<`, etc.) by default. Reach for these
+static methods when you specifically need IEEE 754 behaviour — for arithmetic, to allow a NaN or
+an invalid combination of infinities; for comparison, to get IEEE's answer rather than Dafny's.
 
 #### 5.2.3.7. Mathematical Functions
 
@@ -621,6 +625,11 @@ require that operands are not NaN, and some have additional preconditions:
 - `fp32.Sqrt(x)` / `fp64.Sqrt(x)` - Square root. **Requires**: `!x.IsNaN` and `x ≥ 0.0` (non-negative). Returns √x for finite x ≥ 0, returns +∞ for x = +∞.
 - `fp32.Min(x, y)` / `fp64.Min(x, y)` - Minimum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
 - `fp32.Max(x, y)` / `fp64.Max(x, y)` - Maximum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
+
+  These two are IEEE `fp.min`/`fp.max`, which *discard* a NaN operand rather than propagating
+  it — `fp.max(NaN, x)` is `x`. Since `<` places NaN above every number, allowing a NaN here
+  would mean `Max` did not return the maximum. The precondition is what confines both to the
+  values on which IEEE and Dafny's order agree.
 - `fp32.Floor(x)` / `fp64.Floor(x)` - Round down to nearest integer. **Requires**: `!x.IsNaN`.
 - `fp32.Ceiling(x)` / `fp64.Ceiling(x)` - Round up to nearest integer. **Requires**: `!x.IsNaN`.
 - `fp32.Round(x)` / `fp64.Round(x)` - Round to nearest integer, ties to even. **Requires**: `!x.IsNaN`.

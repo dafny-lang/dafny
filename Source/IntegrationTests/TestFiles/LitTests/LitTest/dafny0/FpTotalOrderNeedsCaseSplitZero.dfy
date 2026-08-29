@@ -55,3 +55,13 @@ lemma TotalityReachesNaN(x: fp64) {
   assert x <= fp64.NaN || fp64.NaN <= x;
   assert x < fp64.NaN || x == fp64.NaN || fp64.NaN < x;
 }
+
+// The identity that totality buys and partiality did not: "<=" is the complement of the reversed
+// "<". It is what makes the compiled "<=" a negation of the compiled "<", and it is also why the
+// translator does NOT define FpAtMost that way -- doing so turns antisymmetry into trichotomy, and
+// trichotomy is on this file's side of the line. FpAtMost has its own definition, and
+// FpCoherentOrder.dfy is what holds the two to the same order.
+lemma AtMostIsTheComplementOfReversedLess(a: fp64, b: fp64) {
+  assert (a <= b) == !(b < a);
+  assert (a >= b) == !(a < b);
+}

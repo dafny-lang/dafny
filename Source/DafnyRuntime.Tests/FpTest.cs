@@ -124,6 +124,29 @@ public class FpTest {
     }
   }
 
+  /// <summary>
+  /// Anchors the order to IEEE where the two are meant to agree. The axiom test below cannot do
+  /// this on its own: "&lt;=", "&gt;" and "&gt;=" are all defined in terms of "&lt;", so a "&lt;" that had the
+  /// whole line backwards would flip the four together and still satisfy every axiom.
+  /// </summary>
+  [Fact]
+  public void OrderAgreesWithIeeeAwayFromNaNAndTheZeroPair() {
+    foreach (var a in OrderSample) {
+      foreach (var b in OrderSample) {
+        if (Fp64.IsNaN(a) || Fp64.IsNaN(b)) {
+          continue;                                     // NaN is where Dafny departs from IEEE
+        }
+        if (Fp64.IsZero(a) && Fp64.IsZero(b)) {
+          continue;                                     // and the two zeros are the other place
+        }
+        Assert.Equal(a.Value < b.Value, a < b);
+        Assert.Equal(a.Value <= b.Value, a <= b);
+        Assert.Equal(a.Value > b.Value, a > b);
+        Assert.Equal(a.Value >= b.Value, a >= b);
+      }
+    }
+  }
+
   [Fact]
   public void OrderIsAStrictTotalOrderIncludingNaN() {
     // The five properties Z3 discharges over the verifier's encoding, checked here over the
@@ -138,6 +161,12 @@ public class FpTest {
         Assert.Equal(a <= b, a < b || a == b);                        // "<=" is the closure of "<"
         Assert.Equal(a > b, b < a);
         Assert.Equal(a >= b, b <= a);
+        // Only a total order satisfies these; under the earlier partial one a pair either side of
+        // NaN met the right side and not the left. This is how the runtime DEFINES "<=" and ">=", so
+        // here they are tautologies -- what earns their place is that the verifier defines FpAtMost
+        // differently, and FpTotalOrderNeedsCaseSplitZero.dfy asserts the same two identities there.
+        Assert.Equal(a <= b, !(b < a));
+        Assert.Equal(a >= b, !(a < b));
         foreach (var c in OrderSample) {
           if (a < b && b < c) {
             Assert.True(a < c);                                       // transitivity

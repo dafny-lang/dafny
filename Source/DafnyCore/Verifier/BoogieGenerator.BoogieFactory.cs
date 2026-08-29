@@ -876,6 +876,16 @@ namespace Microsoft.Dafny {
     /// Dafny's "&lt;=" on fp32/fp64: the reflexive closure of FpLess, and so total as well. Spelled
     /// out rather than as "FpLess(e0, e1) || e0 == e1", which would repeat each operand four times
     /// over rather than the two and three below.
+    ///
+    /// Now that the order is total, "a &lt;= b" and "not (b &lt; a)" are the same relation, so this could
+    /// be Not(FpLess(e1, e0)) -- one relation for all four comparisons, with no second definition to
+    /// keep in step. That was tried and rejected on measurement: it turns antisymmetry into
+    /// trichotomy, which is one of the properties Dafny's default solver options cannot discharge
+    /// (see FpTotalOrderNeedsCaseSplitZero.dfy), and FpCoherentOrder.dfy went from 1.2 to 31 seconds
+    /// with all three antisymmetry lemmas timing out. Keeping fp.leq gives the solver the case split
+    /// directly. The compiled operators, where no solver is involved, do take the derived form.
+    ///
+    /// What keeps the two definitions in step is FpCoherentOrder.dfy, which pins their agreement.
     /// </summary>
     public static Bpl.Expr FpAtMost(Bpl.IToken tok, FloatFacts facts, Bpl.Expr e0, Bpl.Expr e1) {
       var ieeeAtMost = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Le, e0, e1);

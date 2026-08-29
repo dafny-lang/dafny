@@ -213,22 +213,30 @@ namespace Dafny {
     private bool IsNegativeZero => BitConverter.DoubleToInt64Bits(value) == SignBit;
     private bool IsPositiveZero => BitConverter.DoubleToInt64Bits(value) == 0L;
 
-    // Dafny's "<" and "<=": IEEE fp.lt/fp.leq refined so that -0.0 < +0.0 and so that NaN is above
-    // every number. Mirrors FpLess/FpAtMost in the verifier, where the reasons for both refinements
-    // are set out. The result is a strict total order agreeing with "==", so unlike IEEE these are
-    // defined on every pair -- 1.0 < NaN is true and NaN < NaN is false.
+    // Dafny's "<": IEEE fp.lt refined so that -0.0 < +0.0 and so that NaN is above every number.
+    // Mirrors FpLess in the verifier, where the reasons for both refinements are set out. The result
+    // is a strict total order agreeing with "==", so unlike IEEE it is defined on every pair --
+    // 1.0 < NaN is true and NaN < NaN is false.
     //
-    // The NaN test here is double.IsNaN rather than the bit form used by IsNaN below. The two agree
-    // on every input, unlike double.IsNegative, and double.IsNaN is "d != d", a single compare where
+    // The NaN test is double.IsNaN rather than the bit form used by IsNaN below. The two agree on
+    // every input, unlike double.IsNegative, and double.IsNaN is "d != d", a single compare where
     // the bit form needs a reinterpret and two masks. Over 60M comparisons on non-NaN data the bit
     // form cost about 4% against the earlier partial order, and this form nothing measurable.
     public static bool operator <(Fp64 a, Fp64 b) =>
       a.value < b.value || (a.IsNegativeZero && b.IsPositiveZero)
                         || (!double.IsNaN(a.value) && double.IsNaN(b.value));
-    public static bool operator <=(Fp64 a, Fp64 b) =>
-      double.IsNaN(b.value) || (a.value <= b.value && !(a.IsPositiveZero && b.IsNegativeZero));
+
+    // The other three follow from that one, because the order is total: "a <= b" and "not (b < a)"
+    // agree everywhere, which they did not under the earlier partial order. Measured to cost nothing
+    // over spelling "<=" out separately, and it leaves one definition to get right.
+    //
+    // The verifier's FpAtMost deliberately does NOT take this shortcut, for a reason that applies
+    // only there: it turns antisymmetry into trichotomy, which Dafny's default solver options cannot
+    // discharge. See FpAtMost. What holds the two spellings to the same order is FpCoherentOrder.dfy,
+    // plus the complement identity in FpTotalOrderNeedsCaseSplitZero.dfy.
     public static bool operator >(Fp64 a, Fp64 b) => b < a;
-    public static bool operator >=(Fp64 a, Fp64 b) => b <= a;
+    public static bool operator <=(Fp64 a, Fp64 b) => !(b < a);
+    public static bool operator >=(Fp64 a, Fp64 b) => !(a < b);
 
     // fp64.Less and friends keep raw IEEE, mirroring fp64.Equal versus "==".
     public static bool IeeeLess(Fp64 a, Fp64 b) => a.value < b.value;
@@ -445,15 +453,14 @@ namespace Dafny {
     private bool IsNegativeZero => ToBits(value) == SignBit;
     private bool IsPositiveZero => ToBits(value) == 0;
 
-    // As Fp64: a strict total order agreeing with "==", with -0.0 below +0.0 and NaN at the top,
-    // and float.IsNaN for the same reason given there.
+    // As Fp64: a strict total order agreeing with "==", with -0.0 below +0.0 and NaN at the top;
+    // float.IsNaN for the same reason given there, and the other three derived by totality.
     public static bool operator <(Fp32 a, Fp32 b) =>
       a.value < b.value || (a.IsNegativeZero && b.IsPositiveZero)
                         || (!float.IsNaN(a.value) && float.IsNaN(b.value));
-    public static bool operator <=(Fp32 a, Fp32 b) =>
-      float.IsNaN(b.value) || (a.value <= b.value && !(a.IsPositiveZero && b.IsNegativeZero));
     public static bool operator >(Fp32 a, Fp32 b) => b < a;
-    public static bool operator >=(Fp32 a, Fp32 b) => b <= a;
+    public static bool operator <=(Fp32 a, Fp32 b) => !(b < a);
+    public static bool operator >=(Fp32 a, Fp32 b) => !(a < b);
 
     public static bool IeeeLess(Fp32 a, Fp32 b) => a.value < b.value;
     public static bool IeeeLessOrEqual(Fp32 a, Fp32 b) => a.value <= b.value;

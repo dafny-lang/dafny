@@ -89,10 +89,14 @@ lemma AntisymmetryHolds(a: fp64, b: fp64)
 {
 }
 
-// "<=" is the reflexive closure of "<", and "<" is irreflexive -- again unconditionally.
+// "<=" is the reflexive closure of "<", and "<" is irreflexive -- again unconditionally. Both
+// directions matter: "<" and "<=" have separate definitions in the translator, and this is what
+// pins them to the same order. FpTotalOrderNeedsCaseSplitZero.dfy adds the identity that only
+// holds because the order is total, "a <= b" iff "!(b < a)".
 lemma LessEqualIsTheClosure(a: fp64, b: fp64) {
   assert a == b ==> a <= b;
   assert a < b ==> a <= b;
+  assert a <= b ==> a < b || a == b;
   assert !(a < a);
   assert a <= a;
 }

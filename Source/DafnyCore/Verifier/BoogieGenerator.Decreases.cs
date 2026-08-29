@@ -377,10 +377,11 @@ public partial class BoogieGenerator {
       // well founded. FpDecreases.dfy pins both directions.
       eq = Bpl.Expr.Eq(e0, e1);
       less = FpLess(tok, ty0.FloatRepresentation, e0, e1);
-      // Deliberately BplOr(less, eq), the reflexive closure, rather than fp.leq: fp.leq admits
-      // +0.0 <= -0.0, which would let the allowNoChange branch of DecreasesCheck accept a
-      // -0.0 -> +0.0 -> -0.0 cycle as a strict decrease.
-      atmost = BplOr(less, eq);
+      // FpAtMost rather than a local BplOr(less, eq): the two are the same relation, and going
+      // through the shared definition is what keeps this arm in step with the "<=" operator. What it
+      // must not be is bare fp.leq, which admits +0.0 <= -0.0 and so would let the allowNoChange
+      // branch of DecreasesCheck accept a -0.0 -> +0.0 -> -0.0 cycle as a strict decrease.
+      atmost = FpAtMost(tok, ty0.FloatRepresentation, e0, e1);
 
     } else if (ty0 is BigOrdinalType) {
       eq = Bpl.Expr.Eq(e0, e1);
