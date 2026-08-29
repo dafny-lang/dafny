@@ -7,11 +7,9 @@ using Xunit;
 namespace DafnyRuntime.Tests;
 
 /// <summary>
-/// Dafny.Fp32/Fp64 exist so that compiled floating point agrees with what the verifier proved.
-/// The verifier's "==" is value identity in the SMT FloatingPoint sort -- every NaN is one value,
-/// and -0.0 and +0.0 are two -- while C#'s "==" on double is IEEE fp.eq, which disagrees on
-/// exactly those points. These tests pin down that the wrappers implement the verifier's
-/// semantics and that IEEE remains reachable under its own names.
+/// Dafny.Fp32/Fp64 exist because C#'s "==" on double is IEEE fp.eq, which disagrees with Dafny's
+/// value identity at NaN and at the two zeros. These tests hold the wrappers to the verifier's
+/// semantics, and check that IEEE stays reachable under its own names.
 /// </summary>
 public class FpTest {
   private static readonly Fp64 PosZero = new Fp64(0.0);
@@ -62,16 +60,14 @@ public class FpTest {
   public void NaNIsTheMaximumOfTheOrder() {
     var one = new Fp64(1.0);
     var posInf = new Fp64(double.PositiveInfinity);
-    // Dafny's order is total, so a NaN operand does not make a comparison false in both
-    // directions the way IEEE does. NaN is above every number, including the infinities.
+    // Total, so a NaN operand is not false in both directions as in IEEE. NaN tops the infinities.
     Assert.True(one < NaN);
     Assert.True(posInf < NaN);
     Assert.False(NaN < one);
     Assert.True(one <= NaN);
     Assert.False(NaN <= one);
-    // Strict, so NaN is not below itself, while "<=" is reflexive there because "==" is. Spelled
-    // with two variables of the same value, since these are functions of the value and comparing
-    // one variable with itself only warns.
+    // Strict at NaN, but "<=" reflexive there because "==" is. Two variables of one value, because
+    // comparing a variable with itself only warns.
     var sameNaN = new Fp64(double.NaN);
     Assert.False(NaN < sameNaN);
     Assert.True(NaN <= sameNaN);
@@ -85,8 +81,8 @@ public class FpTest {
   }
 
   /// <summary>
-  /// Every distinct Dafny value, plus a second representative of each of the two classes where the
-  /// bit pattern is not the value.
+  /// Every distinct Dafny value, plus extra representatives of the classes where the bit pattern is
+  /// not the value.
   /// </summary>
   private static readonly Fp64[] OrderSample = {
     PosZero, NegZero, NaN, NaNPayload, NegNaN, new Fp64(1.0), new Fp64(-1.0),
@@ -100,9 +96,7 @@ public class FpTest {
     var values = new[] { PosZero, NegZero, NaN, NaNPayload, NegNaN };
     // Three distinct Dafny values: -0.0, +0.0, NaN.
     Assert.Equal(3, new HashSet<Fp64>(values).Count);
-    // No explicit comparer: the order is total and consistent with Equals, so the default one --
-    // which is CompareTo -- is correct for a SortedSet. That is the whole reason to implement
-    // IComparable rather than offer a separate comparer.
+    // No explicit comparer: CompareTo is consistent with Equals, so the default one is correct.
     Assert.Equal(3, new SortedSet<Fp64>(values).Count);
   }
 
@@ -125,9 +119,8 @@ public class FpTest {
   }
 
   /// <summary>
-  /// Anchors the order to IEEE where the two are meant to agree. The axiom test below cannot do
-  /// this on its own: "&lt;=", "&gt;" and "&gt;=" are all defined in terms of "&lt;", so a "&lt;" that had the
-  /// whole line backwards would flip the four together and still satisfy every axiom.
+  /// Anchors the order to IEEE where they agree. The axiom test cannot do this alone: "&lt;=", "&gt;" and
+  /// "&gt;=" all derive from "&lt;", so a reversed "&lt;" flips all four and still satisfies every axiom.
   /// </summary>
   [Fact]
   public void OrderAgreesWithIeeeAwayFromNaNAndTheZeroPair() {
@@ -149,10 +142,9 @@ public class FpTest {
 
   [Fact]
   public void OrderIsAStrictTotalOrderIncludingNaN() {
-    // The five properties Z3 discharges over the verifier's encoding, checked here over the
-    // compiled one, so the two cannot drift apart. Every quantifier ranges over NaN too: totality
-    // is the point of the change, and it is what the partial order lacked. Both loops run over the
-    // same array, so the diagonal is included and irreflexivity falls out of trichotomy there.
+    // The properties Z3 discharges over the verifier's encoding, checked here over the compiled one
+    // so the two cannot drift. Every quantifier ranges over NaN. Both loops run the same array, so
+    // the diagonal is covered and irreflexivity follows from trichotomy there.
     foreach (var a in OrderSample) {
       foreach (var b in OrderSample) {
         Assert.True(a < b || a == b || b < a);                        // totality
@@ -161,10 +153,8 @@ public class FpTest {
         Assert.Equal(a <= b, a < b || a == b);                        // "<=" is the closure of "<"
         Assert.Equal(a > b, b < a);
         Assert.Equal(a >= b, b <= a);
-        // Only a total order satisfies these; under the earlier partial one a pair either side of
-        // NaN met the right side and not the left. This is how the runtime DEFINES "<=" and ">=", so
-        // here they are tautologies -- what earns their place is that the verifier defines FpAtMost
-        // differently, and FpTotalOrderNeedsCaseSplitZero.dfy asserts the same two identities there.
+        // Tautologies here, since this is how the runtime defines "<=" and ">=". They earn their place
+        // because the verifier's FpAtMost is defined differently and must agree.
         Assert.Equal(a <= b, !(b < a));
         Assert.Equal(a >= b, !(a < b));
         foreach (var c in OrderSample) {
@@ -215,9 +205,8 @@ public class FpTest {
 
   [Fact]
   public void ToStringReadsBackAsTheSameValue() {
-    // The point of the formatting: every printed value is a literal denoting the value it came
-    // from. Checked here with the platform parser, which is the same rounding the C# compiler
-    // applies to a literal.
+    // Every printed value must be a literal denoting the value it came from. The platform parser
+    // applies the same rounding the C# compiler gives a literal.
     foreach (var v in new[] {
       1.5, -1.5, 0.1, 1e300, 1e-300, 1e21, double.MaxValue, double.MinValue, double.Epsilon,
       Math.PI, 1.0 / 3.0, 0.0, -0.0
@@ -279,9 +268,8 @@ public class FpTest {
 public class FpClassificationTest {
   [Fact]
   public void NaNIsNeitherNegativeNorPositive() {
-    // The motivating divergence: .NET's double.NaN has its sign bit set, so double.IsNegative
-    // reports true for it, while fp.isNegative(NaN) is false. Dafny can observe this, because the
-    // verifier proves !x.IsNegative && !x.IsPositive from x.IsNaN.
+    // .NET's double.NaN has its sign bit set, so double.IsNegative reports true where
+    // fp.isNegative(NaN) is false. Observable, since the verifier proves !x.IsNegative from x.IsNaN.
     Assert.True(double.IsNegative(double.NaN)); // what we must NOT do
     foreach (var nan in new[] {
       new Fp64(double.NaN),
@@ -329,8 +317,7 @@ public class FpClassificationTest {
 
   [Fact]
   public void ConstantsMatchTheVerifiersExactRationals() {
-    // The verifier builds these with BigFloat.FromRational on exactly these numerators and
-    // denominators; if the runtime ever drifts, compiled code disagrees with what was proved.
+    // The verifier builds these with BigFloat.FromRational on the same numerators and denominators.
     Assert.Equal(7074237752028440.0 / 2251799813685248.0, Fp64.Pi.Value);
     Assert.Equal(6121026514868073.0 / 2251799813685248.0, Fp64.E.Value);
     Assert.Equal(13176795f / 4194304f, Fp32.Pi.Value);

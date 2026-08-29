@@ -253,28 +253,22 @@ namespace Microsoft.Dafny {
     /// Emit the obligation that an fp32/fp64 operand is not NaN. A no-op on any other type, so
     /// callers need not test first.
     ///
-    /// Carried by the arithmetic OPERATORS and nothing else: +, -, *, / and unary -. Those are where
-    /// Dafny promises a result that is not a NaN, so a NaN operand has to be ruled out. Manufacturing
-    /// a NaN from non-NaN operands, as in inf - inf or 0/0, is a separate obligation emitted
-    /// alongside; see FloatInvalidOperationPrecondition.
+    /// Carried by the arithmetic OPERATORS and nothing else: +, -, *, / and unary -. Those promise a
+    /// result that is not a NaN, so a NaN operand must be ruled out. Manufacturing one from non-NaN
+    /// operands, as in inf - inf or 0/0, is a separate obligation emitted alongside; see
+    /// FloatInvalidOperationPrecondition.
     ///
-    /// Deliberately NOT carried by the fp32/fp64 static methods -- not by fp*.Add and friends, which
-    /// exist precisely to reach IEEE without an obligation, and equally not by fp*.Sqrt, Abs, Floor,
-    /// Ceiling, Round, Min or Max. Those seven used to carry it, which made the family incoherent:
-    /// fp*.Div(0.0, 0.0) was allowed to produce a NaN while fp*.Sqrt(-1.0) was refused, with nothing
-    /// in the names to say which was which. They buy no safety either, because a NaN arriving from
-    /// anywhere is stopped by these very obligations at the point where it reaches arithmetic: given
-    /// "var q := fp64.Div(0.0, 0.0)", it is "q + 1.0" that fails. Dropping them moves the diagnostic
-    /// to that point rather than removing it, and a result that is only compared or printed needs no
-    /// diagnostic at all. fp*.ToInt is the one exception, and CheckWellformedSpecialFunction says why.
+    /// Not carried by the fp32/fp64 static methods, which are the IEEE operations and are total. That
+    /// costs no safety: a NaN from any source is caught by these obligations where it reaches
+    /// arithmetic, so given "var q := fp64.Div(0.0, 0.0)" it is "q + 1.0" that fails. fp*.ToInt is the
+    /// one exception; CheckWellformedSpecialFunction says why.
     ///
-    /// Nor carried by &lt;, &lt;=, &gt; and &gt;=, whose result is a bool: there is no float result for a NaN
-    /// to reach, and FpLess/FpAtMost order NaN above every number, so a comparison is defined on
-    /// every pair. Nor by "==", which is total for the same reason.
+    /// Nor by &lt;, &lt;=, &gt; and &gt;=, whose result is a bool, so there is no float for a NaN to reach and
+    /// FpLess/FpAtMost are defined on every pair. Nor by "==", total for the same reason.
     /// </summary>
     private void CheckFloatNaN(Expression operand, string operation, BoogieStmtListBuilder builder,
                                ExpressionTranslator etran, WFOptions wfOptions) {
-      // Normalized: unnormalized, a newtype over fp got no obligation at all.
+      // Normalized, or a newtype over fp gets no obligation at all.
       var operandType = operand.Type.NormalizeToAncestorType();
       if (operandType.IsFp32Type) {
         var isNaN = FunctionCall(operand.Origin, "fp32_is_nan", Bpl.Type.Bool, etran.TrExpr(operand));
@@ -1160,9 +1154,8 @@ namespace Microsoft.Dafny {
                       new FloatInvalidOperationPrecondition("division", e.E0, e.E1, dividendType), builder.Context, wfOptions.AssertKv));
                   }
                   if (divisorType.FloatRepresentation is { } divisorFacts) {
-                    // fp.isZero, not "!= 0.0". Equality on floats is structural, so it keeps the two
-                    // zeros apart and a divisor of -0.0 satisfies "!= +0.0" -- which let x / -0.0
-                    // through while x / +0.0 was refused.
+                    // fp.isZero, not "!= 0.0": equality on floats is structural, so a divisor of -0.0
+                    // satisfies "!= +0.0" and would slip through.
                     var divisorIsZero = FunctionCall(e.E1.Origin, $"{divisorFacts.Name}_is_zero",
                       Bpl.Type.Bool, etran.TrExpr(e.E1));
                     builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(divisorIsZero),
@@ -1656,12 +1649,9 @@ namespace Microsoft.Dafny {
           new ShiftUpperBound(w, false, arg), builder.Context, options.AssertKv));
       } else if (expr.Function.Name == "ToInt" &&
                  expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp32" or "fp64" }) {
-        // The only fp32/fp64 member with an obligation, and the reason is that it is the only one
-        // with nowhere to fall back to. Every other member of the family is the IEEE operation and
-        // is total, answering NaN where the operation has no numeric result -- so an obligation
-        // there would buy nothing that the operators do not already enforce at the point of use.
-        // fp.to_sbv is different in kind: on a NaN or an infinity it yields an UNSPECIFIED integer,
-        // not a NaN, so without this check a program could conclude anything about the result.
+        // The only fp32/fp64 member with an obligation, because it is the only one with no IEEE
+        // result to fall back on: fp.to_sbv of a NaN or an infinity is an UNSPECIFIED integer rather
+        // than a NaN, so without this check a program could conclude anything about the result.
         Contract.Assert(expr.Args.Count == 1);
         var facts = expr.Args[0].Type.NormalizeToAncestorType().FloatRepresentation;
         var arg = etran.TrExpr(expr.Args[0]);

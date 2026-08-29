@@ -358,29 +358,23 @@ public partial class BoogieGenerator {
       atmost = FunctionCall(tok, "le_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
 
     } else if (ty0.IsFloatingPointType) {
-      // fp32/fp64 have finitely many values, so -- exactly as for the bitvector and char arms
-      // above -- any strict order on them is well founded and no lower bound is needed. Only
-      // "real", being dense, needs its "e0 <= e1 - 1" trick.
+      // fp32/fp64 have finitely many values, so -- as for the bitvector and char arms above -- any
+      // strict order on them is well founded and no lower bound is needed. Only "real", being dense,
+      // needs its "e0 <= e1 - 1" trick.
       //
-      // "less" is Dafny's fp order (FpLess: IEEE fp.lt refined so that -0.0 < +0.0 and so that NaN
-      // is above every number) and "eq" is structural equality. FpLess is a strict total order on
-      // the whole carrier and agrees with "eq", so this arm needs no case analysis on NaN. That
-      // matters for more than tidiness: TrLoop also uses "atmost", with allowNoChange, as a FREE
-      // invariant saying the metric has not risen above its initial value, and a free invariant is
-      // assumed rather than proved -- assuming a false one would let anything be proved. Over a
-      // total order the assumption follows from the strict check by transitivity, uniformly. Under
-      // the earlier partial order the chain broke at NaN, where atmost(NaN, aNumber) was false
-      // because NaN was incomparable, and the assumption had to be justified case by case.
+      // FpLess is a strict total order agreeing with structural equality, so this arm needs no case
+      // analysis on NaN. That matters because TrLoop also uses "atmost", with allowNoChange, as a
+      // FREE invariant saying the metric has not risen above its initial value: assumed rather than
+      // proved, so a false one would let anything be proved. On a total order it follows from the
+      // strict check by transitivity, uniformly.
       //
-      // A visible consequence: a metric may now descend OUT of NaN, since less(aNumber, NaN) holds.
-      // It still cannot ascend INTO one, that being an increase like any other, so descent remains
-      // well founded. FpDecreases.dfy pins both directions.
+      // A metric may therefore descend OUT of NaN, since less(aNumber, NaN) holds, but cannot ascend
+      // into one, that being an increase like any other. FpDecreases.dfy pins both directions.
       eq = Bpl.Expr.Eq(e0, e1);
       less = FpLess(tok, ty0.FloatRepresentation, e0, e1);
-      // FpAtMost rather than a local BplOr(less, eq): the two are the same relation, and going
-      // through the shared definition is what keeps this arm in step with the "<=" operator. What it
-      // must not be is bare fp.leq, which admits +0.0 <= -0.0 and so would let the allowNoChange
-      // branch of DecreasesCheck accept a -0.0 -> +0.0 -> -0.0 cycle as a strict decrease.
+      // FpAtMost, the same relation as BplOr(less, eq), so that this arm tracks the "<=" operator.
+      // Not bare fp.leq, which admits +0.0 <= -0.0 and would let allowNoChange accept a
+      // -0.0 -> +0.0 -> -0.0 cycle as a strict decrease.
       atmost = FpAtMost(tok, ty0.FloatRepresentation, e0, e1);
 
     } else if (ty0 is BigOrdinalType) {

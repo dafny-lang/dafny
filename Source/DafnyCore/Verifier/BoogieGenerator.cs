@@ -824,13 +824,12 @@ namespace Microsoft.Dafny {
       }
 
       if (program.SystemModuleManager.FloatWidths.Count > 0) {
-        // Boogie's interval domain is unsound for Dafny's floating-point order. It compares floats
-        // numerically, so it sees -0.0 and +0.0 as one point, while Dafny's "<" puts -0.0 strictly
-        // below +0.0. Narrowing the free invariant that a decreases clause emits then hides the very
-        // alternation the refined order creates: a loop whose metric flips between the two zeros is
-        // accepted as terminating, so "ensures false" goes through and a caller proves anything.
-        // Turning the analysis off for a program that mentions fp at all is coarse, in the same way
-        // the compilation check is, and for the same reason -- it cannot then be missed.
+        // Boogie's interval domain is unsound for Dafny's floating-point order: it compares floats
+        // numerically and so sees the two zeros as one point, where Dafny's "<" separates them.
+        // Narrowing the free invariant a decreases clause emits then hides the alternation that
+        // separation creates, and a loop whose metric flips between the zeros is accepted as
+        // terminating -- so "ensures false" goes through. Off for any program mentioning fp, coarse
+        // but impossible to miss.
         options.UseAbstractInterpretation = false;
       }
 

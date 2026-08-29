@@ -131,21 +131,15 @@ namespace Dafny {
   // function of the bit pattern that is constant on each equivalence class, so
   // any representative gives the same answer.
   //
-  // IComparable is implemented, and is Dafny's own order rather than an
-  // approximation of it: the order is total, including at NaN, so .NET's
-  // requirement that CompareTo be a total order consistent with Equals is met
-  // exactly.
-  //
   // This file compiles against netstandard2.0 and net452 at LangVersion 7.3, so
   // double.IsNegative/IsFinite/IsNormal/IsSubnormal and
   // BitConverter.SingleToInt32Bits are unavailable here.
   // ---------------------------------------------------------------------------
   /// <summary>
-  /// Renders what "R" produced in the way Dafny writes a floating-point literal, so that printed
-  /// output can be read back as source: a lowercase exponent marker with no "+", and a decimal
-  /// point when there is no exponent at all. "R" already gives the shortest digits that identify
-  /// the value, which are the same digits Dafny's own literal printer produces, so only the
-  /// punctuation differs.
+  /// Reformats what "R" produced as a Dafny floating-point literal: a lowercase exponent marker
+  /// with no "+", and a decimal point when there is no exponent. "R" already gives the shortest
+  /// digits that identify the value, which are the digits Dafny's literal printer produces, so only
+  /// the punctuation differs.
   /// </summary>
   internal static class FpFormat {
     internal static string DafnyLiteralForm(string rendered) {
@@ -154,9 +148,7 @@ namespace Dafny {
       if (marker < 0) {
         return s.IndexOf('.') < 0 ? s + ".0" : s;
       }
-      // "R" pads an exponent to two digits, so 1e-9 arrives as 1e-09. Strip the padding: an
-      // unpadded exponent is how a Dafny literal is written, and how every other shortest-form
-      // printer renders it.
+      // "R" pads an exponent to two digits, so 1e-9 arrives as 1e-09; a Dafny literal is unpadded.
       var exponent = s.Substring(marker + 1);
       var sign = exponent.Length > 0 && exponent[0] == '-' ? "-" : "";
       var digits = (sign.Length > 0 ? exponent.Substring(1) : exponent).TrimStart('0');
@@ -181,13 +173,13 @@ namespace Dafny {
 
     public static readonly Fp64 Zero = new Fp64(0.0);
 
+    private static bool IsNaNBits(long bits) =>
+      (bits & ExponentMask) == ExponentMask && (bits & SignificandMask) != 0;
+
     /// <summary>
     /// This value's identity in the SMT FloatingPoint sort: the raw bits, except that every NaN
     /// maps to one pattern. Two Fp64s are the same Dafny value exactly when their keys are equal.
     /// </summary>
-    private static bool IsNaNBits(long bits) =>
-      (bits & ExponentMask) == ExponentMask && (bits & SignificandMask) != 0;
-
     private long EqualityKey => IsNaNBits(BitConverter.DoubleToInt64Bits(value))
       ? NaNCanonicalBits
       : BitConverter.DoubleToInt64Bits(value);
@@ -195,9 +187,7 @@ namespace Dafny {
     public bool Equals(Fp64 other) {
       var a = BitConverter.DoubleToInt64Bits(value);
       var b = BitConverter.DoubleToInt64Bits(other.value);
-      // Equal bit patterns are the same value. Differing ones can still be the same value only
-      // when both are NaN, because the sort has exactly one NaN -- that is the entire difference
-      // between this and comparing the raw doubles.
+      // Differing bit patterns are the same value only when both are NaN, the sort having one NaN.
       return a == b || (IsNaNBits(a) && IsNaNBits(b));
     }
     public override bool Equals(object obj) => obj is Fp64 other && Equals(other);
@@ -213,27 +203,20 @@ namespace Dafny {
     private bool IsNegativeZero => BitConverter.DoubleToInt64Bits(value) == SignBit;
     private bool IsPositiveZero => BitConverter.DoubleToInt64Bits(value) == 0L;
 
-    // Dafny's "<": IEEE fp.lt refined so that -0.0 < +0.0 and so that NaN is above every number.
-    // Mirrors FpLess in the verifier, where the reasons for both refinements are set out. The result
-    // is a strict total order agreeing with "==", so unlike IEEE it is defined on every pair --
-    // 1.0 < NaN is true and NaN < NaN is false.
+    // Dafny's "<": IEEE fp.lt refined so that -0.0 < +0.0 and NaN is above every number. Mirrors
+    // FpLess in the verifier, which gives the reasons for both refinements. The result is a strict
+    // total order agreeing with "==", so unlike IEEE it is defined on every pair: 1.0 < NaN is true
+    // and NaN < NaN is false.
     //
-    // The NaN test is double.IsNaN rather than the bit form used by IsNaN below. The two agree on
-    // every input, unlike double.IsNegative, and double.IsNaN is "d != d", a single compare where
-    // the bit form needs a reinterpret and two masks. Over 60M comparisons on non-NaN data the bit
-    // form cost about 4% against the earlier partial order, and this form nothing measurable.
+    // double.IsNaN rather than the bit form used by IsNaN below: the two agree on every input,
+    // unlike double.IsNegative, and "d != d" is a single compare.
     public static bool operator <(Fp64 a, Fp64 b) =>
       a.value < b.value || (a.IsNegativeZero && b.IsPositiveZero)
                         || (!double.IsNaN(a.value) && double.IsNaN(b.value));
 
-    // The other three follow from that one, because the order is total: "a <= b" and "not (b < a)"
-    // agree everywhere, which they did not under the earlier partial order. Measured to cost nothing
-    // over spelling "<=" out separately, and it leaves one definition to get right.
-    //
-    // The verifier's FpAtMost deliberately does NOT take this shortcut, for a reason that applies
-    // only there: it turns antisymmetry into trichotomy, which Dafny's default solver options cannot
-    // discharge. See FpAtMost. What holds the two spellings to the same order is FpCoherentOrder.dfy,
-    // plus the complement identity in FpTotalOrderNeedsCaseSplitZero.dfy.
+    // Totality makes "a <= b" and "!(b < a)" the same relation, so one definition serves all four.
+    // The verifier's FpAtMost does not take this shortcut, for a reason that applies only there:
+    // it turns antisymmetry into trichotomy, which the default solver options cannot discharge.
     public static bool operator >(Fp64 a, Fp64 b) => b < a;
     public static bool operator <=(Fp64 a, Fp64 b) => !(b < a);
     public static bool operator >=(Fp64 a, Fp64 b) => !(a < b);
@@ -255,18 +238,12 @@ namespace Dafny {
     public bool Equals(double other) => throw new NotSupportedException();
 
     /// <summary>
-    /// Dafny's order, as .NET's comparison protocol. This is exactly the order the operators above
-    /// implement, so CompareTo is negative precisely where "&lt;" holds and zero precisely where
-    /// Equals holds -- which is what a SortedSet or SortedDictionary requires, and what makes
-    /// Comparer&lt;Fp64&gt;.Default correct for one.
+    /// Dafny's order as .NET's comparison protocol: negative exactly where "&lt;" holds, zero exactly
+    /// where Equals holds. That consistency is what SortedSet and SortedDictionary require, so
+    /// Comparer&lt;Fp64&gt;.Default is correct for them.
     ///
-    /// The key is computed from the CANONICALIZED value, so all NaN payloads and both NaN signs
-    /// share the single position at the top.
-    ///
-    /// This differs from fp64's platform counterpart. System.Double.CompareTo returns 0 for the two
-    /// zeros, so it is inconsistent with an equality that separates them, and it places NaN BELOW
-    /// negative infinity. java.lang.Double.compare is the same shape as this one, NaN at the top
-    /// included.
+    /// Not a delegation to System.Double.CompareTo, which returns 0 for the two zeros and places NaN
+    /// below negative infinity.
     /// </summary>
     public int CompareTo(Fp64 other) => OrderKey(this).CompareTo(OrderKey(other));
 
@@ -281,21 +258,19 @@ namespace Dafny {
     }
 
     private static long OrderKey(Fp64 v) {
-      // Map sign-magnitude onto a monotone two's-complement key. The "- 1" is what keeps -0.0
-      // strictly below +0.0; without it the two collide and SortedSet disagrees with HashSet. The
-      // canonical NaN pattern exceeds +infinity's, so NaN lands at the top with nothing to do.
+      // Map sign-magnitude onto a monotone two's-complement key. The "- 1" keeps -0.0 strictly below
+      // +0.0; without it the two collide. Canonicalized, so all NaNs share the top position, which
+      // the canonical pattern already exceeding +infinity's gives for free.
       var bits = v.EqualityKey;
       return bits < 0 ? long.MinValue - bits - 1 : bits;
     }
 
     // -------- Classification --------
-    // These are the SMT-LIB FloatingPoint predicates, which is what the verifier reasons about.
-    // They are spelled out over the bits rather than delegated to System.double for two reasons:
-    // double.IsNormal/IsSubnormal do not exist on every target framework of this library, and
-    // double.IsNegative disagrees with fp.isNegative on NaN. .NET's double.NaN has its sign bit set,
-    // so double.IsNegative(double.NaN) is true, whereas SMT-LIB and IEEE 754 agree that NaN is
-    // neither negative nor positive. That divergence is observable from Dafny: the verifier
-    // proves !x.IsNegative from x.IsNaN.
+    // The SMT-LIB FloatingPoint predicates, which is what the verifier reasons about. Over the bits
+    // rather than via System.double for two reasons: double.IsNormal/IsSubnormal are absent on some
+    // target frameworks of this library, and double.IsNegative(double.NaN) is true, where SMT-LIB and
+    // IEEE 754 agree NaN has no sign. That divergence is observable -- the verifier proves
+    // !x.IsNegative from x.IsNaN.
     private static long Exponent(double d) => BitConverter.DoubleToInt64Bits(d) & ExponentMask;
     private static long Significand(double d) => BitConverter.DoubleToInt64Bits(d) & SignificandMask;
 
@@ -309,10 +284,9 @@ namespace Dafny {
     public static bool IsPositive(Fp64 a) => !IsNaN(a) && (BitConverter.DoubleToInt64Bits(a.value) & SignBit) == 0;
 
     // -------- Constants --------
-    // Pi and E are the exact dyadic rationals the verifier uses (see the fp64 cases in
-    // BoogieGenerator.ExpressionTranslator). Numerator and denominator are each exactly
-    // representable and the denominator is a power of two, so the quotient is exact: runtime and
-    // verifier agree by construction rather than by how a decimal literal happens to round.
+    // Pi and E are the dyadic rationals the verifier uses (BoogieGenerator.ExpressionTranslator).
+    // Both operands are exactly representable and the denominator is a power of two, so the quotient
+    // is exact and the two agree by construction rather than by how a decimal literal rounds.
     public static readonly Fp64 NaN = FromDoubleBits(NaNCanonicalBits);
     public static readonly Fp64 PositiveInfinity = new Fp64(double.PositiveInfinity);
     public static readonly Fp64 NegativeInfinity = new Fp64(double.NegativeInfinity);
@@ -325,10 +299,9 @@ namespace Dafny {
     public static readonly Fp64 Epsilon = new Fp64(1.0 / 4503599627370496.0);  // 2^-52
 
     // -------- The fp64.* built-ins --------
-    // The code generator emits a call to the static of the same name for each of these, so this is
-    // the single place where their meaning is defined. Equal and Less are IEEE while the operators
-    // above are Dafny's; having both under names of their own is what stops one being emitted
-    // where the other was meant.
+    // The code generator emits a call to the static of the same name for each, so this is the one
+    // place their meaning is defined. Equal and Less are IEEE where the operators above are Dafny's;
+    // separate names are what keep one from being emitted where the other was meant.
     public static bool Equal(Fp64 a, Fp64 b) => IeeeEqual(a, b);
     public static bool Less(Fp64 a, Fp64 b) => IeeeLess(a, b);
     public static bool LessOrEqual(Fp64 a, Fp64 b) => IeeeLessOrEqual(a, b);
@@ -348,17 +321,16 @@ namespace Dafny {
     public static Fp64 Sqrt(Fp64 a) => new Fp64(Math.Sqrt(a.value));
     public static Fp64 FromReal(BigRational r) => new Fp64(r.ToDouble());
 
-    // SMT-LIB fp.min/fp.max return the other operand when one is NaN instead of propagating it
-    // the way Math.Min/Math.Max do, and the verifier relies on that: fp.min(NaN, 1.0) == 1.0 is
-    // forced. Their value on the two zeros is left unspecified by SMT-LIB, so either is sound.
+    // SMT-LIB fp.min/fp.max discard a NaN operand where Math.Min/Math.Max propagate one, and the
+    // verifier holds them to that: fp.min(NaN, 1.0) == 1.0 is forced. On two zeros of opposite sign
+    // SMT-LIB leaves the result free, so either is sound.
     public static Fp64 Min(Fp64 a, Fp64 b) => IsNaN(a) ? b : IsNaN(b) ? a : new Fp64(Math.Min(a.value, b.value));
     public static Fp64 Max(Fp64 a, Fp64 b) => IsNaN(a) ? b : IsNaN(b) ? a : new Fp64(Math.Max(a.value, b.value));
 
     public static BigInteger ToInt(Fp64 a) => (BigInteger)Math.Truncate((double)a.value);
 
-    // The "as" conversions. Each rounds, and each is only ever emitted where the verifier has
-    // already discharged an exactness obligation, so on any execution that was proved correct the
-    // rounding is the identity.
+    // The "as" conversions. Each rounds, but each is only emitted where the verifier has discharged
+    // an exactness obligation, so on a proved execution the rounding is the identity.
     public static Fp64 FromInt(BigInteger i) => new Fp64((double)i);
     /// <summary>
     /// The exact value as a rational. Every finite fp64 is m * 2^e for integers m and e, so no
@@ -370,9 +342,8 @@ namespace Dafny {
       if (!IsFinite(a)) {
         throw new ArgumentException("Can't convert " + a + " to a rational.");
       }
-      // Required, and not only because reals have no signed zero so that -0.0 has to land here too:
-      // the reduction loop below shifts while the low bit is clear, which never terminates on a zero
-      // significand. Removing this branch hangs on BOTH zeros rather than answering wrongly.
+      // Both zeros land here: reals have no signed zero, and the reduction loop below shifts while
+      // the low bit is clear, so a zero significand would not terminate.
       if (IsZero(a)) {
         return new BigRational(0);
       }
@@ -382,8 +353,7 @@ namespace Dafny {
       // Subnormals have no implicit leading one, and their exponent is that of the smallest normal.
       var significand = biasedExponent == 0 ? mantissa : mantissa | (SignificandMask + 1);
       var exponent = (biasedExponent == 0 ? 1 : biasedExponent) - 1075;
-      // Cancel the common powers of two, so 1.5 comes out as 3/2. Terminates because the significand
-      // is nonzero here, per the guard above.
+      // Cancel the common powers of two, so 1.5 comes out as 3/2.
       while ((significand & 1) == 0) {
         significand >>= 1;
         exponent++;
@@ -501,13 +471,7 @@ namespace Dafny {
     }
 
     // -------- Classification --------
-    // These are the SMT-LIB FloatingPoint predicates, which is what the verifier reasons about.
-    // They are spelled out over the bits rather than delegated to System.float for two reasons:
-    // float.IsNormal/IsSubnormal do not exist on every target framework of this library, and
-    // float.IsNegative disagrees with fp.isNegative on NaN. .NET's float.NaN has its sign bit set,
-    // so float.IsNegative(float.NaN) is true, whereas SMT-LIB and IEEE 754 agree that NaN is
-    // neither negative nor positive. That divergence is observable from Dafny: the verifier
-    // proves !x.IsNegative from x.IsNaN.
+    // As Fp64: the SMT-LIB predicates, over the bits for the reasons given there.
     private static int Exponent(float d) => ToBits(d) & ExponentMask;
     private static int Significand(float d) => ToBits(d) & SignificandMask;
 
@@ -521,10 +485,7 @@ namespace Dafny {
     public static bool IsPositive(Fp32 a) => !IsNaN(a) && (ToBits(a.value) & SignBit) == 0;
 
     // -------- Constants --------
-    // Pi and E are the exact dyadic rationals the verifier uses (see the fp32 cases in
-    // BoogieGenerator.ExpressionTranslator). Numerator and denominator are each exactly
-    // representable and the denominator is a power of two, so the quotient is exact: runtime and
-    // verifier agree by construction rather than by how a decimal literal happens to round.
+    // As Fp64: exact dyadic quotients, matching the fp32 cases in the translator.
     public static readonly Fp32 NaN = FromFloatBits(NaNCanonicalBits);
     public static readonly Fp32 PositiveInfinity = new Fp32(float.PositiveInfinity);
     public static readonly Fp32 NegativeInfinity = new Fp32(float.NegativeInfinity);
@@ -537,10 +498,7 @@ namespace Dafny {
     public static readonly Fp32 Epsilon = new Fp32(1.0f / 8388608.0f);  // 2^-23
 
     // -------- The fp32.* built-ins --------
-    // The code generator emits a call to the static of the same name for each of these, so this is
-    // the single place where their meaning is defined. Equal and Less are IEEE while the operators
-    // above are Dafny's; having both under names of their own is what stops one being emitted
-    // where the other was meant.
+    // As Fp64: one static per built-in, with Equal and Less the IEEE counterparts of the operators.
     public static bool Equal(Fp32 a, Fp32 b) => IeeeEqual(a, b);
     public static bool Less(Fp32 a, Fp32 b) => IeeeLess(a, b);
     public static bool LessOrEqual(Fp32 a, Fp32 b) => IeeeLessOrEqual(a, b);
@@ -567,9 +525,7 @@ namespace Dafny {
     // "as fp32" asserts exact representability instead.
     public static Fp32 FromFp64(Fp64 a) => new Fp32((float)a.Value);
 
-    // SMT-LIB fp.min/fp.max return the other operand when one is NaN instead of propagating it
-    // the way Math.Min/Math.Max do, and the verifier relies on that: fp.min(NaN, 1.0) == 1.0 is
-    // forced. Their value on the two zeros is left unspecified by SMT-LIB, so either is sound.
+    // As Fp64: discard a NaN rather than propagating it, per SMT-LIB.
     public static Fp32 Min(Fp32 a, Fp32 b) => IsNaN(a) ? b : IsNaN(b) ? a : new Fp32(Math.Min(a.value, b.value));
     public static Fp32 Max(Fp32 a, Fp32 b) => IsNaN(a) ? b : IsNaN(b) ? a : new Fp32(Math.Max(a.value, b.value));
 
@@ -2370,14 +2326,13 @@ namespace Dafny {
       var scaledNum = absNum << scaleBits;
       var quotient = BigInteger.DivRem(scaledNum, absDen, out var remainder);
 
-      // Fold the remainder into a sticky bit rather than rounding it away here. The narrowing
-      // further down rounds to nearest, ties to even, and rounding twice is not the same as
-      // rounding once: the first rounding destroys the residual that decides the second, which
-      // lands about one conversion in twenty-five on the neighbouring value.
+      // Fold the remainder into a sticky bit rather than rounding it away here. The narrowing below
+      // rounds to nearest, ties to even, and rounding twice differs from rounding once: the first
+      // rounding destroys the residual that decides the second.
       //
-      // An OR is enough. The scaling above always leaves at least two bits below the narrowing
-      // point, so bit 0 is discarded there; and if bit 0 is already set then the discarded tail is
-      // already non-zero, so it cannot be the exact tie that the sticky bit exists to break.
+      // An OR suffices. The scaling above leaves at least two bits below the narrowing point, so
+      // bit 0 is discarded there; and if bit 0 is already set then the discarded tail is non-zero
+      // anyway, so it cannot be the exact tie the sticky bit exists to break.
       if (!remainder.IsZero) {
         quotient |= BigInteger.One;
       }
@@ -2395,12 +2350,11 @@ namespace Dafny {
         return isNegative ? double.NegativeInfinity : double.PositiveInfinity;
       }
 
-      // Handle underflow and subnormals. Far underflow needs no special case: the shift below is
-      // computed from the biased exponent, so a value hundreds of binades beneath the smallest
-      // subnormal gets a correspondingly large shift and rounds to zero, and a value exactly halfway
-      // to the smallest subnormal rounds to even, which is zero. An earlier special case shifted by
-      // the quotient's own width instead, which ignores how far below the range the value sits, so
-      // 1e-400 came back as the smallest subnormal rather than zero.
+      // Underflow and subnormals. Far underflow needs no special case: the shift below is computed
+      // from the biased exponent, so a value far beneath the smallest subnormal gets a correspondingly
+      // large shift and rounds to zero, and one exactly halfway to the smallest subnormal rounds to
+      // even, which is zero. A shift by the quotient's own width would ignore how far below the range
+      // the value sits and return the smallest subnormal instead.
       if (biasedExponent <= 0) {
         var shiftAmount = quotientBits - significandSize - biasedExponent + 1;
         if (shiftAmount > 0) {

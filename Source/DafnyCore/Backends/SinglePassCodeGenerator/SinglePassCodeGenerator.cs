@@ -1536,11 +1536,9 @@ namespace Microsoft.Dafny.Compilers {
     /// Dafny.Fp32/Dafny.Fp64 implement the verifier's notion instead of the platform's; every other
     /// backend still lists Feature.FloatingPointTypes and so lands here.
     ///
-    /// Deliberately whole-program rather than per-position. An earlier version walked only the
-    /// compiled positions so that fp used purely in specifications still compiled, and it leaked
-    /// twice -- on subset-type witnesses and on const initialisers -- each time letting compiled fp
-    /// arithmetic run. FloatWidths is populated for every fp use, ghost or not, so this cannot miss
-    /// one.
+    /// Whole-program rather than per-position. Walking only the compiled positions, so that fp used
+    /// purely in specifications still compiles, leaks through subset-type witnesses and const
+    /// initialisers. FloatWidths is populated for every fp use, ghost or not, so this cannot miss one.
     /// </summary>
     private void CheckForCompiledFloatingPoint(Program program) {
       if (UnsupportedFeatures.Contains(Feature.FloatingPointTypes)

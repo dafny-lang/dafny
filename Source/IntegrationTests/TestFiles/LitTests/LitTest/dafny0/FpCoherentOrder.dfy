@@ -3,10 +3,9 @@
 // Dafny's "<" on floating point is a strict total order on the whole domain that agrees with "==".
 // Two refinements of IEEE fp.lt get it there.
 //
-// -0.0 < 0.0, because "==" is structural equality on the SMT FloatingPoint sort, which keeps the
-// two zeros apart while raw fp.lt leaves them tied. The combination was incoherent: trichotomy
-// failed and "a <= b && b <= a ==> a == b" was refutable. IEEE 754-2019 clause 5.10 totalOrder
-// specifies which way to break the tie.
+// -0.0 < 0.0, because "==" is structural equality on the SMT FloatingPoint sort and keeps the two
+// zeros apart where raw fp.lt ties them. Tied, trichotomy fails and "a <= b && b <= a ==> a == b" is
+// refutable. IEEE 754-2019 clause 5.10 totalOrder fixes the direction.
 //
 // NaN is above every number, which makes the order total rather than partial and is why comparison
 // carries no non-NaN obligation while arithmetic does: a comparison yields a bool, so there is no
@@ -14,9 +13,8 @@
 // splits NaNs by sign across both ends and this encoding has exactly one NaN; the top follows
 // java.lang.Double.compare.
 //
-// This file holds what a user can prove under Dafny's default solver options. Totality,
-// trichotomy and transitivity are also true, but need a different option to discharge -- see
-// FpTotalOrderNeedsCaseSplitZero.dfy, which says why.
+// This file holds what is provable under the default solver options. Totality, trichotomy and
+// transitivity are true too, but need a different option -- see FpTotalOrderNeedsCaseSplitZero.dfy.
 
 lemma SignedZerosAreOrdered() {
   var p: fp64 := 0.0;
@@ -63,8 +61,7 @@ lemma NaNIsNotBelowItself(x: fp64, y: fp64)
   assert x <= y;
 }
 
-// Comparing possibly-NaN operands is well formed. Before the order was made total this method was
-// four errors.
+// Comparing possibly-NaN operands is well formed.
 lemma ComparisonHasNoNaNObligation(x: fp64, y: fp64) {
   var a := x < y;
   var b := x <= y;
@@ -74,7 +71,7 @@ lemma ComparisonHasNoNaNObligation(x: fp64, y: fp64) {
   assert b == (y >= x);
 }
 
-// Antisymmetry, which was refutable under raw fp.lt, and now needs no hypothesis at all.
+// Antisymmetry, refutable under raw fp.lt, and needing no hypothesis here.
 lemma Antisymmetry(a: fp64, b: fp64) {
   assert a <= b && b <= a ==> a == b;
 }
@@ -89,10 +86,8 @@ lemma AntisymmetryHolds(a: fp64, b: fp64)
 {
 }
 
-// "<=" is the reflexive closure of "<", and "<" is irreflexive -- again unconditionally. Both
-// directions matter: "<" and "<=" have separate definitions in the translator, and this is what
-// pins them to the same order. FpTotalOrderNeedsCaseSplitZero.dfy adds the identity that only
-// holds because the order is total, "a <= b" iff "!(b < a)".
+// "<=" is the reflexive closure of "<", and "<" is irreflexive. Both directions matter: "<" and "<="
+// have separate definitions in the translator, and this is what pins them to one order.
 lemma LessEqualIsTheClosure(a: fp64, b: fp64) {
   assert a == b ==> a <= b;
   assert a < b ==> a <= b;
@@ -101,10 +96,9 @@ lemma LessEqualIsTheClosure(a: fp64, b: fp64) {
   assert a <= a;
 }
 
-// The unchecked static methods keep raw IEEE comparison, which leaves the two zeros tied and makes
-// every NaN comparison false. This mirrors fp*.Equal keeping IEEE equality while "==" is value
-// identity: the static-method family is the IEEE view, the operators are Dafny's.
-lemma UncheckedMethodsStayIeee() {
+// The static methods are raw IEEE comparison, which ties the two zeros and makes every NaN comparison
+// false. The family is the IEEE view throughout; the operators are Dafny's.
+lemma StaticMethodsStayIeee() {
   var p: fp64 := 0.0;
   var n: fp64 := -0.0;
   assert n < p;                     // operator: ordered
@@ -116,7 +110,7 @@ lemma UncheckedMethodsStayIeee() {
   assert p != n;                    // value identity does not
 }
 
-lemma UncheckedMethodsLeaveNaNUnordered(x: fp64)
+lemma StaticMethodsLeaveNaNUnordered(x: fp64)
   requires !x.IsNaN
 {
   assert x < fp64.NaN;                     // operator: NaN is the top
@@ -126,16 +120,14 @@ lemma UncheckedMethodsLeaveNaNUnordered(x: fp64)
   assert !fp64.LessOrEqual(fp64.NaN, fp64.NaN);
 }
 
-// fp*.Min and fp*.Max are IEEE fp.min/fp.max, not the order's minimum and maximum, and they part
-// company with the order at both of the places where Dafny departs from IEEE. At NaN, IEEE DISCARDS
-// rather than propagates -- fp.max(NaN, x) is x, so the maximum of a NaN and a number is the
-// number, where the order says NaN is the larger. At the signed zeros, SMT-LIB leaves the result
-// free to be either zero, so nothing about that case is provable. Away from both they coincide,
-// which is the region where anything is at stake.
+// fp*.Min and fp*.Max are IEEE fp.min/fp.max, not the order's minimum and maximum, and they diverge
+// at both places where Dafny departs from IEEE. At NaN, IEEE DISCARDS rather than propagates --
+// fp.max(NaN, x) is x, where the order makes NaN the larger. At the signed zeros SMT-LIB leaves the
+// result free, so nothing about that case is provable. Away from both they coincide.
 //
-// Nothing needs fixing there: a user who wants the order's minimum writes it, and the result is
-// better behaved than fp.min -- total, so no precondition, and correct at the zeros and at NaN.
-// FpTotalOrderNeedsCaseSplitZero.dfy carries the quantified bound properties.
+// Whoever wants the order's minimum writes it, and gets something better behaved than fp.min: total,
+// so no precondition, and correct at the zeros and at NaN. FpTotalOrderNeedsCaseSplitZero.dfy carries
+// the quantified bound properties.
 function OrderMin(x: fp64, y: fp64): fp64 { if x < y then x else y }
 function OrderMax(x: fp64, y: fp64): fp64 { if x < y then y else x }
 
@@ -151,9 +143,7 @@ lemma IeeeMinAgreesWithTheOrderAwayFromZero(x: fp64, y: fp64)
   assert fp64.Max(x, y) == OrderMax(x, y);
 }
 
-// And where they disagree, that is now sayable: fp*.Min and fp*.Max carry no obligations, so a NaN
-// argument can be passed and the discarding observed. This was four errors before the fp*. family
-// was made uniformly IEEE.
+// Where they disagree is observable, the family carrying no obligations.
 lemma IeeeMinAndMaxDiscardANaN(x: fp64)
   requires !x.IsNaN
 {

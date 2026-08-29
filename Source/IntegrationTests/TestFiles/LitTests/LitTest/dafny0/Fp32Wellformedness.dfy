@@ -1,7 +1,7 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
 
-// As Fp64Wellformedness.dfy, at the other width: the operators carry obligations, the fp32.*
-// static methods are IEEE and carry none, and fp32.ToInt is the single exception.
+// As Fp64Wellformedness.dfy at the other width: the operators carry obligations, the fp32.* static
+// methods are IEEE and carry none, and fp32.ToInt is the single exception.
 
 method ArithmeticNaN(x: fp32, y: fp32) {
   var _ := x + y;  // ERROR x2: requires !x.IsNaN && !y.IsNaN

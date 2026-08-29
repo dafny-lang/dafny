@@ -1,6 +1,6 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
 
-// Which fp64 operations carry well-formedness obligations, and which deliberately do not.
+// Which fp64 operations carry well-formedness obligations, and which do not.
 //
 // The rule is that the OPERATORS are Dafny's, and carry obligations, while the fp64.* static
 // methods are the IEEE operations and carry none. fp64.ToInt is the single exception, and its
@@ -23,10 +23,10 @@ method InvalidInfinity() {
   var _ := inf / inf;     // ERROR: ∞ / ∞
 }
 
-// Comparison carries NO NaN obligation, unlike the arithmetic above: its result is a bool, so there
-// is no unrequested NaN to prevent, and the order is total with NaN above every number. This method
-// now generates no proof obligation at all, which is why it adds nothing to the "verified" count;
-// what pins the change is the absence of its errors from the .expect file.
+// Comparison carries no NaN obligation, unlike the arithmetic above: its result is a bool, so there
+// is no unrequested NaN to prevent, and the order is total. Generating no obligation at all, this
+// method adds nothing to the "verified" count; what pins it is the absence of errors here from
+// the .expect file.
 method ComparisonNaN(x: fp64, y: fp64) {
   var _ := x < y;   // OK on arbitrary operands
   var _ := x <= y;  // OK
@@ -34,14 +34,10 @@ method ComparisonNaN(x: fp64, y: fp64) {
   var _ := x >= y;  // OK
 }
 
-// The whole fp64.* family, on wholly unconstrained arguments, with no errors expected. These are
-// the IEEE operations, so each is total: where the operation has no numeric result it answers NaN,
-// and there is nothing for an obligation to prevent.
-//
-// Seven of these used to be errors -- Sqrt with two, Floor, Ceiling, Round, Abs, Min and Max --
-// which made the family incoherent, since fp64.Div(0.0, 0.0) was allowed to produce a NaN while
-// fp64.Sqrt(-1.0) was refused and nothing in the names said which was which. They bought no safety
-// either: see NaNFromTheFamilyStillCannotReachArithmetic.
+// The whole fp64.* family on unconstrained arguments, with no errors expected. These are the IEEE
+// operations, so each is total: where the operation has no numeric result it answers NaN, and there
+// is nothing for an obligation to prevent. An obligation on any of them would also buy no safety --
+// see NaNFromTheFamilyStillCannotReachArithmetic.
 method TheFamilyIsUniformlyIeee(x: fp64, y: fp64) {
   var _ := fp64.Add(x, y);
   var _ := fp64.Sub(x, y);
@@ -49,8 +45,8 @@ method TheFamilyIsUniformlyIeee(x: fp64, y: fp64) {
   var _ := fp64.Div(x, y);
   var _ := fp64.Neg(x);
   var _ := fp64.Sqrt(x);
-  var _ := fp64.Sqrt(-1.0);   // IEEE: NaN, and now sayable
-  var _ := fp64.Sqrt(-0.0);   // IEEE: -0.0, which the old obligation also refused
+  var _ := fp64.Sqrt(-1.0);   // IEEE: NaN
+  var _ := fp64.Sqrt(-0.0);   // IEEE: -0.0, which fp.isNegative(-0.0) would wrongly exclude
   var _ := fp64.Floor(x);
   var _ := fp64.Ceiling(x);
   var _ := fp64.Round(x);
@@ -66,8 +62,8 @@ method TheFamilyIsUniformlyIeee(x: fp64, y: fp64) {
   var _ := fp32.FromFp64(x);
 }
 
-// Dropping those obligations costs nothing, because a NaN reaching arithmetic is stopped there
-// whatever produced it. The diagnostic moves to the use rather than disappearing.
+// A NaN reaching arithmetic is stopped there whatever produced it, so the diagnostic sits at the use
+// rather than at the method.
 method NaNFromTheFamilyStillCannotReachArithmetic(x: fp64) returns (r: fp64) {
   var s := fp64.Sqrt(-1.0);
   r := s + 1.0;              // ERROR: + requires operands that are not NaN
@@ -81,12 +77,11 @@ method NaNFromTheFamilyIsFineOutsideArithmetic() returns (b: bool) {
   assert s == fp64.NaN;      // and there is exactly one NaN
 }
 
-// ToInt is the one checked method, and not for the reason the others used to be. fp.to_sbv of a
-// NaN or an infinity is an UNSPECIFIED integer rather than a NaN, so there is no IEEE answer to
-// fall back on and no obligation-free version to offer.
+// ToInt is the one checked method: fp.to_sbv of a NaN or an infinity is an UNSPECIFIED integer
+// rather than a NaN, so there is no IEEE answer to fall back on.
 //
-// One call per method: ToInt goes through fp.to_real, and several in one proof context push it past
-// the time limit. FpCompiledSurface.dfy splits its conversions for the same reason.
+// One call per method, ToInt going through fp.to_real, which is expensive enough that several in one
+// proof context exceed the time limit.
 method ToIntIsTheOneCheckedMethod(x: fp64) {
   var _ := fp64.ToInt(x);                      // ERROR: requires x.IsFinite
 }

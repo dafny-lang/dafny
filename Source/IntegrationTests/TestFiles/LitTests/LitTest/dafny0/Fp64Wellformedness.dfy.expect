@@ -4,9 +4,9 @@ Fp64Wellformedness.dfy(11,13): Error: fp64 subtraction has invalid operand combi
 Fp64Wellformedness.dfy(12,13): Error: fp64 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
 Fp64Wellformedness.dfy(13,13): Error: possible division by zero
 Fp64Wellformedness.dfy(19,15): Error: fp64 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
-Fp64Wellformedness.dfy(73,7): Error: fp64 arithmetic requires that operands are not NaN
-Fp64Wellformedness.dfy(91,21): Error: fp64.ToInt requires a finite argument (not NaN or infinity)
-Fp64Wellformedness.dfy(95,21): Error: fp64.ToInt requires a finite argument (not NaN or infinity)
-Fp64Wellformedness.dfy(99,21): Error: fp64.ToInt requires a finite argument (not NaN or infinity)
+Fp64Wellformedness.dfy(69,7): Error: fp64 arithmetic requires that operands are not NaN
+Fp64Wellformedness.dfy(86,21): Error: fp64.ToInt requires a finite argument (not NaN or infinity)
+Fp64Wellformedness.dfy(90,21): Error: fp64.ToInt requires a finite argument (not NaN or infinity)
+Fp64Wellformedness.dfy(94,21): Error: fp64.ToInt requires a finite argument (not NaN or infinity)
 
 Dafny program verifier finished with 2 verified, 10 errors

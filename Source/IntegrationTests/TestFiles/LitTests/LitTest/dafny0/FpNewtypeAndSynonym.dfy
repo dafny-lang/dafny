@@ -9,14 +9,14 @@
 // Dafny's fp type tests (IsFp32Type / IsFp64Type / IsFloatingPointType) are defined via
 // NormalizeExpand(), which sees through type synonyms and subset types but NOT newtypes, while
 // IsNumericBased(Float) and NormalizeToAncestorType() do see through newtypes. Any site that asks
-// a representation question through an unnormalized test therefore skipped every fp obligation for
-// a newtype -- silently, which is how a provable falsehood arose:
+// a representation question through an unnormalized test silently skips every fp obligation for a
+// newtype, which makes a falsehood provable:
 //
 //   newtype MyF = fp64
 //   lemma Bad(x: MyF) requires (x as fp64).IsInfinite { assert (x as real) == 0.0; }
 //
-// "as real" translates to "if isFinite then to_real(x) else 0.0", and with the finiteness
-// obligation skipped the else branch became reachable and pinned the value to 0.0.
+// "as real" translates to "if isFinite then to_real(x) else 0.0", so a skipped finiteness obligation
+// leaves the else branch reachable and pins the value to 0.0.
 //
 // This file pins OBLIGATION PARITY: every spelling of "a floating-point type" must produce the
 // same well-formedness errors. Each method below should report the same obligations as Plain.
@@ -67,8 +67,8 @@ method ViaSynonymOfNewtype(x: SynOfNew, y: SynOfNew) {
   var d := x < y;
 }
 
-// A newtype over fp32 must select the fp32 builtins. Deriving the prefix from an unnormalized
-// type here produced fp64_is_infinite applied to a float24e8, i.e. ill-typed Boogie.
+// A newtype over fp32 must select the fp32 builtins; an unnormalized prefix gives fp64_is_infinite
+// applied to a float24e8, which is ill-typed Boogie.
 method Fp32Newtype(x: New32, y: New32) {
   var a := x + y;
 }
@@ -79,16 +79,15 @@ method Conversions(x: New) {
   var i := x as int;
 }
 
-// The falsehood itself: unprovable once the finiteness obligation is reinstated.
+// The falsehood itself, unprovable while the finiteness obligation is emitted.
 lemma InfiniteIsNotZero(x: New)
   requires (x as fp64).IsInfinite
 {
   assert (x as real) == 0.0;
 }
 
-// A synthesized fp zero must carry ResolvedFloatValue, or the translator asserts. These two shapes
-// ask for one via Zero(): a witness-less subset type needs a default, and assign-such-that needs a
-// starting value. Both used to abort the process.
+// A synthesized fp zero must carry ResolvedFloatValue, or the translator asserts. Both shapes below
+// ask for one via Zero(): a witness-less subset type needs a default, assign-such-that a start.
 type NonNaN = x: fp64 | !x.IsNaN
 type NonNaN32 = x: fp32 | !x.IsNaN
 type OverNewtype = x: New | true

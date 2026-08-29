@@ -10,10 +10,8 @@
 // proves; each "print" is what the compiled program does. If the runtime ever stops agreeing with
 // the verifier, either verification fails here or the expected-output diff does.
 //
-// Every "==" below is in compiled code and needs no precondition. Earlier versions of fp32/fp64
-// demanded that compiled operands be provably non-NaN and never two zeros of opposite sign,
-// because compiled "==" was C#'s IEEE "==" and disagreed with the verifier on exactly those
-// values. The compiled types now implement value identity, so the guards are gone.
+// Every "==" below is in compiled code and needs no precondition, the compiled types
+// implementing value identity rather than C#'s IEEE "==".
 
 method Reflexivity() {
   var one: fp32 := 1.0;
@@ -70,7 +68,7 @@ method IeeeEquality() {
   print "fp32.Equal(1.0, 1.0): ", fp32.Equal(one, one), "\n";
 }
 
-// The property that makes the compiled-context preconditions unnecessary.
+// One relation in both worlds, so a comparison moves freely between spec and code.
 method GhostAndCompiledAgree(x: fp32, y: fp32) {
   ghost var spec := x == y;
   var compiled := x == y;

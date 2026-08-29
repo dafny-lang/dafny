@@ -944,8 +944,7 @@ public partial class BoogieGenerator {
       return Expression.CreateRealLiteral(tok, BaseTypes.BigDec.ZERO);
     } else if (typ.FloatRepresentation is { } facts) {
       // A synthesized fp literal must carry ResolvedFloatValue; the translator asserts on one that
-      // does not, so omitting it here crashed on witness-less subset types over fp and on
-      // assign-such-that ("floating point literal without ResolvedFloatValue: 0e0").
+      // does not. Reached by witness-less subset types over fp and by assign-such-that.
       return new DecimalLiteralExpr(tok, BaseTypes.BigDec.ZERO) {
         Type = typ,
         ResolvedFloatValue = BaseTypes.BigFloat.CreateZero(false, facts.SignificandBits, facts.ExponentBits)
@@ -1219,12 +1218,11 @@ public partial class BoogieGenerator {
         // fp32 to fp64: use SMT-LIB fp.to_fp operation
         r = FunctionCall(tok, "fp32_to_fp64", BplFp64Type, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
-        // fp32 to int: read off the exact real value. This conversion asserts that the
-        // source is finite and already integral, so no rounding step belongs here --
-        // unlike fp32.ToInt, which only requires finiteness and truncates toward zero.
-        // Deliberately not fp.to_sbv: that is unspecified for finite inputs outside the
-        // bitvector's range, and wrapping it in a total int_from_bv definition made
-        // out-of-range conversions provably (and wrongly) fall inside [-2^31, 2^31).
+        // fp32 to int: read off the exact real value. This conversion asserts the source is finite
+        // and already integral, so no rounding belongs here -- unlike fp32.ToInt, which requires only
+        // finiteness and truncates toward zero. Not fp.to_sbv, which is unspecified for finite inputs
+        // outside the bitvector's range; a total int_from_bv wrapper around it would make
+        // out-of-range conversions provably fall inside [-2^31, 2^31).
         r = FunctionCall(tok, "fp32_to_real", Bpl.Type.Real, r);
         r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
@@ -1245,12 +1243,7 @@ public partial class BoogieGenerator {
         // fp64 to fp32: use SMT-LIB fp.to_fp operation
         r = FunctionCall(tok, "fp64_to_fp32_RNE", BplFp32Type, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
-        // fp64 to int: read off the exact real value. This conversion asserts that the
-        // source is finite and already integral, so no rounding step belongs here --
-        // unlike fp64.ToInt, which only requires finiteness and truncates toward zero.
-        // Deliberately not fp.to_sbv: that is unspecified for finite inputs outside the
-        // bitvector's range, and wrapping it in a total int_from_bv definition made
-        // out-of-range conversions provably (and wrongly) fall inside [-2^63, 2^63).
+        // As the fp32 case above: the exact real value, not fp.to_sbv.
         r = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, r);
         r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {

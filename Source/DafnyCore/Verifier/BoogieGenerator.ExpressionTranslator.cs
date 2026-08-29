@@ -892,10 +892,8 @@ namespace Microsoft.Dafny {
             return MaybeLit(Boogie.Expr.Literal(n));
           }
         } else if (e.Value is BigDec) {
-          // FloatRepresentation rather than IsFloatingPointType: a newtype over fp32 is translated
-          // to the fp32 Boogie type, so its literals have to be fp literals as well. With the
-          // declared-type test this fell through to the "real" branch below and Boogie rejected the
-          // program with "cannot assign real to float24e8".
+          // FloatRepresentation rather than IsFloatingPointType: a newtype over fp32 is translated to
+          // the fp32 Boogie type, so its literals must be fp literals too, not reals.
           if (e.Type.FloatRepresentation is { }) {
             // For DecimalLiteralExpr with floating point type, use the precomputed float value if available
             if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
@@ -1321,11 +1319,10 @@ namespace Microsoft.Dafny {
             // The function name below is literal rather than interpolated: it is the callee's
             // precision, not the receiver's, that picks the conversion.
             case "FromFp64":
-              // fp64 -> fp32 rounds to nearest, ties to even. This is the rounding counterpart
-              // of 'as fp32', which instead asserts exact representability -- the same pairing
-              // real already has between fp*.FromReal and 'as fp32'. Since '~' is literals-only,
-              // this is the only way to write a rounding narrowing conversion, so like the rest
-              // of the unchecked family it carries no proof obligation.
+              // fp64 -> fp32 rounds to nearest, ties to even: the rounding counterpart of 'as fp32',
+              // which instead asserts exact representability. '~' applies only to literals, so this is
+              // the only way to write a rounding narrowing, and like the rest of the family it carries
+              // no obligation.
               return CallFloatFunction("fp64_to_fp32_RNE", boogieType, TrExpr(expr.Args[0]));
             case "ToInt": {
                 var arg = TrExpr(expr.Args[0]);
@@ -1334,9 +1331,9 @@ namespace Microsoft.Dafny {
                 return BoogieGenerator.FunctionCall(GetToken(expr), BuiltinFunction.RealToInt, null, toReal);
               }
           }
-          // Falling out of this switch would reach the generic tail below, which emits a call to
-          // an undeclared Boogie function and aborts the process in Boogie's resolver. Fail here
-          // instead, so that the next fp member added without a translation is diagnosable.
+          // Falling out of this switch reaches the generic tail below, which emits a call to an
+          // undeclared Boogie function and aborts in Boogie's resolver. Fail here instead, so the next
+          // fp member added without a translation is diagnosable.
           throw new NotImplementedException($"{floatType} member {name} has no Boogie translation");
         }
 

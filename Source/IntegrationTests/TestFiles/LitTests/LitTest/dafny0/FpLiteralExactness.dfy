@@ -1,16 +1,14 @@
 // RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
-// A compiled literal has to be the same value the verifier reasoned about. It is easy for it not
-// to be: the verifier holds the exact rounded value, while the generated code holds whatever
-// decimal the compiler chose to write, and a decimal that is one digit short names the
-// neighbouring float. BigFloat.ToDecimalString has exactly that defect -- for the fp64 nearest to
-// 4/7 it prints 0.5714285714285713. Literals are therefore emitted as the shortest round-trip
-// decimal computed here, and read back and compared against the value the resolver computed before
-// being written out.
+// A compiled literal must be the same value the verifier reasoned about. The verifier holds the exact
+// rounded value while the generated code holds a decimal, and a decimal one digit short names the
+// neighbouring float -- BigFloat.ToDecimalString prints 0.5714285714285713 for the fp64 nearest 4/7.
+// Literals are therefore emitted as the shortest round-trip decimal, read back, and compared against
+// the resolver's value before being written out.
 //
-// The pairs below are adjacent floats whose shortest decimals differ only in the last digit. If a
-// literal were ever rounded or shortened on the way to the generated code, the two members of a
-// pair would collapse onto one value, and the assert and the print would disagree.
+// The pairs below are adjacent floats whose shortest decimals differ only in the last digit, so any
+// rounding or shortening on the way to the generated code collapses a pair onto one value and makes
+// the assert and the print disagree.
 
 method AdjacentFp64Literals() {
   var a: fp64 := ~0.5714285714285714;
@@ -28,9 +26,8 @@ method AdjacentFp32Literals() {
   print "  ", a, " ", b, "\n";
 }
 
-// Exact literals must be unaffected, and the sign of a zero has to survive. A decimal literal
-// carries no signed zero -- -0.0 is negation applied to the literal 0.0 -- so the sign exists only
-// in the value the resolver computed.
+// Exact literals must be unaffected, and the sign of a zero must survive. A decimal literal carries
+// no signed zero -- -0.0 is negation applied to 0.0 -- so the sign lives only in the resolver's value.
 method ExactLiterals() {
   var half: fp64 := 0.5;
   var two: fp64 := 2.0;
@@ -79,15 +76,14 @@ method PrintedOutputReadsBack() {
   print "             ", largest32, " ", smallest32, "\n";
 }
 
-// A literal where the resolver and a correctly-rounding parser disagree, because the pinned
-// Boogie's decimal-to-BigFloat conversion rounds twice (boogie-org/boogie#1141 fixes it but is not
-// in a release). The resolver reads ~1e-5 as the double one ULP below 1e-5, and the compiled
-// constant has to be the resolver's, because that is the value the proof is about.
+// A literal where the resolver and a correctly-rounding parser disagree, the pinned Boogie's
+// decimal-to-BigFloat conversion rounding twice (boogie-org/boogie#1141 fixes it, unreleased). The
+// resolver reads ~1e-5 as the double one ULP below 1e-5, and the compiled constant must be the
+// resolver's, that being the value the proof is about.
 //
-// THIS TEST IS A REMINDER WITH AN EXPIRY DATE. When Boogie is bumped past #1141 the line below will
-// print 1e-5 and this test will fail. That failure is the signal that the neighbourhood search in
-// CsharpCodeGenerator.FloatLiteralText is now dead code and should be deleted, along with this
-// method. Until then, the search is what keeps the compiled constant equal to the verified one.
+// EXPIRES ON THE NEXT BOOGIE BUMP. Past #1141 the line below prints 1e-5 and this test fails, which
+// is the signal that the neighbourhood search in CsharpCodeGenerator.FloatLiteralText is dead and
+// should go, along with this method.
 method PinnedUntilTheBoogieBump() {
   var offByOne: fp64 := ~1e-5;
   print "~1e-5 resolves to: ", offByOne, "\n";

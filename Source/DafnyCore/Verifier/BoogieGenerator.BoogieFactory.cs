@@ -826,41 +826,32 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Dafny's "&lt;" on fp32/fp64: a strict total order on the whole domain that agrees with "==".
+    /// Dafny's "&lt;" on fp32/fp64: a strict total order on the whole domain, agreeing with "==". Two
+    /// refinements of IEEE fp.lt get it there.
     ///
-    /// Two refinements of IEEE fp.lt get it there.
+    /// -0.0 &lt; +0.0, because "==" is structural equality on the SMT FloatingPoint sort and so keeps
+    /// the two zeros apart, where raw fp.lt ties them. Untied, trichotomy fails and
+    /// "a &lt;= b &amp;&amp; b &lt;= a ==&gt; a == b" is refutable. IEEE 754-2019 clause 5.10 totalOrder fixes the
+    /// direction.
     ///
-    /// First, -0.0 &lt; +0.0. Dafny's "==" on floating point is structural equality on the SMT
-    /// FloatingPoint sort, which keeps the two zeros apart, while raw fp.lt leaves them tied; the
-    /// combination is incoherent, in that trichotomy fails and "a &lt;= b &amp;&amp; b &lt;= a ==&gt; a == b" is
-    /// refutable. IEEE 754-2019 clause 5.10 totalOrder specifies which way to break the tie.
+    /// NaN is above every number, which is what makes the order total, and is why comparison carries
+    /// no NaN obligation while arithmetic does: a comparison yields a bool, so there is no
+    /// unrequested NaN to prevent. totalOrder does not settle NaN's position, splitting NaNs by sign
+    /// across both ends where this sort has exactly one; the top follows java.lang.Double.compare
+    /// and is free in the compiled comparison, the canonical NaN pattern already sorting highest.
     ///
-    /// Second, NaN is above every number. This is what makes the order total rather than partial,
-    /// and it is the reason comparison carries no NaN well-formedness obligation while arithmetic
-    /// does: a comparison yields a bool, so there is no unrequested NaN for an obligation to
-    /// prevent, whereas arithmetic would manufacture one. totalOrder does not settle where NaN
-    /// goes, since it splits NaNs by sign across both ends of the line and this encoding has
-    /// quotiented that away -- the sort has exactly one NaN. Placing it at the top follows
-    /// java.lang.Double.compare, and it is free in the compiled comparison, where the
-    /// canonicalized NaN bit pattern already sorts above every other.
+    /// Totality, trichotomy, antisymmetry, transitivity and irreflexivity hold unconditionally, but
+    /// not all are provable here: antisymmetry and irreflexivity go through under the default solver
+    /// options (FpCoherentOrder.dfy), while totality, trichotomy and transitivity exhaust the
+    /// resource limit and need smt.case_split=0 (FpTotalOrderNeedsCaseSplitZero.dfy). That is the
+    /// third fp incompleteness traced to smt.case_split=3; the conversion exactness checks in
+    /// BoogieGenerator.Types.cs carry TODOs for the other two.
     ///
-    /// Totality, trichotomy, antisymmetry, transitivity and irreflexivity all hold unconditionally,
-    /// where the partial version needed a non-NaN hypothesis and an fp*.Less stepping stone to
-    /// supply the IEEE case split. Being true is not the same as being provable here, though:
-    /// antisymmetry and irreflexivity go through under Dafny's default solver options
-    /// (FpCoherentOrder.dfy), while totality, trichotomy and transitivity exhaust the resource limit
-    /// under them and need smt.case_split=0, which Z3 then finishes in hundredths of a second
-    /// (FpTotalOrderNeedsCaseSplitZero.dfy, which measures both). That setting is the third
-    /// floating-point incompleteness traced to smt.case_split=3; see the TODOs on the conversion
-    /// exactness checks in BoogieGenerator.Types.cs for the other two.
+    /// IEEE comparison stays available as fp32.Less / fp64.Less, where NaN is unordered and the two
+    /// zeros are tied, mirroring fp*.Equal against "==".
     ///
-    /// Raw IEEE comparison remains available as fp32.Less / fp64.Less, mirroring how fp*.Equal
-    /// keeps IEEE equality while "==" is structural. That is where NaN is unordered and the two
-    /// zeros are tied.
-    ///
-    /// The zero tie is spelled as structural equalities against the zero literals rather than
-    /// isZero/isNegative predicates; the two agree on every input (a zero that is negative *is*
-    /// -0.0) and the literal form measured cheaper.
+    /// The zero tie is spelled as equalities against the zero literals rather than
+    /// isZero/isNegative: the two agree on every input, and the literal form measured cheaper.
     /// </summary>
     public static Bpl.Expr FpLess(Bpl.IToken tok, FloatFacts facts, Bpl.Expr e0, Bpl.Expr e1) {
       var ieeeLess = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Lt, e0, e1);
@@ -873,19 +864,14 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Dafny's "&lt;=" on fp32/fp64: the reflexive closure of FpLess, and so total as well. Spelled
-    /// out rather than as "FpLess(e0, e1) || e0 == e1", which would repeat each operand four times
-    /// over rather than the two and three below.
+    /// Dafny's "&lt;=" on fp32/fp64: the reflexive closure of FpLess, hence also total. Spelled out
+    /// rather than as "FpLess(e0, e1) || e0 == e1", which repeats each operand twice more.
     ///
-    /// Now that the order is total, "a &lt;= b" and "not (b &lt; a)" are the same relation, so this could
-    /// be Not(FpLess(e1, e0)) -- one relation for all four comparisons, with no second definition to
-    /// keep in step. That was tried and rejected on measurement: it turns antisymmetry into
-    /// trichotomy, which is one of the properties Dafny's default solver options cannot discharge
-    /// (see FpTotalOrderNeedsCaseSplitZero.dfy), and FpCoherentOrder.dfy went from 1.2 to 31 seconds
-    /// with all three antisymmetry lemmas timing out. Keeping fp.leq gives the solver the case split
-    /// directly. The compiled operators, where no solver is involved, do take the derived form.
-    ///
-    /// What keeps the two definitions in step is FpCoherentOrder.dfy, which pins their agreement.
+    /// Do NOT reduce this to Not(FpLess(e1, e0)), equal though the two are on a total order: that
+    /// turns antisymmetry into trichotomy, which the default solver options cannot discharge, taking
+    /// FpCoherentOrder.dfy from one second to a timeout. Keeping fp.leq hands the solver the case
+    /// split. The compiled operators, with no solver involved, do use the derived form, and
+    /// FpCoherentOrder.dfy pins the two definitions to the same order.
     /// </summary>
     public static Bpl.Expr FpAtMost(Bpl.IToken tok, FloatFacts facts, Bpl.Expr e0, Bpl.Expr e1) {
       var ieeeAtMost = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Le, e0, e1);

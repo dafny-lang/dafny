@@ -7,9 +7,8 @@ namespace Microsoft.Dafny;
 ///
 /// fp is the only family of two basic types, so an fp site nearly always needs a width-dependent
 /// fact (builtin prefix, precision, typed zero) after its guard. Deriving that fact from the type a
-/// second time is what let a normalized guard pair with an unnormalized name and emit fp64_neg
-/// returning float24e8. Obtained only via Type.FloatRepresentation, which answers "is this fp?" in
-/// the same step, so there is nothing left to disagree with.
+/// second time risks pairing a normalized guard with an unnormalized name. Obtain it only via
+/// Type.FloatRepresentation, which answers "is this fp?" in the same step.
 ///
 /// Exactly two instances exist, so reference equality is width equality, and is false when either
 /// side is not fp.

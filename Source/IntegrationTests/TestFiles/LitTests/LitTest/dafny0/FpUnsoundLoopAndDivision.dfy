@@ -1,17 +1,14 @@
 // RUN: %exits-with 4 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// Three things that were accepted and should not be.
+// Three things that must not be accepted.
 //
 // The first two share a cause: Boogie's interval inference is unsound for a float assigned in a loop
-// whose body branches on it. Reduced to Boogie alone, the same shape with ordinary values such as 1.0
-// and 2.0 also proves a false assertion, while an int or a bool in that shape does not -- so this is
-// not about the signed zeros, and not about decreases. Any fp program is exposed, so the translator
-// turns the analysis off for a program that mentions fp at all.
-//
-// This is not specific to this feature's ordering refinement, and predates it: the second method
-// below has no decreases clause over fp and proved a false assertion. What the refinement changed is
-// that an fp metric used to crash translation, so the first method could not be written at all.
+// whose body branches on it. In Boogie alone the same shape with ordinary values such as 1.0 and 2.0
+// also proves a false assertion, while an int or a bool does not -- so this is about neither the
+// signed zeros nor decreases. Any fp program is exposed, so the translator turns the analysis off for
+// a program that mentions fp at all. The second method has no decreases clause over fp, which locates
+// the defect away from the ordering.
 method Diverge() returns (r: int)
   ensures false
 {
@@ -40,8 +37,8 @@ method FalseAssertionUnderIntervalInference() {
   assert m == 0.0;
 }
 
-// A divisor of -0.0 is as much a division by zero as +0.0 is. The obligation used to compare the
-// divisor against the literal +0.0, and equality on floats is structural, so -0.0 satisfied it.
+// A divisor of -0.0 is as much a division by zero as +0.0 is, so the obligation has to test
+// fp64_is_zero rather than structural equality against the literal +0.0.
 method DivideByNegativeZero(x: fp64) returns (r: fp64)
   requires !x.IsNaN
 {

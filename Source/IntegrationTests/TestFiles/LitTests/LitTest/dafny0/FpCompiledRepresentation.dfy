@@ -1,14 +1,13 @@
 // RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 // Floating point reached through something other than a bare fp32/fp64 type: a newtype, a subset
-// type, an array element, a field, a collection element. Each of these asks a different part of
-// the pipeline "what is this type, really", and getting fp wrong in any of them used to produce
-// either a Boogie type error or invalid C#.
+// type, an array element, a field, a collection element. Each asks a different part of the pipeline
+// "what is this type, really", and an fp answer that is wrong in any of them produces a Boogie type
+// error or invalid C#.
 //
-// A newtype over fp32 is the interesting case, because "is this an fp32" and "what does this
-// compile to" have different answers for it. Asking the first where the second was meant made
-// literals fall through to the "real" translation, which the verifier rejected with "cannot assign
-// real to float24e8" and the C# compiler rejected with "cannot convert BigRational to Fp32".
+// A newtype over fp32 is the interesting case, because "is this an fp32" and "what does this compile
+// to" have different answers for it. Asking the first where the second is meant sends literals to the
+// "real" translation, which neither the verifier nor the C# compiler accepts.
 
 newtype MyFloat = fp32
 type NonNaN = x: fp64 | !x.IsNaN witness 0.0

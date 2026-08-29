@@ -9,8 +9,8 @@
 // runtime for what that takes.
 //
 // The check is whole-program rather than per-position, so a program that mentions fp only in
-// specifications is refused too. An earlier per-position version leaked twice -- on subset-type
-// witnesses and on const initialisers.
+// specifications is refused too. Per-position leaks through subset-type witnesses and const
+// initialisers.
 
 method CompiledCollection() {
   var s: set<fp64> := {0.0, -0.0};

@@ -1570,16 +1570,12 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// A floating-point literal.
     ///
-    /// The compiled constant has to be the value the resolver computed, and the obvious route to
-    /// it is not exact: BigFloat.ToDecimalString drops most of the fractional digits, so for 9.7%
-    /// of binary32 and 1.2% of binary64 values it names a neighbouring float
-    /// (boogie-org/boogie#1151). The digits therefore come from the platform's shortest
-    /// round-trip formatter, which produces the same digits that the fixed printer will.
+    /// The compiled constant must be the value the resolver computed. BigFloat.ToDecimalString drops
+    /// fractional digits and so can name a neighbouring float (boogie-org/boogie#1151), so the digits
+    /// come from the platform's shortest round-trip formatter instead.
     ///
-    /// Whatever produces the text, it is checked by reading it back: if it does not name the
-    /// resolved value, code generation fails rather than quietly compiling a different program
-    /// than the one that was verified. That check is what will make it safe to swap the producer
-    /// for BigFloat.ToScientificString once that is available.
+    /// Whichever produces the text, it is checked by reading it back: naming a different value fails
+    /// code generation rather than compiling a program other than the one verified.
     /// </summary>
     private static string FloatLiteral(BigDec value, BigFloat resolved, FloatFacts facts) {
       var text = FloatLiteralText(value, resolved, facts);
@@ -1594,16 +1590,14 @@ namespace Microsoft.Dafny.Compilers {
         // BigDec has no signed zero either, so the sign here can only come from the BigFloat.
         return resolved.IsNegative ? "-0.0" : "0.0";
       }
-      // The value to emit is the one the RESOLVER computed, which is not always what the platform
-      // parser makes of the same source decimal. Boogie's decimal-to-BigFloat conversion is not
-      // correctly rounded -- "1e-5" comes out one ULP low, and about one decimal literal in twenty
-      // is affected at both widths -- and it is the resolver's value that the proof is about. So
-      // reading the source decimal ourselves and emitting that would mean verifying one program and
-      // running another.
+      // Emit the value the RESOLVER computed, which is not always what the platform parser makes of
+      // the same source decimal: Boogie's decimal-to-BigFloat conversion is not correctly rounded
+      // ("1e-5" comes out one ULP low). The proof is about the resolver's value, so re-reading the
+      // source decimal here would verify one program and run another.
       //
-      // Start from the platform's reading, then step through neighbouring machine values until one
-      // reproduces the resolver's BigFloat. The comparison is on BigFloat's own exact hexadecimal
-      // form, so this assumes nothing about how either side rounds.
+      // Start from the platform's reading and step through neighbouring machine values until one
+      // reproduces the resolver's BigFloat, comparing on BigFloat's exact hexadecimal form so that
+      // nothing is assumed about how either side rounds.
       var written = $"{value.Mantissa}E{value.Exponent}";
       foreach (var candidate in Neighbourhood(written, facts)) {
         if (Describes(candidate, resolved, facts)) {
@@ -1620,12 +1614,10 @@ namespace Microsoft.Dafny.Compilers {
     /// A real literal converted to a floating-point type, folded into a floating-point literal, or
     /// null if this is not that case.
     ///
-    /// The value does not change, provided the decimal is rounded once and at the target width:
-    /// the verifier models this conversion as SMT-LIB's (_ to_fp) with RNE, and a parse straight to
-    /// the target format rounds the same way. What folding avoids is constructing a BigRational and
-    /// rounding it on every evaluation of a constant, and it makes the constant legible: the
-    /// generated code says new Dafny.Fp64(1.5d) instead of
-    /// Dafny.Fp64.FromReal(new Dafny.BigRational(new BigInteger(15), BigInteger.Parse("10"))).
+    /// Value-preserving provided the decimal is rounded once and at the target width: the verifier
+    /// models the conversion as SMT-LIB's (_ to_fp) with RNE, which a parse straight to the target
+    /// format matches. Folding avoids building a BigRational and rounding it on every evaluation, and
+    /// emits new Dafny.Fp64(1.5d) rather than a FromReal of a two-BigInteger fraction.
     /// </summary>
     private static string FoldRealLiteralToFloat(Expression source, Type toType) {
       if (toType.FloatRepresentation is not { } facts) {
@@ -1634,18 +1626,15 @@ namespace Microsoft.Dafny.Compilers {
       if (source.Resolved is not LiteralExpr { Value: BigDec decimalValue }) {
         return null;
       }
-      // Parsed AT THE TARGET WIDTH, not parsed as a double and narrowed. Going through double would
-      // round twice, which is not the same as rounding once: 1.000000059604644775390626 reaches
-      // fp32 as 1.0 that way, where the correctly rounded value is one ULP above it. It would also
-      // range-check against the wrong format, so a value that overflows fp32 but not fp64 -- 1e39 --
-      // would survive the test below and be emitted as the identifier "Infinityf".
+      // Parsed AT THE TARGET WIDTH, not as a double then narrowed. Rounding twice differs from
+      // rounding once -- 1.000000059604644775390626 reaches fp32 as 1.0 that way, one ULP low -- and
+      // it would range-check against the wrong format, letting 1e39 through as "Infinityf".
       var written = $"{decimalValue.Mantissa}E{decimalValue.Exponent}";
       string text;
       if (facts.IsFp32) {
         var single = float.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture);
         if (float.IsNaN(single) || float.IsInfinity(single)) {
-          // Out of range for the target. Leave it to the runtime conversion rather than inventing a
-          // literal for infinity; "as" would have failed to verify anyway.
+          // Out of range: leave it to the runtime conversion. "as" would not have verified anyway.
           return null;
         }
         text = single.ToString("R", CultureInfo.InvariantCulture);
@@ -1670,9 +1659,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// The machine values within two steps of how the platform parser reads "written". Two is
-    /// margin: the observed disagreement between the resolver's rounding and the platform's is one
-    /// step, and running out of candidates is reported rather than guessed at.
+    /// The machine values within two steps of how the platform parser reads "written". One step is
+    /// the observed disagreement between the resolver's rounding and the platform's; two is margin,
+    /// and exhausting the candidates is reported rather than guessed at.
     /// </summary>
     private static IEnumerable<double> Neighbourhood(string written, FloatFacts facts) {
       for (var offset = -2; offset <= 2; offset++) {
@@ -1707,22 +1696,19 @@ namespace Microsoft.Dafny.Compilers {
         : double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
       bool readsBack;
       if (resolved.IsZero) {
-        // At zero the comparison has to be on the sign bit. The route below goes through a
-        // fraction, and a fraction has no signed zero -- negating the numerator 0 gives 0 back --
-        // so it cannot tell the two zeros apart.
+        // At zero, compare sign bits: the route below goes through a fraction, which has no signed
+        // zero and so cannot tell the two zeros apart.
         readsBack = parsed == 0.0 && double.IsNegative(parsed) == resolved.IsNegative;
       } else {
         var (numerator, denominator) = ExactValue(parsed);
-        // Compared as strings rather than with ==, because BigFloat's == is IEEE and would call
-        // the two zeros equal. ToString is the exact hexadecimal form, so it separates them.
+        // As strings, not ==: BigFloat's == is IEEE and ties the two zeros. ToString is exact hex.
         readsBack =
           BigFloat.FromRational(numerator, denominator, facts.SignificandBits, facts.ExponentBits, out var reparsed)
           && reparsed.ToString() == resolved.ToString();
       }
       if (!readsBack) {
-        // Thrown rather than asserted: Contract.Assert is [Conditional("DEBUG")], so it would
-        // vanish from the release build, which is the one that ships. The whole value of this
-        // check is that it holds in the compiler people actually run.
+        // Thrown, not asserted: Contract.Assert is [Conditional("DEBUG")] and would vanish from the
+        // release build, which is the one that ships.
         throw new InvalidOperationException(
           $"the floating-point literal \"{text}\" does not read back as the value the resolver " +
           $"computed ({resolved}); the compiled constant would not be the verified one");
@@ -1746,12 +1732,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// The C# type a Dafny floating-point type compiles to. These are wrapper structs rather than
-    /// float/double because Dafny's "==" on fp32/fp64 is value identity in the SMT FloatingPoint
-    /// sort -- one NaN, two zeros -- while C#'s "==" on float/double is IEEE fp.eq, which
-    /// disagrees on exactly those values. Compiling to the raw types would produce programs that
-    /// contradict what was verified. The wrappers also carry the classification predicates and the
-    /// unchecked fp*.* built-ins, so all floating-point semantics live in one place.
+    /// The C# type a Dafny floating-point type compiles to: wrapper structs rather than float/double,
+    /// because Dafny's "==" is value identity (one NaN, two zeros) where C#'s is IEEE fp.eq, so the
+    /// raw types would contradict what was verified. The wrappers also carry the classification
+    /// predicates and the fp*.* built-ins, keeping the semantics in one place.
     /// </summary>
     private static string CSharpFloatTypeName(Type type) {
       var facts = type.FloatRepresentation;
@@ -1787,8 +1771,8 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is RealType) {
         return "Dafny.BigRational";
       } else if (xType.IsFloatingPointType) {
-        // The declared-type test on purpose: a newtype over fp32 is compiled as its own type by
-        // the AsNewtype case below, so this must not drill through to the representation.
+        // Declared type on purpose: the AsNewtype case below compiles a newtype over fp32 as its own
+        // type, so this must not drill through to the representation.
         return CSharpFloatTypeName(xType);
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;

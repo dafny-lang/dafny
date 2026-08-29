@@ -387,7 +387,7 @@ public abstract class Type : NodeWithOrigin {
     }
   }
 
-  // FloatPrecision and FloatTypeName are deliberately gone; use FloatRepresentation.
+  // Width-dependent facts come from FloatRepresentation, so that the guard and the fact agree.
 
   /// <summary>
   /// Returns true if the type has two representations at run time, the ordinary representation and a

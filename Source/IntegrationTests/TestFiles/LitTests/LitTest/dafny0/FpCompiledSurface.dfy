@@ -2,11 +2,9 @@
 
 // Every member of fp32 and fp64 that can appear in compiled code, used once.
 //
-// The C# translation of each of these is a static of the same name on Dafny.Fp32/Dafny.Fp64, so a
-// member without a runtime counterpart produces generated code that does not compile. Naming them
-// all here turns that into a test failure rather than something a user discovers. Ten of the
-// unchecked methods were missing exactly that way, and IsNegative and IsZero were present but
-// wrong.
+// The C# translation of each is a static of the same name on Dafny.Fp32/Dafny.Fp64, so a member with
+// no runtime counterpart produces generated code that does not compile. Naming them all here turns
+// that into a test failure rather than something a user discovers.
 //
 // Where the verifier can pin the answer, it does, so the compiled result is checked against the
 // specification rather than against a recording of itself.
@@ -53,9 +51,9 @@ method Constants() {
   print "fp32 Pi and E: ", fp32.Pi, " ", fp32.E, "\n";
 }
 
-// The unchecked family: the operators without their well-formedness obligations. The comparisons
-// here are IEEE, unlike < and <=, which is why they have names of their own.
-method UncheckedOperations() {
+// The static family: IEEE, and so obligation-free. The comparisons here differ from < and <= in
+// their answers, not only in their preconditions, which is why they have names of their own.
+method IeeeOperations() {
   var a: fp64 := 1.5;
   var b: fp64 := 2.5;
   var negZero: fp64 := -0.0;
@@ -80,11 +78,10 @@ method UncheckedOperations() {
   print "Less(-0.0, 0.0) is IEEE: ", fp64.Less(negZero, posZero), "\n";
 }
 
-// Dafny's order is total, with NaN above every number, so a comparison against NaN is answered
-// rather than refused. This is the point in the whole feature where the compiled answer is furthest
-// from the platform's: in C#, every comparison against double.NaN is false, so each of the first
-// four lines below would be wrong if Dafny.Fp64 delegated to double. Every claim is asserted before
-// it is printed, so the runtime is checked against the verifier rather than against itself.
+// Dafny's order is total, with NaN above every number, so a comparison against NaN is answered rather
+// than refused. This is where the compiled answer is furthest from the platform's: in C# every
+// comparison against double.NaN is false, so the first four lines would be wrong if Dafny.Fp64
+// delegated to double. Each claim is asserted before it is printed.
 method TotalOrderIncludingNaN() {
   var one: fp64 := 1.0;
   var nan := fp64.NaN;
@@ -134,17 +131,15 @@ method MathematicalFunctions() {
   print "fp32 Sqrt: ", fp32.Sqrt(9.0), "\n";
 }
 
-// The fp64.* family on the arguments it used to refuse. These became expressible when the family
-// was made uniformly IEEE -- Sqrt, Abs, Floor, Ceiling, Round, Min and Max dropped their
-// obligations, matching fp64.Div, which could always produce a NaN. So this is the first time the
-// compiled behaviour on these inputs is reachable at all, which is exactly why it is worth pinning:
-// every line is asserted before it is printed.
-method IeeeFamilyOnArgumentsItUsedToRefuse() {
+// The fp64.* family on the arguments where IEEE has no numeric result. Reachable only because the
+// family carries no obligations, so the compiled behaviour here needs pinning: every line is asserted
+// before it is printed.
+method IeeeFamilyOnNonNumericArguments() {
   var nan := fp64.NaN;
   var negZero: fp64 := -0.0;
 
   assert fp64.Sqrt(-1.0).IsNaN;          // IEEE: a negative gives NaN
-  assert fp64.Sqrt(negZero) == negZero;  // but -0.0 gives -0.0, which the old obligation refused too
+  assert fp64.Sqrt(negZero) == negZero;  // but -0.0 gives -0.0, despite fp.isNegative(-0.0)
   assert fp64.Sqrt(nan).IsNaN;
   assert fp64.Abs(nan).IsNaN;
   assert fp64.Floor(nan).IsNaN && fp64.Ceiling(nan).IsNaN && fp64.Round(nan).IsNaN;
@@ -195,10 +190,10 @@ method Conversions() {
 method Main() {
   Classification();
   Constants();
-  UncheckedOperations();
+  IeeeOperations();
   TotalOrderIncludingNaN();
   MathematicalFunctions();
-  IeeeFamilyOnArgumentsItUsedToRefuse();
+  IeeeFamilyOnNonNumericArguments();
   ConversionsWithProvableValues();
   Conversions();
 }

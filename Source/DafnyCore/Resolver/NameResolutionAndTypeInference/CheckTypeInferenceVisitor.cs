@@ -192,9 +192,8 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       if (toCheck is DecimalLiteralExpr decLit) {
         var resolvedType = e.Type.Normalize();
 
-        // FloatRepresentation rather than IsFloatingPointType: a literal whose type is a newtype
-        // over fp32 still denotes an fp32 value, and both the verifier and the code generator
-        // require every such literal to carry its ResolvedFloatValue.
+        // FloatRepresentation rather than IsFloatingPointType: a literal typed as a newtype over fp32
+        // still denotes an fp32 value, and must carry ResolvedFloatValue like any other.
         if (resolvedType.FloatRepresentation is { } facts) {
           var decValue = (BigDec)decLit.Value;
           var (isExact, floatValue) =
@@ -223,9 +222,8 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       if (e is DecimalLiteralExpr decimalLiteral && e.Value is BigDec decValue) {
         var normalizedType = e.Type.Normalize();
 
-        // FloatRepresentation rather than IsFloatingPointType, so that a newtype over fp32 gets
-        // the same treatment as fp32 itself: the exactness diagnostic below, and a
-        // ResolvedFloatValue for the verifier and the code generator to use.
+        // FloatRepresentation, so a newtype over fp32 gets what fp32 does: the exactness diagnostic
+        // below, and a ResolvedFloatValue.
         if (normalizedType.FloatRepresentation is not { } facts) {
           return;
         }
