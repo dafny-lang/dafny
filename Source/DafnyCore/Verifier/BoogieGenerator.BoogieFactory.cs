@@ -837,6 +837,12 @@ namespace Microsoft.Dafny {
     /// unconditional non-NaN well-formedness obligation, and full totalOrder would additionally
     /// distinguish NaN signs and payloads, which this encoding does not model.
     ///
+    /// Taken as a relation rather than as an operator, FpAtMost is a partial order on the whole
+    /// domain that agrees with "==": it is reflexive even at NaN, since "==" is, and NaN is
+    /// incomparable with every other value. The well-formedness obligation on comparison confines a
+    /// program to the part where it is total, so the partiality is not observable from Dafny -- but
+    /// the decreases translation does rely on the NaN case, and says why there.
+    ///
     /// Raw IEEE comparison remains available as fp32.Less / fp64.Less, mirroring how
     /// fp*.Equal keeps IEEE equality while "==" is structural.
     ///

@@ -363,14 +363,30 @@ public partial class BoogieGenerator {
       // "real", being dense, needs its "e0 <= e1 - 1" trick.
       // "less" is Dafny's fp order (FpLess: IEEE fp.lt refined so that -0.0 < +0.0) and "eq" is
       // structural equality, so the two agree and the pair is a strict total order on non-NaN.
-      // NaN is outside the order, so a metric that is NaN simply never decreases -- conservative,
-      // never unsound.
       eq = Bpl.Expr.Eq(e0, e1);
       less = FpLess(tok, ty0.FloatRepresentation, e0, e1);
       // Deliberately BplOr(less, eq) rather than fp.leq: fp.leq admits +0.0 <= -0.0, which would
       // let the allowNoChange branch of DecreasesCheck accept a -0.0 -> +0.0 -> -0.0 cycle as a
       // strict decrease.
       atmost = BplOr(less, eq);
+
+      // On NaN the two behave differently, and the difference is what makes this sound.
+      //
+      // "less" is false whenever either side is NaN, because fp.lt is and the signed-zero
+      // refinement does not apply, so a NaN metric can never license an iteration: the strict check
+      // TrLoop emits at the end of the body rejects it.
+      //
+      // "atmost", though, is TRUE at NaN, because "eq" is -- the SMT FloatingPoint sort has exactly
+      // one NaN, so structural equality is reflexive there. That matters because TrLoop ALSO uses
+      // atmost, with allowNoChange, as a FREE invariant saying the metric has not risen above its
+      // initial value, and a free invariant is assumed rather than proved. Assuming a false one
+      // would let anything be proved.
+      //
+      // It is not false, but only because of the strict check above. If a metric could go from a
+      // number to NaN, atmost(NaN, initial) would be false -- neither less nor equal -- and Dafny
+      // would be assuming a falsehood. Such an iteration cannot verify, since it would have to
+      // satisfy less(NaN, previous), which is false. So the assumption is safe because the
+      // assertion rejects the transition, not on its own account.
 
     } else if (ty0 is BigOrdinalType) {
       eq = Bpl.Expr.Eq(e0, e1);
