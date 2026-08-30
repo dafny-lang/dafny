@@ -59,12 +59,12 @@ jobs:
     steps:
     - name: Manually sync certs
       if: runner.os == 'Linux'
-      # Best effort: skip when cert-sync is absent, and do not fail the job if it errors. Spelled
-      # out as an if rather than `a && b || true`, which reads as if-then-else but is not.
       run: |
-        if which cert-sync; then
-          cert-sync /etc/ssl/certs/ca-certificates.crt || true
-        fi
+        # SC2015 warns that `|| true` is the else of `a && b`, not of `a`. That is the intent
+        # here: this step is best effort, so it should succeed whether cert-sync is missing or
+        # merely fails.
+        # shellcheck disable=SC2015
+        which cert-sync && cert-sync /etc/ssl/certs/ca-certificates.crt || true
     - name: Setup dotnet
       uses: actions/setup-dotnet@v6
       with:
