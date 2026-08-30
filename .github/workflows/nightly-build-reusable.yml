@@ -45,10 +45,10 @@ jobs:
           submodules: recursive
 
       - name: Get short sha
-        run: echo "sha_short=`git rev-parse --short HEAD`" >> $GITHUB_ENV
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
 
       - name: Get current date
-        run: echo "date=`date +'%Y-%m-%d'`" >> $GITHUB_ENV
+        run: echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_ENV"
 
     outputs:
       name: nightly-${{ env.date }}-${{ env.sha_short }}
