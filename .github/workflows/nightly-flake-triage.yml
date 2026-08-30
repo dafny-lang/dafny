@@ -1,0 +1,43 @@
+# Record which test failed when the nightly build goes red.
+#
+# Job and step names stay in the API for about a year, but the failing test's name lives only in
+# the job log, which expires after 90 days. This captures it while it exists, into an issue per
+# test so repeat offenders accumulate a count instead of vanishing.
+#
+# Note `workflow_run` only ever runs the copy of this file on the default branch, so it cannot be
+# exercised from a pull request. Use the `workflow_dispatch` below against a past failed run to
+# try it out, or to backfill runs still inside the log retention window.
+
+name: Nightly flake triage
+
+on:
+  workflow_run:
+    workflows: ["Nightly test and release workflow"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Workflow run ID to triage'
+        required: true
+
+jobs:
+  triage:
+    # workflow_run fires whatever the conclusion, so filter here. A dispatch is always deliberate.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read     # list jobs for the run, and download job logs
+      issues: write     # open, comment on and reopen the flake issues
+      contents: read
+    steps:
+      - name: Checkout Dafny
+        uses: actions/checkout@v7
+
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const triage = require('${{ github.workspace }}/.github/workflows/nightly-flake-triage.js')
+            const runId = context.eventName === 'workflow_dispatch'
+              ? Number('${{ inputs.run_id }}')
+              : context.payload.workflow_run.id
+            await triage({github, context, core}, runId)
