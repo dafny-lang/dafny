@@ -21,11 +21,6 @@ function titleFor(key, count) {
   return `${TITLE_PREFIX}${key}` + (count > 1 ? ` (${count}x)` : "");
 }
 
-function countFromTitle(title) {
-  const m = /\((\d+)x\)\s*$/.exec(title);
-  return m ? parseInt(m[1], 10) : 1;
-}
-
 function keyFromTitle(title) {
   return title.startsWith(TITLE_PREFIX)
     ? title.slice(TITLE_PREFIX.length).replace(/\s*\(\d+x\)\s*$/, "")
@@ -147,12 +142,23 @@ async function keysForRun({ github, context, core }, run_id) {
       }
     }
 
+    // The same test can fail in more than one job on one night - JsonLogger.dfy has failed on
+    // both the Windows and macOS shard 6 - so collect jobs per key rather than overwriting.
+    // No step is named for a test that came from a .trx: the failing step may be something
+    // later like the artifact upload, which did not cause the test failure.
+    const add = (key, job) => {
+      const entry = keys.get(key) || { jobs: [], degraded: false };
+      entry.jobs.push(job);
+      entry.degraded = entry.degraded || degraded;
+      keys.set(key, entry);
+    };
+
     if (tests && tests.length > 0) {
       for (const test of tests) {
-        keys.set(test, { where: `\`${shortName}\`, step \`${steps.join("`, `")}\``, degraded: false });
+        add(test, `\`${shortName}\``);
       }
     } else {
-      keys.set(`${shortName} - ${steps[0] || job.conclusion}`, { where: `\`${shortName}\``, degraded });
+      add(`${shortName} - ${steps[0] || job.conclusion}`, `\`${shortName}\``);
     }
   }
 
@@ -204,12 +210,12 @@ module.exports = async ({ github, context, core }, run_id) => {
 
   const existing = await existingIssues({ github, context });
 
-  for (const [key, { where, degraded }] of keys) {
+  for (const [key, { jobs, degraded }] of keys) {
     const note = degraded
       ? "\n\nThe failing test could not be identified: no `.trx` artifact was available and the " +
         "job log could not be read. Only the job and step are recorded."
       : "";
-    const body = `Failed in ${where} during ${runUrl} (attempt 1).${note}`;
+    const body = `Failed in ${jobs.join(", ")} during ${runUrl} (attempt 1).${note}`;
     const issue = existing.get(key);
 
     if (!issue) {
@@ -240,9 +246,12 @@ module.exports = async ({ github, context, core }, run_id) => {
 
     await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body });
 
+    // Count occurrences from the comments rather than from the title, which anyone may rename.
+    // One for the original report in the body, plus one per run recorded since.
+    const occurrences = 2 + comments.filter(c => /\/actions\/runs\/\d+/.test(c.body)).length;
     const update = {
       owner, repo, issue_number: issue.number,
-      title: titleFor(key, countFromTitle(issue.title) + 1),
+      title: titleFor(key, occurrences),
     };
     // Closed as "not planned" is a decision; closed as completed means a fix that did not hold.
     if (!(issue.state === "closed" && issue.state_reason === "not_planned")) {
