@@ -74,7 +74,10 @@ jobs:
       run: echo "${PWD}/bin" >> $GITHUB_PATH
     - name: Set Path - Windows
       if: runner.os == 'Windows'
-      run: $((Resolve-Path -Path "bin").providerPath) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append   
+      # pwsh is already the default on Windows; naming it lets actionlint pick the right shell
+      # instead of running shellcheck over a PowerShell script.
+      shell: pwsh
+      run: $((Resolve-Path -Path "bin").providerPath) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
     - name: Download NuGet package
       run: dotnet tool install --global Dafny
     ## Record versions, checking that executables run
