@@ -8,8 +8,7 @@ const LABEL = "nightly-flake";
 const TITLE_PREFIX = "nightly flake: ";
 const RESULTS_DIR = "test-results";
 
-// Which steps run tests. Used only to tell "this job failed before testing" from "this job's
-// tests failed but left no results behind", which are worth reporting differently.
+// Distinguishes a job that failed before testing from one whose tests failed silently.
 const TEST_STEP = /^Run integration tests/;
 
 const marker = key => `<!-- nightly-flake-key: ${key} -->`;
@@ -66,11 +65,8 @@ function failedTestsInTrx(xml) {
   return names;
 }
 
-// `--logger trx` is an explicit contract in the test workflow, so this is the only source. There
-// was a second one that scraped test names out of xUnit's console output, dropped because it
-// duplicated this for a case that has never happened: every upload-artifact failure in the run
-// history so far came after the tests had passed, so there was no failing test to recover, and
-// logs expire on the same 90-day clock as artifacts so it could not help an aged-out run either.
+// The only source of test names. `--logger trx` is a contract in the test workflow; xUnit's
+// console output is not.
 function failedTestsFor({ core }, shortJobName) {
   const name = artifactNameFor(shortJobName);
   if (!name) {
@@ -89,9 +85,8 @@ function failedTestsFor({ core }, shortJobName) {
   return [...failed];
 }
 
-// A test name where the results named one, otherwise job and step so that infrastructure
-// failures are still recorded. Attempt 1 only: a re-run overwrites the visible conclusion, so
-// attempt 1 is what keeps the failure rate honest.
+// A test name where the results named one, otherwise job and step. Attempt 1 only: a re-run
+// overwrites the visible conclusion, so attempt 1 is what keeps the failure rate honest.
 async function keysForRun({ github, context, core }, run_id) {
   const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRunAttempt, {
     owner: context.repo.owner,
@@ -111,8 +106,7 @@ async function keysForRun({ github, context, core }, run_id) {
     const shortName = job.name.split(" / ").pop();
     const tests = failedTestsFor({ core }, shortName);
 
-    // The same test can fail in more than one job on one night - JsonLogger.dfy has failed on
-    // both the Windows and macOS shard 6 - so collect jobs per key rather than overwriting.
+    // One test can fail in several jobs, so collect jobs per key rather than overwriting.
     const add = (key, unexplained) => {
       const entry = keys.get(key) || { jobs: [], unexplained: false };
       entry.jobs.push(`\`${shortName}\``);
@@ -121,14 +115,12 @@ async function keysForRun({ github, context, core }, run_id) {
     };
 
     if (tests.length > 0) {
-      // No step is named: the failing step may be something later, like the artifact upload,
-      // which did not cause the test failure.
+      // No step: the failing step may be a later one that did not cause the test failure.
       for (const test of tests) {
         add(test, false);
       }
     } else {
-      // A test step failed yet the results name nothing. Rare, and worth flagging in the issue
-      // so whoever reads it knows to open the log rather than assuming there was no test.
+      // Flag a test step that failed without naming a test, so the reader checks the log.
       add(`${shortName} - ${steps[0] || job.conclusion}`, steps.some(s => TEST_STEP.test(s)));
     }
   }
@@ -210,8 +202,7 @@ module.exports = async ({ github, context, core }, run_id) => {
 
     await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body });
 
-    // Count occurrences from the comments rather than from the title, which anyone may rename.
-    // One for the original report in the body, plus one per run recorded since.
+    // From the comments, not the title, which anyone may rename: the body plus one per run.
     const occurrences = 2 + comments.filter(c => /\/actions\/runs\/\d+/.test(c.body)).length;
     const update = {
       owner, repo, issue_number: issue.number,
