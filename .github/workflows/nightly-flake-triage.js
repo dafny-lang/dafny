@@ -1,27 +1,18 @@
-// Turn a failed nightly run into a deduplicated issue naming the test that failed.
-//
-// Failing job and step names survive in the API for about a year, but the failing *test* name
-// only exists in the run's own output, which expires after 90 days. Recovering it later is
-// disproportionately hard, so record it while it is still there.
+// Record which test failed when the nightly build goes red, into one issue per test.
+// The failing test's name only exists in the run's own output, which expires after 90 days.
 
 const fs = require("fs");
 const path = require("path");
 
 const LABEL = "nightly-flake";
 const TITLE_PREFIX = "nightly flake: ";
-
-// Where the workflow put the run's test-result artifacts, if it managed to download any.
 const RESULTS_DIR = "test-results";
 
-// Fallback only, for when no .trx is available. This parses xUnit's console output, which is a
-// formatting detail of a third-party logger rather than a contract: it depends on `[FAIL]` and
-// on `--logger "console;verbosity=normal"` staying put. The .trx path below is preferred for
-// exactly that reason. Extensions match LitTests.cs's FileData includes.
+// Fallback only: this is xUnit console formatting, not a contract. Extensions match the
+// FileData includes in LitTests.cs.
 const FAILED_TEST_IN_LOG = /([A-Za-z0-9_./-]+\.(?:dfy|transcript)) \[FAIL\]/g;
 
-// Only these steps run tests, so only these are worth fetching a log for. With .trx as the
-// primary source this is just an optimisation - a stale entry costs a wasted lookup, not a
-// misclassification.
+// Which steps are worth fetching a log for. Only an optimisation, since .trx comes first.
 const TEST_STEP = /^Run integration tests/;
 
 const marker = key => `<!-- nightly-flake-key: ${key} -->`;
@@ -47,8 +38,7 @@ function failingStepsOf(job) {
     .map(s => s.name);
 }
 
-// `test (macos-14, 6)` -> `integration-test-results-macos-14-6`, matching the artifact name
-// that integration-tests-reusable.yml uploads.
+// `test (macos-14, 6)` -> the artifact name integration-tests-reusable.yml uploads.
 function artifactNameFor(shortJobName) {
   const m = /^test \(([^,]+), *(\d+)\)/.exec(shortJobName);
   return m ? `integration-test-results-${m[1]}-${m[2]}` : null;
@@ -70,8 +60,7 @@ function trxFilesUnder(dir) {
   return found;
 }
 
-// Failed test names from a .trx. Attributes are read individually rather than in a fixed order,
-// since their order is not part of the format.
+// Attributes are read individually; their order is not part of the trx format.
 function failedTestsInTrx(xml) {
   const names = [];
   for (const element of xml.split("<UnitTestResult").slice(1)) {
@@ -85,9 +74,8 @@ function failedTestsInTrx(xml) {
   return names;
 }
 
-// The preferred source: `--logger trx` is an explicit contract in the test workflow, the format
-// is structured, and it names tests of any extension. Returns null when there is no .trx for
-// this job, which is not an error: the upload is best-effort and may have been skipped.
+// Preferred source: `--logger trx` is an explicit contract in the test workflow. null means
+// there is no .trx for this job, which is normal - the upload is best effort.
 function testsFromArtifact({ core }, shortJobName) {
   const name = artifactNameFor(shortJobName);
   if (!name) {
@@ -107,8 +95,7 @@ function testsFromArtifact({ core }, shortJobName) {
   return [...failed];
 }
 
-// Fallback source. Returns null if the log could not be read at all, which the caller counts so
-// that a systemic failure is reported rather than silently degrading.
+// null distinguishes "could not read" from "read it, found nothing", which the caller counts.
 async function testsFromLog({ github, context, core }, job) {
   try {
     const res = await github.rest.actions.downloadJobLogsForWorkflowRun({
@@ -124,12 +111,9 @@ async function testsFromLog({ github, context, core }, job) {
   }
 }
 
-// One key per thing worth tracking: a test name where one could be found, otherwise job and
-// step so that infrastructure failures are still recorded.
-//
-// Only attempt 1 is read. A re-run overwrites the visible conclusion, so attempt 1 is what makes
-// the failure rate honest; failures unique to a later attempt are not recorded, which has not
-// happened once in the run history to date.
+// A test name where one could be found, otherwise job and step so infrastructure failures are
+// still recorded. Attempt 1 only: a re-run overwrites the visible conclusion, so attempt 1 is
+// what keeps the failure rate honest.
 async function keysForRun({ github, context, core }, run_id) {
   const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRunAttempt, {
     owner: context.repo.owner,
@@ -168,26 +152,22 @@ async function keysForRun({ github, context, core }, run_id) {
         keys.set(test, { where: `\`${shortName}\`, step \`${steps.join("`, `")}\``, degraded: false });
       }
     } else {
-      keys.set(`${shortName} - ${steps[0] || job.conclusion}`, {
-        where: `\`${shortName}\``,
-        degraded,
-      });
+      keys.set(`${shortName} - ${steps[0] || job.conclusion}`, { where: `\`${shortName}\``, degraded });
     }
   }
 
+  // Naming the test is the point of this job, so losing every source must not look like success.
   if (logsAttempted > 0 && logsFailed === logsAttempted) {
     core.warning(
       `Could not read any of the ${logsAttempted} test job logs for run ${run_id}, and no .trx ` +
-      `artifacts were available either. Test names are missing from the issues below. Check that ` +
-      `this workflow still has actions: read, and that the run is inside its 90-day retention.`);
+      `artifacts were available either. Check actions: read, and the 90-day retention.`);
   }
 
   return keys;
 }
 
-// Listing by label is strongly consistent; the search API is not, and would double-file when two
-// runs fail close together. Match on the body marker or the title, so that a human editing
-// either one does not cause a duplicate.
+// Listing by label is strongly consistent; /search/issues is not, and would double-file. Match
+// on marker or title so a human editing either does not cause a duplicate.
 async function existingIssues({ github, context }) {
   const issues = await github.paginate(github.rest.issues.listForRepo, {
     owner: context.repo.owner,
@@ -225,7 +205,6 @@ module.exports = async ({ github, context, core }, run_id) => {
   const existing = await existingIssues({ github, context });
 
   for (const [key, { where, degraded }] of keys) {
-    // Say so in the issue, not only in a log nobody reads, when the test name is missing.
     const note = degraded
       ? "\n\nThe failing test could not be identified: no `.trx` artifact was available and the " +
         "job log could not be read. Only the job and step are recorded."
@@ -239,9 +218,8 @@ module.exports = async ({ github, context, core }, run_id) => {
         title: titleFor(key, 1),
         body:
           `${body}\n\n` +
-          `Opened automatically because the nightly build failed. The name above is taken from the ` +
-          `run's test results, which expire after 90 days, so it is recorded here while it still ` +
-          `exists.\n\n` +
+          `Opened automatically because the nightly build failed. The name above comes from the ` +
+          `run's test results, which expire after 90 days.\n\n` +
           `Further occurrences are added as comments and counted in the title. Closing this as ` +
           `"not planned" stops it being reopened; closing it as completed does not, so a ` +
           `recurrence after a fix still surfaces.\n\n` +
@@ -251,7 +229,7 @@ module.exports = async ({ github, context, core }, run_id) => {
       continue;
     }
 
-    // Re-running this workflow for the same run must not double-count.
+    // Makes re-dispatching for the same run a no-op.
     const comments = await github.paginate(github.rest.issues.listComments, {
       owner, repo, issue_number: issue.number, per_page: 100,
     });
@@ -266,9 +244,7 @@ module.exports = async ({ github, context, core }, run_id) => {
       owner, repo, issue_number: issue.number,
       title: titleFor(key, countFromTitle(issue.title) + 1),
     };
-    // Reopen so the occurrence is visible - unless a human closed it as "not planned", which is
-    // GitHub's own way of saying they have decided against it. Closed as completed is different:
-    // a recurrence means the fix did not hold, so that should reopen.
+    // Closed as "not planned" is a decision; closed as completed means a fix that did not hold.
     if (!(issue.state === "closed" && issue.state_reason === "not_planned")) {
       update.state = "open";
     }
