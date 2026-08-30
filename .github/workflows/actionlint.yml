@@ -1,0 +1,30 @@
+# An invalid workflow file fails as `startup_failure`: no jobs, no logs, easy to miss.
+# actionlint catches that statically, in the PR that introduces it.
+
+name: Lint workflows
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+  workflow_dispatch:
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Dafny
+        uses: actions/checkout@v7
+
+      - name: Lint workflows
+        # actionlint ships no first-party action, so this uses its published container image.
+        # shellcheck is off: it flags 37 pre-existing findings in existing workflows, 33 of them
+        # style or informational. Worth fixing separately; this job is about workflow validity.
+        uses: docker://rhysd/actionlint:1.7.12
+        with:
+          args: -color -shellcheck=

@@ -40,14 +40,6 @@ jobs:
         id: populate-os-mapping
         run: |
           echo "os-mapping={\"ubuntu-24.04\": \"ubuntu\", \"macos-14\": \"macos\", \"windows-2022\": \"windows\"}" >> $GITHUB_OUTPUT
-      - name: Populate target runtime version list (all platforms)
-        id: populate-target-runtime-version-all
-        if: inputs.all_platforms
-        run: echo "target-runtime-version=[\"oldest\", \"newest\"]" >> $GITHUB_OUTPUT
-      - name: Populate target runtime version list (one platform)
-        id: populate-target-runtime-version-one
-        if: "!inputs.all_platforms"
-        run: echo "target-runtime-version=[\"oldest\"]" >> $GITHUB_OUTPUT
       - name: Populate shard list
         id: populate-shard-list
         run: echo "shard-list=[`seq -s , 1 ${{ inputs.num_shards }}`]" >> $GITHUB_OUTPUT
@@ -81,17 +73,11 @@ jobs:
       if: matrix.os == 'ubuntu-24.04'
       run: |
         sudo apt-get install -y build-essential
+    # Only the oldest supported JDK is exercised; adding the newest needs a matrix dimension.
     - name: Set up oldest supported JDK
-      if: matrix.target-language-version != 'newest'
       uses: actions/setup-java@v5
       with:
         java-version: 8
-        distribution: corretto
-    - name: Set up newest supported JDK
-      if: matrix.target-language-version == 'newest'
-      uses: actions/setup-java@v5
-      with:
-        java-version: 18
         distribution: corretto
     - name: Set up oldest supported Go
       uses: actions/setup-go@v7
@@ -173,6 +159,9 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
         DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS: ${{ inputs.compilers }}
+      # pwsh is already the default on Windows; naming it lets actionlint pick the right shell
+      # instead of running shellcheck over a PowerShell script.
+      shell: pwsh
       run: |
         cmd /c mklink ${{ env.DAFNY_RELEASE }}\z3\bin\z3-4.16.0 ${{ env.DAFNY_RELEASE }}\z3\bin\z3-4.16.0.exe
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests/IntegrationTests.csproj
