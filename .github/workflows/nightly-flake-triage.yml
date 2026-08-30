@@ -1,12 +1,12 @@
 # Record which test failed when the nightly build goes red.
 #
 # Job and step names stay in the API for about a year, but the failing test's name lives only in
-# the job log, which expires after 90 days. This captures it while it exists, into an issue per
-# test so repeat offenders accumulate a count instead of vanishing.
+# the run's own output, which expires after 90 days. This captures it while it exists, into an
+# issue per test so repeat offenders accumulate a count instead of vanishing.
 #
 # Note `workflow_run` only ever runs the copy of this file on the default branch, so it cannot be
 # exercised from a pull request. Use the `workflow_dispatch` below against a past failed run to
-# try it out, or to backfill runs still inside the log retention window.
+# try it out, or to backfill runs still inside the retention window.
 
 name: Nightly flake triage
 
@@ -19,6 +19,7 @@ on:
       run_id:
         description: 'Workflow run ID to triage'
         required: true
+        type: number
 
 jobs:
   triage:
@@ -26,21 +27,31 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != 'success'
     runs-on: ubuntu-24.04
     permissions:
-      actions: read     # list jobs for the run, and download job logs
+      actions: read     # list jobs for the run, read its artifacts, download job logs
       issues: write     # open, comment on and reopen the flake issues
       contents: read
+    env:
+      TRIAGE_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
     steps:
       - name: Checkout Dafny
         uses: actions/checkout@v7
 
+      # Preferred source for the failing test names: `--logger trx` is an explicit contract in
+      # integration-tests-reusable.yml, where xUnit's console formatting is only incidental.
+      # Best-effort - the upload is itself allowed to fail, and old runs may have expired.
+      - name: Download the run's test results
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          run-id: ${{ env.TRIAGE_RUN_ID }}
+          github-token: ${{ github.token }}
+          pattern: integration-test-results-*
+          path: test-results
+
       - uses: actions/github-script@v9
-        env:
-          # Passed through the environment, not interpolated into the script below: `script:` is
-          # JavaScript source, and a workflow_dispatch input is arbitrary text.
-          DISPATCHED_RUN_ID: ${{ inputs.run_id }}
         with:
           script: |
             const triage = require('${{ github.workspace }}/.github/workflows/nightly-flake-triage.js')
-            const dispatched = process.env.DISPATCHED_RUN_ID
-            const runId = dispatched ? Number(dispatched) : context.payload.workflow_run.id
-            await triage({github, context, core}, runId)
+            // Read from the environment rather than interpolating into this script, which is
+            // JavaScript source: a workflow_dispatch input is arbitrary text.
+            await triage({github, context, core}, Number(process.env.TRIAGE_RUN_ID))
