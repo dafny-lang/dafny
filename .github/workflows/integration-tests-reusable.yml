@@ -31,18 +31,18 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "os-list=[\"ubuntu-24.04\", \"macos-14\", \"windows-2022\"]" >> $GITHUB_OUTPUT
+        run: echo "os-list=[\"ubuntu-24.04\", \"macos-14\", \"windows-2022\"]" >> "$GITHUB_OUTPUT"
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
-        run: echo "os-list=[\"ubuntu-24.04\"]" >> $GITHUB_OUTPUT
+        run: echo "os-list=[\"ubuntu-24.04\"]" >> "$GITHUB_OUTPUT"
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "os-mapping={\"ubuntu-24.04\": \"ubuntu\", \"macos-14\": \"macos\", \"windows-2022\": \"windows\"}" >> $GITHUB_OUTPUT
+          echo "os-mapping={\"ubuntu-24.04\": \"ubuntu\", \"macos-14\": \"macos\", \"windows-2022\": \"windows\"}" >> "$GITHUB_OUTPUT"
       - name: Populate shard list
         id: populate-shard-list
-        run: echo "shard-list=[`seq -s , 1 ${{ inputs.num_shards }}`]" >> $GITHUB_OUTPUT
+        run: echo "shard-list=[$(seq -s , 1 ${{ inputs.num_shards }})]" >> "$GITHUB_OUTPUT"
     outputs:
       os-list: ${{ steps.populate-os-list-all.outputs.os-list }} ${{ steps.populate-os-list-one.outputs.os-list }}
       os-mapping: ${{ steps.populate-os-mapping.outputs.os-mapping }}
@@ -59,7 +59,12 @@ jobs:
     steps:
     - name: Manually sync certs
       if: runner.os == 'Linux'
-      run: which cert-sync && cert-sync /etc/ssl/certs/ca-certificates.crt || true
+      run: |
+        # SC2015 warns that `|| true` is the else of `a && b`, not of `a`. That is the intent
+        # here: this step is best effort, so it should succeed whether cert-sync is missing or
+        # merely fails.
+        # shellcheck disable=SC2015
+        which cert-sync && cert-sync /etc/ssl/certs/ca-certificates.crt || true
     - name: Setup dotnet
       uses: actions/setup-dotnet@v6
       with:

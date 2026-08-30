@@ -71,7 +71,7 @@ jobs:
         chmod +x bin/z3
     - name: Set Path
       if: runner.os != 'Windows'
-      run: echo "${PWD}/bin" >> $GITHUB_PATH
+      run: echo "${PWD}/bin" >> "$GITHUB_PATH"
     - name: Set Path - Windows
       if: runner.os == 'Windows'
       # pwsh is already the default on Windows; naming it lets actionlint pick the right shell
@@ -94,7 +94,7 @@ jobs:
         excludes: prerelease, draft
     - name: Verify Dafny version
       if: "${{ steps.dafny.outputs.release != '' }}"
-      run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -iE "Dafny "${version:1}".[0-9]+"
+      run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -iE "Dafny ${version:1}.[0-9]+"
       shell: bash
     ## Check that a simple program compiles and runs on each supported platform
     ## Now that the dotnet tool distribution doesn't include the Scripts,
