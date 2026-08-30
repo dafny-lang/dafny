@@ -24,7 +24,7 @@ Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/sna
 
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
-# Doubles per attempt, so 5 attempts wait 2 + 4 + 8 + 16 = 30s in total.
+## Doubles per attempt: 2s, 4s, 8s, ...
 Z3_DOWNLOAD_RETRY_BASE_SECONDS = 2
 
 ## Allowed Dafny release names
@@ -128,8 +128,7 @@ class Release:
                                 writer.write(reader.read())
                         flush("done!")
                         break
-                    # Back off: with no delay the attempts all go out in quick succession, which
-                    # is little use against a server-side 504.
+                    # Backoff matters: an immediate retry just hits the same server-side 504.
                     except (IncompleteRead, URLError) as e:
                         if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
                             raise
