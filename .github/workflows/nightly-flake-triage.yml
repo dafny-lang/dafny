@@ -11,6 +11,10 @@
 name: Nightly flake triage
 
 on:
+  # Matched against the `name:` of nightly-build.yml, exactly - not its filename. The
+  # "(Manual trigger)" and "(Reusable Workflow)" variants of that name are therefore not
+  # triaged: the reusable one produces no run of its own, and a manual re-run is usually
+  # someone testing a fix, where a fresh issue is noise rather than signal.
   workflow_run:
     workflows: ["Nightly test and release workflow"]
     types: [completed]
@@ -33,8 +37,14 @@ jobs:
     env:
       TRIAGE_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
     steps:
-      - name: Checkout Dafny
+      # Only needed to get nightly-flake-triage.js onto disk for the github-script step below, so
+      # take nothing else. On a workflow_run event this checks out the default branch, which is
+      # the copy of the script that is running in any case.
+      - name: Checkout the triage script
         uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/workflows
+          sparse-checkout-cone-mode: false
 
       # Preferred source for the failing test names: `--logger trx` is an explicit contract in
       # integration-tests-reusable.yml, where xUnit's console formatting is only incidental.
