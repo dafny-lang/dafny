@@ -69,8 +69,10 @@ function failedTestsInTrx(xml) {
   return names;
 }
 
-// Preferred source: `--logger trx` is an explicit contract in the test workflow. null means
-// there is no .trx for this job, which is normal - the upload is best effort.
+// Preferred source: `--logger trx` is an explicit contract in the test workflow. null means no
+// .trx was found, which is expected for a job that never ran tests (publish-release, or a test
+// job that died in setup), and possible for a real test job if the upload was skipped or the
+// artifact has aged out.
 function testsFromArtifact({ core }, shortJobName) {
   const name = artifactNameFor(shortJobName);
   if (!name) {
@@ -132,7 +134,9 @@ async function keysForRun({ github, context, core }, run_id) {
     let tests = testsFromArtifact({ core }, shortName);
     let degraded = false;
 
-    if (tests === null && steps.some(s => TEST_STEP.test(s))) {
+    // Fall back to the log when a test step failed but the .trx does not account for it: either
+    // there is no .trx, or it names no failure, which means it was never finished being written.
+    if ((tests === null || tests.length === 0) && steps.some(s => TEST_STEP.test(s))) {
       logsAttempted++;
       tests = await testsFromLog({ github, context, core }, job);
       if (tests === null) {
