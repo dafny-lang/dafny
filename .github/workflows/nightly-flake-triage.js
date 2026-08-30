@@ -1,5 +1,5 @@
 // Record which test failed when the nightly build goes red, into one issue per test.
-// The failing test's name only exists in the run's own output, which expires after 90 days.
+// The failing test's name only exists in the run's test results, which expire after 90 days.
 
 const fs = require("fs");
 const path = require("path");
@@ -8,11 +8,8 @@ const LABEL = "nightly-flake";
 const TITLE_PREFIX = "nightly flake: ";
 const RESULTS_DIR = "test-results";
 
-// Fallback only: this is xUnit console formatting, not a contract. Extensions match the
-// FileData includes in LitTests.cs.
-const FAILED_TEST_IN_LOG = /([A-Za-z0-9_./-]+\.(?:dfy|transcript)) \[FAIL\]/g;
-
-// Which steps are worth fetching a log for. Only an optimisation, since .trx comes first.
+// Which steps run tests. Used only to tell "this job failed before testing" from "this job's
+// tests failed but left no results behind", which are worth reporting differently.
 const TEST_STEP = /^Run integration tests/;
 
 const marker = key => `<!-- nightly-flake-key: ${key} -->`;
@@ -69,48 +66,32 @@ function failedTestsInTrx(xml) {
   return names;
 }
 
-// Preferred source: `--logger trx` is an explicit contract in the test workflow. null means no
-// .trx was found, which is expected for a job that never ran tests (publish-release, or a test
-// job that died in setup), and possible for a real test job if the upload was skipped or the
-// artifact has aged out.
-function testsFromArtifact({ core }, shortJobName) {
+// `--logger trx` is an explicit contract in the test workflow, so this is the only source. There
+// was a second one that scraped test names out of xUnit's console output, dropped because it
+// duplicated this for a case that has never happened: every upload-artifact failure in the run
+// history so far came after the tests had passed, so there was no failing test to recover, and
+// logs expire on the same 90-day clock as artifacts so it could not help an aged-out run either.
+function failedTestsFor({ core }, shortJobName) {
   const name = artifactNameFor(shortJobName);
   if (!name) {
-    return null;
+    return [];
   }
   const files = trxFilesUnder(path.join(RESULTS_DIR, name));
-  if (files.length === 0) {
-    return null;
-  }
   const failed = new Set();
   for (const file of files) {
     for (const test of failedTestsInTrx(fs.readFileSync(file, "utf8"))) {
       failed.add(test);
     }
   }
-  core.info(`${shortJobName}: ${failed.size} failed test(s) from ${files.length} .trx file(s)`);
+  if (files.length > 0) {
+    core.info(`${shortJobName}: ${failed.size} failed test(s) from ${files.length} .trx file(s)`);
+  }
   return [...failed];
 }
 
-// null distinguishes "could not read" from "read it, found nothing", which the caller counts.
-async function testsFromLog({ github, context, core }, job) {
-  try {
-    const res = await github.rest.actions.downloadJobLogsForWorkflowRun({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      job_id: job.id,
-    });
-    const text = typeof res.data === "string" ? res.data : Buffer.from(res.data).toString("utf8");
-    return [...new Set([...text.matchAll(FAILED_TEST_IN_LOG)].map(m => m[1]))];
-  } catch (e) {
-    core.warning(`could not read the log for job ${job.id} (${job.name}): ${e.message}`);
-    return null;
-  }
-}
-
-// A test name where one could be found, otherwise job and step so infrastructure failures are
-// still recorded. Attempt 1 only: a re-run overwrites the visible conclusion, so attempt 1 is
-// what keeps the failure rate honest.
+// A test name where the results named one, otherwise job and step so that infrastructure
+// failures are still recorded. Attempt 1 only: a re-run overwrites the visible conclusion, so
+// attempt 1 is what keeps the failure rate honest.
 async function keysForRun({ github, context, core }, run_id) {
   const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRunAttempt, {
     owner: context.repo.owner,
@@ -121,8 +102,6 @@ async function keysForRun({ github, context, core }, run_id) {
   });
 
   const keys = new Map();
-  let logsAttempted = 0;
-  let logsFailed = 0;
 
   for (const job of jobs) {
     if (job.conclusion !== "failure" && job.conclusion !== "timed_out") {
@@ -130,47 +109,28 @@ async function keysForRun({ github, context, core }, run_id) {
     }
     const steps = failingStepsOf(job);
     const shortName = job.name.split(" / ").pop();
-
-    let tests = testsFromArtifact({ core }, shortName);
-    let degraded = false;
-
-    // Fall back to the log when a test step failed but the .trx does not account for it: either
-    // there is no .trx, or it names no failure, which means it was never finished being written.
-    if ((tests === null || tests.length === 0) && steps.some(s => TEST_STEP.test(s))) {
-      logsAttempted++;
-      tests = await testsFromLog({ github, context, core }, job);
-      if (tests === null) {
-        logsFailed++;
-        degraded = true;
-        tests = [];
-      }
-    }
+    const tests = failedTestsFor({ core }, shortName);
 
     // The same test can fail in more than one job on one night - JsonLogger.dfy has failed on
     // both the Windows and macOS shard 6 - so collect jobs per key rather than overwriting.
-    // No step is named for a test that came from a .trx: the failing step may be something
-    // later like the artifact upload, which did not cause the test failure.
-    const add = (key, job) => {
-      const entry = keys.get(key) || { jobs: [], degraded: false };
-      entry.jobs.push(job);
-      entry.degraded = entry.degraded || degraded;
+    const add = (key, unexplained) => {
+      const entry = keys.get(key) || { jobs: [], unexplained: false };
+      entry.jobs.push(`\`${shortName}\``);
+      entry.unexplained = entry.unexplained || unexplained;
       keys.set(key, entry);
     };
 
-    if (tests && tests.length > 0) {
+    if (tests.length > 0) {
+      // No step is named: the failing step may be something later, like the artifact upload,
+      // which did not cause the test failure.
       for (const test of tests) {
-        add(test, `\`${shortName}\``);
+        add(test, false);
       }
     } else {
-      add(`${shortName} - ${steps[0] || job.conclusion}`, `\`${shortName}\``);
+      // A test step failed yet the results name nothing. Rare, and worth flagging in the issue
+      // so whoever reads it knows to open the log rather than assuming there was no test.
+      add(`${shortName} - ${steps[0] || job.conclusion}`, steps.some(s => TEST_STEP.test(s)));
     }
-  }
-
-  // Naming the test is the point of this job, so losing every source must not look like success.
-  if (logsAttempted > 0 && logsFailed === logsAttempted) {
-    core.warning(
-      `Could not read any of the ${logsAttempted} test job logs for run ${run_id}, and no .trx ` +
-      `artifacts were available either. Check actions: read, and the 90-day retention.`);
   }
 
   return keys;
@@ -214,10 +174,10 @@ module.exports = async ({ github, context, core }, run_id) => {
 
   const existing = await existingIssues({ github, context });
 
-  for (const [key, { jobs, degraded }] of keys) {
-    const note = degraded
-      ? "\n\nThe failing test could not be identified: no `.trx` artifact was available and the " +
-        "job log could not be read. Only the job and step are recorded."
+  for (const [key, { jobs, unexplained }] of keys) {
+    const note = unexplained
+      ? "\n\nThe tests failed but left no results behind, so the failing test is not named here. " +
+        "The job log for that run will say which it was."
       : "";
     const body = `Failed in ${jobs.join(", ")} during ${runUrl} (attempt 1).${note}`;
     const issue = existing.get(key);
