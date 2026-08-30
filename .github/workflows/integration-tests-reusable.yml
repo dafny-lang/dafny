@@ -73,9 +73,7 @@ jobs:
       if: matrix.os == 'ubuntu-24.04'
       run: |
         sudo apt-get install -y build-essential
-    # The matrix has no target-language-version dimension, so the conditions this step used to
-    # carry meant "oldest always, newest never". Testing the newest JDK too needs a real matrix
-    # dimension, which doubles the matrix.
+    # Only the oldest supported JDK is exercised; adding the newest needs a matrix dimension.
     - name: Set up oldest supported JDK
       uses: actions/setup-java@v5
       with:
