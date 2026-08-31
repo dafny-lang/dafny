@@ -1,0 +1,1 @@
+C++ backend: truncate fixed-width bitvector arithmetic to the bitvector width (bv8/bv16 arithmetic such as `(bv8)0x81 << 1` now yields the correct value)
