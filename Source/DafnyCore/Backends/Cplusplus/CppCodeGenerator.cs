@@ -1529,11 +1529,12 @@ namespace Microsoft.Dafny.Compilers {
 
       if (nativeType == null) {
         throw new UnsupportedFeatureException(Token.NoToken, Feature.UnboundedIntegers, "EmitBitvectorTruncation with BigInteger value");
-      } else if (bvType.Width < 64) {
-        // Mask to the width. bv8 and bv16 need this too, since C++ promotes
-        // uint8/uint16 to int. Width 64 is excluded: a uint64 carrier needs no
-        // mask. (It also couldn't use this branch: C# wraps the shift count mod 64,
-        // so 1UL << 64 equals 1, making the mask (1<<0)-1, which is 0.)
+      } else if (bvType.Width < nativeType.Bitwidth || nativeType.Bitwidth < 32) {
+        // Mask to the width. Two cases need it: a bvN in a wider carrier
+        // (Width < Bitwidth), and a bvN in an exactly-N-wide carrier below 32 bits
+        // (bv8 in uint8, bv16 in uint16), because C++ promotes those operands to
+        // int before arithmetic, so the result isn't truncated on its own. A 32- or
+        // 64-bit carrier at its own width wraps natively and needs no mask.
         wr.Write("((");
         var middle = wr.Fork();
         // print in hex, because that looks nice
