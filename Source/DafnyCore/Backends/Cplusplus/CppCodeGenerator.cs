@@ -1529,7 +1529,12 @@ namespace Microsoft.Dafny.Compilers {
 
       if (nativeType == null) {
         throw new UnsupportedFeatureException(Token.NoToken, Feature.UnboundedIntegers, "EmitBitvectorTruncation with BigInteger value");
-      } else if (bvType.Width < nativeType.Bitwidth) {
+      } else if (bvType.Width < nativeType.Bitwidth || nativeType.Bitwidth < 32) {
+        // Mask to the width. Two cases need it: a bvN in a wider carrier
+        // (Width < Bitwidth), and a bvN in an exactly-N-wide carrier below 32 bits
+        // (bv8 in uint8, bv16 in uint16), because C++ promotes those operands to
+        // int before arithmetic, so the result isn't truncated on its own. A 32- or
+        // 64-bit carrier at its own width wraps natively and needs no mask.
         wr.Write("((");
         var middle = wr.Fork();
         // print in hex, because that looks nice
