@@ -28,6 +28,19 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// The URI of the target-specific standard-library doo to load for the given options,
+    /// or null if no target-specific standard library exists for that target.
+    /// Verification-only use (no compiler chosen) and the library backend translate nothing,
+    /// so they use the target-agnostic "notarget" flavor.
+    /// </summary>
+    public static Uri StandardLibrariesDooUriForTarget(DafnyOptions options) {
+      var target = options.CompilerName is null || options.CompilerName == Compilers.LibraryBackend.Id
+        ? "notarget"
+        : options.CompilerName;
+      return StandardLibrariesDooUriTarget.GetValueOrDefault(target);
+    }
+
     public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
       if (filename == null) {
         return;
