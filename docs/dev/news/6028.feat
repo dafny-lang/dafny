@@ -1,0 +1,4 @@
+The default value of `--verification-time-limit` is now 30 seconds instead of 0 (no limit).
+Verification that previously ran for longer than 30 seconds now reports a timeout;
+pass `--verification-time-limit:0` to restore the old behaviour.
+This changed in Dafny 4.10.0, but the release note was omitted by mistake.

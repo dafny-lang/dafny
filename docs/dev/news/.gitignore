@@ -1,0 +1,9 @@
+# This file exists so that docs/dev/news/ survives a release.
+#
+# `prepare` deletes every release note in this directory, and Git does not track
+# empty directories, so without a file here the directory disappears entirely:
+# `git ls-tree -r v4.11.0 -- docs/dev/news` is empty, as it is at v4.10.0 and
+# v4.9.2. A contributor cloning at a release tag then has to recreate it before
+# they can add a release note.
+#
+# `NewsFragments.IGNORED` skips this file, so it is never mistaken for a note.

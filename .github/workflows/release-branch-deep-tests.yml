@@ -1,0 +1,33 @@
+
+# `prepare_release.py <version> prepare` pushes a `release-<version>` branch, which
+# triggers this. A maintainer waits for it to pass before tagging.
+#
+# The tests live in release-deep-tests-reusable.yml, which the tag-triggered gate in
+# publish-release.yml also calls -- that is what makes a pass here predict a pass
+# after tagging.
+
+name: Release branch deep tests
+
+on:
+  push:
+    branches:
+      # A digit is required after the dash, or this would also match ordinary work
+      # branches like `release-notes-cleanup`.
+      - 'release-[0-9]*'
+
+concurrency:
+  # `prepare` force-pushes on re-run, and checklist step 9 pushes the
+  # set-next-version commit here too. Supersede rather than stack.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deep-integration-tests:
+    if: github.repository_owner == 'dafny-lang'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/release-deep-tests-reusable.yml
+    with:
+      # The commit, not the branch: `prepare` force-pushes, and a run identified
+      # only by branch would silently change what it is testing.
+      ref: ${{ github.sha }}
