@@ -918,11 +918,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void PrintAttributeArgs(List<Expression> args, bool isFollowedBySemicolon) {
       Contract.Requires(args != null);
       string prefix = " ";
-      foreach (var arg in args) {
+      for (var i = 0; i < args.Count; i++) {
+        var arg = args[i];
         Contract.Assert(arg != null);
         wr.Write(prefix);
         prefix = ", ";
-        PrintExpression(arg, isFollowedBySemicolon);
+        // Parenthesize non-last arguments when needed (see PrintExpressionPairList).
+        PrintExpression(arg, i == args.Count - 1, isFollowedBySemicolon);
       }
     }
 
@@ -1119,16 +1121,20 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       wr.Write("(");
       string sep = "";
-      foreach (Formal f in ff) {
+      for (var i = 0; i < ff.Count; i++) {
+        var f = ff[i];
         Contract.Assert(f != null);
         wr.Write(sep);
         sep = ", ";
-        PrintFormal(f, (context is TwoStateLemma || context is TwoStateFunction) && f.InParam);
+        PrintFormal(f, (context is TwoStateLemma || context is TwoStateFunction) && f.InParam, i == ff.Count - 1);
       }
       wr.Write(")");
     }
 
-    void PrintFormal(Formal f, bool showNewKeyword) {
+    /// "isRightmost" defaults to true because the two callers that do not pass it print a single formal
+    /// enclosed by its own delimiters -- a function's result formal in parentheses, and a prefix lemma's
+    /// first formal in brackets -- so nothing follows the formal that a comprehension could absorb.
+    void PrintFormal(Formal f, bool showNewKeyword, bool isRightmost = true) {
       Contract.Requires(f != null);
       if (showNewKeyword && !f.IsOld) {
         wr.Write("new ");
@@ -1150,7 +1156,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       PrintType(f.Type);
       if (f.DefaultValue != null) {
         wr.Write(" := ");
-        PrintExpression(f.DefaultValue, false);
+        // A non-last formal is followed by ", ...", which a comprehension's domain would absorb, so the
+        // default value needs the disambiguating parentheses that isRightmost: false adds. The closing
+        // parenthesis of the formal list plays that role for the last one.
+        PrintExpression(f.DefaultValue, isRightmost, false);
       }
     }
 
@@ -1166,7 +1175,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write("decreases");
         });
         wr.Write(" ");
-        PrintExpressionList(decs.Expressions, true);
+        PrintExpressionList(decs.Expressions, true, parensAroundArgList: false);
       }
     }
 
