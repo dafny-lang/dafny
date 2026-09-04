@@ -135,6 +135,8 @@ type name as a string literal. Acceptable values are:
    * `"number"`    53 bits, signed
    * `"ulong"`     64 bits, unsigned
    * `"long"`      64 bits, signed
+   * `"udoublelong"` 128 bits, unsigned
+   * `"doublelong"`  128 bits, signed
 
   If the target compiler
   does not support a named native type X, then an error is generated. Also, if, after
@@ -142,6 +144,8 @@ type name as a string literal. Acceptable values are:
   that the type's values will fit in X, an error is generated.
   The names given above do not have to match the names in the target compilation language,
   just the characteristics of that type.
+  The C# compiler maps `udoublelong` and `doublelong` to `System.UInt128`
+  and `System.Int128`, so generated projects that use them require .NET 7 or later.
 
 ### 11.1.3. `{:ignore}` (deprecated)
 Ignore the declaration (after checking for duplicate names).
