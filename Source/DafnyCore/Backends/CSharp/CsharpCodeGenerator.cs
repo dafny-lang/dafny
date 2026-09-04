@@ -41,6 +41,10 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMapClass = "Dafny.Map";
 
     const string DafnyHelpersClass = "Dafny.Helpers";
+    const string Int128HelpersClass = "global::FuncExtensions";
+
+    private ConcreteSyntaxTree int128HelpersWriter;
+    private bool int128HelpersEmitted;
 
     static string FormatTypeDescriptorVariable(string typeVarName) => $"_td_{typeVarName}";
     string FormatTypeDescriptorVariable(TypeParameter tp) => FormatTypeDescriptorVariable(tp.GetCompileName(Options));
@@ -104,6 +108,87 @@ namespace Microsoft.Dafny.Compilers {
       if (Options.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
         EmitCoverageReportInstrumentation(program, wr);
       }
+
+    }
+
+    private void EnsureInt128Helpers() {
+      if (int128HelpersEmitted) {
+        return;
+      }
+
+      int128HelpersEmitted = true;
+      var helpers = int128HelpersWriter;
+      helpers.WriteLine(
+        "internal static readonly Dafny.TypeDescriptor<System.Int128> INT128 = new Dafny.TypeDescriptor<System.Int128>(0);");
+      helpers.WriteLine(
+        "internal static readonly Dafny.TypeDescriptor<System.UInt128> UINT128 = new Dafny.TypeDescriptor<System.UInt128>(0);");
+
+      var division = helpers.NewNamedBlock(
+        "public static System.Int128 EuclideanDivision(System.Int128 a, System.Int128 b)");
+      var nonnegativeDividend = division.NewNamedBlock("if (0 <= a)");
+      var nonnegativeDivisor = nonnegativeDividend.NewNamedBlock("if (0 <= b)");
+      nonnegativeDivisor.WriteLine("return (System.Int128)((System.UInt128)a / (System.UInt128)b);");
+      var negativeDivisor = nonnegativeDividend.NewNamedBlock("else");
+      negativeDivisor.WriteLine(
+        "return unchecked(-((System.Int128)((System.UInt128)a / unchecked((System.UInt128)(-b)))));");
+      var negativeDividend = division.NewNamedBlock("else");
+      nonnegativeDivisor = negativeDividend.NewNamedBlock("if (0 <= b)");
+      nonnegativeDivisor.WriteLine(
+        "return unchecked(-((System.Int128)(unchecked((System.UInt128)(-(a + 1))) / (System.UInt128)b)) - 1);");
+      negativeDivisor = negativeDividend.NewNamedBlock("else");
+      negativeDivisor.WriteLine(
+        "return unchecked((System.Int128)(unchecked((System.UInt128)(-(a + 1))) / unchecked((System.UInt128)(-b))) + 1);");
+
+      var modulus = helpers.NewNamedBlock(
+        "public static System.Int128 EuclideanModulus(System.Int128 a, System.Int128 b)");
+      modulus.WriteLine("var bp = 0 <= b ? (System.UInt128)b : unchecked((System.UInt128)(-b));");
+      nonnegativeDividend = modulus.NewNamedBlock("if (0 <= a)");
+      nonnegativeDividend.WriteLine("return (System.Int128)((System.UInt128)a % bp);");
+      negativeDividend = modulus.NewNamedBlock("else");
+      negativeDividend.WriteLine("var c = unchecked((System.UInt128)(-a)) % bp;");
+      negativeDividend.WriteLine("return (System.Int128)(c == 0 ? c : bp - c);");
+
+      var shiftLeft = helpers.NewNamedBlock(
+        "public static System.UInt128 BvShiftLeft(System.UInt128 a, int amount)");
+      shiftLeft.WriteLine("return 128 <= amount ? 0 : a << amount;");
+      var shiftRight = helpers.NewNamedBlock(
+        "public static System.UInt128 BvShiftRight(System.UInt128 a, int amount)");
+      shiftRight.WriteLine("return 128 <= amount ? 0 : a >> amount;");
+    }
+
+    private static bool IsInt128NativeType(NativeType nativeType) {
+      return nativeType.Sel is NativeType.Selection.DoubleLong or NativeType.Selection.UDoubleLong;
+    }
+
+    private void EmitNative128IntegerLiteral(BigInteger value, NativeType nativeType, ConcreteSyntaxTree wr) {
+      Contract.Assert(IsInt128NativeType(nativeType));
+
+      GetNativeInfo(nativeType.Sel, out var nativeName, out _, out _);
+      if (nativeType.Sel == NativeType.Selection.UDoubleLong && value.Sign >= 0 && value <= ulong.MaxValue) {
+        wr.Write($"(({nativeName})({value}UL))");
+        return;
+      }
+
+      if (nativeType.Sel == NativeType.Selection.DoubleLong) {
+        if (long.MinValue <= value && value <= long.MaxValue) {
+          wr.Write($"(({nativeName})({value}L))");
+          return;
+        }
+        if (value.Sign >= 0 && value <= ulong.MaxValue) {
+          wr.Write($"(({nativeName})({value}UL))");
+          return;
+        }
+      }
+
+      var modulus = BigInteger.One << 128;
+      var unsignedValue = value.Sign < 0 ? value + modulus : value;
+      Contract.Assert(BigInteger.Zero <= unsignedValue && unsignedValue < modulus);
+      var high = (ulong)(unsignedValue >> 64);
+      var low = (ulong)(unsignedValue & ulong.MaxValue);
+      var composedValue = $"(((System.UInt128)({high}UL) << 64) | (System.UInt128)({low}UL))";
+      wr.Write(nativeType.Sel == NativeType.Selection.DoubleLong
+        ? $"unchecked((System.Int128){composedValue})"
+        : composedValue);
     }
 
     /// <summary>
@@ -187,6 +272,8 @@ namespace Microsoft.Dafny.Compilers {
     private void EmitFuncExtensions(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
       var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
       wr.WriteLine("// end of class FuncExtensions");
+      int128HelpersWriter = funcExtensions.Fork();
+      int128HelpersEmitted = false;
       var arrowTypeDecls = systemModuleManager.ArrowTypeDecls.ToList();
       arrowTypeDecls.Sort((left, right) => left.Key - right.Key);
       foreach (var kv in arrowTypeDecls) {
@@ -1384,6 +1471,16 @@ namespace Microsoft.Dafny.Compilers {
           literalSuffix = "L";
           needsCastAfterArithmetic = false;
           break;
+        case NativeType.Selection.UDoubleLong:
+          name = "System.UInt128";
+          literalSuffix = "";
+          needsCastAfterArithmetic = false;
+          break;
+        case NativeType.Selection.DoubleLong:
+          name = "System.Int128";
+          literalSuffix = "";
+          needsCastAfterArithmetic = false;
+          break;
         default:
           Contract.Assert(false); // unexpected native type
           throw new Cce.UnreachableException(); // to please the compiler
@@ -1892,6 +1989,12 @@ namespace Microsoft.Dafny.Compilers {
           return $"Dafny.Helpers.INT64";
         case NativeType.Selection.ULong:
           return $"Dafny.Helpers.UINT64";
+        case NativeType.Selection.DoubleLong:
+          EnsureInt128Helpers();
+          return $"{Int128HelpersClass}.INT128";
+        case NativeType.Selection.UDoubleLong:
+          EnsureInt128Helpers();
+          return $"{Int128HelpersClass}.UINT128";
         default:
           Contract.Assert(false);
           throw new Cce.UnreachableException();
@@ -2168,7 +2271,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private List<ConcreteSyntaxTree> EmitNewArray(Type elmtType, IOrigin tok, int dimCount, bool mustInitialize, ConcreteSyntaxTree wr) {
       ConcreteSyntaxTree EmitSizeCheckWrapper(ConcreteSyntaxTree w) {
-        w.Write($"{DafnyHelpersClass}.ToIntChecked(");
+        w.Write($"{DafnyHelpersClass}.ToIntChecked((BigInteger)");
         var wSize = w.Fork();
         w.Write(", \"array size exceeds memory limit\")");
         return wSize;
@@ -2254,11 +2357,16 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e is StringLiteralExpr str) {
         wr.Format($"{DafnySeqClass}<{CharTypeName}>.{CharMethodQualifier}FromString({StringLiteral(str)})");
       } else if (AsNativeType(e.Type) is { } nativeType) {
-        GetNativeInfo(nativeType.Sel, out var nativeName, out var literalSuffix, out var needsCastAfterArithmetic);
-        if (needsCastAfterArithmetic) {
-          wr = wr.Write($"({nativeName})").ForkInParens();
+        var value = (BigInteger)e.Value;
+        if (IsInt128NativeType(nativeType)) {
+          EmitNative128IntegerLiteral(value, nativeType, wr);
+        } else {
+          GetNativeInfo(nativeType.Sel, out var nativeName, out var literalSuffix, out var needsCastAfterArithmetic);
+          if (needsCastAfterArithmetic) {
+            wr = wr.Write($"({nativeName})").ForkInParens();
+          }
+          wr.Write(value + literalSuffix);
         }
-        wr.Write((BigInteger)e.Value + literalSuffix);
       } else if (e.Value is BigInteger bigInteger) {
         EmitIntegerLiteral(bigInteger, wr);
       } else if (e.Value is BigDec n) {
@@ -2328,8 +2436,12 @@ namespace Microsoft.Dafny.Compilers {
       if (nativeType == null) {
         wr.Write(" & ((new BigInteger(1) << {0}) - 1)", bvType.Width);
       } else if (bvType.Width < nativeType.Bitwidth) {
-        // print in hex, because that looks nice
-        wr.Write(" & ({2})0x{0:X}{1}", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
+        if (nativeType.Sel == NativeType.Selection.UDoubleLong) {
+          wr.Write(" & ((({0})1 << {1}) - 1)", nativeName, bvType.Width);
+        } else {
+          // print in hex, because that looks nice
+          wr.Write(" & ({2})0x{0:X}{1}", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
+        }
       }
 
       return middle;
@@ -3130,28 +3242,34 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         case BinaryExpr.ResolvedOpcode.LeftShift: {
-            var typeBitwidth = resultType.NormalizeToAncestorType().AsBitVectorType.Width;
-            if (resultType.AsNativeType() is { Bitwidth: (32 or 64) and var targetBitwidth } && targetBitwidth <= typeBitwidth) {
-              // In C#, "<< 32" on "int" and "<< 64" on "long" are the same as "<< 0".
-              staticCallString = $"{DafnyHelpersClass}.Bv{targetBitwidth}ShiftLeft";
-            } else {
-              opString = "<<";
-            }
-            convertE1_to_int = true;
-            truncateResult = true;
-            break;
+          var typeBitwidth = resultType.NormalizeToAncestorType().AsBitVectorType.Width;
+          if (resultType.AsNativeType() is { Bitwidth: 128 }) {
+            EnsureInt128Helpers();
+            staticCallString = $"{Int128HelpersClass}.BvShiftLeft";
+          } else if (resultType.AsNativeType() is { Bitwidth: (32 or 64) and var targetBitwidth } && targetBitwidth <= typeBitwidth) {
+            // In C#, "<< 32" on "int" and "<< 64" on "long" are the same as "<< 0".
+            staticCallString = $"{DafnyHelpersClass}.Bv{targetBitwidth}ShiftLeft";
+          } else {
+            opString = "<<";
           }
+          convertE1_to_int = true;
+          truncateResult = true;
+          break;
+        }
         case BinaryExpr.ResolvedOpcode.RightShift: {
-            var typeBitwidth = resultType.NormalizeToAncestorType().AsBitVectorType.Width;
-            if (resultType.AsNativeType() is { Bitwidth: (32 or 64) and var targetBitwidth } && targetBitwidth <= typeBitwidth) {
-              // In C#, ">> 32" on "int" and ">> 64" on "long" are the same as ">> 0".
-              staticCallString = $"{DafnyHelpersClass}.Bv{targetBitwidth}ShiftRight";
-            } else {
-              opString = ">>";
-            }
-            convertE1_to_int = true;
-            break;
+          var typeBitwidth = resultType.NormalizeToAncestorType().AsBitVectorType.Width;
+          if (resultType.AsNativeType() is { Bitwidth: 128 }) {
+            EnsureInt128Helpers();
+            staticCallString = $"{Int128HelpersClass}.BvShiftRight";
+          } else if (resultType.AsNativeType() is { Bitwidth: (32 or 64) and var targetBitwidth } && targetBitwidth <= typeBitwidth) {
+            // In C#, ">> 32" on "int" and ">> 64" on "long" are the same as ">> 0".
+            staticCallString = $"{DafnyHelpersClass}.Bv{targetBitwidth}ShiftRight";
+          } else {
+            opString = ">>";
           }
+          convertE1_to_int = true;
+          break;
+        }
         case BinaryExpr.ResolvedOpcode.Add:
           if (resultType.IsCharType) {
             if (CharIsRune) {
@@ -3182,16 +3300,28 @@ namespace Microsoft.Dafny.Compilers {
           opString = "*"; truncateResult = true; break;
         case BinaryExpr.ResolvedOpcode.Div:
           if (NeedsEuclideanDivision(resultType)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = $"{DafnyHelpersClass}.EuclideanDivision{suffix}";
+            var nativeType = AsNativeType(resultType);
+            if (nativeType?.Sel == NativeType.Selection.DoubleLong) {
+              EnsureInt128Helpers();
+              staticCallString = $"{Int128HelpersClass}.EuclideanDivision";
+            } else {
+              var suffix = nativeType != null ? "_" + GetNativeTypeName(nativeType) : "";
+              staticCallString = $"{DafnyHelpersClass}.EuclideanDivision{suffix}";
+            }
           } else {
             opString = "/";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
           if (NeedsEuclideanDivision(resultType)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = $"{DafnyHelpersClass}.EuclideanModulus{suffix}";
+            var nativeType = AsNativeType(resultType);
+            if (nativeType?.Sel == NativeType.Selection.DoubleLong) {
+              EnsureInt128Helpers();
+              staticCallString = $"{Int128HelpersClass}.EuclideanModulus";
+            } else {
+              var suffix = nativeType != null ? "_" + GetNativeTypeName(nativeType) : "";
+              staticCallString = $"{DafnyHelpersClass}.EuclideanModulus{suffix}";
+            }
           } else {
             opString = "%";
           }
@@ -3259,8 +3389,8 @@ namespace Microsoft.Dafny.Compilers {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(toType) == null);
           wr.Write("new Dafny.BigRational(");
-          if (AsNativeType(fromType) != null) {
-            wr.Write("new BigInteger");
+          if (AsNativeType(fromType) is { } fromNative) {
+            wr.Write(IsInt128NativeType(fromNative) ? "(BigInteger)" : "new BigInteger");
           }
           ConvertFromChar(fromExpr, wr, inLetExprBody, wStmts);
           wr.Write(", BigInteger.One)");
@@ -3290,39 +3420,42 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
-            wr.Write("new BigInteger");
+            wr.Write(IsInt128NativeType(fromNative) ? "(BigInteger)" : "new BigInteger");
             TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
           } else {
             GetNativeInfo(toNative.Sel, out string toNativeName, out string toNativeSuffix, out var toNativeNeedsCast);
             // any (int or bv) -> native (int or bv)
             // A cast would do, but we also consider some optimizations
-            wr.Write("({0})", toNativeName);
-
             var literal = PartiallyEvaluate(fromExpr);
             UnaryOpExpr u = fromExpr.Resolved as UnaryOpExpr;
             MemberSelectExpr m = fromExpr.Resolved as MemberSelectExpr;
-            if (literal != null) {
-              // Optimize constant to avoid intermediate BigInteger
-              wr.Write("(" + literal + toNativeSuffix + ")");
-            } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
-              // Optimize .Count to avoid intermediate BigInteger
-              TrParenExpr(u.E, wr, inLetExprBody, wStmts);
-              if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
-                wr.Write(".Count");
-              } else {
-                wr.Write(".LongCount");
-              }
-            } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
-              // Optimize .Length to avoid intermediate BigInteger
-              TrParenExpr(m.Obj, wr, inLetExprBody, wStmts);
-              if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
-                wr.Write(".Length");
-              } else {
-                wr.Write(".LongLength");
-              }
+            if (literal != null && IsInt128NativeType(toNative)) {
+              EmitNative128IntegerLiteral(literal.Value, toNative, wr);
             } else {
-              // no optimization applies; use the standard translation
-              ConvertFromChar(fromExpr, wr, inLetExprBody, wStmts);
+              wr.Write("({0})", toNativeName);
+              if (literal != null) {
+                // Optimize constant to avoid intermediate BigInteger
+                wr.Write("(" + literal + toNativeSuffix + ")");
+              } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
+                // Optimize .Count to avoid intermediate BigInteger
+                TrParenExpr(u.E, wr, inLetExprBody, wStmts);
+                if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
+                  wr.Write(".Count");
+                } else {
+                  wr.Write(".LongCount");
+                }
+              } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
+                // Optimize .Length to avoid intermediate BigInteger
+                TrParenExpr(m.Obj, wr, inLetExprBody, wStmts);
+                if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
+                  wr.Write(".Length");
+                } else {
+                  wr.Write(".LongLength");
+                }
+              } else {
+                // no optimization applies; use the standard translation
+                ConvertFromChar(fromExpr, wr, inLetExprBody, wStmts);
+              }
             }
           }
         }
@@ -3344,7 +3477,12 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (fromType.IsBigOrdinalType) {
         if (toType.IsNumericBased(Type.NumericPersuasion.Int) || toType.IsBigOrdinalType) {
-          wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+          if (AsNativeType(toType) is { } toNative) {
+            wr.Write($"({GetNativeTypeName(toNative)})");
+            TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+          } else {
+            wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+          }
         } else if (toType.IsCharType) {
           wr.Write($"({CharTypeName})");
           TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);

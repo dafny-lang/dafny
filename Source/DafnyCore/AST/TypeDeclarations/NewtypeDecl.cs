@@ -209,6 +209,7 @@ public class NativeType {
       case Selection.Short: return Selection.UShort;
       case Selection.Int: return Selection.UInt;
       case Selection.Long: return Selection.ULong;
+      case Selection.DoubleLong: return Selection.UDoubleLong;
       default:
         return null;
     }

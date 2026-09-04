@@ -21,6 +21,9 @@ public class CsharpBackend : ExecutableBackend {
   public override bool IsStable => true;
   public override string TargetExtension => "cs";
 
+  public override IReadOnlySet<string> SupportedNativeTypes =>
+    new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long", "udoublelong", "doublelong" };
+
   // True if the most recently visited AST has a method annotated with {:synthesize}:
 
   public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
