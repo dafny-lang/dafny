@@ -1,0 +1,1 @@
+Document that an extern Go type must implement the runtime's `EqualsGeneric` interface, and that an extern `class` or `trait` must implement it as identity, since Dafny cannot generate it for a type declared in another Go package
