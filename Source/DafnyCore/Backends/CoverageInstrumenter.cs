@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -19,7 +20,12 @@ public class CoverageInstrumenter {
     }
 
     if (codeGenerator.Options?.Get(CommonOptionBag.ExecutionCoverageReport) != null) {
-      talliesFilePath = Path.GetTempFileName();
+      // Only a name is needed: the instrumented program opens this path with FileMode.Create
+      // (see the CodeCoverage runtime emitted by CsharpCodeGenerator). Path.GetTempFileName()
+      // would additionally create the file here, which then outlives the build whenever the
+      // tallies are never read back -- on a target that rejects execution coverage, on a program
+      // with no Main, and when the program fails before writing them.
+      talliesFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     }
   }
 
@@ -101,16 +107,46 @@ public class CoverageInstrumenter {
   public void PopulateCoverageReport(CoverageReport coverageReport) {
     var coverageReportDir = codeGenerator.Options?.Get(CommonOptionBag.ExecutionCoverageReport);
     if (coverageReportDir != null) {
-      var tallies = File.ReadLines(talliesFilePath).Select(int.Parse).ToArray();
-      foreach (var ((token, _), tally) in legend.Zip(tallies)) {
-        var label = tally == 0 ? CoverageLabel.NotCovered : CoverageLabel.FullyCovered;
-        // For now we only identify branches at the line granularity,
-        // which matches what `dafny generate-tests ... --coverage-report` does as well.
-        var rangeToken = new TokenRange(
-          new Token(token.line, 1) { Uri = token.Uri },
-          new Token(token.line + 1, 1));
-        coverageReport.LabelCode(rangeToken, label);
+      try {
+        PopulateFromTallies(coverageReport);
       }
+      finally {
+        // Delete even if the tallies could not be read: the program may have failed before writing
+        // them, and on a target that rejects execution coverage they are never written at all.
+        TryDeleteTalliesFile();
+      }
+    }
+  }
+
+  /// <summary>
+  /// Best-effort removal of the tallies file. Never throws: this runs from a finally block, and
+  /// leaving a file behind in the temp directory is not worth failing a build over, let alone
+  /// masking the exception that sent us here.
+  /// </summary>
+  private void TryDeleteTalliesFile() {
+    if (talliesFilePath == null) {
+      return;
+    }
+    try {
+      File.Delete(talliesFilePath);
+    } catch (Exception) {
+      // Includes IOException (file in use) and UnauthorizedAccessException (read-only or a
+      // directory); nothing here is actionable.
+    }
+  }
+
+  private void PopulateFromTallies(CoverageReport coverageReport) {
+    // uint, matching the counters the instrumented program writes: a branch taken more than
+    // int.MaxValue times would make int.Parse throw OverflowException.
+    var tallies = File.ReadLines(talliesFilePath).Select(uint.Parse).ToArray();
+    foreach (var ((token, _), tally) in legend.Zip(tallies)) {
+      var label = tally == 0 ? CoverageLabel.NotCovered : CoverageLabel.FullyCovered;
+      // For now we only identify branches at the line granularity,
+      // which matches what `dafny generate-tests ... --coverage-report` does as well.
+      var rangeToken = new TokenRange(
+        new Token(token.line, 1) { Uri = token.Uri },
+        new Token(token.line + 1, 1));
+      coverageReport.LabelCode(rangeToken, label);
     }
   }
 
