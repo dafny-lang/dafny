@@ -666,10 +666,9 @@ namespace Microsoft.Dafny {
           case UnaryOpExpr.ResolvedOpcode.Lit:
             return MaybeLit(arg);
           case UnaryOpExpr.ResolvedOpcode.FloatNegate:
-            var (significand, exponent) = opExpr.E.Type.FloatPrecision;
-            var prefix = opExpr.E.Type.FloatTypeName;
-            var floatType = new FloatType(significand, exponent);
-            var negResult = FunctionCall(GetToken(opExpr), $"{prefix}_neg", floatType, arg);
+            var negFacts = opExpr.E.Type.FloatRepresentation;
+            var floatType = new FloatType(negFacts.SignificandBits, negFacts.ExponentBits);
+            var negResult = FunctionCall(GetToken(opExpr), $"{negFacts.Name}_neg", floatType, arg);
             return BoogieGenerator.IsLit(arg) ? MaybeLit(negResult, floatType) : negResult;
           case UnaryOpExpr.ResolvedOpcode.BVNot:
             var bvWidth = opExpr.Type.NormalizeToAncestorType().AsBitVectorType.Width;
@@ -893,7 +892,9 @@ namespace Microsoft.Dafny {
             return MaybeLit(Boogie.Expr.Literal(n));
           }
         } else if (e.Value is BigDec) {
-          if (e.Type.IsFloatingPointType) {
+          // FloatRepresentation rather than IsFloatingPointType: a newtype over fp32 is translated to
+          // the fp32 Boogie type, so its literals must be fp literals too, not reals.
+          if (e.Type.FloatRepresentation is { }) {
             // For DecimalLiteralExpr with floating point type, use the precomputed float value if available
             if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
               return MaybeLit(new Bpl.LiteralExpr(GetToken(e), decLit.ResolvedFloatValue.Value), BoogieGenerator.TrType(e.Type));
@@ -1086,7 +1087,7 @@ namespace Microsoft.Dafny {
                 "PositiveInfinity" => BoogieGenerator.Predef.Fp32PositiveInfinity,
                 "NegativeInfinity" => BoogieGenerator.Predef.Fp32NegativeInfinity,
                 "Pi" => CreateFp32Constant("13176795", "4194304"),  // 2^22
-                "E" => CreateFp32Constant("11398091", "4194304"),   // 2^22
+                "E" => CreateFp32Constant("11401300", "4194304"),   // 2^22
                 "MaxValue" => CreateFp32Constant("340282346638528859811704183484516925440"),
                 "MinValue" => CreateFp32Constant("-340282346638528859811704183484516925440"),
                 "MinNormal" => CreateFp32Constant("1", BigInteger.Pow(2, 126).ToString()),
@@ -1315,6 +1316,14 @@ namespace Microsoft.Dafny {
               return CallFloatFunction($"{floatType}_sqrt", boogieType, TrExpr(expr.Args[0]));
             case "FromReal":
               return CallFloatFunction($"real_to_{floatType}_RNE", boogieType, TrExpr(expr.Args[0]));
+            // The function name below is literal rather than interpolated: it is the callee's
+            // precision, not the receiver's, that picks the conversion.
+            case "FromFp64":
+              // fp64 -> fp32 rounds to nearest, ties to even: the rounding counterpart of 'as fp32',
+              // which instead asserts exact representability. '~' applies only to literals, so this is
+              // the only way to write a rounding narrowing, and like the rest of the family it carries
+              // no obligation.
+              return CallFloatFunction("fp64_to_fp32_RNE", boogieType, TrExpr(expr.Args[0]));
             case "ToInt": {
                 var arg = TrExpr(expr.Args[0]);
                 var truncatedFp = CallFloatFunction($"{floatType}_truncate", boogieType, arg);
@@ -1322,6 +1331,10 @@ namespace Microsoft.Dafny {
                 return BoogieGenerator.FunctionCall(GetToken(expr), BuiltinFunction.RealToInt, null, toReal);
               }
           }
+          // Falling out of this switch reaches the generic tail below, which emits a call to an
+          // undeclared Boogie function and aborts in Boogie's resolver. Fail here instead, so the next
+          // fp member added without a translation is diagnosable.
+          throw new NotImplementedException($"{floatType} member {name} has no Boogie translation");
         }
 
         var args = FunctionInvocationArguments(expr, null, null, true, out _);

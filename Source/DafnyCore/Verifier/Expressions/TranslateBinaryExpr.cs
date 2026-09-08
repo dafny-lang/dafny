@@ -104,6 +104,10 @@ public partial class BoogieGenerator {
             return TrToFunctionCall(GetToken(binaryExpr), "lt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
           } else if (e0Type.IsBigOrdinalType) {
             return FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e0, e1);
+          } else if (e0Type.IsFloatingPointType) {
+            // Must precede the isReal arm below: isReal folds NumericPersuasion.Float in, so fp
+            // would otherwise fall through to a raw Opcode.Lt (see FpLess for why that is wrong).
+            return BoogieGenerator.FpLess(GetToken(binaryExpr), e0Type.FloatRepresentation, e0, e1);
           } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
             typ = Boogie.Type.Bool;
             bOpcode = BinaryOperator.Opcode.Lt;
@@ -121,6 +125,8 @@ public partial class BoogieGenerator {
             var less = FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e0, e1);
             var eq = Expr.Eq(e0, e1);
             return BplOr(eq, less);
+          } else if (e0Type.IsFloatingPointType) {
+            return BoogieGenerator.FpAtMost(GetToken(binaryExpr), e0Type.FloatRepresentation, e0, e1);
           } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
             typ = Boogie.Type.Bool;
             bOpcode = BinaryOperator.Opcode.Le;
@@ -136,6 +142,8 @@ public partial class BoogieGenerator {
             var less = FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e1, e0);
             var eq = Expr.Eq(e1, e0);
             return BplOr(eq, less);
+          } else if (e0Type.IsFloatingPointType) {
+            return BoogieGenerator.FpAtMost(GetToken(binaryExpr), e0Type.FloatRepresentation, e1, e0);  // x >= y  <==>  y <= x
           } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
             typ = Boogie.Type.Bool;
             bOpcode = BinaryOperator.Opcode.Ge;
@@ -148,6 +156,8 @@ public partial class BoogieGenerator {
             return TrToFunctionCall(GetToken(binaryExpr), "gt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
           } else if (e0Type.IsBigOrdinalType) {
             return FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e1, e0);
+          } else if (e0Type.IsFloatingPointType) {
+            return BoogieGenerator.FpLess(GetToken(binaryExpr), e0Type.FloatRepresentation, e1, e0);  // x > y  <==>  y < x
           } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
             typ = Boogie.Type.Bool;
             bOpcode = BinaryOperator.Opcode.Gt;
@@ -168,7 +178,7 @@ public partial class BoogieGenerator {
           } else if (!isReal && (options.ArithMode == 2 || 5 <= options.ArithMode)) {
             return TrToFunctionCall(GetToken(binaryExpr), "Add", Boogie.Type.Int, oe0, oe1, liftLit);
           } else {
-            typ = binaryExpr.Type.IsFloatingPointType ? BoogieGenerator.BplFloatType(binaryExpr.Type) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
+            typ = binaryExpr.Type.FloatRepresentation is { } resultFacts ? BoogieGenerator.BplFloatType(resultFacts) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
             bOpcode = BinaryOperator.Opcode.Add;
             break;
           }
@@ -184,7 +194,7 @@ public partial class BoogieGenerator {
           } else if (!isReal && (options.ArithMode == 2 || 5 <= options.ArithMode)) {
             return TrToFunctionCall(GetToken(binaryExpr), "Sub", Boogie.Type.Int, oe0, oe1, liftLit);
           } else {
-            typ = binaryExpr.Type.IsFloatingPointType ? BoogieGenerator.BplFloatType(binaryExpr.Type) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
+            typ = binaryExpr.Type.FloatRepresentation is { } resultFacts ? BoogieGenerator.BplFloatType(resultFacts) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
             bOpcode = BinaryOperator.Opcode.Sub;
             break;
           }
@@ -196,7 +206,7 @@ public partial class BoogieGenerator {
           } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
             return TrToFunctionCall(GetToken(binaryExpr), "Mul", Boogie.Type.Int, oe0, oe1, liftLit);
           } else {
-            typ = binaryExpr.Type.IsFloatingPointType ? BoogieGenerator.BplFloatType(binaryExpr.Type) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
+            typ = binaryExpr.Type.FloatRepresentation is { } resultFacts ? BoogieGenerator.BplFloatType(resultFacts) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
             bOpcode = BinaryOperator.Opcode.Mul;
             break;
           }
@@ -208,7 +218,7 @@ public partial class BoogieGenerator {
           } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
             return TrToFunctionCall(GetToken(binaryExpr), "Div", Boogie.Type.Int, e0, oe1, liftLit);
           } else if (isReal) {
-            typ = binaryExpr.Type.IsFloatingPointType ? BoogieGenerator.BplFloatType(binaryExpr.Type) : Boogie.Type.Real;
+            typ = binaryExpr.Type.FloatRepresentation is { } resultFacts ? BoogieGenerator.BplFloatType(resultFacts) : Boogie.Type.Real;
             bOpcode = BinaryOperator.Opcode.RealDiv;
             break;
           } else {
@@ -224,7 +234,7 @@ public partial class BoogieGenerator {
           } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
             return TrToFunctionCall(GetToken(binaryExpr), "Mod", Boogie.Type.Int, e0, oe1, liftLit);
           } else {
-            typ = binaryExpr.Type.IsFloatingPointType ? BoogieGenerator.BplFloatType(binaryExpr.Type) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
+            typ = binaryExpr.Type.FloatRepresentation is { } resultFacts ? BoogieGenerator.BplFloatType(resultFacts) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
             bOpcode = BinaryOperator.Opcode.Mod;
             break;
           }

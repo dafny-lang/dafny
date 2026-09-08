@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=0 "%s"
+// RUN: %testDafnyForEachResolver "%s"
 
 // Test for fp64 additional special values
 // Tests special constants like PositiveZero, NegativeZero, MaxValue, MinValue, etc.
@@ -179,6 +179,11 @@ method TestUsefulDerivedConstants() {
   // Verify some properties
   assert ~3.14 < pi < ~3.15;
   assert ~2.71 < e < ~2.72;
+
+  // Pin the values exactly. The range checks above are too loose to catch a
+  // mistyped constant, so also compare against the nearest binary64 value.
+  assert pi == 3.141592653589793115997963468544185161590576171875;     // 7074237752028440 * 2^(-51)
+  assert e == 2.718281828459045090795598298427648842334747314453125;  // 6121026514868073 * 2^(-51)
 }
 
 method TestHardcodedLiterals() {
