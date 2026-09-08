@@ -913,6 +913,7 @@ module Std.Arithmetic.DivMod {
     ensures  a / b < c
   {
     LemmaModMultiplesBasic(c, b);
+    LemmaMulIsCommutativeAuto();
     assert (b * c) % b == 0;
     var i := b * c - a;
     assert i + a == b * c;

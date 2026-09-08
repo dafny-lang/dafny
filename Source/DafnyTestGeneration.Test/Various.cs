@@ -266,7 +266,10 @@ module Paths {
       options.TestGenOptions.Mode =
         TestGenerationOptions.Modes.InlinedBlock;
       var methods = await GetTestMethodsForProgram(program);
-      Assert.True(methods.Count is >= 2 and <= 6);
+      // eightPaths has 8 feasible paths, so 8 is the bound. How many the generator
+      // actually reaches varies with the solver's model enumeration order; the
+      // assertions below are what check the generated tests are useful.
+      Assert.True(methods.Count is >= 2 and <= 8, $"unexpected number of tests: {methods.Count}");
       Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Paths.eightPaths")));
       Assert.True(methods.All(m => m.ArgValues.Count == 1));

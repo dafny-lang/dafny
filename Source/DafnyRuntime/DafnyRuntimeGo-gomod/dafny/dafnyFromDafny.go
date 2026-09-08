@@ -150,7 +150,7 @@ TAIL_CALL_START:
 		}
 	} else {
 		if !(false) {
-			panic("dafnyRuntime.dfy(828,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
+			panic("dafnyRuntime.dfy(832,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
 		}
 	}
 }
