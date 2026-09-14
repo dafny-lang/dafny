@@ -5,7 +5,8 @@ github-issue-6522.dfy(32,9): Error: type of bound variable 'q' ('Rec') is not al
 github-issue-6522.dfy(39,9): Error: type of bound variable 'd' ('Stream') is not allowed to use type ORDINAL
 github-issue-6522.dfy(47,9): Error: type of bound variable 'x' ('Synonym') is not allowed to use type ORDINAL
 github-issue-6522.dfy(51,9): Error: type of bound variable 'y' ('Subset') is not allowed to use type ORDINAL
-7 resolution/type errors detected in github-issue-6522.dfy
+github-issue-6522.dfy(56,8): Error: type of bound variable 'y' ('S') is not allowed to use type ORDINAL
+8 resolution/type errors detected in github-issue-6522.dfy
 github-issue-6522.dfy(14,9): Error: type of bound variable 't' ('S') is not allowed to use type ORDINAL
 github-issue-6522.dfy(18,9): Error: type of bound variable 't' ('S') is not allowed to use type ORDINAL
 github-issue-6522.dfy(25,9): Error: type of bound variable 'v' ('Wrapper') is not allowed to use type ORDINAL
@@ -13,4 +14,5 @@ github-issue-6522.dfy(32,9): Error: type of bound variable 'q' ('Rec') is not al
 github-issue-6522.dfy(39,9): Error: type of bound variable 'd' ('Stream') is not allowed to use type ORDINAL
 github-issue-6522.dfy(47,9): Error: type of bound variable 'x' ('Synonym') is not allowed to use type ORDINAL
 github-issue-6522.dfy(51,9): Error: type of bound variable 'y' ('Subset') is not allowed to use type ORDINAL
-7 resolution/type errors detected in github-issue-6522.dfy
+github-issue-6522.dfy(56,8): Error: type of bound variable 'y' ('S') is not allowed to use type ORDINAL
+8 resolution/type errors detected in github-issue-6522.dfy

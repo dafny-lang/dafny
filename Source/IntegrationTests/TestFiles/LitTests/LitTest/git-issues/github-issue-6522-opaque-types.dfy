@@ -39,6 +39,20 @@ greatest predicate BoundedOverTypeParameter<T(!new, ==)>(xs: set<T>, f: set<T> -
   forall y :: y in xs ==> f(xs) && BoundedOverTypeParameter(xs, f)
 }
 
+// Only a construct that *enumerates* its bound variable is restricted at all. These use the very
+// datatype from issues 6522 and 6523, and are legal: a lambda is a value whose parameter enumerates
+// nothing, and a finite set comprehension is separately required to have a finite bound.
+datatype S = N(o: ORDINAL) | Top
+
+greatest predicate LambdaParameter(f: S -> bool, s: S) {
+  var g := (x: S) => f(x);
+  g(s) && LambdaParameter(f, s)
+}
+
+greatest predicate FiniteSetComprehension(xs: set<S>, s: S) {
+  |set y | y in xs :: y| > 0 && FiniteSetComprehension(xs, s)
+}
+
 // The same holds for a datatype whose definition is hidden by an export set: it might involve an
 // ORDINAL, but a bound variable confined to a finite range cannot branch over a proper class.
 module Library {

@@ -51,6 +51,11 @@ greatest predicate ViaSubsetType(b: Subset) {
   exists y: Subset :: y.N? && ViaSubsetType(y)
 }
 
+// An "iset" comprehension has no finiteness requirement, so it too can range over a proper class.
+greatest predicate ViaInfiniteSetComprehension(s: S) {
+  (iset y: S | y.N?) != iset{} && ViaInfiniteSetComprehension(s)
+}
+
 // Collections of such a datatype remain legal, both as type arguments and as the type of a
 // bound variable outside an extreme predicate. Only quantifying inside one is restricted.
 const someSet: set<S> := {Top}
