@@ -910,6 +910,14 @@ public abstract class Type : NodeWithOrigin {
   /// <summary>
   /// Like DefinitelyInvolvesOrdinal, but a type whose definition this scope cannot see answers
   /// "true", since it could later be instantiated with a type that involves an ORDINAL.
+  ///
+  /// The two differ only for such a type, and the split exists so that the two answers can be used
+  /// at different points: "definitely" gives an unconditional verdict during type-inference
+  /// checking, while "may" is consulted during bounds discovery, which can additionally see whether
+  /// the bound variable is confined to a finite range and so cannot branch over a proper class
+  /// after all. Deferring the "may" case to that later pass does not weaken the rule: bounds
+  /// discovery is skipped only when the module already has a resolution error, in which case the
+  /// module is rejected regardless.
   /// </summary>
   public bool MayInvolveOrdinal => ComputeMayInvolveOrdinal(true, null);
 
@@ -925,6 +933,11 @@ public abstract class Type : NodeWithOrigin {
   /// Note this is deliberately different from the rule that ORDINAL may not be used as a type
   /// argument, which must NOT look inside datatype constructors: "set&lt;S&gt;" is legal for a
   /// datatype S that has an ORDINAL field.
+  ///
+  /// Unlike ComputeMayInvolveReferences there is no case for NewtypeDecl, and none is needed: a
+  /// newtype may not be based on ORDINAL in the first place ("a newtype must be based on some
+  /// non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type"), so falling through to
+  /// the type arguments is already correct for one.
   /// </summary>
   private bool ComputeMayInvolveOrdinal(bool assumeOpaque, ISet<DatatypeDecl> /*?*/ visitedDatatypes) {
     var t = NormalizeExpand();
@@ -934,6 +947,7 @@ public abstract class Type : NodeWithOrigin {
     if (t is UserDefinedType { ResolvedClass: DatatypeDecl dt } udt) {
       // Note: CoDatatypeDecl is a subclass of DatatypeDecl, so this covers codatatypes as well.
       if (!dt.IsRevealedInScope(GetScope())) {
+        // The definition is hidden from this scope, so this is one of the types we cannot see into.
         return assumeOpaque;
       }
       if (udt.TypeArgs.Any(ta => ta.ComputeMayInvolveOrdinal(assumeOpaque, visitedDatatypes))) {
@@ -957,8 +971,8 @@ public abstract class Type : NodeWithOrigin {
       return assumeOpaque;
     }
     if (t is UserDefinedType { ResolvedClass: AbstractTypeDecl or TypeSynonymDeclBase }) {
-      // An abstract type could be anything. A type synonym reaching here was not expanded by
-      // NormalizeExpand above, which means its definition is hidden from this scope.
+      // An abstract type could be instantiated with anything. A type synonym reaching here was not
+      // expanded by NormalizeExpand above, which means its definition is hidden from this scope.
       return assumeOpaque;
     }
     return t.TypeArgs.Any(ta => ta.ComputeMayInvolveOrdinal(assumeOpaque, visitedDatatypes));

@@ -38,3 +38,18 @@ greatest predicate BoundedOverAbstractType(m: map<Abstract, int>, n: map<Abstrac
 greatest predicate BoundedOverTypeParameter<T(!new, ==)>(xs: set<T>, f: set<T> -> bool) {
   forall y :: y in xs ==> f(xs) && BoundedOverTypeParameter(xs, f)
 }
+
+// The same holds for a datatype whose definition is hidden by an export set: it might involve an
+// ORDINAL, but a bound variable confined to a finite range cannot branch over a proper class.
+module Library {
+  export provides Hidden
+  datatype Hidden = H(o: ORDINAL) | Sentinel
+}
+
+module Client {
+  import Library
+
+  greatest predicate BoundedOverHiddenDatatype(m: map<Library.Hidden, int>, n: map<Library.Hidden, int>) {
+    forall y :: y in m ==> y in n && BoundedOverHiddenDatatype(m, n)
+  }
+}
