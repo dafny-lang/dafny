@@ -1,0 +1,20 @@
+git-issue-6522.dfy(14,9): Error: type of bound variable 't' ('S') is not allowed to use type ORDINAL
+git-issue-6522.dfy(18,9): Error: type of bound variable 't' ('S') is not allowed to use type ORDINAL
+git-issue-6522.dfy(25,9): Error: type of bound variable 'v' ('Wrapper') is not allowed to use type ORDINAL
+git-issue-6522.dfy(32,9): Error: type of bound variable 'q' ('Rec') is not allowed to use type ORDINAL
+git-issue-6522.dfy(39,9): Error: type of bound variable 'd' ('Stream') is not allowed to use type ORDINAL
+git-issue-6522.dfy(47,9): Error: type of bound variable 'x' ('Synonym') is not allowed to use type ORDINAL
+git-issue-6522.dfy(51,9): Error: type of bound variable 'y' ('Subset') is not allowed to use type ORDINAL
+git-issue-6522.dfy(56,8): Error: type of bound variable 'y' ('S') is not allowed to use type ORDINAL
+git-issue-6522.dfy(62,9): Error: type of bound variable 'f' ('S -> bool') is not allowed to use type ORDINAL
+9 resolution/type errors detected in git-issue-6522.dfy
+git-issue-6522.dfy(14,9): Error: type of bound variable 't' ('S') is not allowed to use type ORDINAL
+git-issue-6522.dfy(18,9): Error: type of bound variable 't' ('S') is not allowed to use type ORDINAL
+git-issue-6522.dfy(25,9): Error: type of bound variable 'v' ('Wrapper') is not allowed to use type ORDINAL
+git-issue-6522.dfy(32,9): Error: type of bound variable 'q' ('Rec') is not allowed to use type ORDINAL
+git-issue-6522.dfy(39,9): Error: type of bound variable 'd' ('Stream') is not allowed to use type ORDINAL
+git-issue-6522.dfy(47,9): Error: type of bound variable 'x' ('Synonym') is not allowed to use type ORDINAL
+git-issue-6522.dfy(51,9): Error: type of bound variable 'y' ('Subset') is not allowed to use type ORDINAL
+git-issue-6522.dfy(56,8): Error: type of bound variable 'y' ('S') is not allowed to use type ORDINAL
+git-issue-6522.dfy(62,9): Error: type of bound variable 'f' ('S -> bool') is not allowed to use type ORDINAL
+9 resolution/type errors detected in git-issue-6522.dfy
