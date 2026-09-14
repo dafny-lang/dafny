@@ -229,10 +229,12 @@ namespace Microsoft.Dafny {
               // set-sized whatever the type turns out to be.
               foreach (var bv in BoundedPool.MissingBounds(e.BoundVars, e.Bounds, BoundedPool.PoolVirtues.Finite)) {
                 if (bv.Type.MayInvolveOrdinal) {
+                  // Deliberately shaped like the sibling message about the set of allocated
+                  // references, a few lines above.
                   Reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_bound_variable_may_not_range_over_ORDINAL, bv.Origin,
-                    $"a {e.WhatKind} involved in a {context.Kind} is not allowed to range over all of '{bv.Type}', " +
-                    $"because '{bv.Type}' could stand for a type as large as ORDINAL; " +
-                    $"give '{bv.Name}' a bound that confines it to a finite range");
+                    $"a {e.WhatKind} involved in a {context.Kind} is not allowed to range over a type as large as the ordinals," +
+                    $" but values of '{bv.Name}' (of type '{bv.Type}') may involve ORDINAL" +
+                    $" (perhaps give '{bv.Name}' a bound that confines it to a finite range)");
                 }
               }
             }
