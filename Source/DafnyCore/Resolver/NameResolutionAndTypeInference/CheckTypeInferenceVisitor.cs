@@ -272,7 +272,27 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           resolver.ReportError(ResolutionErrors.ErrorId.r_bound_variable_undetermined, bv.Origin,
             $"type of bound variable '{bv.Name}' could not be determined; please specify the type explicitly");
         } else if (context.IsExtremePredicate) {
-          CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.Origin, bv.Type, $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL");
+          var errMsg = $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL";
+          if (e.EnumeratesAPossiblyProperClass) {
+            // Enumerating a type whose values contain an ORDINAL would let the extreme predicate
+            // branch over a proper class, which the prefix-predicate axioms do not support (they
+            // assume the stage sequence closes at some ORDINAL). Unlike the "ORDINAL may not be used
+            // as a type argument" rule, this check must look inside datatype constructors, so it uses
+            // DefinitelyInvolvesOrdinal rather than CheckContainsNoOrdinal.
+            //
+            // A type whose definition is not visible here (a type parameter, an abstract type) is not
+            // rejected outright: BoundsDiscovery handles those, where it can additionally tell whether
+            // the bound variable is confined to a finite range and so cannot branch over a proper
+            // class after all.
+            if (bv.Type.DefinitelyInvolvesOrdinal) {
+              resolver.ReportError(ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.Origin, errMsg);
+            }
+          } else {
+            // This expression does not enumerate a proper class, so there is no need to look inside
+            // datatype constructors for its bound variables. But the pre-existing rule still applies
+            // unchanged: such a bound variable may not have ORDINAL in its type or type arguments.
+            CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.Origin, bv.Type, errMsg);
+          }
         }
       }
 

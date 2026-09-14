@@ -20,6 +20,14 @@ namespace Microsoft.Dafny {
         public bool AllowedToDependOnAllocationState =>
           !(astVisitorContext is Function { ReadsDoubleStar: false } or ConstantField or RedirectingTypeDecl || inLambdaExpression);
 
+        /// <summary>
+        /// True inside the body of a least/greatest predicate, or of the prefix predicate generated
+        /// from one. Such a body may not branch over a proper class, because the prefix-predicate
+        /// axioms assume the sequence of approximations closes at some ORDINAL.
+        /// </summary>
+        public bool IsExtremePredicateDefinition =>
+          astVisitorContext is ExtremePredicate or PrefixPredicate;
+
         public string Kind {
           get {
             // assumes context denotes a lambda expression, redirecting type, or member declaration
@@ -206,6 +214,28 @@ namespace Microsoft.Dafny {
                 }
                 message += " (see documentation for 'older' parameters)";
                 Reporter.Error(MessageSource.Resolver, e, message);
+              }
+            }
+
+            if (context.IsExtremePredicateDefinition && e.EnumeratesAPossiblyProperClass) {
+              // An extreme predicate may not branch over a proper class: the prefix-predicate axioms
+              // assume the sequence of approximations closes at some ORDINAL, which holds only when
+              // the states reachable by unfolding the definition form a set. A bound variable whose
+              // type is itself as large as the ordinals is rejected outright, in
+              // CheckTypeInferenceVisitor. Here we handle the types whose definition is not visible
+              // there -- a type parameter, an abstract type, or one hidden by an export set -- which
+              // could still stand for such a type. Those are only a problem when the bound variable
+              // ranges over the whole type: if it is confined to a finite range, the branching is
+              // set-sized whatever the type turns out to be.
+              foreach (var bv in BoundedPool.MissingBounds(e.BoundVars, e.Bounds, BoundedPool.PoolVirtues.Finite)) {
+                if (bv.Type.MayInvolveOrdinal) {
+                  // Deliberately shaped like the sibling message about the set of allocated
+                  // references, a few lines above.
+                  Reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_bound_variable_may_not_range_over_ORDINAL, bv.Origin,
+                    $"a {e.WhatKind} involved in a {context.Kind} is not allowed to range over a type as large as the ordinals," +
+                    $" but values of '{bv.Name}' (of type '{bv.Type}') may involve ORDINAL" +
+                    $" (perhaps give '{bv.Name}' a bound that confines it to a finite range)");
+                }
               }
             }
 

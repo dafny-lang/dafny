@@ -309,6 +309,21 @@ here in TypeInferenceChecker is never reachable. -->
 
 <!-- TODO -->
 
+## **Error: a _comprehension_ involved in a _declaration_ is not allowed to range over a type as large as the ordinals, but values of '_name_' (of type '_type_') may involve ORDINAL** {#r_bound_variable_may_not_range_over_ORDINAL}
+
+A least or greatest predicate is defined by a sequence of approximations indexed by `ORDINAL`s, and
+the axioms Dafny generates for it assume that this sequence settles at some `ORDINAL`. That holds
+only if the states reachable by unfolding the definition form a set, so such a predicate may not
+quantify over a type as large as the ordinals -- which is why the type of a bound variable in a
+least or greatest predicate may not use `ORDINAL`.
+
+This message is the version of that rule for a type whose definition is not known at the predicate,
+namely a type parameter or an abstract type. Such a type could be instantiated with one that does
+involve an `ORDINAL`, so ranging over all of it is not allowed either. The restriction applies only
+to ranging over the whole type: if the bound variable is confined to a finite range, such as the
+domain of a map or the elements of a set, then the quantification is over a set of values however
+the type is later instantiated, and it is allowed.
+
 ## **Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning** {#r_exists_quantifier_warning}
 
 <!-- %check-resolve-warn -->

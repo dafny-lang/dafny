@@ -896,6 +896,89 @@ public abstract class Type : NodeWithOrigin {
   public bool MayInvolveReferences => ComputeMayInvolveReferences(null);
 
   /// <summary>
+  /// True if values of this type definitely include an ORDINAL somewhere -- directly, through a type
+  /// argument, through a type-synonym or subset-type expansion, through an arrow type, or through a
+  /// field of a datatype or codatatype constructor. A type whose definition this scope cannot see
+  /// (a type parameter, an abstract type, a hidden type synonym or datatype) answers "false" here.
+  ///
+  /// Used for the restriction that an extreme predicate may not quantify over a type as large as the
+  /// ordinals, which would let it branch over a proper class and break the prefix-predicate axioms
+  /// (they assume the stage sequence closes at some ORDINAL).
+  /// </summary>
+  public bool DefinitelyInvolvesOrdinal => ComputeMayInvolveOrdinal(false, null);
+
+  /// <summary>
+  /// Like DefinitelyInvolvesOrdinal, but a type whose definition this scope cannot see answers
+  /// "true", since it could later be instantiated with a type that involves an ORDINAL.
+  ///
+  /// The two differ only for such a type, and the split exists so that the two answers can be used
+  /// at different points: "definitely" gives an unconditional verdict during type-inference
+  /// checking, while "may" is consulted during bounds discovery, which can additionally see whether
+  /// the bound variable is confined to a finite range and so cannot branch over a proper class
+  /// after all. Deferring the "may" case to that later pass does not weaken the rule: bounds
+  /// discovery is skipped only when the module already has a resolution error, in which case the
+  /// module is rejected regardless.
+  /// </summary>
+  public bool MayInvolveOrdinal => ComputeMayInvolveOrdinal(true, null);
+
+  /// <summary>
+  /// Shared implementation of the two properties above; "assumeOpaque" selects which answer an
+  /// unseeable type gives. This is the ORDINAL analogue of ComputeMayInvolveReferences, and
+  /// "visitedDatatypes" plays exactly the same role: it is null in the "first phase" (before any
+  /// datatype is reached) and, from the first datatype onwards, records the datatypes being visited
+  /// so that a recursive datatype does not cause infinite recursion. As there, the type arguments
+  /// passed to a datatype are checked separately, and a datatype's own formal type parameters are
+  /// ignored during the second phase.
+  ///
+  /// Note this is deliberately different from the rule that ORDINAL may not be used as a type
+  /// argument, which must NOT look inside datatype constructors: "set&lt;S&gt;" is legal for a
+  /// datatype S that has an ORDINAL field.
+  ///
+  /// Unlike ComputeMayInvolveReferences there is no case for NewtypeDecl, and none is needed: a
+  /// newtype may not be based on ORDINAL in the first place ("a newtype must be based on some
+  /// non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type"), so falling through to
+  /// the type arguments is already correct for one.
+  /// </summary>
+  private bool ComputeMayInvolveOrdinal(bool assumeOpaque, ISet<DatatypeDecl> /*?*/ visitedDatatypes) {
+    var t = NormalizeExpand();
+    if (t.IsBigOrdinalType) {
+      return true;
+    }
+    if (t is UserDefinedType { ResolvedClass: DatatypeDecl dt } udt) {
+      // Note: CoDatatypeDecl is a subclass of DatatypeDecl, so this covers codatatypes as well.
+      if (!dt.IsRevealedInScope(GetScope())) {
+        // The definition is hidden from this scope, so this is one of the types we cannot see into.
+        return assumeOpaque;
+      }
+      if (udt.TypeArgs.Any(ta => ta.ComputeMayInvolveOrdinal(assumeOpaque, visitedDatatypes))) {
+        return true;
+      }
+      if (visitedDatatypes != null && visitedDatatypes.Contains(dt)) {
+        // we're already in the middle of looking through dt's definition
+        return false;
+      }
+      visitedDatatypes ??= new HashSet<DatatypeDecl>();
+      visitedDatatypes.Add(dt);
+      return dt.Ctors.Any(ctor =>
+        ctor.Formals.Any(f => f.Type.ComputeMayInvolveOrdinal(assumeOpaque, visitedDatatypes)));
+    }
+    if (t is UserDefinedType { ResolvedClass: TypeParameter }) {
+      if (visitedDatatypes != null) {
+        // Second phase: this is a datatype's own formal type parameter, and the actual type
+        // arguments have been checked separately.
+        return false;
+      }
+      return assumeOpaque;
+    }
+    if (t is UserDefinedType { ResolvedClass: AbstractTypeDecl or TypeSynonymDeclBase }) {
+      // An abstract type could be instantiated with anything. A type synonym reaching here was not
+      // expanded by NormalizeExpand above, which means its definition is hidden from this scope.
+      return assumeOpaque;
+    }
+    return t.TypeArgs.Any(ta => ta.ComputeMayInvolveOrdinal(assumeOpaque, visitedDatatypes));
+  }
+
+  /// <summary>
   /// This is an auxiliary method used to compute the value of MayInvolveReferences (above). It is
   /// needed to handle datatypes, because determining whether or not a datatype contains references
   /// involves recursing over the types in the datatype's constructor parameters. Since those types
