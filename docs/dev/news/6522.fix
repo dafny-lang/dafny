@@ -1,0 +1,1 @@
+Fix a soundness bug: the rule that an extreme (`least`/`greatest`) predicate may not quantify over `ORDINAL` now also looks inside datatype and codatatype fields, so a bound variable whose type merely reaches `ORDINAL` through a field is rejected instead of letting the predicate branch over a proper class
