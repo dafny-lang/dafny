@@ -230,7 +230,7 @@ namespace Microsoft.Dafny {
                   var hint = bv.Type.IsTypeParameter || bv.Type.IsAbstractType
                     ? $" (it could be instantiated with a type as large as ORDINAL; give '{bv.Name}' a bound that confines it to a finite range)"
                     : "";
-                  Reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.Origin,
+                  Reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_bound_variable_may_not_range_over_ORDINAL, bv.Origin,
                     $"a {e.WhatKind} involved in a {context.Kind} is not allowed to range over all of '{bv.Type}', " +
                     $"because values of '{bv.Name}' may involve ORDINAL{hint}");
                 }
