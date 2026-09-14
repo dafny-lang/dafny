@@ -22,7 +22,8 @@ namespace Microsoft.Dafny {
 
         /// <summary>
         /// True inside the body of a least/greatest predicate, or of the prefix predicate generated
-        /// from one. Such a body may not branch over a proper class; see MustNotBranchOverAProperClass.
+        /// from one. Such a body may not branch over a proper class, because the prefix-predicate
+        /// axioms assume the sequence of approximations closes at some ORDINAL.
         /// </summary>
         public bool IsExtremePredicateDefinition =>
           astVisitorContext is ExtremePredicate or PrefixPredicate;
@@ -216,23 +217,22 @@ namespace Microsoft.Dafny {
               }
             }
 
-            if (context.IsExtremePredicateDefinition) {
+            if (context.IsExtremePredicateDefinition && e.EnumeratesAPossiblyProperClass) {
               // An extreme predicate may not branch over a proper class: the prefix-predicate axioms
-              // assume the stage sequence closes at some ORDINAL, which holds only when the states
-              // reachable by unfolding the definition form a set. A bound variable whose type is
-              // itself as large as the ordinals is rejected outright, in CheckTypeInferenceVisitor.
-              // Here we handle the types whose definition is not visible there -- a type parameter or
-              // an abstract type -- which could still be instantiated with such a type. Those are
-              // only a problem when the bound variable ranges over the whole type: if it is confined
-              // to a finite range, the branching is set-sized whatever the type turns out to be.
+              // assume the sequence of approximations closes at some ORDINAL, which holds only when
+              // the states reachable by unfolding the definition form a set. A bound variable whose
+              // type is itself as large as the ordinals is rejected outright, in
+              // CheckTypeInferenceVisitor. Here we handle the types whose definition is not visible
+              // there -- a type parameter, an abstract type, or one hidden by an export set -- which
+              // could still stand for such a type. Those are only a problem when the bound variable
+              // ranges over the whole type: if it is confined to a finite range, the branching is
+              // set-sized whatever the type turns out to be.
               foreach (var bv in BoundedPool.MissingBounds(e.BoundVars, e.Bounds, BoundedPool.PoolVirtues.Finite)) {
                 if (bv.Type.MayInvolveOrdinal) {
-                  var hint = bv.Type.IsTypeParameter || bv.Type.IsAbstractType
-                    ? $" (it could be instantiated with a type as large as ORDINAL; give '{bv.Name}' a bound that confines it to a finite range)"
-                    : "";
                   Reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_bound_variable_may_not_range_over_ORDINAL, bv.Origin,
                     $"a {e.WhatKind} involved in a {context.Kind} is not allowed to range over all of '{bv.Type}', " +
-                    $"because values of '{bv.Name}' may involve ORDINAL{hint}");
+                    $"because '{bv.Type}' could stand for a type as large as ORDINAL; " +
+                    $"give '{bv.Name}' a bound that confines it to a finite range");
                 }
               }
             }

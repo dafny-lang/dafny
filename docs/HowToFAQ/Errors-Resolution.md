@@ -309,7 +309,7 @@ here in TypeInferenceChecker is never reachable. -->
 
 <!-- TODO -->
 
-## **Error: a _comprehension_ involved in a _declaration_ is not allowed to range over all of '_type_', because values of '_name_' may involve ORDINAL** {#r_bound_variable_may_not_range_over_ORDINAL}
+## **Error: a _comprehension_ involved in a _declaration_ is not allowed to range over all of '_type_', because '_type_' could stand for a type as large as ORDINAL; give '_name_' a bound that confines it to a finite range** {#r_bound_variable_may_not_range_over_ORDINAL}
 
 A least or greatest predicate is defined by a sequence of approximations indexed by `ORDINAL`s, and
 the axioms Dafny generates for it assume that this sequence settles at some `ORDINAL`. That holds
