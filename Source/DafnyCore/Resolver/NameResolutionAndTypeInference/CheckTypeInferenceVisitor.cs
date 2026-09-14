@@ -272,7 +272,8 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           resolver.ReportError(ResolutionErrors.ErrorId.r_bound_variable_undetermined, bv.Origin,
             $"type of bound variable '{bv.Name}' could not be determined; please specify the type explicitly");
         } else if (context.IsExtremePredicate) {
-          if (EnumeratesAPossiblyProperClass(e)) {
+          var errMsg = $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL";
+          if (e.EnumeratesAPossiblyProperClass) {
             // Enumerating a type whose values contain an ORDINAL would let the extreme predicate
             // branch over a proper class, which the prefix-predicate axioms do not support (they
             // assume the stage sequence closes at some ORDINAL). Unlike the "ORDINAL may not be used
@@ -284,16 +285,13 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
             // the bound variable is confined to a finite range and so cannot branch over a proper
             // class after all.
             if (bv.Type.DefinitelyInvolvesOrdinal) {
-              resolver.ReportError(ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.Origin,
-                $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL");
+              resolver.ReportError(ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.Origin, errMsg);
             }
           } else {
-            // A lambda parameter or a finite comprehension's bound variable does not enumerate a
-            // proper class, so there is no need to look inside datatype constructors for it. But the
-            // pre-existing rule still applies unchanged: such a bound variable may not have ORDINAL
-            // in its type or in its type arguments.
-            CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.Origin, bv.Type,
-              $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL");
+            // This expression does not enumerate a proper class, so there is no need to look inside
+            // datatype constructors for its bound variables. But the pre-existing rule still applies
+            // unchanged: such a bound variable may not have ORDINAL in its type or type arguments.
+            CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.Origin, bv.Type, errMsg);
           }
         }
       }
@@ -546,26 +544,6 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       t = t.NormalizeExpand();
       t.TypeArgs.ForEach(rg => CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_no_ORDINAL_as_type_parameter, tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
     }
-  }
-
-  /// <summary>
-  /// True if "e" enumerates its bound variables over a range that is not known to be a set, and so
-  /// could branch over a proper class if the bound variable's type is as large as the ordinals.
-  ///
-  /// A quantifier always qualifies. A lambda does not: it is a value, and its parameters enumerate
-  /// nothing (BoundsDiscovery excludes lambdas from bounds discovery for the same reason). A finite
-  /// set or map comprehension does not either, because it is separately required to have a bound
-  /// with the Finite virtue, so its bound variables range over a set however large their type is.
-  /// An "iset" or "imap" comprehension has no such requirement, so it does qualify.
-  /// </summary>
-  private static bool EnumeratesAPossiblyProperClass(ComprehensionExpr e) {
-    return e switch {
-      QuantifierExpr => true,
-      LambdaExpr => false,
-      SetComprehension setComprehension => !setComprehension.Finite,
-      MapComprehension mapComprehension => !mapComprehension.Finite,
-      _ => true // be conservative about any comprehension form added later
-    };
   }
 
   public void CheckContainsNoOrdinal(ResolutionErrors.ErrorId errorId, IOrigin tok, Type t, string errMsg) {

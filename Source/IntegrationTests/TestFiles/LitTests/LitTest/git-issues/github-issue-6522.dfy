@@ -56,6 +56,12 @@ greatest predicate ViaInfiniteSetComprehension(s: S) {
   (iset y: S | y.N?) != iset{} && ViaInfiniteSetComprehension(s)
 }
 
+// Reaching the ORDINAL through an arrow type counts as well: the functions from a proper class are
+// themselves a proper class.
+greatest predicate ViaArrowType(s: S) {
+  exists f: S -> bool :: f(s) && ViaArrowType(s)
+}
+
 // Collections of such a datatype remain legal, both as type arguments and as the type of a
 // bound variable outside an extreme predicate. Only quantifying inside one is restricted.
 const someSet: set<S> := {Top}

@@ -34,6 +34,26 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
   [FilledInDuringResolution] public List<BoundedPool?>? Bounds;
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
 
+  /// <summary>
+  /// True if this expression enumerates its bound variables over a range that is not, by itself,
+  /// known to be a set. Such an expression could range over a proper class if a bound variable's
+  /// type is as large as the ordinals, which is what the restriction on ORDINAL in an extreme
+  /// predicate is about.
+  ///
+  /// A quantifier always qualifies. A lambda does not: it is a value, and its parameters enumerate
+  /// nothing. A finite set or map comprehension does not either, because it is separately required
+  /// to produce a finite result, which already reports a better diagnostic when no bound is found.
+  /// An "iset" or "imap" comprehension carries no such requirement, so it does qualify.
+  /// </summary>
+  public bool EnumeratesAPossiblyProperClass =>
+    this switch {
+      QuantifierExpr => true,
+      LambdaExpr => false,
+      SetComprehension setComprehension => !setComprehension.Finite,
+      MapComprehension mapComprehension => !mapComprehension.Finite,
+      _ => true // be conservative about any comprehension form added later
+    };
+
   public List<BoundVar> UncompilableBoundVars() {
     var v = BoundedPool.PoolVirtues.Finite | BoundedPool.PoolVirtues.Enumerable;
     return BoundedPool.MissingBounds(BoundVars, Bounds, v);
