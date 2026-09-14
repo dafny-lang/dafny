@@ -272,12 +272,16 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           resolver.ReportError(ResolutionErrors.ErrorId.r_bound_variable_undetermined, bv.Origin,
             $"type of bound variable '{bv.Name}' could not be determined; please specify the type explicitly");
         } else if (context.IsExtremePredicate) {
-          // Quantifying over a type whose values may contain an ORDINAL would let the extreme
-          // predicate branch over a proper class, which the prefix-predicate axioms do not support
-          // (they assume the stage sequence closes at some ORDINAL). Unlike the "ORDINAL may not be
-          // used as a type argument" rule, this check must look inside datatype constructors, so it
-          // uses MayInvolveOrdinal rather than CheckContainsNoOrdinal.
-          if (MayInvolveOrdinal(bv.Type, null)) {
+          // Quantifying over a type whose values contain an ORDINAL would let the extreme predicate
+          // branch over a proper class, which the prefix-predicate axioms do not support (they
+          // assume the stage sequence closes at some ORDINAL). Unlike the "ORDINAL may not be used
+          // as a type argument" rule, this check must look inside datatype constructors, so it uses
+          // DefinitelyInvolvesOrdinal rather than CheckContainsNoOrdinal.
+          //
+          // A type whose definition is not visible here (a type parameter, an abstract type) is not
+          // rejected outright: BoundsDiscovery handles those, where it can tell whether the bound
+          // variable is confined to a finite range and so cannot branch over a proper class after all.
+          if (bv.Type.DefinitelyInvolvesOrdinal) {
             resolver.ReportError(ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.Origin,
               $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL");
           }
@@ -532,47 +536,6 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       t = t.NormalizeExpand();
       t.TypeArgs.ForEach(rg => CheckContainsNoOrdinal(ResolutionErrors.ErrorId.r_no_ORDINAL_as_type_parameter, tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
     }
-  }
-
-  /// <summary>
-  /// Returns true if values of type "t" may contain an ORDINAL -- directly, through a type argument,
-  /// through a type-synonym or subset-type expansion, through an arrow type, or through a field of a
-  /// datatype or codatatype constructor.
-  ///
-  /// This is the ORDINAL analogue of Type.ComputeMayInvolveReferences, and "visitedDatatypes" plays
-  /// exactly the same role there: it is null in the "first phase" (before any datatype is reached)
-  /// and, from the first datatype onwards, records the datatypes being visited so that a recursive
-  /// datatype does not cause infinite recursion. As there, the type arguments passed to a datatype
-  /// are checked separately, and formal type parameters of datatypes are ignored in the second phase.
-  ///
-  /// Note this differs from CheckContainsNoOrdinal, which implements the separate rule that ORDINAL
-  /// may not be used as a type argument. That rule must not look inside datatype constructors, since
-  /// "set&lt;S&gt;" is legal for a datatype S that has an ORDINAL field.
-  /// </summary>
-  public static bool MayInvolveOrdinal(Type t, ISet<DatatypeDecl> /*?*/ visitedDatatypes) {
-    Contract.Requires(t != null);
-    t = t.NormalizeExpand();
-    if (t.IsBigOrdinalType) {
-      return true;
-    }
-    if (t is UserDefinedType { ResolvedClass: DatatypeDecl dt } udt) {
-      // Note: CoDatatypeDecl is a subclass of DatatypeDecl, so this covers codatatypes as well.
-      if (!dt.IsRevealedInScope(Type.GetScope())) {
-        // The definition is hidden from this scope, so assume the worst.
-        return true;
-      }
-      if (udt.TypeArgs.Any(ta => MayInvolveOrdinal(ta, visitedDatatypes))) {
-        return true;
-      }
-      if (visitedDatatypes != null && visitedDatatypes.Contains(dt)) {
-        // we're already in the middle of looking through dt's definition
-        return false;
-      }
-      visitedDatatypes ??= new HashSet<DatatypeDecl>();
-      visitedDatatypes.Add(dt);
-      return dt.Ctors.Any(ctor => ctor.Formals.Any(f => MayInvolveOrdinal(f.Type, visitedDatatypes)));
-    }
-    return t.TypeArgs.Any(ta => MayInvolveOrdinal(ta, visitedDatatypes));
   }
 
   public void CheckContainsNoOrdinal(ResolutionErrors.ErrorId errorId, IOrigin tok, Type t, string errMsg) {
