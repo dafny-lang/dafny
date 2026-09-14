@@ -20,6 +20,13 @@ namespace Microsoft.Dafny {
         public bool AllowedToDependOnAllocationState =>
           !(astVisitorContext is Function { ReadsDoubleStar: false } or ConstantField or RedirectingTypeDecl || inLambdaExpression);
 
+        /// <summary>
+        /// True inside the body of a least/greatest predicate, or of the prefix predicate generated
+        /// from one. Such a body may not branch over a proper class; see MustNotBranchOverAProperClass.
+        /// </summary>
+        public bool IsExtremePredicateDefinition =>
+          astVisitorContext is ExtremePredicate or PrefixPredicate;
+
         public string Kind {
           get {
             // assumes context denotes a lambda expression, redirecting type, or member declaration
@@ -206,6 +213,27 @@ namespace Microsoft.Dafny {
                 }
                 message += " (see documentation for 'older' parameters)";
                 Reporter.Error(MessageSource.Resolver, e, message);
+              }
+            }
+
+            if (context.IsExtremePredicateDefinition) {
+              // An extreme predicate may not branch over a proper class: the prefix-predicate axioms
+              // assume the stage sequence closes at some ORDINAL, which holds only when the states
+              // reachable by unfolding the definition form a set. A bound variable whose type is
+              // itself as large as the ordinals is rejected outright, in CheckTypeInferenceVisitor.
+              // Here we handle the types whose definition is not visible there -- a type parameter or
+              // an abstract type -- which could still be instantiated with such a type. Those are
+              // only a problem when the bound variable ranges over the whole type: if it is confined
+              // to a finite range, the branching is set-sized whatever the type turns out to be.
+              foreach (var bv in BoundedPool.MissingBounds(e.BoundVars, e.Bounds, BoundedPool.PoolVirtues.Finite)) {
+                if (bv.Type.MayInvolveOrdinal) {
+                  var hint = bv.Type.IsTypeParameter || bv.Type.IsAbstractType
+                    ? $" (it could be instantiated with a type as large as ORDINAL; give '{bv.Name}' a bound that confines it to a finite range)"
+                    : "";
+                  Reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.Origin,
+                    $"a {e.WhatKind} involved in a {context.Kind} is not allowed to range over all of '{bv.Type}', " +
+                    $"because values of '{bv.Name}' may involve ORDINAL{hint}");
+                }
               }
             }
 

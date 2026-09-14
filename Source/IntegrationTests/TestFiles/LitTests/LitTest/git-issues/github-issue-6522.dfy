@@ -64,3 +64,7 @@ method UsesMap(m: map<S, int>) returns (b: bool) {
 ghost predicate OrdinaryPredicate(s: S) {
   exists t: S :: t.N? && t.o < 3
 }
+
+// Types whose definition is not visible here are handled in
+// github-issue-6522-opaque-types.dfy: they cannot be checked in this file, because that check
+// runs during bounds discovery, a pass that is skipped once a file has resolution errors.
