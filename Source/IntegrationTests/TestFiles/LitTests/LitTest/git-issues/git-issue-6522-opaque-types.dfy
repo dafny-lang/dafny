@@ -2,7 +2,7 @@
 // RUN: %exits-with 2 %baredafny resolve --use-basename-for-filename --show-snippets:false --type-system-refresh=true --general-newtypes=true "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// Companion to github-issue-6522.dfy, for the types whose definition is not visible at the
+// Companion to git-issue-6522.dfy, for the types whose definition is not visible at the
 // extreme predicate -- a type parameter or an abstract type. Such a type could be instantiated
 // with one that involves an ORDINAL (for instance the "datatype S = N(o: ORDINAL) | Top" of
 // issues 6522 and 6523), which would let the extreme predicate branch over a proper class.
