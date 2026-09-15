@@ -1,0 +1,1 @@
+Fix C++ backend compilation of the set `>=` (superset), `>` (proper superset) and `!!` (disjointness) operators by implementing the `IsSupersetOf`, `IsProperSupersetOf` and `IsDisjointFrom` methods that `DafnySet` was missing in the C++ runtime. The previous lowercase `disjoint` helper remains available as a deprecated forwarder to `IsDisjointFrom`.
