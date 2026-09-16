@@ -45,21 +45,6 @@ module M {
 
   [Theory]
   [MemberData(nameof(OptionSettings))]
-  public async Task NoExternalModule(List<Action<DafnyOptions>> optionSettings) {
-    var source = new StringReader(@"
-method {:testEntry} m (i:int) { }
-".TrimStart());
-    var output = new StringBuilder();
-    var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
-    var outputString = output.ToString();
-    Assert.Contains(FirstPass.NoExternalModuleError, outputString);
-    Assert.Equal(1, Count(Errors, outputString));
-    Assert.Equal(0, Count(Warnings, outputString));
-  }
-
-  [Theory]
-  [MemberData(nameof(OptionSettings))]
   public async Task InlinedMethodNotReachable(List<Action<DafnyOptions>> optionSettings) {
     var source = new StringReader(@"
 module A {

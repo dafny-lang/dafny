@@ -15,8 +15,7 @@ using System.Collections;
 namespace D2DPrettyPrinter {
 
   public partial class __default {
-    public static Dafny.ISequence<Dafny.Rune> PrettyPrint(Dafny.ISequence<DAST._IModule> d)
-    {
+    public static Dafny.ISequence<Dafny.Rune> PrettyPrint(Dafny.ISequence<DAST._IModule> d) {
       Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
       Microsoft.Dafny.Compilers.WrapException.Throw();
       s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Not Implemented Yet");

@@ -15,15 +15,14 @@ using System.Collections;
 namespace Formatting {
 
   public partial class __default {
-    public static System.String ReindentProgramFromFirstToken(Microsoft.Dafny.Token firstToken, Formatting.IIndentationFormatter reindent)
-    {
+    public static System.String ReindentProgramFromFirstToken(Microsoft.Dafny.Token firstToken, Formatting.IIndentationFormatter reindent) {
       System.String s = default(System.String);
       Microsoft.Dafny.Token _0_token;
       _0_token = firstToken;
       System.Text.StringBuilder _1_sb;
       System.Text.StringBuilder _nw0 = new System.Text.StringBuilder();
       _1_sb = _nw0;
-      while ((_0_token) != (object) ((object)null)) {
+      while ((_0_token) != (object)((object)null)) {
         System.String _2_newLeadingTrivia;
         _2_newLeadingTrivia = (reindent).GetNewLeadingTrivia(_0_token);
         System.String _3_newTrailingTrivia;

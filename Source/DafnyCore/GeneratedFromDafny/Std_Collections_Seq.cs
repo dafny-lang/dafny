@@ -27,8 +27,7 @@ namespace Std.Collections.Seq {
     public static Dafny.ISequence<__T> DropLast<__T>(Dafny.ISequence<__T> xs) {
       return (xs).Take((new BigInteger((xs).Count)) - (BigInteger.One));
     }
-    public static __T[] ToArray<__T>(Dafny.ISequence<__T> xs)
-    {
+    public static __T[] ToArray<__T>(Dafny.ISequence<__T> xs) {
       __T[] a = new __T[0];
       Func<BigInteger, __T> _init0 = Dafny.Helpers.Id<Func<Dafny.ISequence<__T>, Func<BigInteger, __T>>>((_0_xs) => ((System.Func<BigInteger, __T>)((_1_i) => {
         return (_0_xs).Select(_1_i);
@@ -52,10 +51,9 @@ namespace Std.Collections.Seq {
         return Dafny.Set<__T>.FromCollection(_coll0);
       }))())(xs);
     }
-    public static BigInteger IndexOf<__T>(Dafny.ISequence<__T> xs, __T v)
-    {
+    public static BigInteger IndexOf<__T>(Dafny.ISequence<__T> xs, __T v) {
       BigInteger _0___accumulator = BigInteger.Zero;
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if (object.Equals((xs).Select(BigInteger.Zero), v)) {
         return (BigInteger.Zero) + (_0___accumulator);
       } else {
@@ -67,14 +65,12 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static Std.Wrappers._IOption<BigInteger> IndexOfOption<__T>(Dafny.ISequence<__T> xs, __T v)
-    {
+    public static Std.Wrappers._IOption<BigInteger> IndexOfOption<__T>(Dafny.ISequence<__T> xs, __T v) {
       return Std.Collections.Seq.__default.IndexByOption<__T>(xs, Dafny.Helpers.Id<Func<__T, Func<__T, bool>>>((_0_v) => ((System.Func<__T, bool>)((_1_x) => {
         return object.Equals(_1_x, _0_v);
       })))(v));
     }
-    public static Std.Wrappers._IOption<BigInteger> IndexByOption<__T>(Dafny.ISequence<__T> xs, Func<__T, bool> p)
-    {
+    public static Std.Wrappers._IOption<BigInteger> IndexByOption<__T>(Dafny.ISequence<__T> xs, Func<__T, bool> p) {
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return Std.Wrappers.Option<BigInteger>.create_None();
       } else if (Dafny.Helpers.Id<Func<__T, bool>>(p)((xs).Select(BigInteger.Zero))) {
@@ -88,9 +84,8 @@ namespace Std.Collections.Seq {
         }
       }
     }
-    public static BigInteger LastIndexOf<__T>(Dafny.ISequence<__T> xs, __T v)
-    {
-    TAIL_CALL_START: ;
+    public static BigInteger LastIndexOf<__T>(Dafny.ISequence<__T> xs, __T v) {
+    TAIL_CALL_START:;
       if (object.Equals((xs).Select((new BigInteger((xs).Count)) - (BigInteger.One)), v)) {
         return (new BigInteger((xs).Count)) - (BigInteger.One);
       } else {
@@ -101,15 +96,13 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static Std.Wrappers._IOption<BigInteger> LastIndexOfOption<__T>(Dafny.ISequence<__T> xs, __T v)
-    {
+    public static Std.Wrappers._IOption<BigInteger> LastIndexOfOption<__T>(Dafny.ISequence<__T> xs, __T v) {
       return Std.Collections.Seq.__default.LastIndexByOption<__T>(xs, Dafny.Helpers.Id<Func<__T, Func<__T, bool>>>((_0_v) => ((System.Func<__T, bool>)((_1_x) => {
         return object.Equals(_1_x, _0_v);
       })))(v));
     }
-    public static Std.Wrappers._IOption<BigInteger> LastIndexByOption<__T>(Dafny.ISequence<__T> xs, Func<__T, bool> p)
-    {
-    TAIL_CALL_START: ;
+    public static Std.Wrappers._IOption<BigInteger> LastIndexByOption<__T>(Dafny.ISequence<__T> xs, Func<__T, bool> p) {
+    TAIL_CALL_START:;
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return Std.Wrappers.Option<BigInteger>.create_None();
       } else if (Dafny.Helpers.Id<Func<__T, bool>>(p)((xs).Select((new BigInteger((xs).Count)) - (BigInteger.One)))) {
@@ -122,12 +115,10 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static Dafny.ISequence<__T> Remove<__T>(Dafny.ISequence<__T> xs, BigInteger pos)
-    {
+    public static Dafny.ISequence<__T> Remove<__T>(Dafny.ISequence<__T> xs, BigInteger pos) {
       return Dafny.Sequence<__T>.Concat((xs).Take(pos), (xs).Drop((pos) + (BigInteger.One)));
     }
-    public static Dafny.ISequence<__T> RemoveValue<__T>(Dafny.ISequence<__T> xs, __T v)
-    {
+    public static Dafny.ISequence<__T> RemoveValue<__T>(Dafny.ISequence<__T> xs, __T v) {
       if (!(xs).Contains(v)) {
         return xs;
       } else {
@@ -135,13 +126,12 @@ namespace Std.Collections.Seq {
         return Dafny.Sequence<__T>.Concat((xs).Take(_0_i), (xs).Drop((_0_i) + (BigInteger.One)));
       }
     }
-    public static Dafny.ISequence<__T> Insert<__T>(Dafny.ISequence<__T> xs, __T a, BigInteger pos)
-    {
+    public static Dafny.ISequence<__T> Insert<__T>(Dafny.ISequence<__T> xs, __T a, BigInteger pos) {
       return Dafny.Sequence<__T>.Concat(Dafny.Sequence<__T>.Concat((xs).Take(pos), Dafny.Sequence<__T>.FromElements(a)), (xs).Drop(pos));
     }
     public static Dafny.ISequence<__T> Reverse<__T>(Dafny.ISequence<__T> xs) {
       Dafny.ISequence<__T> _0___accumulator = Dafny.Sequence<__T>.FromElements();
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((xs).Equals(Dafny.Sequence<__T>.FromElements())) {
         return Dafny.Sequence<__T>.Concat(_0___accumulator, Dafny.Sequence<__T>.FromElements());
       } else {
@@ -151,10 +141,9 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static Dafny.ISequence<__T> Repeat<__T>(__T v, BigInteger length)
-    {
+    public static Dafny.ISequence<__T> Repeat<__T>(__T v, BigInteger length) {
       Dafny.ISequence<__T> _0___accumulator = Dafny.Sequence<__T>.FromElements();
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((length).Sign == 0) {
         return Dafny.Sequence<__T>.Concat(_0___accumulator, Dafny.Sequence<__T>.FromElements());
       } else {
@@ -176,10 +165,9 @@ namespace Std.Collections.Seq {
         return _System.Tuple2<Dafny.ISequence<__A>, Dafny.ISequence<__B>>.create(Dafny.Sequence<__A>.Concat(_0_a, Dafny.Sequence<__A>.FromElements((Std.Collections.Seq.__default.Last<_System._ITuple2<__A, __B>>(xs)).dtor__0)), Dafny.Sequence<__B>.Concat(_1_b, Dafny.Sequence<__B>.FromElements((Std.Collections.Seq.__default.Last<_System._ITuple2<__A, __B>>(xs)).dtor__1)));
       }
     }
-    public static Dafny.ISequence<_System._ITuple2<__A, __B>> Zip<__A, __B>(Dafny.ISequence<__A> xs, Dafny.ISequence<__B> ys)
-    {
+    public static Dafny.ISequence<_System._ITuple2<__A, __B>> Zip<__A, __B>(Dafny.ISequence<__A> xs, Dafny.ISequence<__B> ys) {
       Dafny.ISequence<_System._ITuple2<__A, __B>> _0___accumulator = Dafny.Sequence<_System._ITuple2<__A, __B>>.FromElements();
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return Dafny.Sequence<_System._ITuple2<__A, __B>>.Concat(Dafny.Sequence<_System._ITuple2<__A, __B>>.FromElements(), _0___accumulator);
       } else {
@@ -191,13 +179,11 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static __T MaxBy<__T>(Dafny.ISequence<__T> s, Func<__T, __T, bool> lessThan)
-    {
+    public static __T MaxBy<__T>(Dafny.ISequence<__T> s, Func<__T, __T, bool> lessThan) {
       return Std.Collections.Seq.__default.MaxByHelper<__T>(s, BigInteger.One, (s).Select(BigInteger.Zero), lessThan);
     }
-    public static __T MaxByHelper<__T>(Dafny.ISequence<__T> s, BigInteger idx, __T current, Func<__T, __T, bool> lessThan)
-    {
-    TAIL_CALL_START: ;
+    public static __T MaxByHelper<__T>(Dafny.ISequence<__T> s, BigInteger idx, __T current, Func<__T, __T, bool> lessThan) {
+    TAIL_CALL_START:;
       if ((idx) == (new BigInteger((s).Count))) {
         return current;
       } else {
@@ -213,13 +199,11 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static __T MinBy<__T>(Dafny.ISequence<__T> s, Func<__T, __T, bool> lessThan)
-    {
+    public static __T MinBy<__T>(Dafny.ISequence<__T> s, Func<__T, __T, bool> lessThan) {
       return Std.Collections.Seq.__default.MinByHelper<__T>(s, BigInteger.One, (s).Select(BigInteger.Zero), lessThan);
     }
-    public static __T MinByHelper<__T>(Dafny.ISequence<__T> s, BigInteger idx, __T current, Func<__T, __T, bool> lessThan)
-    {
-    TAIL_CALL_START: ;
+    public static __T MinByHelper<__T>(Dafny.ISequence<__T> s, BigInteger idx, __T current, Func<__T, __T, bool> lessThan) {
+    TAIL_CALL_START:;
       if ((idx) == (new BigInteger((s).Count))) {
         return current;
       } else {
@@ -251,7 +235,7 @@ namespace Std.Collections.Seq {
     }
     public static Dafny.ISequence<__T> Flatten<__T>(Dafny.ISequence<Dafny.ISequence<__T>> xs) {
       Dafny.ISequence<__T> _0___accumulator = Dafny.Sequence<__T>.FromElements();
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return Dafny.Sequence<__T>.Concat(_0___accumulator, Dafny.Sequence<__T>.FromElements());
       } else {
@@ -263,7 +247,7 @@ namespace Std.Collections.Seq {
     }
     public static Dafny.ISequence<__T> FlattenReverse<__T>(Dafny.ISequence<Dafny.ISequence<__T>> xs) {
       Dafny.ISequence<__T> _0___accumulator = Dafny.Sequence<__T>.FromElements();
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return Dafny.Sequence<__T>.Concat(Dafny.Sequence<__T>.FromElements(), _0___accumulator);
       } else {
@@ -273,10 +257,9 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static Dafny.ISequence<__T> Join<__T>(Dafny.ISequence<Dafny.ISequence<__T>> seqs, Dafny.ISequence<__T> separator)
-    {
+    public static Dafny.ISequence<__T> Join<__T>(Dafny.ISequence<Dafny.ISequence<__T>> seqs, Dafny.ISequence<__T> separator) {
       Dafny.ISequence<__T> _0___accumulator = Dafny.Sequence<__T>.FromElements();
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((new BigInteger((seqs).Count)).Sign == 0) {
         return Dafny.Sequence<__T>.Concat(_0___accumulator, Dafny.Sequence<__T>.FromElements());
       } else if ((new BigInteger((seqs).Count)) == (BigInteger.One)) {
@@ -290,10 +273,9 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static Dafny.ISequence<Dafny.ISequence<__T>> Split<__T>(Dafny.ISequence<__T> s, __T delim)
-    {
+    public static Dafny.ISequence<Dafny.ISequence<__T>> Split<__T>(Dafny.ISequence<__T> s, __T delim) {
       Dafny.ISequence<Dafny.ISequence<__T>> _0___accumulator = Dafny.Sequence<Dafny.ISequence<__T>>.FromElements();
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       Std.Wrappers._IOption<BigInteger> _1_i = Std.Collections.Seq.__default.IndexOfOption<__T>(s, delim);
       if ((_1_i).is_Some) {
         _0___accumulator = Dafny.Sequence<Dafny.ISequence<__T>>.Concat(_0___accumulator, Dafny.Sequence<Dafny.ISequence<__T>>.FromElements((s).Take((_1_i).dtor_value)));
@@ -306,13 +288,11 @@ namespace Std.Collections.Seq {
         return Dafny.Sequence<Dafny.ISequence<__T>>.Concat(_0___accumulator, Dafny.Sequence<Dafny.ISequence<__T>>.FromElements(s));
       }
     }
-    public static _System._ITuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>> SplitOnce<__T>(Dafny.ISequence<__T> s, __T delim)
-    {
+    public static _System._ITuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>> SplitOnce<__T>(Dafny.ISequence<__T> s, __T delim) {
       Std.Wrappers._IOption<BigInteger> _0_i = Std.Collections.Seq.__default.IndexOfOption<__T>(s, delim);
       return _System.Tuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>>.create((s).Take((_0_i).dtor_value), (s).Drop(((_0_i).dtor_value) + (BigInteger.One)));
     }
-    public static Std.Wrappers._IOption<_System._ITuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>>> SplitOnceOption<__T>(Dafny.ISequence<__T> s, __T delim)
-    {
+    public static Std.Wrappers._IOption<_System._ITuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>>> SplitOnceOption<__T>(Dafny.ISequence<__T> s, __T delim) {
       Std.Wrappers._IOption<BigInteger> _0_valueOrError0 = Std.Collections.Seq.__default.IndexOfOption<__T>(s, delim);
       if ((_0_valueOrError0).IsFailure()) {
         return (_0_valueOrError0).PropagateFailure<_System._ITuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>>>();
@@ -321,10 +301,9 @@ namespace Std.Collections.Seq {
         return Std.Wrappers.Option<_System._ITuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>>>.create_Some(_System.Tuple2<Dafny.ISequence<__T>, Dafny.ISequence<__T>>.create((s).Take(_1_i), (s).Drop((_1_i) + (BigInteger.One))));
       }
     }
-    public static Dafny.ISequence<__R> Map<__T, __R>(Func<__T, __R> f, Dafny.ISequence<__T> xs)
-    {
+    public static Dafny.ISequence<__R> Map<__T, __R>(Func<__T, __R> f, Dafny.ISequence<__T> xs) {
       Dafny.ISequence<__R> _0___accumulator = Dafny.Sequence<__R>.FromElements();
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return Dafny.Sequence<__R>.Concat(_0___accumulator, Dafny.Sequence<__R>.FromElements());
       } else {
@@ -336,12 +315,10 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static Dafny.ISequence<__R> MapPartialFunction<__T, __R>(Func<__T, __R> f, Dafny.ISequence<__T> xs)
-    {
+    public static Dafny.ISequence<__R> MapPartialFunction<__T, __R>(Func<__T, __R> f, Dafny.ISequence<__T> xs) {
       return Std.Collections.Seq.__default.Map<__T, __R>(f, xs);
     }
-    public static Std.Wrappers._IResult<Dafny.ISequence<__R>, __E> MapWithResult<__T, __R, __E>(Func<__T, Std.Wrappers._IResult<__R, __E>> f, Dafny.ISequence<__T> xs)
-    {
+    public static Std.Wrappers._IResult<Dafny.ISequence<__R>, __E> MapWithResult<__T, __R, __E>(Func<__T, Std.Wrappers._IResult<__R, __E>> f, Dafny.ISequence<__T> xs) {
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return Std.Wrappers.Result<Dafny.ISequence<__R>, __E>.create_Success(Dafny.Sequence<__R>.FromElements());
       } else {
@@ -360,10 +337,9 @@ namespace Std.Collections.Seq {
         }
       }
     }
-    public static Dafny.ISequence<__T> Filter<__T>(Func<__T, bool> f, Dafny.ISequence<__T> xs)
-    {
+    public static Dafny.ISequence<__T> Filter<__T>(Func<__T, bool> f, Dafny.ISequence<__T> xs) {
       Dafny.ISequence<__T> _0___accumulator = Dafny.Sequence<__T>.FromElements();
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return Dafny.Sequence<__T>.Concat(_0___accumulator, Dafny.Sequence<__T>.FromElements());
       } else {
@@ -375,9 +351,8 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static __A FoldLeft<__A, __T>(Func<__A, __T, __A> f, __A init, Dafny.ISequence<__T> xs)
-    {
-    TAIL_CALL_START: ;
+    public static __A FoldLeft<__A, __T>(Func<__A, __T, __A> f, __A init, Dafny.ISequence<__T> xs) {
+    TAIL_CALL_START:;
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return init;
       } else {
@@ -390,16 +365,14 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static __A FoldRight<__A, __T>(Func<__T, __A, __A> f, Dafny.ISequence<__T> xs, __A init)
-    {
+    public static __A FoldRight<__A, __T>(Func<__T, __A, __A> f, Dafny.ISequence<__T> xs, __A init) {
       if ((new BigInteger((xs).Count)).Sign == 0) {
         return init;
       } else {
         return Dafny.Helpers.Id<Func<__T, __A, __A>>(f)((xs).Select(BigInteger.Zero), Std.Collections.Seq.__default.FoldRight<__A, __T>(f, (xs).Drop(BigInteger.One), init));
       }
     }
-    public static Dafny.ISequence<__T> MergeSortBy<__T>(Func<__T, __T, bool> lessThanOrEq, Dafny.ISequence<__T> a)
-    {
+    public static Dafny.ISequence<__T> MergeSortBy<__T>(Func<__T, __T, bool> lessThanOrEq, Dafny.ISequence<__T> a) {
       if ((new BigInteger((a).Count)) <= (BigInteger.One)) {
         return a;
       } else {
@@ -411,10 +384,9 @@ namespace Std.Collections.Seq {
         return Std.Collections.Seq.__default.MergeSortedWith<__T>(_3_leftSorted, _4_rightSorted, lessThanOrEq);
       }
     }
-    public static Dafny.ISequence<__T> MergeSortedWith<__T>(Dafny.ISequence<__T> left, Dafny.ISequence<__T> right, Func<__T, __T, bool> lessThanOrEq)
-    {
+    public static Dafny.ISequence<__T> MergeSortedWith<__T>(Dafny.ISequence<__T> left, Dafny.ISequence<__T> right, Func<__T, __T, bool> lessThanOrEq) {
       Dafny.ISequence<__T> _0___accumulator = Dafny.Sequence<__T>.FromElements();
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((new BigInteger((left).Count)).Sign == 0) {
         return Dafny.Sequence<__T>.Concat(_0___accumulator, right);
       } else if ((new BigInteger((right).Count)).Sign == 0) {
@@ -439,23 +411,20 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static bool All<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p)
-    {
+    public static bool All<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p) {
       return Dafny.Helpers.Id<Func<Dafny.ISequence<__T>, Func<__T, bool>, bool>>((_0_s, _1_p) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger((_0_s).Count)), true, (((_forall_var_0) => {
         BigInteger _2_i = (BigInteger)_forall_var_0;
-        return !(((_2_i).Sign != -1) && ((_2_i) < (new BigInteger((_0_s).Count)))) || (Dafny.Helpers.Id<Func<__T, bool>>(_1_p)((_0_s).Select(_2_i)));
+        return !(((_2_i).Sign != -1) && ((_2_i) < (new BigInteger((_0_s).Count)))) || Dafny.Helpers.Id<Func<__T, bool>>(_1_p)((_0_s).Select(_2_i));
       }))))(s, p);
     }
-    public static bool AllNot<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p)
-    {
+    public static bool AllNot<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p) {
       return Dafny.Helpers.Id<Func<Dafny.ISequence<__T>, Func<__T, bool>, bool>>((_0_s, _1_p) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger((_0_s).Count)), true, (((_forall_var_0) => {
         BigInteger _2_i = (BigInteger)_forall_var_0;
         return !(((_2_i).Sign != -1) && ((_2_i) < (new BigInteger((_0_s).Count)))) || (!(Dafny.Helpers.Id<Func<__T, bool>>(_1_p)((_0_s).Select(_2_i))));
       }))))(s, p);
     }
-    public static bool Partitioned<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p)
-    {
-    TAIL_CALL_START: ;
+    public static bool Partitioned<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p) {
+    TAIL_CALL_START:;
       if ((s).Equals(Dafny.Sequence<__T>.FromElements())) {
         return true;
       } else if (Dafny.Helpers.Id<Func<__T, bool>>(p)((s).Select(BigInteger.Zero))) {
@@ -505,7 +474,7 @@ namespace Std.Collections.Seq {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._data));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._start));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._end));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Seq.Slice.Slice";
@@ -558,8 +527,7 @@ namespace Std.Collections.Seq {
     public Std.Collections.Seq._ISlice<T> Drop(BigInteger firstIncludedIndex) {
       return Std.Collections.Seq.Slice<T>.create((this).dtor_data, ((this).dtor_start) + (firstIncludedIndex), (this).dtor_end);
     }
-    public Std.Collections.Seq._ISlice<T> Sub(BigInteger firstIncludedIndex, BigInteger lastExcludedIndex)
-    {
+    public Std.Collections.Seq._ISlice<T> Sub(BigInteger firstIncludedIndex, BigInteger lastExcludedIndex) {
       return Std.Collections.Seq.Slice<T>.create((this).dtor_data, ((this).dtor_start) + (firstIncludedIndex), ((this).dtor_start) + (lastExcludedIndex));
     }
   }

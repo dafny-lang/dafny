@@ -2798,25 +2798,37 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(")");
             return;
           case "Floor":
-            if (isFp32) wr.Write("(float)");
+            if (isFp32) {
+              wr.Write("(float)");
+            }
+
             wr.Write("Math.Floor(");
             tr(e.Args[0], wr, inLetExprBody, wStmts);
             wr.Write(")");
             return;
           case "Ceiling":
-            if (isFp32) wr.Write("(float)");
+            if (isFp32) {
+              wr.Write("(float)");
+            }
+
             wr.Write("Math.Ceiling(");
             tr(e.Args[0], wr, inLetExprBody, wStmts);
             wr.Write(")");
             return;
           case "Round":
-            if (isFp32) wr.Write("(float)");
+            if (isFp32) {
+              wr.Write("(float)");
+            }
+
             wr.Write("Math.Round(");
             tr(e.Args[0], wr, inLetExprBody, wStmts);
             wr.Write(", MidpointRounding.ToEven)");
             return;
           case "Sqrt":
-            if (isFp32) wr.Write("(float)");
+            if (isFp32) {
+              wr.Write("(float)");
+            }
+
             wr.Write("Math.Sqrt(");
             tr(e.Args[0], wr, inLetExprBody, wStmts);
             wr.Write(")");

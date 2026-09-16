@@ -343,7 +343,7 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    if (!onlyPrepareVerificationForGutterTests && (randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))) {
+    if (!onlyPrepareVerificationForGutterTests && randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default)) {
       return false;
     }
 
