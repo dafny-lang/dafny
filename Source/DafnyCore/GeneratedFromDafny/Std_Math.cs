@@ -15,28 +15,24 @@ using System.Collections;
 namespace Std.Math {
 
   public partial class __default {
-    public static BigInteger Min(BigInteger a, BigInteger b)
-    {
+    public static BigInteger Min(BigInteger a, BigInteger b) {
       if ((a) < (b)) {
         return a;
       } else {
         return b;
       }
     }
-    public static BigInteger Min3(BigInteger a, BigInteger b, BigInteger c)
-    {
+    public static BigInteger Min3(BigInteger a, BigInteger b, BigInteger c) {
       return Std.Math.__default.Min(a, Std.Math.__default.Min(b, c));
     }
-    public static BigInteger Max(BigInteger a, BigInteger b)
-    {
+    public static BigInteger Max(BigInteger a, BigInteger b) {
       if ((a) < (b)) {
         return b;
       } else {
         return a;
       }
     }
-    public static BigInteger Max3(BigInteger a, BigInteger b, BigInteger c)
-    {
+    public static BigInteger Max3(BigInteger a, BigInteger b, BigInteger c) {
       return Std.Math.__default.Max(a, Std.Math.__default.Max(b, c));
     }
     public static BigInteger Abs(BigInteger a) {

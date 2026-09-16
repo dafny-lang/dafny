@@ -2977,15 +2977,15 @@ namespace Microsoft.Dafny {
     public static bool SurelyNeverSupportEquality(Type type) {
       type = type.NormalizeExpand();
       return
-        type.AsNewtype is { EqualitySupport: var equalitySupport, TypeArgs: var typeParams }
-        && SurelyNeverSupportEqualityTypeParameters(equalitySupport, typeParams, type.TypeArgs)
+        (type.AsNewtype is { EqualitySupport: var equalitySupport, TypeArgs: var typeParams }
+        && SurelyNeverSupportEqualityTypeParameters(equalitySupport, typeParams, type.TypeArgs))
         ||
-        type.AsIndDatatype is { EqualitySupport: var equalitySupport2, TypeArgs: var typeParams2 }
-        && SurelyNeverSupportEqualityTypeParameters(equalitySupport2, typeParams2, type.TypeArgs)
+        (type.AsIndDatatype is { EqualitySupport: var equalitySupport2, TypeArgs: var typeParams2 }
+        && SurelyNeverSupportEqualityTypeParameters(equalitySupport2, typeParams2, type.TypeArgs))
         ||
         type.IsCoDatatype || type.IsArrowType ||
-        type.AsSeqType is { Arg: var argType } && SurelyNeverSupportEquality(argType) ||
-        type.AsMapType is { Range: var rangeType } && SurelyNeverSupportEquality(rangeType);
+        (type.AsSeqType is { Arg: var argType } && SurelyNeverSupportEquality(argType)) ||
+        (type.AsMapType is { Range: var rangeType } && SurelyNeverSupportEquality(rangeType));
     }
 
     public static void DetermineEqualitySupportType(Type type, ref bool thingsChanged) {

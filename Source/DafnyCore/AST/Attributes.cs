@@ -505,7 +505,7 @@ public class Attributes : NodeWithOrigin, ICanFormat {
     BuiltIn("Compile")
       .WithArg(TupleItem0Name, Type.Bool, DefaultBool(true))
       .Filter(attributeHost =>
-        attributeHost is TopLevelDecl and not TypeParameter or MemberDecl or ModuleDefinition),
+        attributeHost is (TopLevelDecl and not TypeParameter) or MemberDecl or ModuleDefinition),
 
     BuiltIn("Concurrent")
       .Filter(attributeHost =>

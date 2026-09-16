@@ -90,7 +90,7 @@ public abstract class CollectionType : NonProxyType {
       TypeArgs.Add(arg);
       TypeArgs.Add(other);
     }
-    Debug.Assert(arg == null && other == null || arg != null && other != null);
+    Debug.Assert((arg == null && other == null) || (arg != null && other != null));
   }
 
   protected CollectionType(Cloner cloner, CollectionType original) {

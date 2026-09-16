@@ -18,16 +18,14 @@ namespace ResolvedDesugaredExecutableDafnyPlugin {
   public partial class COMP {
     public COMP() {
     }
-    public static Dafny.ISequence<Dafny.Rune> Compile(Dafny.ISequence<DAST._IModule> p)
-    {
+    public static Dafny.ISequence<Dafny.Rune> Compile(Dafny.ISequence<DAST._IModule> p) {
       Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
       Dafny.ISequence<Dafny.Rune> _out0;
       _out0 = D2DPrettyPrinter.__default.PrettyPrint(p);
       s = _out0;
       return s;
     }
-    public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(DAST._IExpression fullName)
-    {
+    public static Dafny.ISequence<Dafny.Rune> EmitCallToMain(DAST._IExpression fullName) {
       Dafny.ISequence<Dafny.Rune> s = Dafny.Sequence<Dafny.Rune>.Empty;
       s = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
       return s;
