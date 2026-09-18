@@ -37,12 +37,9 @@ jobs:
           go-version: '1.21'
           cache: false
       - name: Set up goimports
-        # setup-go exports GOTOOLCHAIN=local job-wide, which stops the steps that call
-        # go directly from silently upgrading past the version pinned above -- but it
-        # also blocks this install, because x/tools tracks the current Go release, so
-        # goimports@latest regularly needs a newer Go than the one under test. Allow a
-        # toolchain switch for this step alone: goimports is only a formatter the Go
-        # backend shells out to, so the Go that builds it is not part of that surface.
+        # setup-go pins GOTOOLCHAIN=local job-wide, but goimports@latest tracks the
+        # current Go release and so needs a newer one than the version under test.
+        # Allow a switch here only: it is a formatter, not part of the Go we support.
         env:
           GO111MODULE: on
           GOTOOLCHAIN: auto
