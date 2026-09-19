@@ -79,7 +79,7 @@ void dafny_print(T x) {
 
 // Special-case bool so that the C++ output matches that of other backends
 template<>
-void dafny_print<bool>(bool x) {
+inline void dafny_print<bool>(bool x) {
   if (x) {
     std::cout << "true";
   } else {
@@ -765,7 +765,7 @@ struct std::hash<DafnyMap<T,U>> {
     }
 };
 
-DafnySequence<DafnySequence<char>> dafny_get_args(int argc, char* argv[]) {
+inline DafnySequence<DafnySequence<char>> dafny_get_args(int argc, char* argv[]) {
   DafnySequence<DafnySequence<char>> dafnyArgs((uint64)argc);
   for(int i = 0; i < argc; i++) {
     std::string s = argv[i];
