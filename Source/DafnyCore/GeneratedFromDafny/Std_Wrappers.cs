@@ -15,8 +15,7 @@ using System.Collections;
 namespace Std.Wrappers {
 
   public partial class __default {
-    public static Std.Wrappers._IOutcomeResult<__E> Need<__E>(bool condition, __E error)
-    {
+    public static Std.Wrappers._IOutcomeResult<__E> Need<__E>(bool condition, __E error) {
       if (condition) {
         return Std.Wrappers.OutcomeResult<__E>.create_Pass_k();
       } else {
@@ -123,7 +122,7 @@ namespace Std.Wrappers {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Wrappers.Option.None";
@@ -147,7 +146,7 @@ namespace Std.Wrappers {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Wrappers.Option.Some";
@@ -282,7 +281,7 @@ namespace Std.Wrappers {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Wrappers.Result.Success";
@@ -309,7 +308,7 @@ namespace Std.Wrappers {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._error));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Wrappers.Result.Failure";
@@ -387,8 +386,7 @@ namespace Std.Wrappers {
     public static __FC Map<__FC>(Std.Wrappers._IOutcome<E> _this, Func<Std.Wrappers._IOutcome<E>, __FC> rewrap) {
       return Dafny.Helpers.Id<Func<Std.Wrappers._IOutcome<E>, __FC>>(rewrap)(_this);
     }
-    public static Std.Wrappers._IResult<__T, __NewE> MapFailure<__T, __NewE>(Std.Wrappers._IOutcome<E> _this, Func<E, __NewE> rewrap, __T @default)
-    {
+    public static Std.Wrappers._IResult<__T, __NewE> MapFailure<__T, __NewE>(Std.Wrappers._IOutcome<E> _this, Func<E, __NewE> rewrap, __T @default) {
       Std.Wrappers._IOutcome<E> _source0 = _this;
       {
         if (_source0.is_Pass) {
@@ -400,8 +398,7 @@ namespace Std.Wrappers {
         return Std.Wrappers.Result<__T, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(rewrap)(_0_e));
       }
     }
-    public static Std.Wrappers._IOutcome<E> Need(bool condition, E error)
-    {
+    public static Std.Wrappers._IOutcome<E> Need(bool condition, E error) {
       if (condition) {
         return Std.Wrappers.Outcome<E>.create_Pass();
       } else {
@@ -423,7 +420,7 @@ namespace Std.Wrappers {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Wrappers.Outcome.Pass";
@@ -447,7 +444,7 @@ namespace Std.Wrappers {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._error));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Wrappers.Outcome.Fail";
@@ -511,7 +508,7 @@ namespace Std.Wrappers {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Wrappers.OutcomeResult.Pass'";
@@ -535,7 +532,7 @@ namespace Std.Wrappers {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._error));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Wrappers.OutcomeResult.Fail'";

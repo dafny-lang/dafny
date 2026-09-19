@@ -15,10 +15,9 @@ using System.Collections;
 namespace Std.Arithmetic.DivInternals {
 
   public partial class __default {
-    public static BigInteger DivPos(BigInteger x, BigInteger d)
-    {
+    public static BigInteger DivPos(BigInteger x, BigInteger d) {
       BigInteger _0___accumulator = BigInteger.Zero;
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((x).Sign == -1) {
         _0___accumulator = (_0___accumulator) + (new BigInteger(-1));
         BigInteger _in0 = (x) + (d);
@@ -37,8 +36,7 @@ namespace Std.Arithmetic.DivInternals {
         goto TAIL_CALL_START;
       }
     }
-    public static BigInteger DivRecursive(BigInteger x, BigInteger d)
-    {
+    public static BigInteger DivRecursive(BigInteger x, BigInteger d) {
       if ((d).Sign == 1) {
         return Std.Arithmetic.DivInternals.__default.DivPos(x, d);
       } else {

@@ -3661,7 +3661,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(e != null);
       Contract.Assert(ty != null);
       Contract.Assert(tok != null);
-      Contract.Assert((e.Type != null && e.Type.Equals(Predef.BoxType) ||
+      Contract.Assert(((e.Type != null && e.Type.Equals(Predef.BoxType)) ||
                       (e.ShallowType != null && e.ShallowType.Equals(Predef.BoxType))));
       return FunctionCall(tok, BuiltinFunction.Unbox, ty, e);
     }

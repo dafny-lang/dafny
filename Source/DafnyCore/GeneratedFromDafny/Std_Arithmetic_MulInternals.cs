@@ -15,10 +15,9 @@ using System.Collections;
 namespace Std.Arithmetic.MulInternals {
 
   public partial class __default {
-    public static BigInteger MulPos(BigInteger x, BigInteger y)
-    {
+    public static BigInteger MulPos(BigInteger x, BigInteger y) {
       BigInteger _0___accumulator = BigInteger.Zero;
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((x).Sign == 0) {
         return (BigInteger.Zero) + (_0___accumulator);
       } else {
@@ -30,8 +29,7 @@ namespace Std.Arithmetic.MulInternals {
         goto TAIL_CALL_START;
       }
     }
-    public static BigInteger MulRecursive(BigInteger x, BigInteger y)
-    {
+    public static BigInteger MulRecursive(BigInteger x, BigInteger y) {
       if ((x).Sign != -1) {
         return Std.Arithmetic.MulInternals.__default.MulPos(x, y);
       } else {

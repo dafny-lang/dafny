@@ -1000,8 +1000,8 @@ namespace Microsoft.Dafny {
             var arrayDims = 1;
             if (receiver.PreType is not DPreType { Decl.Name: var arrayName } arrayType
                 || !arrayName.StartsWith(PreType.TypeNameArray) ||
-                arrayName != PreType.TypeNameArray
-                && !int.TryParse(arrayName.AsSpan(PreType.TypeNameArray.Length), out arrayDims)) {
+                (arrayName != PreType.TypeNameArray
+                && !int.TryParse(arrayName.AsSpan(PreType.TypeNameArray.Length), out arrayDims))) {
               ReportError(indexFieldLocation,
                 $"Expected array memory location to be applied to an array, but got {receiver}");
               indexFieldLocation.PreType = CreatePreTypeProxy("index-field-location");

@@ -15,10 +15,9 @@ using System.Collections;
 namespace Std.Arithmetic.Logarithm {
 
   public partial class __default {
-    public static BigInteger Log(BigInteger @base, BigInteger pow)
-    {
+    public static BigInteger Log(BigInteger @base, BigInteger pow) {
       BigInteger _0___accumulator = BigInteger.Zero;
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((pow) < (@base)) {
         return (BigInteger.Zero) + (_0___accumulator);
       } else {

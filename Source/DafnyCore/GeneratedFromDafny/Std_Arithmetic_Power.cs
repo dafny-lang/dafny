@@ -15,10 +15,9 @@ using System.Collections;
 namespace Std.Arithmetic.Power {
 
   public partial class __default {
-    public static BigInteger Pow(BigInteger b, BigInteger e)
-    {
+    public static BigInteger Pow(BigInteger b, BigInteger e) {
       BigInteger _0___accumulator = BigInteger.One;
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       if ((e).Sign == 0) {
         return (BigInteger.One) * (_0___accumulator);
       } else {

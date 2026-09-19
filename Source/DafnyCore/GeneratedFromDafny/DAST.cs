@@ -35,7 +35,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._dafny__name));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Name.Name";
@@ -86,7 +86,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._dafny__name));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.VarName.VarName";
@@ -155,7 +155,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._requiresExterns));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Module.Module";
@@ -395,7 +395,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ModuleItem.Module";
@@ -422,7 +422,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ModuleItem.Class";
@@ -449,7 +449,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ModuleItem.Trait";
@@ -476,7 +476,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ModuleItem.Newtype";
@@ -503,7 +503,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 4;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ModuleItem.SynonymType";
@@ -530,7 +530,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 5;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ModuleItem.Datatype";
@@ -568,7 +568,7 @@ namespace DAST {
     Dafny.ISequence<Dafny.Rune> dtor_Passthrough_a0 { get; }
     Dafny.ISequence<Dafny.Rune> dtor_TypeArg_a0 { get; }
     _IType DowncastClone();
-    DAST._IType Replace(Dafny.IMap<DAST._IType,DAST._IType> mapping);
+    DAST._IType Replace(Dafny.IMap<DAST._IType, DAST._IType> mapping);
     bool IsPrimitiveInt();
     bool IsGeneralTrait();
     DAST._IType GetGeneralTraitType();
@@ -718,9 +718,9 @@ namespace DAST {
       }
     }
     public abstract _IType DowncastClone();
-    public DAST._IType Replace(Dafny.IMap<DAST._IType,DAST._IType> mapping) {
+    public DAST._IType Replace(Dafny.IMap<DAST._IType, DAST._IType> mapping) {
       if ((mapping).Contains(this)) {
-        return Dafny.Map<DAST._IType, DAST._IType>.Select(mapping,this);
+        return Dafny.Map<DAST._IType, DAST._IType>.Select(mapping, this);
       } else {
         DAST._IType _source0 = this;
         {
@@ -732,9 +732,9 @@ namespace DAST {
         {
           if (_source0.is_Tuple) {
             Dafny.ISequence<DAST._IType> _1_arguments = _source0.dtor_Tuple_a0;
-            return DAST.Type.create_Tuple(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_2_mapping, _3_arguments) => ((System.Func<DAST._IType, DAST._IType>)((_4_t) => {
-  return (_4_t).Replace(_2_mapping);
-})))(mapping, _1_arguments), _1_arguments));
+            return DAST.Type.create_Tuple(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType, DAST._IType>, Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_2_mapping, _3_arguments) => ((System.Func<DAST._IType, DAST._IType>)((_4_t) => {
+              return (_4_t).Replace(_2_mapping);
+            })))(mapping, _1_arguments), _1_arguments));
           }
         }
         {
@@ -786,9 +786,9 @@ namespace DAST {
           if (_source0.is_Arrow) {
             Dafny.ISequence<DAST._IType> _15_args = _source0.dtor_args;
             DAST._IType _16_result = _source0.dtor_result;
-            return DAST.Type.create_Arrow(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_17_mapping, _18_args) => ((System.Func<DAST._IType, DAST._IType>)((_19_t) => {
-  return (_19_t).Replace(_17_mapping);
-})))(mapping, _15_args), _15_args), (_16_result).Replace(mapping));
+            return DAST.Type.create_Arrow(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType, DAST._IType>, Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_17_mapping, _18_args) => ((System.Func<DAST._IType, DAST._IType>)((_19_t) => {
+              return (_19_t).Replace(_17_mapping);
+            })))(mapping, _15_args), _15_args), (_16_result).Replace(mapping));
           }
         }
         {
@@ -798,7 +798,7 @@ namespace DAST {
     }
     public bool IsPrimitiveInt() {
       _IType _this = this;
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       DAST._IType _source0 = _this;
       {
         if (_source0.is_Primitive) {
@@ -827,7 +827,7 @@ namespace DAST {
     }
     public bool IsGeneralTrait() {
       _IType _this = this;
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       DAST._IType _source0 = _this;
       {
         if (_source0.is_UserDefined) {
@@ -862,7 +862,7 @@ namespace DAST {
     }
     public DAST._IType GetGeneralTraitType() {
       _IType _this = this;
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       DAST._IType _source0 = _this;
       {
         DAST._IResolvedType resolved0 = _source0.dtor_resolved;
@@ -888,7 +888,7 @@ namespace DAST {
         if (_source0.is_UserDefined) {
           DAST._IResolvedType resolved0 = _source0.dtor_resolved;
           DAST._IResolvedTypeBase _0_base = resolved0.dtor_kind;
-          return ((_0_base).is_Class) || (((_0_base).is_Trait) && (((_0_base).dtor_traitType).is_ObjectTrait));
+          return (_0_base).is_Class || ((_0_base).is_Trait && ((_0_base).dtor_traitType).is_ObjectTrait);
         }
       }
       {
@@ -897,7 +897,7 @@ namespace DAST {
     }
     public bool IsDatatype() {
       _IType _this = this;
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       DAST._IType _source0 = _this;
       {
         if (_source0.is_UserDefined) {
@@ -929,7 +929,7 @@ namespace DAST {
     }
     public DAST._IType GetDatatypeType() {
       _IType _this = this;
-    TAIL_CALL_START: ;
+    TAIL_CALL_START:;
       DAST._IType _source0 = _this;
       {
         DAST._IResolvedType resolved0 = _source0.dtor_resolved;
@@ -955,10 +955,10 @@ namespace DAST {
         if (_source0.is_UserDefined) {
           DAST._IResolvedType resolved0 = _source0.dtor_resolved;
           Dafny.ISequence<DAST._IType> _0_extendedTypes = resolved0.dtor_extendedTypes;
-          return ((_0_extendedTypes).Contains(other)) || (Dafny.Helpers.Id<Func<Dafny.ISequence<DAST._IType>, DAST._IType, bool>>((_1_extendedTypes, _2_other) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger((_1_extendedTypes).Count)), false, (((_exists_var_0) => {
+          return (_0_extendedTypes).Contains(other) || Dafny.Helpers.Id<Func<Dafny.ISequence<DAST._IType>, DAST._IType, bool>>((_1_extendedTypes, _2_other) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger((_1_extendedTypes).Count)), false, (((_exists_var_0) => {
             BigInteger _3_i = (BigInteger)_exists_var_0;
-            return (((_3_i).Sign != -1) && ((_3_i) < (new BigInteger((_1_extendedTypes).Count)))) && (((_1_extendedTypes).Select(_3_i)).Extends(_2_other));
-          }))))(_0_extendedTypes, other));
+            return ((_3_i).Sign != -1) && ((_3_i) < (new BigInteger((_1_extendedTypes).Count))) && ((_1_extendedTypes).Select(_3_i)).Extends(_2_other);
+          }))))(_0_extendedTypes, other);
         }
       }
       {
@@ -984,11 +984,11 @@ namespace DAST {
             }
           }
           {
-            Dafny.ISequence<DAST._IType> _7_newtypeArgs = ((System.Func<Dafny.ISequence<DAST._IType>>) (() => {
+            Dafny.ISequence<DAST._IType> _7_newtypeArgs = ((System.Func<Dafny.ISequence<DAST._IType>>)(() => {
               BigInteger dim13 = new BigInteger((_1_typeArgs).Count);
               var arr13 = new DAST._IType[Dafny.Helpers.ToIntChecked(dim13, "array size exceeds memory limit")];
               for (int i13 = 0; i13 < dim13; i13++) {
-                var _8_i = (BigInteger) i13;
+                var _8_i = (BigInteger)i13;
                 arr13[(int)(_8_i)] = ((_1_typeArgs).Select(_8_i)).RemoveSynonyms();
               }
               return Dafny.Sequence<DAST._IType>.FromArray(arr13);
@@ -1001,8 +1001,8 @@ namespace DAST {
         if (_source0.is_Tuple) {
           Dafny.ISequence<DAST._IType> _9_arguments = _source0.dtor_Tuple_a0;
           return DAST.Type.create_Tuple(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_10_arguments) => ((System.Func<DAST._IType, DAST._IType>)((_11_t) => {
-  return (_11_t).RemoveSynonyms();
-})))(_9_arguments), _9_arguments));
+            return (_11_t).RemoveSynonyms();
+          })))(_9_arguments), _9_arguments));
         }
       }
       {
@@ -1055,8 +1055,8 @@ namespace DAST {
           Dafny.ISequence<DAST._IType> _22_args = _source0.dtor_args;
           DAST._IType _23_result = _source0.dtor_result;
           return DAST.Type.create_Arrow(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_24_args) => ((System.Func<DAST._IType, DAST._IType>)((_25_t) => {
-  return (_25_t).RemoveSynonyms();
-})))(_22_args), _22_args), (_23_result).RemoveSynonyms());
+            return (_25_t).RemoveSynonyms();
+          })))(_22_args), _22_args), (_23_result).RemoveSynonyms());
         }
       }
       {
@@ -1081,7 +1081,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._resolved));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.UserDefined";
@@ -1108,7 +1108,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.Tuple";
@@ -1138,7 +1138,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 2;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._element));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._dims));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.Array";
@@ -1167,7 +1167,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._element));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.Seq";
@@ -1194,7 +1194,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 4;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._element));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.Set";
@@ -1221,7 +1221,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 5;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._element));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.Multiset";
@@ -1251,7 +1251,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 6;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._key));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.Map";
@@ -1280,7 +1280,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 7;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._element));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.SetBuilder";
@@ -1310,7 +1310,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 8;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._key));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.MapBuilder";
@@ -1342,7 +1342,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 9;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._args));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._result));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.Arrow";
@@ -1371,7 +1371,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 10;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.Primitive";
@@ -1398,7 +1398,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 11;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.Passthrough";
@@ -1425,7 +1425,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 12;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.TypeArg";
@@ -1449,7 +1449,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 13;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Type.Object";
@@ -1509,7 +1509,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Variance.Nonvariant";
@@ -1530,7 +1530,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Variance.Covariant";
@@ -1551,7 +1551,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Variance.Contravariant";
@@ -1589,7 +1589,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._bounds));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._info));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.TypeArgDecl.TypeArgDecl";
@@ -1686,7 +1686,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.TypeArgBound.SupportsEquality";
@@ -1707,7 +1707,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.TypeArgBound.SupportsDefault";
@@ -1731,7 +1731,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.TypeArgBound.TraitBound";
@@ -1812,7 +1812,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Primitive.Int";
@@ -1833,7 +1833,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Primitive.Real";
@@ -1854,7 +1854,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Primitive.String";
@@ -1875,7 +1875,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Primitive.Bool";
@@ -1896,7 +1896,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 4;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Primitive.Char";
@@ -1917,7 +1917,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 5;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Primitive.Native";
@@ -2039,10 +2039,10 @@ namespace DAST {
     }
     public abstract _INewtypeRange DowncastClone();
     public bool CanOverflow() {
-      return (((((((((((this).is_U8) || ((this).is_I8)) || ((this).is_U16)) || ((this).is_I16)) || ((this).is_U32)) || ((this).is_I32)) || ((this).is_U64)) || ((this).is_I64)) || ((this).is_U128)) || ((this).is_I128)) && ((this).dtor_overflow);
+      return ((this).is_U8 || (this).is_I8 || (this).is_U16 || (this).is_I16 || (this).is_U32 || (this).is_I32 || (this).is_U64 || (this).is_I64 || (this).is_U128 || (this).is_I128) && (this).dtor_overflow;
     }
     public bool HasArithmeticOperations() {
-      return ((!((this).is_Bool)) && (!((this).is_Map))) && (!((this).is_Sequence));
+      return (!((this).is_Bool)) && (!((this).is_Map)) && (!((this).is_Sequence));
     }
   }
   public class NewtypeRange_U8 : NewtypeRange {
@@ -2062,7 +2062,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.U8";
@@ -2089,7 +2089,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.I8";
@@ -2116,7 +2116,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.U16";
@@ -2143,7 +2143,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.I16";
@@ -2170,7 +2170,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 4;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.U32";
@@ -2197,7 +2197,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 5;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.I32";
@@ -2224,7 +2224,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 6;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.U64";
@@ -2251,7 +2251,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 7;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.I64";
@@ -2278,7 +2278,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 8;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.U128";
@@ -2305,7 +2305,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 9;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.I128";
@@ -2329,7 +2329,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 10;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.NativeArrayIndex";
@@ -2350,7 +2350,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 11;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.BigInt";
@@ -2371,7 +2371,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 12;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.Bool";
@@ -2392,7 +2392,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 13;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.Sequence";
@@ -2413,7 +2413,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 14;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.Map";
@@ -2434,7 +2434,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 15;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeRange.NoRange";
@@ -2468,7 +2468,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._args));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Attribute.Attribute";
@@ -2536,7 +2536,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._baseType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._range));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._erase));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeType.NewtypeType";
@@ -2627,7 +2627,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.TraitType.ObjectTrait";
@@ -2648,7 +2648,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.TraitType.GeneralTrait";
@@ -2682,7 +2682,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._variance));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._necessaryForEqualitySupportOfSurroundingInductiveDatatype));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.TypeParameterInfo.TypeParameterInfo";
@@ -2766,7 +2766,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.EqualitySupport.Never";
@@ -2787,7 +2787,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.EqualitySupport.ConsultTypeArguments";
@@ -2893,7 +2893,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ResolvedTypeBase.Class";
@@ -2920,7 +2920,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._equalitySupport));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._info));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ResolvedTypeBase.Datatype";
@@ -2949,7 +2949,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._traitType));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ResolvedTypeBase.Trait";
@@ -2976,7 +2976,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._baseType));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ResolvedTypeBase.SynonymType";
@@ -3009,7 +3009,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._baseType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._range));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._erase));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ResolvedTypeBase.Newtype";
@@ -3033,7 +3033,7 @@ namespace DAST {
     Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_properMethods { get; }
     Dafny.ISequence<DAST._IType> dtor_extendedTypes { get; }
     _IResolvedType DowncastClone();
-    DAST._IResolvedType Replace(Dafny.IMap<DAST._IType,DAST._IType> mapping);
+    DAST._IResolvedType Replace(Dafny.IMap<DAST._IType, DAST._IType> mapping);
   }
   public class ResolvedType : _IResolvedType {
     public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _path;
@@ -3067,7 +3067,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._properMethods));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._extendedTypes));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ResolvedType.ResolvedType";
@@ -3131,25 +3131,25 @@ namespace DAST {
         return this._extendedTypes;
       }
     }
-    public DAST._IResolvedType Replace(Dafny.IMap<DAST._IType,DAST._IType> mapping) {
-      return DAST.ResolvedType.create((this).dtor_path, Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Func<DAST._IType, DAST._IType>>>((_0_mapping) => ((System.Func<DAST._IType, DAST._IType>)((_1_t) => {
-  return (_1_t).Replace(_0_mapping);
-})))(mapping), (this).dtor_typeArgs), ((System.Func<DAST._IResolvedTypeBase>)(() => {
-  DAST._IResolvedTypeBase _source0 = (this).dtor_kind;
-  {
-    if (_source0.is_Newtype) {
-      DAST._IType _2_baseType = _source0.dtor_baseType;
-      DAST._INewtypeRange _3_range = _source0.dtor_range;
-      bool _4_erase = _source0.dtor_erase;
-      return DAST.ResolvedTypeBase.create_Newtype((_2_baseType).Replace(mapping), _3_range, _4_erase);
-    }
-  }
-  {
-    return (this).dtor_kind;
-  }
-}))(), (this).dtor_attributes, (this).dtor_properMethods, Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Func<DAST._IType, DAST._IType>>>((_5_mapping) => ((System.Func<DAST._IType, DAST._IType>)((_6_t) => {
-  return (_6_t).Replace(_5_mapping);
-})))(mapping), (this).dtor_extendedTypes));
+    public DAST._IResolvedType Replace(Dafny.IMap<DAST._IType, DAST._IType> mapping) {
+      return DAST.ResolvedType.create((this).dtor_path, Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType, DAST._IType>, Func<DAST._IType, DAST._IType>>>((_0_mapping) => ((System.Func<DAST._IType, DAST._IType>)((_1_t) => {
+        return (_1_t).Replace(_0_mapping);
+      })))(mapping), (this).dtor_typeArgs), ((System.Func<DAST._IResolvedTypeBase>)(() => {
+        DAST._IResolvedTypeBase _source0 = (this).dtor_kind;
+        {
+          if (_source0.is_Newtype) {
+            DAST._IType _2_baseType = _source0.dtor_baseType;
+            DAST._INewtypeRange _3_range = _source0.dtor_range;
+            bool _4_erase = _source0.dtor_erase;
+            return DAST.ResolvedTypeBase.create_Newtype((_2_baseType).Replace(mapping), _3_range, _4_erase);
+          }
+        }
+        {
+          return (this).dtor_kind;
+        }
+      }))(), (this).dtor_attributes, (this).dtor_properMethods, Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType, DAST._IType>, Func<DAST._IType, DAST._IType>>>((_5_mapping) => ((System.Func<DAST._IType, DAST._IType>)((_6_t) => {
+        return (_6_t).Replace(_5_mapping);
+      })))(mapping), (this).dtor_extendedTypes));
     }
   }
 
@@ -3173,7 +3173,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._id));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Ident.Ident";
@@ -3254,7 +3254,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fields));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Class.Class";
@@ -3384,7 +3384,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._downcastableTraits));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Trait.Trait";
@@ -3526,7 +3526,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._superTraitTypes));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._superTraitNegativeTypes));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Datatype.Datatype";
@@ -3653,7 +3653,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._formal));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._callName));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.DatatypeDtor.DatatypeDtor";
@@ -3725,7 +3725,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._docString));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._args));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._hasAnyArgs));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.DatatypeCtor.DatatypeCtor";
@@ -3839,7 +3839,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._equalitySupport));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._classItems));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Newtype.Newtype";
@@ -3966,7 +3966,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._variable));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._constraintStmts));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.NewtypeConstraint.NewtypeConstraint";
@@ -4050,7 +4050,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._witnessStmts));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._witnessExpr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.SynonymType.SynonymType";
@@ -4143,7 +4143,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.ClassItem.Method";
@@ -4208,7 +4208,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isConstant));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._defaultValue));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isStatic));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Field.Field";
@@ -4290,7 +4290,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Formal.Formal";
@@ -4409,7 +4409,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._outTypes));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._outVars));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Method.Method";
@@ -4557,7 +4557,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._parameters));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._inheritedParams));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.CallSignature.CallSignature";
@@ -4700,7 +4700,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._receiverArg));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._receiverAsArgument));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._signature));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.CallName.CallName";
@@ -4732,7 +4732,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.CallName.MapBuilderAdd";
@@ -4753,7 +4753,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.CallName.MapBuilderBuild";
@@ -4774,7 +4774,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.CallName.SetBuilderAdd";
@@ -4795,7 +4795,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 4;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.CallName.SetBuilderBuild";
@@ -5075,7 +5075,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._maybeValue));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.DeclareVar";
@@ -5109,7 +5109,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._lhs));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.Assign";
@@ -5144,7 +5144,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._cond));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._thn));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._els));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.If";
@@ -5178,7 +5178,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 3;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._lbl));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.Labeled";
@@ -5210,7 +5210,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 4;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._cond));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.While";
@@ -5248,7 +5248,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._boundType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._over));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.Foreach";
@@ -5293,7 +5293,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeArgs));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._args));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._outs));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.Call";
@@ -5328,7 +5328,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 7;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.Return";
@@ -5352,7 +5352,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 8;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.EarlyReturn";
@@ -5376,7 +5376,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 9;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._toLabel));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.Break";
@@ -5403,7 +5403,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 10;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.TailRecursive";
@@ -5427,7 +5427,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 11;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.JumpTailCallStart";
@@ -5448,7 +5448,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 12;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.Halt";
@@ -5472,7 +5472,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 13;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.Print";
@@ -5499,7 +5499,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 14;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fields));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Statement.ConstructorNewSeparator";
@@ -5594,7 +5594,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._ident));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.AssignLhs.Ident";
@@ -5627,7 +5627,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._field));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isConstant));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.AssignLhs.Select";
@@ -5661,7 +5661,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 2;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._indices));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.AssignLhs.Index";
@@ -5726,7 +5726,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.CollKind.Seq";
@@ -5747,7 +5747,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.CollKind.Array";
@@ -5768,7 +5768,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.CollKind.Map";
@@ -5810,7 +5810,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._leftType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._rightType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._resultType));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.TypedBinOp.TypedBinOp";
@@ -6099,7 +6099,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._referential));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Eq";
@@ -6126,7 +6126,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Div";
@@ -6150,7 +6150,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.EuclidianDiv";
@@ -6171,7 +6171,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Mod";
@@ -6192,7 +6192,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 4;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.EuclidianMod";
@@ -6213,7 +6213,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 5;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Lt";
@@ -6234,7 +6234,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 6;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.LtChar";
@@ -6258,7 +6258,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 7;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Plus";
@@ -6285,7 +6285,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 8;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Minus";
@@ -6312,7 +6312,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 9;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._overflow));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Times";
@@ -6336,7 +6336,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 10;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.BitwiseAnd";
@@ -6357,7 +6357,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 11;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.BitwiseOr";
@@ -6378,7 +6378,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 12;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.BitwiseXor";
@@ -6399,7 +6399,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 13;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.BitwiseShiftRight";
@@ -6420,7 +6420,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 14;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.BitwiseShiftLeft";
@@ -6441,7 +6441,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 15;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.And";
@@ -6462,7 +6462,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 16;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Or";
@@ -6483,7 +6483,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 17;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.In";
@@ -6504,7 +6504,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 18;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.SeqProperPrefix";
@@ -6525,7 +6525,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 19;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.SeqPrefix";
@@ -6546,7 +6546,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 20;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.SetMerge";
@@ -6567,7 +6567,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 21;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.SetSubtraction";
@@ -6588,7 +6588,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 22;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.SetIntersection";
@@ -6609,7 +6609,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 23;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Subset";
@@ -6630,7 +6630,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 24;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.ProperSubset";
@@ -6651,7 +6651,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 25;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.SetDisjoint";
@@ -6672,7 +6672,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 26;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.MapMerge";
@@ -6693,7 +6693,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 27;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.MapSubtraction";
@@ -6714,7 +6714,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 28;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.MultisetMerge";
@@ -6735,7 +6735,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 29;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.MultisetSubtraction";
@@ -6756,7 +6756,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 30;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.MultisetIntersection";
@@ -6777,7 +6777,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 31;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Submultiset";
@@ -6798,7 +6798,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 32;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.ProperSubmultiset";
@@ -6819,7 +6819,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 33;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.MultisetDisjoint";
@@ -6840,7 +6840,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 34;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Concat";
@@ -6864,7 +6864,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 35;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.BinOp.Passthrough";
@@ -6927,7 +6927,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.SelectContext.SelectContextDatatype";
@@ -6948,7 +6948,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.SelectContext.SelectContextGeneralTrait";
@@ -6969,7 +6969,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.SelectContext.SelectContextClassOrObjectTrait";
@@ -7828,7 +7828,7 @@ namespace DAST {
     }
     public abstract _IExpression DowncastClone();
     public bool IsThisUpcast() {
-      return (((this).is_Convert) && (((this).dtor_value).is_This)) && (((this).dtor_from).Extends((this).dtor_typ));
+      return (this).is_Convert && ((this).dtor_value).is_This && ((this).dtor_from).Extends((this).dtor_typ);
     }
   }
   public class Expression_Literal : Expression {
@@ -7848,7 +7848,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Literal";
@@ -7875,7 +7875,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Ident";
@@ -7905,7 +7905,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 2;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeArgs));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Companion";
@@ -7934,7 +7934,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.ExternCompanion";
@@ -7961,7 +7961,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 4;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Tuple";
@@ -7994,7 +7994,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._path));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeArgs));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._args));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.New";
@@ -8028,7 +8028,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 6;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._dims));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.NewUninitArray";
@@ -8057,7 +8057,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 7;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.ArrayIndexToInt";
@@ -8087,7 +8087,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 8;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.FinalizeNewArray";
@@ -8128,7 +8128,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._variant));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isCo));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._contents));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.DatatypeValue";
@@ -8169,7 +8169,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._from));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Convert";
@@ -8203,7 +8203,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 11;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._length));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elem));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.SeqConstruct";
@@ -8235,7 +8235,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 12;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elements));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.SeqValue";
@@ -8264,7 +8264,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 13;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elements));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.SetValue";
@@ -8291,7 +8291,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 14;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elements));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.MultisetValue";
@@ -8324,7 +8324,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._mapElems));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._domainType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._rangeType));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.MapValue";
@@ -8358,7 +8358,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 16;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._keyType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._valueType));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.MapBuilder";
@@ -8399,7 +8399,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._collectionType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._exprType));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.SeqUpdate";
@@ -8446,7 +8446,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._collectionType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._exprType));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.MapUpdate";
@@ -8481,7 +8481,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 19;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elemType));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.SetBuilder";
@@ -8508,7 +8508,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 20;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.ToMultiset";
@@ -8532,7 +8532,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 21;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.This";
@@ -8562,7 +8562,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._cond));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._thn));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._els));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Ite";
@@ -8599,7 +8599,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._unOp));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._format1));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.UnOp";
@@ -8639,7 +8639,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._left));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._right));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._format2));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.BinOp";
@@ -8681,7 +8681,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._exprType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._dim));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._native));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.ArrayLen";
@@ -8714,7 +8714,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 26;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.MapKeys";
@@ -8741,7 +8741,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 27;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.MapValues";
@@ -8768,7 +8768,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 28;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.MapItems";
@@ -8807,7 +8807,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fieldMutability));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._selectContext));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isfieldType));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Select";
@@ -8857,7 +8857,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isStatic));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isConstant));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.SelectFn";
@@ -8900,7 +8900,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._collKind));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._indices));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Index";
@@ -8940,7 +8940,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isArray));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._low));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._high));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.IndexRange";
@@ -8979,7 +8979,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._index));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fieldType));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.TupleSelect";
@@ -9019,7 +9019,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._callName));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeArgs));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._args));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Call";
@@ -9058,7 +9058,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._params));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._retType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Lambda";
@@ -9095,7 +9095,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._values));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._retType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.BetaRedex";
@@ -9135,7 +9135,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._iifeBody));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.IIFE";
@@ -9171,7 +9171,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 38;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._args));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Apply";
@@ -9206,7 +9206,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._on));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._dType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._variant));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.TypeTest";
@@ -9243,7 +9243,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fromType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._toType));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Is";
@@ -9274,7 +9274,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 41;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.InitializationValue";
@@ -9298,7 +9298,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 42;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.BoolBoundedPool";
@@ -9322,7 +9322,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 43;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.SetBoundedPool";
@@ -9349,7 +9349,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 44;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.MapBoundedPool";
@@ -9379,7 +9379,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 45;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._includeDuplicates));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.SeqBoundedPool";
@@ -9411,7 +9411,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 46;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._includeDuplicates));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.MultisetBoundedPool";
@@ -9440,7 +9440,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 47;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.ExactBoundedPool";
@@ -9476,7 +9476,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._lo));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._hi));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._up));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.IntRange";
@@ -9512,7 +9512,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 49;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._start));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._up));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.UnboundedIntRange";
@@ -9550,7 +9550,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._collection));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._is__forall));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._lambda));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Quantifier";
@@ -9619,7 +9619,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.FieldMutability.ConstantField";
@@ -9640,7 +9640,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.FieldMutability.InternalClassConstantFieldOrDatatypeDestructor";
@@ -9661,7 +9661,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.FieldMutability.ClassMutableField";
@@ -9721,7 +9721,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.UnaryOp.Not";
@@ -9742,7 +9742,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.UnaryOp.BitwiseNot";
@@ -9763,7 +9763,7 @@ namespace DAST {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.UnaryOp.Cardinality";
@@ -9916,7 +9916,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Literal.BoolLiteral";
@@ -9946,7 +9946,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a1));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Literal.IntLiteral";
@@ -9981,7 +9981,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a1));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a2));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Literal.DecLiteral";
@@ -10015,7 +10015,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + 3;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._verbatim));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Literal.StringLiteral";
@@ -10044,7 +10044,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 4;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Literal.CharLiteral";
@@ -10071,7 +10071,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 5;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Literal.CharLiteralUTF16";
@@ -10098,7 +10098,7 @@ namespace DAST {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 6;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "DAST.Literal.Null";

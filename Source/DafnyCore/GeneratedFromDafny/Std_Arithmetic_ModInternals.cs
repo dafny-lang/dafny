@@ -15,9 +15,8 @@ using System.Collections;
 namespace Std.Arithmetic.ModInternals {
 
   public partial class __default {
-    public static BigInteger ModRecursive(BigInteger x, BigInteger d)
-    {
-    TAIL_CALL_START: ;
+    public static BigInteger ModRecursive(BigInteger x, BigInteger d) {
+    TAIL_CALL_START:;
       if ((x).Sign == -1) {
         BigInteger _in0 = (d) + (x);
         BigInteger _in1 = d;
