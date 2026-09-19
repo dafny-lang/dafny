@@ -15,8 +15,7 @@ using System.Collections;
 namespace DAST.Format {
 
   public partial class __default {
-    public static BigInteger SeqToHeight<__T>(Dafny.ISequence<__T> s, Func<__T, BigInteger> f)
-    {
+    public static BigInteger SeqToHeight<__T>(Dafny.ISequence<__T> s, Func<__T, BigInteger> f) {
       if ((new BigInteger((s).Count)).Sign == 0) {
         return BigInteger.Zero;
       } else {
@@ -77,7 +76,7 @@ namespace DAST.Format {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Format.UnaryOpFormat.NoFormat";
@@ -98,7 +97,7 @@ namespace DAST.Format {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Format.UnaryOpFormat.CombineFormat";
@@ -164,7 +163,7 @@ namespace DAST.Format {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Format.BinaryOpFormat.NoFormat";
@@ -185,7 +184,7 @@ namespace DAST.Format {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Format.BinaryOpFormat.ImpliesFormat";
@@ -206,7 +205,7 @@ namespace DAST.Format {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Format.BinaryOpFormat.EquivalenceFormat";
@@ -227,7 +226,7 @@ namespace DAST.Format {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "Format.BinaryOpFormat.ReverseFormat";

@@ -2424,7 +2424,10 @@ namespace Microsoft.Dafny {
     }
 
     bool TraceFloatConnection(Type t, Type floatType, HashSet<Type> visited) {
-      if (t == null || visited.Contains(t)) return false;
+      if (t == null || visited.Contains(t)) {
+        return false;
+      }
+
       visited.Add(t);
 
       if (t.Equals(floatType)) {

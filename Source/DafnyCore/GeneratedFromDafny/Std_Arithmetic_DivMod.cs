@@ -15,8 +15,7 @@ using System.Collections;
 namespace Std.Arithmetic.DivMod {
 
   public partial class __default {
-    public static bool MultiplesVanish(BigInteger a, BigInteger b, BigInteger m)
-    {
+    public static bool MultiplesVanish(BigInteger a, BigInteger b, BigInteger m) {
       return (Dafny.Helpers.EuclideanModulus(((m) * (a)) + (b), m)) == (Dafny.Helpers.EuclideanModulus(b, m));
     }
   }

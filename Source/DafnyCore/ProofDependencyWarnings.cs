@@ -234,7 +234,7 @@ public class ProofDependencyWarnings {
 
         bool IsNotSelfReferential(AssertCmdPartialCopy assert) =>
            !manager.ProofDependenciesById.TryGetValue(assert.Id, out var assertDependency)
-                 || !(factDependency == assertDependency || factDependency is CallRequiresDependency req && req.call == assertDependency);
+                 || !(factDependency == assertDependency || (factDependency is CallRequiresDependency req && req.call == assertDependency));
 
         assertionsProvenUsingFact[factDependency].UnionWith(verificationRun.Asserts.Where(IsNotSelfReferential));
       }
