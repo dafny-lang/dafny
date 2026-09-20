@@ -896,33 +896,19 @@ public abstract class Type : NodeWithOrigin {
   public bool MayInvolveReferences => ComputeMayInvolveReferences(null);
 
   /// <summary>
-  /// True if values of this type may include an ORDINAL -- directly, through a type argument, through
-  /// a type-synonym or subset-type expansion, through an arrow type, or through a field of a datatype
-  /// or codatatype constructor. A type whose definition this scope cannot see (a type parameter, an
-  /// abstract type, a hidden type synonym or datatype) answers "true", since it could later stand for
-  /// one that does.
+  /// True if values of this type may include an ORDINAL, so that there are as many of them as there
+  /// are ordinals. A type whose definition this scope cannot see answers "true", since it could later
+  /// stand for one that does.
   ///
-  /// Such a type has as many values as there are ordinals, so it is a proper class rather than a set.
-  /// An extreme predicate indexed by ORDINAL may not enumerate one: see the use in
-  /// FindFriendlyCallsVisitor.
+  /// This is deliberately not the rule that ORDINAL may not be used as a type argument, which must NOT
+  /// look inside datatype constructors: "set&lt;S&gt;" is legal for a datatype S with an ORDINAL field.
   /// </summary>
   public bool MayInvolveOrdinal => ComputeMayInvolveOrdinal(null);
 
   /// <summary>
-  /// Auxiliary method for MayInvolveOrdinal. This is the ORDINAL analogue of
-  /// ComputeMayInvolveReferences, and "visitedDatatypes" plays exactly the same role: it is null in
-  /// the "first phase" (before any datatype is reached) and, from the first datatype onwards, records
-  /// the datatypes being visited so that a recursive datatype does not cause infinite recursion. As
-  /// there, the type arguments passed to a datatype are checked separately, and a datatype's own
-  /// formal type parameters are ignored during the second phase.
-  ///
-  /// Note this is deliberately different from the rule that ORDINAL may not be used as a type
-  /// argument, which must NOT look inside datatype constructors: "set&lt;S&gt;" is legal for a
-  /// datatype S that has an ORDINAL field.
-  ///
-  /// Unlike ComputeMayInvolveReferences there is no case for NewtypeDecl, and none is needed: a
-  /// newtype may not be based on ORDINAL in the first place, so falling through to the type
-  /// arguments is already correct for one.
+  /// Auxiliary method for MayInvolveOrdinal, the ORDINAL analogue of ComputeMayInvolveReferences.
+  /// "visitedDatatypes" plays the same role as it does there, and is documented on it. There is no
+  /// NewtypeDecl case because a newtype may not be based on ORDINAL in the first place.
   /// </summary>
   private bool ComputeMayInvolveOrdinal(ISet<DatatypeDecl> /*?*/ visitedDatatypes) {
     var t = NormalizeExpand();
@@ -946,13 +932,11 @@ public abstract class Type : NodeWithOrigin {
       return dt.Ctors.Any(ctor => ctor.Formals.Any(f => f.Type.ComputeMayInvolveOrdinal(visitedDatatypes)));
     }
     if (t is UserDefinedType { ResolvedClass: TypeParameter }) {
-      // Second phase: this is a datatype's own formal type parameter, and the actual type arguments
-      // have been checked separately.
+      // In the second phase this is a datatype's own formal parameter, whose actuals were checked above
       return visitedDatatypes == null;
     }
     if (t is UserDefinedType { ResolvedClass: AbstractTypeDecl or TypeSynonymDeclBase }) {
-      // An abstract type could be instantiated with anything. A type synonym reaching here was not
-      // expanded by NormalizeExpand above, which means its definition is hidden from this scope.
+      // NormalizeExpand did not expand the synonym, so its definition is hidden from this scope
       return true;
     }
     return t.TypeArgs.Any(ta => ta.ComputeMayInvolveOrdinal(visitedDatatypes));

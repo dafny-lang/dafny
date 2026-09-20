@@ -1,4 +1,5 @@
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -9,9 +10,9 @@ class FindFriendlyCallsVisitor : ResolverTopDownVisitor<CallingPosition> {
   public readonly bool ContinuityIsImportant;
 
   /// <summary>
-  /// While visiting the body of a quantifier that enumerates a type which may involve an ORDINAL (see
-  /// VisitOneExpr), the type in question; null otherwise. The calling position alone does not say why
-  /// it became Neither, so a subvisitor that wants to explain that to the user reads this.
+  /// Inside a quantifier rejected by the ORDINAL case in VisitOneExpr, the type it enumerates; null
+  /// otherwise. A CallingPosition of Neither does not say which rule made it so, and a subvisitor
+  /// reporting the error wants to.
   /// </summary>
   protected Type EnumeratedOrdinalType { get; private set; }
   public FindFriendlyCallsVisitor(ErrorReporter reporter, bool co, bool continuityIsImportant)
@@ -31,17 +32,9 @@ class FindFriendlyCallsVisitor : ResolverTopDownVisitor<CallingPosition> {
   }
 
   /// <summary>
-  /// True if "bound" confines a variable to set-many values, so that a quantifier over it contributes
-  /// set-many states however large the variable's type is. Used for the ORDINAL-indexed case in
-  /// VisitOneExpr, where that is what matters; the nat-indexed case needs outright finiteness instead,
-  /// since an existential over an infinite range is not continuous even when the range is a set.
-  ///
-  /// Enumerable is what says so. A range a compiler can enumerate is countable, hence a set, and the
-  /// virtue holds for exactly the pools whose range comes from a value rather than from a type: the
-  /// elements of a collection, the subsets of one, an integer interval, a single value. It does not
-  /// hold for AllocFreeBoundedPool, whose range is the whole of the variable's type, nor for
-  /// SuperSetBoundedPool, whose range is a power class when the element type is a proper class.
-  /// Finite is in here only because a few pools carry it without Enumerable.
+  /// True if "bound" confines a variable to set-many values. Enumerable says so: a range a compiler
+  /// can enumerate is countable, hence a set. Finite is here only because a few pools carry it
+  /// without Enumerable.
   /// </summary>
   static bool ConfinesToASetOfValues(BoundedPool /*?*/ bound) {
     return bound != null &&
@@ -117,40 +110,29 @@ class FindFriendlyCallsVisitor : ResolverTopDownVisitor<CallingPosition> {
       var cpos = IsCoContext ? cp : Invert(cp);
       Type enumeratedOrdinalType = null;
       if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
-        // This is the quantifier direction that does not distribute over the limits of the sequence of
-        // approximations: an existential for a greatest predicate, a universal for a least one. Two
-        // things can go wrong under one, depending on how the approximations are indexed.
         if (ContinuityIsImportant) {
-          // Approximations indexed by nat close at omega only if the predicate is continuous, which
-          // any unbounded variable of such a quantifier destroys, whatever its type. So don't allow
-          // calls under an existential (resp. universal) quantifier for greatest (resp. least)
-          // predicates.
-          if (e.Bounds == null ||
-              e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & BoundedPool.PoolVirtues.Finite) == 0)) {
+          if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & BoundedPool.PoolVirtues.Finite) == 0)) {
+            // To ensure continuity of extreme predicates, don't allow calls under an existential (resp. universal) quantifier
+            // for greatest (resp. least) predicates).
             cp = CallingPosition.Neither;
           }
         } else {
-          // Approximations indexed by ORDINAL need no continuity, because they may run past omega --
-          // but only as far as the ordinal at which they close, which exists only if the states
-          // reachable by unfolding the definition form a set. A variable ranging over a type that has
-          // as many values as there are ordinals makes them a proper class instead, and then no
-          // ORDINAL indexes the fixpoint: see dafny-lang/dafny#6522 and #6523, which proved "1 == 2"
-          // this way.
-          //
-          // Here, unlike above, it must be one and the same variable that is unbounded and of such a
-          // type. A variable confined to a finite range contributes set-many states whatever its type,
-          // and an unbounded variable of a set-sized type contributes set-many states too.
-          for (var i = 0; i < e.BoundVars.Count && enumeratedOrdinalType == null; i++) {
-            var bound = e.Bounds == null ? null : e.Bounds[i];
-            if (!ConfinesToASetOfValues(bound) && e.BoundVars[i].Type.MayInvolveOrdinal) {
-              enumeratedOrdinalType = e.BoundVars[i].Type;
-              cp = CallingPosition.Neither;
-            }
+          // ORDINAL-indexed approximations need no continuity, since they may run past omega -- but
+          // only as far as the ordinal at which they close, which exists only if the states reachable
+          // by unfolding the definition form a set. Enumerating all of a type that has as many values
+          // as there are ordinals makes them a proper class instead, leaving the fixpoint indexed by
+          // no ORDINAL at all: dafny-lang/dafny#6522 and #6523 proved "1 == 2" that way. It must be
+          // one and the same variable that is unbounded and of such a type, since either half alone
+          // still leaves set-many states.
+          enumeratedOrdinalType = e.BoundVars
+            .Where((bv, i) => !ConfinesToASetOfValues(e.Bounds?[i]) && bv.Type.MayInvolveOrdinal)
+            .FirstOrDefault()?.Type;
+          if (enumeratedOrdinalType != null) {
+            cp = CallingPosition.Neither;
           }
         }
       }
-      // Record the reason for the body only, so that a call made Neither for some other reason
-      // elsewhere is not explained in terms of this quantifier.
+      // Scoped to the body, so that a call made Neither elsewhere is not explained by this quantifier.
       var previouslyEnumerated = EnumeratedOrdinalType;
       EnumeratedOrdinalType = enumeratedOrdinalType ?? previouslyEnumerated;
       Visit(e.LogicalBody(), cp);
