@@ -40,7 +40,6 @@ public class ResolutionErrors {
     r_type_parameter_undetermined,
     r_bound_variable_undetermined,
     r_bound_variable_may_not_be_ORDINAL,
-    r_bound_variable_may_not_range_over_ORDINAL,
     r_exists_quantifier_warning,
     r_type_parameter_not_determined,
     r_type_parameter_may_not_be_ORDINAL,
