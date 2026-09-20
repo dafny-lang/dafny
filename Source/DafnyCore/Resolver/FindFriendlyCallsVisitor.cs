@@ -1,4 +1,5 @@
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -7,6 +8,13 @@ public enum CallingPosition { Positive, Negative, Neither }
 class FindFriendlyCallsVisitor : ResolverTopDownVisitor<CallingPosition> {
   public readonly bool IsCoContext;
   public readonly bool ContinuityIsImportant;
+
+  /// <summary>
+  /// Inside a quantifier rejected by the ORDINAL case in VisitOneExpr, the type it enumerates; null
+  /// otherwise. A CallingPosition of Neither does not say which rule made it so, and a subvisitor
+  /// reporting the error wants to.
+  /// </summary>
+  protected Type EnumeratedOrdinalType { get; private set; }
   public FindFriendlyCallsVisitor(ErrorReporter reporter, bool co, bool continuityIsImportant)
     : base(reporter) {
     Contract.Requires(reporter != null);
@@ -21,6 +29,16 @@ class FindFriendlyCallsVisitor : ResolverTopDownVisitor<CallingPosition> {
       contextK == ExtremePredicate.KType.Nat ? "nat" : "ORDINAL",
       calleeK == ExtremePredicate.KType.Nat ? "nat" : "ORDINAL",
       hint);
+  }
+
+  /// <summary>
+  /// True if "bound" confines a variable to set-many values. Enumerable says so: a range a compiler
+  /// can enumerate is countable, hence a set. Finite is here only because a few pools carry it
+  /// without Enumerable.
+  /// </summary>
+  static bool ConfinesToASetOfValues(BoundedPool /*?*/ bound) {
+    return bound != null &&
+           (bound.Virtues & (BoundedPool.PoolVirtues.Finite | BoundedPool.PoolVirtues.Enumerable)) != 0;
   }
 
   static CallingPosition Invert(CallingPosition cp) {
@@ -90,16 +108,35 @@ class FindFriendlyCallsVisitor : ResolverTopDownVisitor<CallingPosition> {
       var e = (QuantifierExpr)expr;
       Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
       var cpos = IsCoContext ? cp : Invert(cp);
-      if (ContinuityIsImportant) {
-        if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
+      Type enumeratedOrdinalType = null;
+      if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
+        if (ContinuityIsImportant) {
           if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & BoundedPool.PoolVirtues.Finite) == 0)) {
             // To ensure continuity of extreme predicates, don't allow calls under an existential (resp. universal) quantifier
             // for greatest (resp. least) predicates).
             cp = CallingPosition.Neither;
           }
+        } else {
+          // ORDINAL-indexed approximations need no continuity, since they may run past omega -- but
+          // only as far as the ordinal at which they close, which exists only if the states reachable
+          // by unfolding the definition form a set. Enumerating all of a type that has as many values
+          // as there are ordinals makes them a proper class instead, leaving the fixpoint indexed by
+          // no ORDINAL at all: dafny-lang/dafny#6522 and #6523 proved "1 == 2" that way. It must be
+          // one and the same variable that is unbounded and of such a type, since either half alone
+          // still leaves set-many states.
+          enumeratedOrdinalType = e.BoundVars
+            .Where((bv, i) => !ConfinesToASetOfValues(e.Bounds?[i]) && bv.Type.MayInvolveOrdinal)
+            .FirstOrDefault()?.Type;
+          if (enumeratedOrdinalType != null) {
+            cp = CallingPosition.Neither;
+          }
         }
       }
+      // Scoped to the body, so that a call made Neither elsewhere is not explained by this quantifier.
+      var previouslyEnumerated = EnumeratedOrdinalType;
+      EnumeratedOrdinalType = enumeratedOrdinalType ?? previouslyEnumerated;
       Visit(e.LogicalBody(), cp);
+      EnumeratedOrdinalType = previouslyEnumerated;
       return false;
     } else if (expr is StmtExpr) {
       var e = (StmtExpr)expr;

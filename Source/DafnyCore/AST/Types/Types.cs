@@ -896,6 +896,53 @@ public abstract class Type : NodeWithOrigin {
   public bool MayInvolveReferences => ComputeMayInvolveReferences(null);
 
   /// <summary>
+  /// True if values of this type may include an ORDINAL, so that there are as many of them as there
+  /// are ordinals. A type whose definition this scope cannot see answers "true", since it could later
+  /// stand for one that does.
+  ///
+  /// This is deliberately not the rule that ORDINAL may not be used as a type argument, which must NOT
+  /// look inside datatype constructors: "set&lt;S&gt;" is legal for a datatype S with an ORDINAL field.
+  /// </summary>
+  public bool MayInvolveOrdinal => ComputeMayInvolveOrdinal(null);
+
+  /// <summary>
+  /// Auxiliary method for MayInvolveOrdinal, the ORDINAL analogue of ComputeMayInvolveReferences.
+  /// "visitedDatatypes" plays the same role as it does there, and is documented on it. There is no
+  /// NewtypeDecl case because a newtype may not be based on ORDINAL in the first place.
+  /// </summary>
+  private bool ComputeMayInvolveOrdinal(ISet<DatatypeDecl> /*?*/ visitedDatatypes) {
+    var t = NormalizeExpand();
+    if (t.IsBigOrdinalType) {
+      return true;
+    }
+    if (t is UserDefinedType { ResolvedClass: DatatypeDecl dt } udt) {
+      // Note: CoDatatypeDecl is a subclass of DatatypeDecl, so this covers codatatypes as well.
+      if (!dt.IsRevealedInScope(GetScope())) {
+        return true;
+      }
+      if (udt.TypeArgs.Any(ta => ta.ComputeMayInvolveOrdinal(visitedDatatypes))) {
+        return true;
+      }
+      if (visitedDatatypes != null && visitedDatatypes.Contains(dt)) {
+        // we're already in the middle of looking through dt's definition
+        return false;
+      }
+      visitedDatatypes ??= new HashSet<DatatypeDecl>();
+      visitedDatatypes.Add(dt);
+      return dt.Ctors.Any(ctor => ctor.Formals.Any(f => f.Type.ComputeMayInvolveOrdinal(visitedDatatypes)));
+    }
+    if (t is UserDefinedType { ResolvedClass: TypeParameter }) {
+      // In the second phase this is a datatype's own formal parameter, whose actuals were checked above
+      return visitedDatatypes == null;
+    }
+    if (t is UserDefinedType { ResolvedClass: AbstractTypeDecl or TypeSynonymDeclBase }) {
+      // NormalizeExpand did not expand the synonym, so its definition is hidden from this scope
+      return true;
+    }
+    return t.TypeArgs.Any(ta => ta.ComputeMayInvolveOrdinal(visitedDatatypes));
+  }
+
+  /// <summary>
   /// This is an auxiliary method used to compute the value of MayInvolveReferences (above). It is
   /// needed to handle datatypes, because determining whether or not a datatype contains references
   /// involves recursing over the types in the datatype's constructor parameters. Since those types
