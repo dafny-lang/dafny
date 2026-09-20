@@ -70,7 +70,11 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   public UserDefinedType(Cloner cloner, UserDefinedType original)
     : this(cloner.Origin(original.Origin), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
-      ResolvedClass = cloner.GetCloneIfAvailable(original.ResolvedClass);
+      // ResolvedClass can legitimately be null here: AllocateClass.Path for a
+      // named constructor (e.g. `new C.Init(x)`) carries the constructor name in
+      // its NamePath and the resolver deliberately leaves ResolvedClass unset on
+      // Path; the resolved class lives on AllocateClass.Type instead.
+      ResolvedClass = original.ResolvedClass != null ? cloner.GetCloneIfAvailable(original.ResolvedClass) : null;
       TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
     }
   }
