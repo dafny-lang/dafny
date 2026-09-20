@@ -15,9 +15,21 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
 
   public PreType? PreType;
 
-  public Type Type;
-
   public Type? ExplicitType;
+
+  /// <summary>
+  /// Non-null exactly when <see cref="ExplicitType"/> is null, so that <see cref="Type"/> always
+  /// has something to return.
+  /// </summary>
+  private readonly Type? inferredType;
+
+  /// <summary>
+  /// The field's type: what the user wrote, when there is one, and otherwise a proxy for
+  /// resolution to fill in. When the user wrote one this must be the very same object as
+  /// <see cref="ExplicitType"/>, since that is what the resolver resolves, in place; returning
+  /// ExplicitType itself is what makes that hold. Compare NonglobalVariable.SafeSyntacticType.
+  /// </summary>
+  public Type Type => ExplicitType ?? inferredType!;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -25,13 +37,15 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   }
 
   public override IEnumerable<INode> Children =>
-    (Type?.Nodes ?? Enumerable.Empty<INode>()).Concat(this.Attributes.AsEnumerable());
+    (Type.Nodes ?? Enumerable.Empty<INode>()).Concat(this.Attributes.AsEnumerable());
 
 
   public Field(Cloner cloner, Field original) : base(cloner, original) {
     ExplicitType = cloner.CloneType(original.ExplicitType);
-    // This is set even before resolution
-    Type = cloner.CloneType(original.Type);
+    // Only an inferred type has to be carried across; when the user wrote one, Type is the
+    // ExplicitType just cloned. Type is meaningful before resolution as well, so this is not
+    // gated on CloneResolvedFields.
+    inferredType = ExplicitType != null ? null : cloner.CloneType(original.Type);
   }
 
   [SyntaxConstructor]
@@ -40,7 +54,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     ExplicitType = explicitType;
-    Type = ExplicitType ?? new InferredTypeProxy();
+    inferredType = explicitType == null ? new InferredTypeProxy() : null;
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
