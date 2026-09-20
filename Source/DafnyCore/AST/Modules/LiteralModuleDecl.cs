@@ -183,8 +183,50 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
       rewriter.PostResolve(module);
     }
 
+    // A module that resolved without errors must hold no type the user wrote that resolution
+    // never reached. Such a type has no ResolvedClass, which reads as "not yet resolved" to
+    // everything downstream and throws in whatever clones it next, far from the cause. Nothing
+    // else checks this: the slots resolution fills carry only the documentation-only
+    // FilledInDuringResolutionAttribute. Contract.Assert is [Conditional], so release builds
+    // compile out the call and the walk with it -- which is why the offender is not hoisted into
+    // a local for the message: that would leave the walk behind in every build.
+    Contract.Assert(FindUnresolvedUserProvidedType(module) == null,
+      $"successfully resolved module '{module.Name}' contains an unresolved user-provided type: " +
+      FindUnresolvedUserProvidedType(module));
+
     Type.PopScope(tempVis);
     return sig;
+  }
+
+  /// <summary>
+  /// The first user-provided type slot in "module" that resolution left without a ResolvedClass,
+  /// or null if there is none. Deliberately does not look at AllocateClass.Path, whose
+  /// ResolvedClass the resolver leaves unset by design for a named constructor.
+  /// </summary>
+  private static Type? FindUnresolvedUserProvidedType(ModuleDefinition module) {
+    Type? found = null;
+
+    bool IsUnresolved(Type? t) =>
+      t != null && (t is UserDefinedType { ResolvedClass: null }
+                    || (t.TypeArgs != null && t.TypeArgs.Any(IsUnresolved)));
+
+    void Check(Type? t) {
+      if (found == null && IsUnresolved(t)) {
+        found = t;
+      }
+    }
+
+    module.Visit(node => {
+      switch (node) {
+        case AllocateArray allocateArray: Check(allocateArray.ExplicitType); break;
+        case Field field: Check(field.ExplicitType); break;
+        case NonglobalVariable nonglobalVariable: Check(nonglobalVariable.SyntacticType); break;
+        case LocalVariable localVariable: Check(localVariable.SyntacticType); break;
+      }
+      return found == null;
+    }, _ => { });
+
+    return found;
   }
 
   public void BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {

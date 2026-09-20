@@ -14,8 +14,20 @@ public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
   public readonly Expression? ElementInit;
   public readonly List<Expression>? InitDisplay;
 
-  [FilledInDuringResolution]
-  public Type ElementType;
+  /// <summary>
+  /// Non-null exactly when <see cref="ExplicitType"/> is null, so that
+  /// <see cref="ElementType"/> always has something to return.
+  /// </summary>
+  private readonly Type? inferredElementType;
+
+  /// <summary>
+  /// The element type resolution works on: the type the user wrote, when there is one, and
+  /// otherwise a proxy for resolution to fill in. When the user wrote one this must be the very
+  /// same object as <see cref="ExplicitType"/>, since that is what the resolver resolves, in
+  /// place; returning ExplicitType itself is what makes that hold. Compare
+  /// NonglobalVariable.SafeSyntacticType.
+  /// </summary>
+  public Type ElementType => ExplicitType ?? inferredElementType!;
 
   [SyntaxConstructor]
   public AllocateArray(IOrigin origin, Type? explicitType, List<Expression> arrayDimensions, Expression? elementInit,
@@ -24,7 +36,7 @@ public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
     Contract.Requires(origin != null);
     Contract.Requires(1 <= arrayDimensions.Count);
     ExplicitType = explicitType;
-    ElementType = ExplicitType ?? new InferredTypeProxy();
+    inferredElementType = explicitType == null ? new InferredTypeProxy() : null;
     ArrayDimensions = arrayDimensions;
     ElementInit = elementInit;
   }
@@ -35,7 +47,7 @@ public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
     Contract.Requires(origin != null);
     Contract.Requires(initDisplay != null);
     ExplicitType = type;
-    ElementType = ExplicitType ?? new InferredTypeProxy();
+    inferredElementType = type == null ? new InferredTypeProxy() : null;
     ArrayDimensions = [dim];
     InitDisplay = initDisplay;
   }
@@ -43,7 +55,11 @@ public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
   public AllocateArray(Cloner cloner, AllocateArray original)
     : base(cloner, original) {
     ExplicitType = cloner.CloneType(original.ExplicitType);
-    ElementType = cloner.CloneType(original.ElementType);
+    // Only an inferred element type has to be carried across; when the user wrote one,
+    // ElementType is the ExplicitType just cloned. Without CloneResolvedFields the original proxy
+    // would carry a resolution this clone is about to redo, so start from a fresh one.
+    inferredElementType = ExplicitType != null ? null
+      : cloner.CloneResolvedFields ? cloner.CloneType(original.ElementType) : new InferredTypeProxy();
     if (original.InitDisplay != null) {
       Contract.Assert(original.ArrayDimensions.Count == 1);
       ArrayDimensions = [cloner.CloneExpr(original.ArrayDimensions[0])];
