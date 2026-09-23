@@ -1800,7 +1800,7 @@ public partial class BoogieGenerator {
     var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
     var proc = new Bpl.Procedure(decl.Tok, name, [],
       inParams, [],
-      false, req, mod, [], etran.TrAttributes(decl.Attributes, null));
+      false, req, [], [], [], mod, etran.TrAttributes(decl.Attributes, null));
     AddVerboseNameAttribute(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
     sink.AddTopLevelDeclaration(proc);
 

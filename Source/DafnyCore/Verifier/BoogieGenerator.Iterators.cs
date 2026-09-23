@@ -123,7 +123,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(iter, kind);
       var proc = new Bpl.Procedure(iter.Origin, name, [],
-        inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
+        inParams, outParams.Values.ToList(), false, req, [], ens, [], mod, etran.TrAttributes(iter.Attributes, null));
       AddVerboseNameAttribute(proc, iter.FullDafnyName, kind);
 
       currentModule = null;
