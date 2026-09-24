@@ -325,6 +325,16 @@ struct get_default<DafnyArray<U>> {
   }
 };
 
+// No test prints a bare array value (the other backends print an opaque
+// object identity there), but the emitted datatype operator<< instantiates
+// dafny_print_to on every field type, so an array field needs *some* operator<<
+// to compile. Emit a deterministic `array[<len>]`.
+template<typename U>
+inline std::ostream& operator<<(std::ostream& out, const DafnyArray<U>& arr) {
+  out << "array[" << arr.size() << "]";
+  return out;
+}
+
 /*********************************************************
  *  SEQUENCES                                            *
  *********************************************************/
