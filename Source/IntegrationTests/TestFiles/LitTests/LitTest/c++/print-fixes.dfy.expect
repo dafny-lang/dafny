@@ -1,0 +1,7 @@
+Color.Red
+Color.Blue(3, true)
+{1}
+map[1 := 10]
+(1, true)
+2
+255
