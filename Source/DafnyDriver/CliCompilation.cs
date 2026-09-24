@@ -26,6 +26,7 @@ public record CanVerifyResult(ICanVerify CanVerify, IReadOnlyList<VerificationTa
 
 public class CliCompilation {
   public Compilation Compilation { get; }
+  public readonly IPerformanceLogger PerformanceLogger;
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
   private int warningCount;
@@ -35,6 +36,7 @@ public class CliCompilation {
     CreateCompilation createCompilation,
     DafnyOptions options) {
     Options = options;
+    PerformanceLogger = new PerformanceLogger(options.OutputWriter);
 
     if (options.DafnyProject == null) {
       var firstFile = options.CliRootSourceUris.FirstOrDefault();
@@ -49,7 +51,7 @@ public class CliCompilation {
 
     var input = new CompilationInput(options, 0, options.DafnyProject);
     var executionEngine = new ExecutionEngine(options, new EmptyVerificationResultCache(), DafnyMain.LargeThreadScheduler);
-    Compilation = createCompilation(executionEngine, input);
+    Compilation = createCompilation(executionEngine, PerformanceLogger, input);
   }
 
   public async Task<int> GetAndReportExitCode() {
@@ -90,14 +92,14 @@ public class CliCompilation {
     var telemetryPublisher = new CliTelemetryPublisher(factory.CreateLogger<TelemetryPublisherBase>());
     return new CliCompilation(CreateCompilation, options);
 
-    Compilation CreateCompilation(ExecutionEngine engine, CompilationInput input) =>
-      new(factory.CreateLogger<Compilation>(), fileSystem,
+    Compilation CreateCompilation(ExecutionEngine engine, IPerformanceLogger compilationPerformanceLogger, CompilationInput input) =>
+      new(factory.CreateLogger<Compilation>(), compilationPerformanceLogger, fileSystem,
         new TextDocumentLoader(factory.CreateLogger<ITextDocumentLoader>(),
           new DafnyLangParser(options, fileSystem, telemetryPublisher,
             factory.CreateLogger<DafnyLangParser>(),
             factory.CreateLogger<CachingParser>()),
           new DafnyLangSymbolResolver(factory.CreateLogger<DafnyLangSymbolResolver>(), factory.CreateLogger<CachingResolver>(), telemetryPublisher)),
-        new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
+        new DafnyProgramVerifier(compilationPerformanceLogger, factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
   }
 
   public void Start() {
