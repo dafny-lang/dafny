@@ -4,12 +4,11 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class CounterExampleItem {
     public Position Position { get; }
+    public IDictionary<string, string> Variables { get; }
 
-    public string Assumption { get; }
-
-    public CounterExampleItem(Position position, string assumption) {
+    public CounterExampleItem(Position position, IDictionary<string, string> variables) {
       Position = position;
-      Assumption = assumption;
+      Variables = variables;
     }
   }
 }
