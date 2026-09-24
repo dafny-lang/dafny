@@ -13,7 +13,10 @@ general-traits = "datatype"
 general-newtypes = true
 
 
-resource-limit = 1000000
+# TestStatistics.Test_Median_Odd_Case_Sorted_Sequence exceeds 1e6 since #6431
+# strengthened the arrow-type frame axiom premises; 86 verified / 0 errors before,
+# 85 / 1 out of resource after.
+resource-limit = 3000000
 # These give too many false positives right now, but should be enabled in the future
 warn-redundant-assumptions = false
 warn-contradictory-assumptions = true
