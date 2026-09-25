@@ -35,7 +35,7 @@ public class TextVerificationLogger : IVerificationResultFormatLogger {
     textWriter.WriteLine($"Results for {verificationScope.Name}");
     textWriter.WriteLine($"  Overall outcome: {outcome}");
     textWriter.WriteLine($"  Overall time: {runtime}");
-    textWriter.WriteLine($"  Overall resource count: {results.Sum(r => r.ResourceCount)}");
+    textWriter.WriteLine($"  Overall resource count: {results.Sum(r => (long)r.ResourceCount)}");
     // It doesn't seem possible to get a result with zero VCResults, but being careful with nulls just in case :)
     var maximumTime = results.MaxBy(r => r.RunTime).RunTime.ToString() ?? "N/A";
     var maximumResourceCount = results.MaxBy(r => r.ResourceCount).ResourceCount.ToString() ?? "N/A";

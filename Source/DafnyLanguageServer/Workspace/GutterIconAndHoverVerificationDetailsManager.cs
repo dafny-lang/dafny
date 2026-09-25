@@ -246,7 +246,7 @@ Send notifications about the verification status of each line in the program.
   /// Called when the verifier finished to visit an implementation
   /// </summary>
   public void ReportEndVerifyImplementation(IdeState state, Implementation implementation,
-    int implementationResourceCount,
+    long implementationResourceCount,
     VcOutcome implementationOutcome) {
 
     var uri = ((IOrigin)implementation.tok).Uri;
