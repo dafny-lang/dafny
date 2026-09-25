@@ -168,6 +168,12 @@ To implement this in your extern file, use the following template:
 
 For classes, make sure all your mutable fields are wrapped in a `::dafny_runtime::Field` so that it's always possible to share the reference.
 
+A Dafny `class` or `trait` has object identity, and the verifier assumes that
+`==` and the built-in collections compare such values by identity. In Rust this
+holds by construction: extern reference types are compared by object identity
+and this cannot be overridden, so the run-time behaviour always matches what the
+verifier assumes.
+
 ## Other externs
 
 The best way to see what you have to implement as an extern Rust file is to compile your code with extern attributes and adding an external Rust file. For extra methods or static methods, you would then define an additional implementation in the extern Rust file. For other class or struct types, you just need to define them without any `mod` wrapper, or using the module structure as defined in the `{:extern}` attribute.
