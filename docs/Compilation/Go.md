@@ -267,7 +267,10 @@ func TestNil() {
 As illustrated in this example, values of Dafny class types can be compared directly
 with `==` in Go, but values of other Dafny reference types need to be compared
 by the runtime function `_dafny.AreEqual`, which handles the two representations of
-`null`.
+`null`. `_dafny.AreEqual` compares by identity only for types that implement the
+runtime's `EqualsGeneric` interface; every Dafny-generated reference type does, but
+an extern Go type must implement it itself (see
+[Equality of extern types](../DafnyRef/integration-go/IntegrationGo)).
 
 Datatypes
 ---------
