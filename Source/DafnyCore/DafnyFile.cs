@@ -41,6 +41,14 @@ public class DafnyFile {
     return externalUri;
   }
 
+  /// <summary>
+  /// Maps an externally visible URI of an embedded file, as created by ExposeInternalUri,
+  /// back to the internal URI it stands for. Returns the given URI unchanged for all others.
+  /// </summary>
+  public static Uri ResolveEmbeddedUri(Uri uri) {
+    return ExternallyVisibleEmbeddedFiles.GetValueOrDefault(uri) ?? uri;
+  }
+
   public delegate IAsyncEnumerable<DafnyFile> HandleExtension(DafnyOptions options, IFileSystem
     fileSystem, ErrorReporter reporter, Uri uri, IOrigin origin, bool asLibrary);
 

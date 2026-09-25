@@ -108,6 +108,38 @@ public class DooFile {
     return await Read(archive);
   }
 
+  /// <summary>
+  /// Reads only the program text stored in a .doo file, without validating the manifest.
+  /// Accepts file URIs as well as dllresource:// URIs of embedded .doo files.
+  /// </summary>
+  public static string ReadProgramText(Uri uri) {
+    if (uri.Scheme == "dllresource") {
+      var assembly = System.Reflection.Assembly.Load(uri.Host);
+      // Skip the leading "/"
+      var resourceName = uri.LocalPath[1..];
+      using var stream = assembly.GetManifestResourceStream(resourceName);
+      if (stream == null) {
+        throw new InvalidDataException($"Cannot find embedded resource: {resourceName}");
+      }
+      using var archive = new ZipArchive(stream);
+      return ReadProgramText(archive);
+    }
+
+    using var fileArchive = ZipFile.Open(uri.LocalPath, ZipArchiveMode.Read);
+    return ReadProgramText(fileArchive);
+  }
+
+  private static string ReadProgramText(ZipArchive archive) {
+    var programTextEntry = archive.GetEntry(ProgramFileEntry);
+    if (programTextEntry == null) {
+      throw new ArgumentException(".doo file missing program text entry");
+    }
+
+    using var programTextStream = programTextEntry.Open();
+    using var reader = new StreamReader(programTextStream, Encoding.UTF8);
+    return reader.ReadToEnd();
+  }
+
   public static async Task<DooFile> Read(Stream stream) {
     using var archive = new ZipArchive(stream);
     return await Read(archive);
