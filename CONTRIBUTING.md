@@ -29,8 +29,13 @@ If you want to propose code changes for the Dafny project, please note:
 - The requirement that all contributions are made under the terms of that [MIT License](https://github.com/dafny-lang/dafny/blob/master/LICENSE.txt).
 - To propose code changes, use the standard Github multi-user project process, which is described for Dafny on the [wiki](https://github.com/dafny-lang/dafny/wiki/Setting-up-a-development-copy-of-Dafny).
 
-If your change is user-visible, then part of the PR should be corresponding changes to the
-[`RELEASE_NOTES.md`](./RELEASE_NOTES.md) file (by following [this](./docs/dev/README.md)) and to the 
+If your change is user-visible, then part of the PR should be a release note: a file in
+[`docs/dev/news/`](./docs/dev/news) named `<PR number>.fix`, `<PR number>.feat` or
+`<PR number>.break`, containing a sentence or two describing the change. The format is
+described in [docs/dev/README.md](./docs/dev/README.md). Don't edit
+[`RELEASE_NOTES.md`](./RELEASE_NOTES.md) directly: the release script writes it from those
+files, and a note put anywhere other than `docs/dev/news/` is silently dropped.
+A user-visible change should usually also update the
 [Dafny Reference Manual](./docs/DafnyRef).
 
 Any PR should have tests that check whether the bug-fix fixes the problem addressed or that the new functionality 

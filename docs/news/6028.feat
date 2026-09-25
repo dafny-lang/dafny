@@ -1,1 +1,0 @@
-Change the default value for --verification-time-limit to 30 seconds instead of 0 (no limit)
