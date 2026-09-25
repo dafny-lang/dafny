@@ -1,0 +1,1 @@
+`dafny build -t=lib --standard-libraries` (and dependency-project builds via `--library`) can now use target-dependent standard-library modules such as `Std.FileIO` and `Std.Concurrent`; the produced library defers the choice of target-specific implementation to the eventual concrete compilation
