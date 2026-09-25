@@ -264,9 +264,9 @@ module DecreasesTo {
     ensures (Lemma(0); b <==> b)
     ensures (Lemma(0); b) <==> (Lemma(1); b)
     ensures (Lemma(0); true decreases to (Lemma(1); false))
-    ensures (Lemma(0); true, Lemma(1); true decreases to (Lemma(2); false)) == (true, true)
+    ensures ((Lemma(0); true), Lemma(1); true decreases to (Lemma(2); false)) == (true, true)
     ensures (true, Lemma(0); true decreases to (Lemma(1); false)) == (true, true)
-    ensures (Lemma(0); R, Lemma(0); true) decreases to (Lemma(0); R)
+    ensures ((Lemma(0); R), Lemma(0); true) decreases to (Lemma(0); R)
     ensures (Lemma(0); true) decreases to (Lemma(0); false)
   {
     while Lemma(0); false {
@@ -275,7 +275,7 @@ module DecreasesTo {
     }
     while Lemma(0); false decreases to (Lemma(1); false) {
     }
-    while (Lemma(0); R, Lemma(0); true) decreases to (Lemma(0); 15) {
+    while ((Lemma(0); R), Lemma(0); true) decreases to (Lemma(0); 15) {
     }
     while (Lemma(0); true) decreases to (Lemma(0); 15) {
     }
