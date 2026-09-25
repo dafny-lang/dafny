@@ -107,8 +107,25 @@ jobs:
       if: ${{ inputs.release_nuget }}
       # Need --skip-duplicate for cases where we release a new Dafny
       # version but the runtime hasn't changed and is still the old
-      # version.
-      run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ steps.nuget-login.outputs.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+      # version, and it makes the retry below safe to repeat. The 300s default push timeout is
+      # not always enough.
+      env:
+        NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+      run: |
+        set -euo pipefail
+        attempts=3
+        for attempt in $(seq 1 $attempts); do
+          if dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" \
+               -k "$NUGET_API_KEY" -s https://api.nuget.org/v3/index.json --timeout 900; then
+            exit 0
+          fi
+          if [ "$attempt" -lt "$attempts" ]; then
+            echo "nuget push attempt $attempt failed, retrying in $((attempt * 30))s"
+            sleep $((attempt * 30))
+          fi
+        done
+        echo "nuget push failed after $attempts attempts" >&2
+        exit 1
 
     - name: Install pandoc - Linux
       if: runner.os == 'Linux'
