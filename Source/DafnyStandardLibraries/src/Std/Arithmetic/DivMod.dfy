@@ -882,16 +882,8 @@ module Std.Arithmetic.DivMod {
     requires a <= b * c
     ensures  a / b <= c
   {
-    LemmaModMultiplesBasic(c, b);
-    assert (b * c) % b == 0;
-    var i := b * c - a;
-    assert i + a == b * c;
-    assert (i + a) % b == 0;
-    assert 0 <= i;
-    LemmaDivInductionAuto(b, i, u => 0 <= u && (u + a) % b == 0 ==> a / b <= (u + a) / b);
-    assert a / b <= (i + a) / b;
-    LemmaDivMultiplesVanish(c, b);
-    assert (b * c) / b == c;
+    LemmaDivIsOrdered(a, b * c, b); // a / b <= (b * c) / b
+    LemmaDivMultiplesVanish(c, b);  // (b * c) / b == c
   }
 
   lemma LemmaMultiplyDivideLeAuto()
@@ -912,16 +904,10 @@ module Std.Arithmetic.DivMod {
     requires a < b * c
     ensures  a / b < c
   {
-    LemmaModMultiplesBasic(c, b);
-    assert (b * c) % b == 0;
-    var i := b * c - a;
-    assert i + a == b * c;
-    assert (i + a) % b == 0;
-    assert 0 < i;
-    LemmaDivInductionAuto(b, i, u => 0 < u && (u + a) % b == 0 ==> a / b < (u + a) / b);
-    assert a / b < (i + a) / b;
-    LemmaDivMultiplesVanish(c, b);
-    assert (b * c) / b == c;
+    LemmaMulIsDistributiveSub(b, c, 1);             // b * (c - 1) == b * c - b * 1
+    LemmaMulBasics(b);                              // b * 1 == b
+    LemmaDivIsOrdered(a, b * (c - 1) + (b - 1), b); // a / b <= (b * (c - 1) + (b - 1)) / b
+    LemmaDivMultiplesVanishFancy(c - 1, b - 1, b);  // (b * (c - 1) + (b - 1)) / b == c - 1
   }
 
   lemma LemmaMultiplyDivideLtAuto()
@@ -1347,21 +1333,15 @@ module Std.Arithmetic.DivMod {
     }
   }
 
-  @IsolateAssertions
   lemma LemmaModNegNeg(x: int, d: int)
     requires 0 < d
     ensures x % d == (x * (1 - d)) % d
   {
-    assert (x - x * d) % d == x % d
-    by {
-      LemmaModAuto(d);
-      var f := i => (x - i * d) % d == x % d;
-      assert  MulAuto() ==> && f(0)
-                            && (forall i {:trigger IsLe(0, i)} :: IsLe(0, i) && f(i) ==> f(i + 1))
-                            && (forall i {:trigger IsLe(i, 0)} :: IsLe(i, 0) && f(i) ==> f(i - 1));
-      LemmaMulInductionAuto(x, f);
-    }
-    LemmaMulAuto();
+    LemmaModMultiplesVanish(-x, x, d);   // (d * -x + x) % d == x % d
+    LemmaMulIsDistributiveSub(x, 1, d);  // x * (1 - d) == x * 1 - x * d
+    LemmaMulBasics(x);                   // x * 1 == x
+    LemmaMulUnaryNegation(d, x);         // d * -x == -(d * x)
+    LemmaMulIsCommutative(x, d);         // x * d == d * x
   }
 
   /* proves the validity of the quotient and remainder */

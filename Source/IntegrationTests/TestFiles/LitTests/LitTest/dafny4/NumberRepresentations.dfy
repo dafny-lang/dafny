@@ -157,7 +157,7 @@ lemma inc(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
   }
 }
 
-lemma dec(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
+lemma {:isolate_assertions} dec(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
   requires IsSkewNumber(a, lowDigit, base)
   requires eval(a, base) == 0 ==> lowDigit < 0
   ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) - 1
@@ -166,9 +166,11 @@ lemma dec(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
     b := [-1];
   } else if lowDigit <= a[0] - 1 {
     b := a[0 := a[0] - 1];
+    assert b[1..] == a[1..];
   } else {
-    b := dec(a[1..], lowDigit, base);
-    b := [lowDigit + base - 1] + b;
+    var b' := dec(a[1..], lowDigit, base);
+    b := [lowDigit + base - 1] + b';
+    assert b[1..] == b';
   }
 }
 

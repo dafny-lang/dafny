@@ -21,9 +21,12 @@ module Std.Arithmetic.Mul {
   lemma LemmaMulIsMulRecursive(x: int, y: int)
     ensures x * y == MulRecursive(x, y)
   {
-    if (x >= 0) { LemmaMulIsMulPos(x, y); }
-    if (x <= 0) { LemmaMulIsMulPos(-x, y); }
-    LemmaMulAuto();
+    if x >= 0 {
+      LemmaMulIsMulPos(x, y);
+    } else {
+      LemmaMulIsMulPos(-x, y);
+      LemmaMulUnaryNegation(x, y);
+    }
   }
 
   lemma LemmaMulIsMulRecursiveAuto()

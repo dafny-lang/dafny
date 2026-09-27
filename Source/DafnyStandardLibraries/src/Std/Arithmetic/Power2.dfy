@@ -110,7 +110,9 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
     assert Pow2(16) == 0x10000;
     assert Pow2(24) == 0x1000000;
     assert Pow2(32) == 0x100000000;
-    assert Pow(2, 32 + 32) == Pow(2, 32) * Pow(2, 32) by { LemmaPowAuto(); }
+    assert Pow(2, 32) == 0x100000000 by { LemmaPow2(32); }
+    assert Pow(2, 32 + 32) == Pow(2, 32) * Pow(2, 32) by { LemmaPowAdds(2, 32, 32); }
+    assert Pow(2, 32) * Pow(2, 32) == 0x100000000 * 0x100000000;
   }
 
 }

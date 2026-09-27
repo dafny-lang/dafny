@@ -227,7 +227,7 @@ opaque ghost function IntRange(lo: nat, len: nat): (s: set<nat>)
 
 // ----- Proofs of alternative versions
 
-lemma {:induction false} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
+lemma {:induction false} {:resource_limit "200e6"} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)

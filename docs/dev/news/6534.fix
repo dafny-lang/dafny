@@ -1,0 +1,1 @@
+Fix soundness issue: remove a false axiom from the verifier's encoding, which said that every boxed value is a value of every type (proofs about the values of fields, which relied on it, are kept by a correct one)

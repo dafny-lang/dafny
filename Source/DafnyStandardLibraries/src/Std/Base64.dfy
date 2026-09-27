@@ -906,6 +906,8 @@ module Std.Base64 {
     }
   }
 
+  @IsolateAssertions
+  @ResourceLimit("5e7")
   lemma EncodeBVIsBase64(b: seq<bv8>)
     ensures IsBase64String(EncodeBV(b))
   {
@@ -1108,6 +1110,7 @@ module Std.Base64 {
   }
 
   @ResourceLimit("12e6")
+  @IsolateAssertions
   lemma DecodeValidEncode1Padding(s: seq<char>)
     requires IsBase64String(s)
     requires |s| >= 4

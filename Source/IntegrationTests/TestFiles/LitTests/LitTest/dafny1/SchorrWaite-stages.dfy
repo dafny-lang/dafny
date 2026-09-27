@@ -230,6 +230,10 @@ abstract module M2 refines M1 {
         path := Path.Extend(path, t);
         ...;
         t.pathFromRoot := path;
+        // The new t is a child of the old one, so it is reachable via the new path:
+        assert t in old(p.children);
+        assert old(ReachableVia(root, path, t, S));
+        assert old(Reachable(root, t, S));
       }
     }
     // In M0 above, we placed two assume statements here.  In M1, we refined the first of these

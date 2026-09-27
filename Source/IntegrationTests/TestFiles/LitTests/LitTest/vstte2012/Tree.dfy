@@ -84,7 +84,7 @@ function build(s: seq<int>): Result
 // height of the term t as termination measure), which
 // ensures that the induction hypothesis is applied
 // correctly (encoded by calls to this lemma).
-lemma lemma0(t: Tree, d: int, s: seq<int>)
+lemma {:isolate_assertions} lemma0(t: Tree, d: int, s: seq<int>)
   ensures build_rec(d, toList(d, t) + s).Res? &&
           build_rec(d, toList(d, t) + s).sOut == s
 {
@@ -94,7 +94,9 @@ lemma lemma0(t: Tree, d: int, s: seq<int>)
   case Node(l, r) =>
     assert t > l;
     assert toList(d, t) + s == toList(d+1, l) + (toList(d+1, r) + s);
-    // the rest follows from (two invocations of) the (automatically applied) induction hypothesis
+    // the rest follows from two invocations of the induction hypothesis
+    lemma0(l, d+1, toList(d+1, r) + s);
+    lemma0(r, d+1, s);
   }
 }
 

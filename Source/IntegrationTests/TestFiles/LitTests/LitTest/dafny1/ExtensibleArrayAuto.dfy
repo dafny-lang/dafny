@@ -71,7 +71,7 @@ class {:autocontracts} ExtensibleArray<T> {
     Contents := Contents[i := t];
   }
 
-  method Append(t: T)
+  method {:isolate_assertions} Append(t: T)
     ensures Contents == old(Contents) + [t]
     decreases |Contents|
   {

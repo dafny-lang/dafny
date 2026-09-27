@@ -300,6 +300,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Expr indexBounds = Bpl.Expr.True;
       Bpl.Expr oDotF;
+      Bpl.Expr heapBox = null; // h[o,f] itself, when oDotF unboxes it
       if (is_array) {
         // generate h[o,Index(ii)]
         bvsTypeAxiom.Add(hVar);
@@ -329,6 +330,9 @@ namespace Microsoft.Dafny {
         // generate h[o,f]
         var ty = TrType(f.Type);
         oDotF = ReadHeap(c.Origin, h, o, new Bpl.IdentifierExpr(c.Origin, GetField(f)));
+        if (ty != Predef.BoxType) {
+          heapBox = oDotF;
+        }
         oDotF = ty == Predef.BoxType ? oDotF : ApplyUnbox(c.Origin, oDotF, ty);
         bvsTypeAxiom.Add(hVar);
         bvsTypeAxiom.Add(oVar);
@@ -379,6 +383,11 @@ namespace Microsoft.Dafny {
         isalloc_hf = MkIsAlloc(oDotF, tyexprs[0], h, true);
       } else {
         is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
+        if (heapBox != null) {
+          // The heap holds a box of the field's type, and saying so at the box, $IsBox(h[o, f], ..), is what lets
+          // the per-type box/unbox axiom conclude $Box($Unbox(h[o, f])) == h[o, f].  (No axiom says that of every box.)
+          is_hf = BplAnd(is_hf, MkIsBox(heapBox, f.Type));
+        }
         isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
       }
 
