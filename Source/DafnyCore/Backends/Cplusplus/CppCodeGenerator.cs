@@ -378,9 +378,14 @@ namespace Microsoft.Dafny.Compilers {
         // Create a constructor with no arguments
         ws.WriteLine("{0}();", DtT_protected);
         var wc = wdef.NewNamedBlock("{1}\n{0}{2}::{0}()", DtT_protected, DeclareTemplate(dt.TypeArgs), InstantiateTemplate(dt.TypeArgs));
-        foreach (var arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            wc.WriteLine("{0} = {1};", arg.CompileName, DefaultValue(arg.Type, wc, arg.Origin));
+        {
+          var ci = 0;
+          foreach (var arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              // Field named via FormalName (_a0, …), not arg.CompileName (_h0).
+              wc.WriteLine("{0} = {1};", FormalName(arg, ci), DefaultValue(arg.Type, wc, arg.Origin));
+              ci++;
+            }
           }
         }
 
@@ -403,9 +408,15 @@ namespace Microsoft.Dafny.Compilers {
         var hwr = hashWr.NewBlock(string.Format("struct std::hash<{0}>", fullName), ";");
         var owr = hwr.NewBlock(string.Format("std::size_t operator()(const {0}& x) const", fullName));
         owr.WriteLine("size_t seed = 0;");
-        foreach (var arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
+        {
+          var hi = 0;
+          foreach (var arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              // Field is declared via FormalName (_a0, …); match it (arg.CompileName
+              // is _h0/… and does not name the field).
+              owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), FormalName(arg, hi));
+              hi++;
+            }
           }
         }
         owr.WriteLine("return seed;");
@@ -463,11 +474,13 @@ namespace Microsoft.Dafny.Compilers {
           int argCount = 0;
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
+              // Field is named via FormalName (_a0, …), not arg.CompileName (_h0).
+              var fname = FormalName(arg, argCount);
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                 // Recursive destructor needs to use a pointer
-                owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
+                owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), fname);
               } else {
-                owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
+                owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), fname);
               }
               argCount++;
             }
@@ -490,14 +503,22 @@ namespace Microsoft.Dafny.Compilers {
           wc.WriteLine("{0}{1} COMPILER_result;", DtT_protected, InstantiateTemplate(dt.TypeArgs));
           wc.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(ctor, true));
 
-          foreach (Formal arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
-                // This is a recursive destructor, so we need to allocate space and copy the input in
-                wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", arg.CompileName,
-                  DtT_protected);
-              } else {
-                wc.WriteLine("COMPILER_result_subStruct.{0} = {0};", arg.CompileName);
+          {
+            var fi = 0;
+            foreach (Formal arg in ctor.Formals) {
+              if (!arg.IsGhost) {
+                // The struct field and the create() parameter are both named via
+                // FormalName (_a0, _a1, ...); use the same name here. (arg.CompileName
+                // is _h0/… and does not match the declared field, so the emitted C++
+                // failed to compile for any constructor with unnamed fields.)
+                var fname = FormalName(arg, fi);
+                if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
+                  // This is a recursive destructor, so we need to allocate space and copy the input in
+                  wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", fname, DtT_protected);
+                } else {
+                  wc.WriteLine("COMPILER_result_subStruct.{0} = {0};", fname);
+                }
+                fi++;
               }
             }
           }
@@ -511,10 +532,15 @@ namespace Microsoft.Dafny.Compilers {
         var wd = wdef.NewNamedBlock(String.Format("{1}\n{0}{2}::{0}()", DtT_protected, DeclareTemplate(dt.TypeArgs), InstantiateTemplate(dt.TypeArgs)));
         var default_ctor = dt.Ctors[0]; // Arbitrarily choose the first one
         wd.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(default_ctor, true));
-        foreach (Formal arg in default_ctor.Formals) {
-          if (!arg.IsGhost) {
-            wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", arg.CompileName,
-              DefaultValue(arg.Type, wd, arg.Origin));
+        {
+          var di = 0;
+          foreach (Formal arg in default_ctor.Formals) {
+            if (!arg.IsGhost) {
+              // Field named via FormalName (_a0, …), not arg.CompileName (_h0).
+              wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", FormalName(arg, di),
+                DefaultValue(arg.Type, wd, arg.Origin));
+              di++;
+            }
           }
         }
 
@@ -549,22 +575,29 @@ namespace Microsoft.Dafny.Compilers {
         ws.WriteLine("friend bool operator==(const {0} &left, const {0} &right) {{ ", DtT_protected);
         ws.WriteLine("\treturn left.v == right.v;\n}");
 
-        // Create destructors
+        // Create destructors. Emit one even for UNNAMED fields (a match/case on such
+        // a field compiles a dtor_<name>() call, so it must exist). Unnamed fields use
+        // a constructor-qualified name (DestructorMethodName) to avoid the collision
+        // where every ctor's first unnamed field would otherwise be dtor__a0 (illegal:
+        // same name, different return type).
         foreach (var ctor in dt.Ctors) {
+          var ctorNonGhost = ctor.Formals.Where(f => !f.IsGhost).ToList();
           foreach (var dtor in ctor.Destructors) {
             if (dtor.EnclosingCtors[0] == ctor) {
               var arg = dtor.CorrespondingFormals[0];
-              if (!arg.IsGhost && arg.HasName) {
+              if (!arg.IsGhost) {
+                var idx = ctorNonGhost.IndexOf(arg);
+                var fieldName = FormalName(arg, idx);
+                var methodName = DestructorMethodName(ctor, arg, idx);
                 var returnType = TypeName(arg.Type, ws, arg.Origin);
                 if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                   // This is a recursive destructor, so return a pointer
                   returnType = String.Format("std::shared_ptr<{0}>", returnType);
                 }
 
-                var wDtor = ws.NewNamedBlock("{0} dtor_{1}()", returnType,
-                  arg.CompileName);
+                var wDtor = ws.NewNamedBlock("{0} dtor_{1}()", returnType, methodName);
                 if (dt.IsRecordType) {
-                  wDtor.WriteLine("return this.{0};", IdName(arg));
+                  wDtor.WriteLine("return this.{0};", fieldName);
                 } else {
                   var n = dtor.EnclosingCtors.Count;
                   for (int i = 0; i < n - 1; i++) {
@@ -572,13 +605,13 @@ namespace Microsoft.Dafny.Compilers {
                     var ctor_name = DatatypeSubStructName(ctor_i);
                     Contract.Assert(arg.GetOrCreateCompileName(currentIdGenerator) == dtor.CorrespondingFormals[i].GetOrCreateCompileName(currentIdGenerator));
                     wDtor.WriteLine("if (is_{0}()) {{ return std::get<{0}{1}>(v).{2}; }}",
-                      ctor_name, InstantiateTemplate(dt.TypeArgs), IdName(arg));
+                      ctor_name, InstantiateTemplate(dt.TypeArgs), fieldName);
                   }
 
                   Contract.Assert(arg.GetOrCreateCompileName(currentIdGenerator) == dtor.CorrespondingFormals[n - 1].GetOrCreateCompileName(currentIdGenerator));
                   var final_ctor_name = DatatypeSubStructName(dtor.EnclosingCtors[n - 1], true);
                   wDtor.WriteLine("return std::get<{0}>(v).{1}; ",
-                    final_ctor_name, IdName(arg));
+                    final_ctor_name, fieldName);
                 }
               }
             }
@@ -1974,6 +2007,21 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("is_{1}({0})", source, DatatypeSubStructName(ctor));
     }
 
+    // Name of a datatype destructor METHOD (dtor_<name>()). For a named field this is
+    // FormalName (unique). For an UNNAMED field, FormalName is just "_a<i>", which
+    // collides across constructors (Leaf._a0 vs Branch._a0 -> two dtor__a0 with
+    // different return types = illegal C++). Qualify unnamed ones with the ctor name.
+    private string DestructorMethodName(DatatypeCtor ctor, Formal formal, int nonGhostIndex) {
+      // Named fields already have unique names. Unnamed fields are "_a<i>", which only
+      // collides when the datatype has more than one constructor (each ctor's first
+      // unnamed field would be _a0). Qualify with the ctor name only in that case, so
+      // single-ctor (record) datatypes keep the plain _a<i> the field is declared with.
+      if (formal.HasName || ctor.EnclosingDatatype.Ctors.Count <= 1) {
+        return FormalName(formal, nonGhostIndex);
+      }
+      return IdProtect(ctor.GetCompileName(Options)) + "_a" + nonGhostIndex;
+    }
+
     protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex,
       DatatypeCtor ctor, Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
@@ -1981,7 +2029,7 @@ namespace Microsoft.Dafny.Compilers {
         source(wr);
         wr.Write(").template get<{0}>()", formalNonGhostIndex);
       } else {
-        var dtorName = FormalName(dtor, formalNonGhostIndex);
+        var dtorName = DestructorMethodName(ctor, dtor, formalNonGhostIndex);
         if (dtor.Type is UserDefinedType udt && udt.ResolvedClass == ctor.EnclosingDatatype) {
           // Recursively defined datatype requires a dereference here
           wr.Write("*");
@@ -2001,12 +2049,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IOrigin tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
-      wr.Write("function (");
+      // C++ lambda: `[&](T0 n0, T1 n1) -> R { ... }`, capturing by reference.
+      // (The old `function (n) {}` was JS/Java syntax and did not compile.)
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
+      wr.Write("[&](");
       for (var i = 0; i < inNames.Count; i++) {
-        wr.Write("{0}{1}", i == 0 ? "" : ", ", inNames[i]);
+        wr.Write("{0}{1} {2}", i == 0 ? "" : ", ", TypeName(inTypes[i], wr, tok), inNames[i]);
       }
-      var w = wr.NewExprBlock(")");
+      var w = wr.NewExprBlock(") -> {0} ", TypeName(resultType, wr, tok));
       return w;
     }
 
@@ -2223,8 +2273,8 @@ namespace Microsoft.Dafny.Compilers {
           if (AsNativeType(resultType) != null) {
             var nt = AsNativeType(resultType);
             if (nt.LowerBound < BigInteger.Zero) {
-              // Want Euclidean division for signed types
-              staticCallString = "_dafny.Mod" + Capitalize(GetNativeTypeName(AsNativeType(resultType)));
+              // Want Euclidean modulus for signed types (non-negative remainder).
+              staticCallString = "EuclideanModulus_" + GetNativeTypeName(AsNativeType(resultType));
             } else {
               // Native division is fine for unsigned
               opString = "%";
@@ -2257,7 +2307,7 @@ namespace Microsoft.Dafny.Compilers {
           callString = "IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-          callString = "IsDisjointFrom"; break;
+          callString = "disjoint"; break;  // DafnySet::disjoint (IsDisjointFrom doesn't exist in the cpp runtime)
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
@@ -2399,6 +2449,22 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       throw new UnsupportedFeatureException(source.Origin, Feature.TypeTests);
+    }
+
+    // `for x in lo..hi` (e.g. from a bounded set/seq comprehension over a native
+    // newtype). The base emits `<Newtype>.IntegerRange(...)`, which for cpp names a
+    // typedef with no such method. cpp has a global iterable `IntegerRange(lo, hi)`
+    // in the runtime; use it. Only the native path is reachable (non-native ints
+    // are rejected by the target).
+    protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {
+      var result = AsNativeType(type) != null ? type : new IntType();
+      return (result, (wr) => {
+        wr.Write("IntegerRange(");
+        wLo(wr);
+        wr.Write(", ");
+        wHi(wr);
+        wr.Write(')');
+      });
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, IOrigin tok, List<Expression> elements,
