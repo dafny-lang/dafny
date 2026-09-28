@@ -2301,10 +2301,12 @@ namespace Microsoft.Dafny.Compilers {
           callString = "IsSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Superset:
         case BinaryExpr.ResolvedOpcode.MultiSuperset:
-          callString = "IsSupersetOf"; break;
+          // a >= b  <=>  b <= a. The runtime has no IsSupersetOf, so reuse IsSubsetOf
+          // with the arguments reversed.
+          callString = "IsSubsetOf"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.ProperSuperset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-          callString = "IsProperSupersetOf"; break;
+          callString = "IsProperSubsetOf"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
           callString = "disjoint"; break;  // DafnySet::disjoint (IsDisjointFrom doesn't exist in the cpp runtime)
