@@ -413,7 +413,20 @@ struct DafnySequence {
         return ret;
     }
 
-    // TODO: isPrefixOf, isProperPrefixOf
+    // Dafny sequence ordering: `s <= t` is "s is a prefix of t", `s < t` is
+    // "s is a proper prefix of t". The C++ backend emits IsPrefixOf / IsProperPrefixOf
+    // for the <= / < operators. `this` is the left operand (the candidate prefix).
+    bool IsPrefixOf(const DafnySequence<T>& other) const {
+        if (len > other.len) { return false; }
+        for (uint64 i = 0; i < len; i++) {
+            if (!(start[i] == other.start[i])) { return false; }
+        }
+        return true;
+    }
+
+    bool IsProperPrefixOf(const DafnySequence<T>& other) const {
+        return len < other.len && IsPrefixOf(other);
+    }
 
     DafnySequence<T> concatenate(DafnySequence<T> other) {
         DafnySequence<T> ret(this->size() + other.size());
