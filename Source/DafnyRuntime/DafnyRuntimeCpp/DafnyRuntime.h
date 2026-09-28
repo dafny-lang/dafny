@@ -180,6 +180,34 @@ inline std::ostream& operator<<(std::ostream& out, const Tuple<Head, Tail...>& v
   return PrintElements(val.values_, out);
 }
 
+// operator== for Tuple, needed alongside std::hash so a tuple can be a set element
+// or map key (unordered containers compare keys on collision). Delegates to the
+// underlying std::tuple's lexicographic ==.
+template <typename... Types>
+inline bool operator==(const Tuple<Types...>& a, const Tuple<Types...>& b) {
+  return a.values_ == b.values_;
+}
+template <typename... Types>
+inline bool operator!=(const Tuple<Types...>& a, const Tuple<Types...>& b) {
+  return !(a.values_ == b.values_);
+}
+
+// std::hash for Tuple, so a Dafny tuple can be a set element or map key (DafnySet/
+// DafnyMap use unordered containers, which require a hash). Combines the element
+// hashes; mirrors the hash specializations for the other collection types below.
+template <typename StdTuple, std::size_t... Is>
+inline void dafny_hash_tuple_elems(std::size_t& seed, const StdTuple& t, std::index_sequence<Is...>) {
+  (hash_combine<std::tuple_element_t<Is, StdTuple>>(seed, std::get<Is>(t)), ...);
+}
+template <typename... Types>
+struct std::hash<Tuple<Types...>> {
+  size_t operator()(const Tuple<Types...>& val) const {
+    size_t seed = 0;
+    dafny_hash_tuple_elems(seed, val.values_, std::make_index_sequence<sizeof...(Types)>{});
+    return seed;
+  }
+};
+
 /*********************************************************
  *  MATH                                                 *
  *********************************************************/
