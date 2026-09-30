@@ -4,7 +4,6 @@
 #nullable disable
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Dafny;
 using Function = Microsoft.Dafny.Function;
 using IdentifierExpr = Microsoft.Dafny.IdentifierExpr;
@@ -54,6 +53,9 @@ namespace DafnyTestGeneration {
         .OfType<LiteralModuleDecl>()
         .Select(declaration =>
           declaration.DefaultExport.VisibilityScope).ToList() ?? [];
+      if (scopes.Count == 0) {
+        scopes.Add(program.DefaultModuleDef.VisibilityScope);
+      }
       var visitor = new DafnyInfoExtractor(this);
       visitor.Visit(program);
     }
@@ -327,6 +329,34 @@ namespace DafnyTestGeneration {
         .FirstOrDefault((Constructor/*?*/)null);
     }
 
+    public IList<Formal> GetFormals(string callable) {
+      if (methods.ContainsKey(callable)) {
+        return methods[callable].Ins;
+      }
+      if (functions.ContainsKey(callable)) {
+        return functions[callable].Ins;
+      }
+
+      Options.ErrorWriter.WriteLine($"*** Error: Test Generation failed to identify callable {callable}");
+
+      SetNonZeroExitCode = true;
+      return new List<Formal>();
+    }
+
+    public IList<Formal> GetReturnFormals(string callable) {
+      if (methods.ContainsKey(callable)) {
+        return methods[callable].Outs;
+      }
+      if (functions.ContainsKey(callable)) {
+        return [functions[callable].Result];
+      }
+
+      Options.ErrorWriter.WriteLine($"*** Error: Test Generation failed to identify callable {callable}");
+
+      SetNonZeroExitCode = true;
+      return new List<Formal>();
+    }
+
     /// <summary>
     /// Fills in the Dafny Info data by traversing the AST
     /// </summary>
@@ -533,9 +563,19 @@ namespace DafnyTestGeneration {
                 return base.CloneExpr(expr);
               }
               if (memberSelectExpr.Obj is StaticReceiverExpr staticReceiverExpr) {
-                return new IdentifierExpr(expr.Origin,
-                  ((staticReceiverExpr.Type) as UserDefinedType).ResolvedClass
-                  .FullDafnyName + "." + memberSelectExpr.MemberName);
+                var moduleName = ((staticReceiverExpr.Type) as UserDefinedType).ResolvedClass.FullDafnyName;
+                if (moduleName.Equals("")) {
+                  return new IdentifierExpr(expr.Origin, memberSelectExpr.MemberName);
+                } else {
+                  return new IdentifierExpr(expr.Origin,
+                    moduleName + "." + memberSelectExpr.MemberName);
+                }
+              }
+              return base.CloneExpr(expr);
+            }
+          case QuantifierExpr quantifierExpr: {
+              if (quantifierExpr.Bounds == null || quantifierExpr.Bounds.Count == 0) {
+                isValidExpression = false;
               }
               return base.CloneExpr(expr);
             }
