@@ -22,7 +22,6 @@ public class FirstPass {
 
   // Errors always lead to preemptive termination of test generation and cannot be bypassed
   public const string NoTestEntryError = "NoTestEntryError";
-  public const string NoExternalModuleError = "NoExternalModuleError";
   public const string MalformedAttributeError = "MalformedAttributeError";
   public const string UnsupportedInputTypeError = "UnsupportedInputTypeError";
 
@@ -53,8 +52,7 @@ public class FirstPass {
       return false;
     }
     typesConsidered = [];
-    CheckIsWrappedInAModule(program);
-    CheckHasTestEntry(program);
+    CheckHasTestEntryOrFailedVerification(program);
     CheckInlinedDeclarationsAreReachable(program);
     CheckInlineAttributes(program);
     CheckInputTypesAreSupported(program);
@@ -188,20 +186,6 @@ public class FirstPass {
   }
 
   /// <summary>
-  /// Return true iff the program has no elements that are not wrapped in a module
-  /// (so all elements can be imported provided the export sets allow it)
-  /// </summary>
-  private bool CheckIsWrappedInAModule(Program program) {
-    if (program.DefaultModuleDef.Children.OfType<ClassLikeDecl>().Any() || program.DefaultModuleDef.Children.OfType<DefaultClassDecl>().Any(decl => decl.Children.Any())) {
-      diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, NoExternalModuleError, program.Origin.ReportingRange,
-        ["Program is not wrapped in a module. Put your code inside \"module M {}\" or equivalent"],
-        ErrorLevel.Error, new List<DafnyRelatedInformation>()));
-      return false;
-    }
-    return true;
-  }
-
-  /// <summary>
   /// For each input parameter of every {:testEntry}-annotated function/method, make sure that
   /// the type of the parameter is fully supported by test generation. Return false, if this is not the case.
   /// </summary>
@@ -322,10 +306,10 @@ public class FirstPass {
   /// <summary>
   /// Return true if the program has at least one method/function annotated with {:testEntry}
   /// </summary>
-  private bool CheckHasTestEntry(Program program) {
-    if (!Utils.ProgramHasAttribute(program, TestGenerationOptions.TestEntryAttribute)) {
+  private bool CheckHasTestEntryOrFailedVerification(Program program) {
+    if (!Utils.ProgramHasAttribute(program, TestGenerationOptions.TestEntryAttribute) && program.Options.TestGenOptions.FailedVerification.Count == 0) {
       diagnostics.Add(new DafnyDiagnostic(MessageSource.TestGeneration, NoTestEntryError, program.Origin.ReportingRange,
-        [$"Cannot find a method or function annotated with {{:{TestGenerationOptions.TestEntryAttribute}}}"],
+        [$"Cannot find a method or function annotated with {{:{TestGenerationOptions.TestEntryAttribute}}}, or whose verification fails"],
         ErrorLevel.Error, new List<DafnyRelatedInformation>()));
       return false;
     }
