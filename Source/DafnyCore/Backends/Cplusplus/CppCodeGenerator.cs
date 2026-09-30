@@ -325,9 +325,6 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
       if (dt is CoDatatypeDecl) {
-        // Codatatypes aren't supported. Reject here at declaration time (like
-        // CreateIterator) rather than compiling the decl as if inductive and then
-        // panicking later when a destructor head turns out to be co-inductive.
         throw new UnsupportedFeatureException(dt.Origin, Feature.Codatatypes);
       }
       if (dt is TupleTypeDecl) {
@@ -624,10 +621,6 @@ namespace Microsoft.Dafny.Compilers {
       return null;
     }
 
-    // Emit `operator<<` for a datatype so `print d` produces `Typename.Ctor` (or
-    // `Typename.Ctor(f0, f1)` when the constructor has fields), matching the
-    // C#/Java backends. Without this, printing a datatype value fails to compile
-    // (the generic dafny_print<T> does `std::cout << x`, and no operator<< exists).
     private void EmitDatatypePrintOperator(DatatypeDecl dt, string DtT_protected, ConcreteSyntaxTree wdef) {
       var w = wdef.NewNamedBlock(
         "{0}\ninline std::ostream& operator<<(std::ostream& out, const {1}{2}& d)",
@@ -659,7 +652,6 @@ namespace Microsoft.Dafny.Compilers {
           }
           body.WriteLine("out << \")\";");
         }
-        if (dt.IsRecordType) { break; }  // single constructor, no branching
       }
       w.WriteLine("return out;");
     }
@@ -1840,9 +1832,6 @@ namespace Microsoft.Dafny.Compilers {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else if (sf is DatatypeDestructor dtor2) {
           if (!(dtor2.EnclosingClass is IndDatatypeDecl)) {
-            // Codatatype destructor (e.g. a co-inductive stream's head/tail).
-            // Reject cleanly; UnsupportedFeatureError only reports and returns, which
-            // would then null-deref the IndDatatypeDecl cast below and crash.
             throw new UnsupportedFeatureException(dtor2.Origin, Feature.Codatatypes);
           }
 

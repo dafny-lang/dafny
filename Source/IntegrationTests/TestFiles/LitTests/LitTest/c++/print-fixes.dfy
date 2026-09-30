@@ -34,4 +34,18 @@ method Main() {
   // 8-bit newtype prints as a number, not a raw byte.
   var b: u8 := 255;
   print b, "\n";
+
+  // Record, recursive, and generic datatypes.
+  print Rec(1, false), "\n";
+  print Link(1, Link(2, End)), "\n";
+  var j: Maybe<u32> := Just(7);
+  print j, "\n";
+
+  // 8-bit and bool values inside collections and tuples.
+  var c: u8 := 65;
+  print [c], " ", {c}, " ", (c, true), " ", [true, false], "\n";
 }
+
+datatype Rec = Rec(a: u32, b: bool)
+datatype Chain = End | Link(h: u32, t: Chain)
+datatype Maybe<T> = Nothing | Just(v: T)

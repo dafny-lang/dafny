@@ -94,9 +94,9 @@ void dafny_print<bool>(bool x) {
 // (Dafny `char` is a distinct type — DafnySequence<char> etc. — so this does not
 // affect character printing.)
 template<>
-void dafny_print<uint8_t>(uint8_t x) { std::cout << (unsigned)x; }
+inline void dafny_print<uint8_t>(uint8_t x) { std::cout << (unsigned)x; }
 template<>
-void dafny_print<int8_t>(int8_t x) { std::cout << (int)x; }
+inline void dafny_print<int8_t>(int8_t x) { std::cout << (int)x; }
 
 // Print a single value to an arbitrary ostream, used by the collection/tuple
 // printers below. Mirrors dafny_print's bool special-casing (a raw `os << bool`
@@ -166,17 +166,13 @@ struct get_default<unsigned long long> {
   static unsigned long long call() { return 0; }
 };
 
-// The remaining scalar carrier types Dafny emits (char, and the fixed-width
-// signed/unsigned integers for native newtypes/bitvectors). Without these, a
-// tuple/array/field of such a type has no get_default and fails to link — e.g.
-// Tuple<bool, char> needs get_default<char>. `long` (LP64 int64) and the intN_t
-// aliases below cover int8/16/32/64 and uint8/16 not already listed above.
 template<> struct get_default<char> { static char call() { return 0; } };
 template<> struct get_default<signed char> { static signed char call() { return 0; } };
 template<> struct get_default<unsigned char> { static unsigned char call() { return 0; } };
 template<> struct get_default<short> { static short call() { return 0; } };
 template<> struct get_default<unsigned short> { static unsigned short call() { return 0; } };
 template<> struct get_default<long> { static long call() { return 0; } };
+template<> struct get_default<long long> { static long long call() { return 0; } };
 
 template<typename U>
 struct get_default<std::shared_ptr<U>> {
@@ -207,27 +203,17 @@ struct Tuple{
   StdTuple values_;
 };
 
-// Default for a tuple type: default-construct it (recursively defaults each
-// element). Without this, a tuple used as a default value (e.g. a tuple element
-// of another tuple, or a default-initialized tuple field) references the
-// undefined primary get_default<Tuple<...>>::call() at link time.
 template <typename... Types>
 struct get_default<Tuple<Types...>> {
   static Tuple<Types...> call() { return Tuple<Types...>(); }
 };
 
-// Print the elements of a std::tuple, comma-separated, each via dafny_print_to
-// (so bool/uint8 print like the other backends). Uses std::tuple_size — the old
-// PrintElements used `TupleType::size()`, which std::tuple does not have, so
-// printing any tuple failed to compile.
 template <typename StdTuple, std::size_t... Is>
 inline void dafny_print_tuple_elems(std::ostream& out, const StdTuple& t, std::index_sequence<Is...>) {
   std::size_t i = 0;
   ((out << (i++ ? ", " : ""), dafny_print_to(out, std::get<Is>(t))), ...);
 }
 
-// Dafny tuple printing: `(a, b, c)` — parentheses, comma-separated (matches
-// the C#/Java backends).
 template <typename Head, typename... Tail>
 inline std::ostream& operator<<(std::ostream& out, const Tuple<Head, Tail...>& val){
   out << "(";
@@ -325,10 +311,7 @@ struct get_default<DafnyArray<U>> {
   }
 };
 
-// No test prints a bare array value (the other backends print an opaque
-// object identity there), but the emitted datatype operator<< instantiates
-// dafny_print_to on every field type, so an array field needs *some* operator<<
-// to compile. Emit a deterministic `array[<len>]`.
+// Datatype printers print every field, so an array field needs an operator<<.
 template<typename U>
 inline std::ostream& operator<<(std::ostream& out, const DafnyArray<U>& arr) {
   out << "array[" << arr.size() << "]";
@@ -677,8 +660,6 @@ bool operator!=(const DafnySet<U> &s0, const DafnySet<U> &s1) {
 
 template <typename U>
 inline std::ostream& operator<<(std::ostream& out, const DafnySet<U>& val){
-    // Dafny set printing: `{a, b, c}` (matches the C#/Java backends), not the
-    // elements run together with no braces or separators.
     out << "{";
     bool first = true;
     for (auto const& c:val.set) {
@@ -719,7 +700,7 @@ struct DafnyMap {
         // std::unordered_map's initializer-list ctor uses insert(), which KEEPS the
         // first and drops later duplicates, so assign element-by-element instead.
         for (const auto& kv : il) {
-            map[kv.first] = kv.second;
+            map.insert_or_assign(kv.first, kv.second);
         }
     }
 
@@ -823,7 +804,6 @@ bool operator!=(const DafnyMap<T,U> &s0, const DafnyMap<T,U> &s1) {
 
 template <typename T, typename U>
 inline std::ostream& operator<<(std::ostream& out, const DafnyMap<T,U>& val){
-    // Dafny map printing: `map[k := v, k2 := v2]` (matches the C#/Java backends).
     out << "map[";
     bool first = true;
     for (auto const& kv:val.map) {
