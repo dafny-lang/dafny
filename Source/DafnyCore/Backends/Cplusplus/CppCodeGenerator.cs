@@ -623,32 +623,29 @@ namespace Microsoft.Dafny.Compilers {
 
     private void EmitDatatypePrintOperator(DatatypeDecl dt, string DtT_protected, ConcreteSyntaxTree wdef) {
       var w = wdef.NewNamedBlock(
-        "{0}\ninline std::ostream& operator<<(std::ostream& out, const {1}{2}& d)",
-        DeclareTemplate(dt.TypeArgs), DtT_protected, InstantiateTemplate(dt.TypeArgs));
+        $"{DeclareTemplate(dt.TypeArgs)}\ninline std::ostream& operator<<(std::ostream& out, const {DtT_protected}{InstantiateTemplate(dt.TypeArgs)}& d)");
       w.WriteLine("(void)d;");
+      var modPrefix = dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".";
       foreach (var ctor in dt.Ctors.Where(c => !c.IsGhost)) {
-        // Fully-qualified constructor label: `Typename.CtorName`.
-        var label = dt.Name + "." + ctor.Name;
+        var label = modPrefix + dt.Name + "." + ctor.Name;
         // Field accessor prefix: record types store fields inline; tagged unions
         // read them out of the active std::variant alternative.
         var access = dt.IsRecordType
           ? "d."
-          : String.Format("std::get<{0}>(d.v).", DatatypeSubStructName(ctor, true));
-        var body = dt.IsRecordType ? w : w.NewBlock(String.Format("if (d.is_{0}())", DatatypeSubStructName(ctor)));
-        body.WriteLine("out << \"{0}\";", label);
+          : $"std::get<{DatatypeSubStructName(ctor, true)}>(d.v).";
+        var body = dt.IsRecordType ? w : w.NewBlock($"if (d.is_{DatatypeSubStructName(ctor)}())");
+        body.WriteLine($"out << \"{label}\";");
         var nonGhost = ctor.Formals.Where(f => !f.IsGhost).ToList();
         if (nonGhost.Count > 0) {
           body.WriteLine("out << \"(\";");
           var i = 0;
-          var idx = 0;
           foreach (var arg in ctor.Formals) {
             if (arg.IsGhost) { continue; }
-            if (idx > 0) { body.WriteLine("out << \", \";"); }
+            if (i > 0) { body.WriteLine("out << \", \";"); }
             // Recursive fields are stored as shared_ptr — deref to print the value.
             var isRecursive = arg.Type is UserDefinedType udt && udt.ResolvedClass == dt;
-            body.WriteLine("dafny_print_to(out, {0}{1}{2});", isRecursive ? "*" : "", access, FormalName(arg, i));
+            body.WriteLine($"dafny_print_to(out, {(isRecursive ? "*" : "")}{access}{FormalName(arg, i)});");
             i++;
-            idx++;
           }
           body.WriteLine("out << \")\";");
         }
