@@ -324,6 +324,9 @@ namespace Microsoft.Dafny.Compilers {
     public override bool SupportsDatatypeWrapperErasure => false;
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
+      if (dt is CoDatatypeDecl) {
+        throw new UnsupportedFeatureException(dt.Origin, Feature.Codatatypes);
+      }
       if (dt is TupleTypeDecl) {
         // Tuple types are declared once and for all in DafnyRuntime.h
         return null;
@@ -614,7 +617,40 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
+      EmitDatatypePrintOperator(dt, DtT_protected, wdef);
       return null;
+    }
+
+    private void EmitDatatypePrintOperator(DatatypeDecl dt, string DtT_protected, ConcreteSyntaxTree wdef) {
+      var w = wdef.NewNamedBlock(
+        $"{DeclareTemplate(dt.TypeArgs)}\ninline std::ostream& operator<<(std::ostream& out, const {DtT_protected}{InstantiateTemplate(dt.TypeArgs)}& d)");
+      w.WriteLine("(void)d;");
+      var modPrefix = dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".";
+      foreach (var ctor in dt.Ctors.Where(c => !c.IsGhost)) {
+        var label = modPrefix + dt.Name + "." + ctor.Name;
+        // Field accessor prefix: record types store fields inline; tagged unions
+        // read them out of the active std::variant alternative.
+        var access = dt.IsRecordType
+          ? "d."
+          : $"std::get<{DatatypeSubStructName(ctor, true)}>(d.v).";
+        var body = dt.IsRecordType ? w : w.NewBlock($"if (d.is_{DatatypeSubStructName(ctor)}())");
+        body.WriteLine($"out << \"{label}\";");
+        var nonGhost = ctor.Formals.Where(f => !f.IsGhost).ToList();
+        if (nonGhost.Count > 0) {
+          body.WriteLine("out << \"(\";");
+          var i = 0;
+          foreach (var arg in ctor.Formals) {
+            if (arg.IsGhost) { continue; }
+            if (i > 0) { body.WriteLine("out << \", \";"); }
+            // Recursive fields are stored as shared_ptr — deref to print the value.
+            var isRecursive = arg.Type is UserDefinedType udt && udt.ResolvedClass == dt;
+            body.WriteLine($"dafny_print_to(out, {(isRecursive ? "*" : "")}{access}{FormalName(arg, i)});");
+            i++;
+          }
+          body.WriteLine("out << \")\";");
+        }
+      }
+      w.WriteLine("return out;");
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
@@ -1793,9 +1829,7 @@ namespace Microsoft.Dafny.Compilers {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else if (sf is DatatypeDestructor dtor2) {
           if (!(dtor2.EnclosingClass is IndDatatypeDecl)) {
-            UnsupportedFeatureError(dtor2.Origin, Feature.Codatatypes, null,
-              "Unexpected use of a destructor {0} that isn't for an inductive datatype.  Panic!",
-                member.Name);
+            throw new UnsupportedFeatureException(dtor2.Origin, Feature.Codatatypes);
           }
 
           var dt = dtor2.EnclosingClass as IndDatatypeDecl;
