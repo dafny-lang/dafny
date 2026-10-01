@@ -2460,13 +2460,14 @@ namespace Microsoft.Dafny.Compilers {
     // are rejected by the target).
     protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {
       var result = AsNativeType(type) != null ? type : new IntType();
-      return (result, (wr) => {
+      Action<ConcreteSyntaxTree> writeRange = (wr) => {
         wr.Write("IntegerRange(");
         wLo(wr);
         wr.Write(", ");
         wHi(wr);
         wr.Write(')');
-      });
+      };
+      return (result, writeRange);
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, IOrigin tok, List<Expression> elements,
