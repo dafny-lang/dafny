@@ -40,7 +40,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.NewObject,
       Feature.BitvectorRotateFunctions,
       Feature.NonSequentializableForallStatements,
-      Feature.FunctionValues,
       Feature.ArrayLength,
       Feature.Ordinals,
       Feature.MapItems,
@@ -961,6 +960,8 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           throw new UnsupportedFeatureException(tok, Feature.MultiDimensionalArrays);
         }
+      } else if (xType is ArrowType at) {
+        return ArrowTypeName(at, wr, tok);
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
         var s = FullTypeName(udt, member);
@@ -1070,9 +1071,17 @@ namespace Microsoft.Dafny.Compilers {
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
             return "nullptr";
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-            // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
-            return string.Format("function () {{ return {0}; }}", rangeDefaultValue);
+            // Default total function value: a lambda returning the range default
+            // (matches the other backends, which return a callable, not an empty one).
+            var rangeType = udt.TypeArgs.Last();
+            var rangeDefaultValue = TypeInitializationValue(rangeType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+            // Unnamed params: the default stub ignores its arguments (avoids
+            // -Wunused-parameter without suppressing the warning globally).
+            var argDecls = new List<string>();
+            for (var i = 0; i < udt.TypeArgs.Count - 1; i++) {
+              argDecls.Add(TypeName(udt.TypeArgs[i], wr, tok));
+            }
+            return $"{TypeName(udt, wr, tok)}([=]({string.Join(", ", argDecls)}) -> {TypeName(rangeType, wr, tok)} {{ return {rangeDefaultValue}; }})";
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
             // non-null array type; we know how to initialize them
             var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
@@ -1653,11 +1662,20 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    // std::function<R(A0, A1, ...)> for a Dafny arrow type A0,A1,... -> R.
+    private string ArrowTypeName(ArrowType at, ConcreteSyntaxTree wr, IOrigin tok) {
+      var result = TypeName(at.Result, wr, tok, null, false);
+      var args = new List<string>();
+      foreach (var a in at.Args) {
+        args.Add(TypeName(a, wr, tok, null, false));
+      }
+      return $"std::function<{result}({string.Join(", ", args)})>";
+    }
+
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
       Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
-      if (udt is ArrowType) {
-        throw new UnsupportedFeatureException(udt.Origin, Feature.FunctionValues, string.Format("UserDefinedTypeName {0}", udt.Name));
-        //return ArrowType.Arrow_FullCompileName;
+      if (udt is ArrowType at) {
+        return ArrowTypeName(at, null, udt.Origin);
       }
       var cl = udt.ResolvedClass;
       if (cl is TypeParameter) {
@@ -1963,9 +1981,17 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
       List<Type> boundTypes, Type resultType, IOrigin tok, bool inLetExprBody, ConcreteSyntaxTree wr,
       ref ConcreteSyntaxTree wStmts) {
-      wr.Write("(({0}) => ", Util.Comma(boundVars));
+      // An immediately-applied lambda: [=](T0 v0, ...) -> R { return <body>; }(args)
+      wr.Write("[=](");
+      for (var i = 0; i < boundVars.Count; i++) {
+        if (i != 0) {
+          wr.Write(", ");
+        }
+        wr.Write($"{TypeName(boundTypes[i], wr, tok, null, false)} {boundVars[i]}");
+      }
+      wr.Write($") -> {TypeName(resultType, wr, tok, null, false)} {{ return ");
       var w = wr.Fork();
-      wr.Write(")");
+      wr.Write("; }");
       TrExprList(arguments, wr, inLetExprBody, wStmts);
       return w;
     }
@@ -2001,12 +2027,15 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IOrigin tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
-      wr.Write("function (");
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
+      wr.Write("[=](");
       for (var i = 0; i < inNames.Count; i++) {
-        wr.Write("{0}{1}", i == 0 ? "" : ", ", inNames[i]);
+        if (i != 0) {
+          wr.Write(", ");
+        }
+        wr.Write($"{TypeName(inTypes[i], wr, tok, null, false)} {inNames[i]}");
       }
-      var w = wr.NewExprBlock(")");
+      var w = wr.NewBigExprBlock($") -> {TypeName(resultType, wr, tok, null, false)} ");
       return w;
     }
 
