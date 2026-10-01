@@ -180,30 +180,82 @@ inline std::ostream& operator<<(std::ostream& out, const Tuple<Head, Tail...>& v
   return PrintElements(val.values_, out);
 }
 
+// operator== for Tuple, needed alongside std::hash so a tuple can be a set element
+// or map key (unordered containers compare keys on collision). Delegates to the
+// underlying std::tuple's lexicographic ==.
+template <typename... Types>
+inline bool operator==(const Tuple<Types...>& a, const Tuple<Types...>& b) {
+  return a.values_ == b.values_;
+}
+template <typename... Types>
+inline bool operator!=(const Tuple<Types...>& a, const Tuple<Types...>& b) {
+  return !(a.values_ == b.values_);
+}
+
+// std::hash for Tuple, so a Dafny tuple can be a set element or map key (DafnySet/
+// DafnyMap use unordered containers, which require a hash). Combines the element
+// hashes; mirrors the hash specializations for the other collection types below.
+template <typename StdTuple, std::size_t... Is>
+inline void dafny_hash_tuple_elems(std::size_t& seed, const StdTuple& t, std::index_sequence<Is...>) {
+  (hash_combine<std::tuple_element_t<Is, StdTuple>>(seed, std::get<Is>(t)), ...);
+}
+template <typename... Types>
+struct std::hash<Tuple<Types...>> {
+  size_t operator()(const Tuple<Types...>& val) const {
+    size_t seed = 0;
+    dafny_hash_tuple_elems(seed, val.values_, std::make_index_sequence<sizeof...(Types)>{});
+    return seed;
+  }
+};
+
 /*********************************************************
  *  MATH                                                 *
  *********************************************************/
 
 
-inline int64 EuclideanDivision_int64(int64 a, int64 b) {
+// Euclidean division/modulus for signed integers, matching Dafny's semantics
+// (remainder is always non-negative). Templated so every signed native width
+// (int8/int16/int32/int64) gets a correct helper; the C++ backend emits calls
+// like EuclideanDivision_int32 / EuclideanModulus_int8, which the aliases below
+// resolve to. Uses the unsigned type for the magnitude arithmetic to avoid
+// signed-overflow UB (as the original int64 version did).
+template <typename S, typename U>
+inline S EuclideanDivision(S a, S b) {
     if (0 <= a) {
         if (0 <= b) {
-            // +a +b: a/b
-            return (int64)((uint64) a / (uint64) b);
+            return (S)((U) a / (U) b);
         } else {
-            // +a -b: -(a/(-b))
-            return -(int64)((uint64) a / (uint64) -b);
+            return -(S)((U) a / (U) -b);
         }
     } else {
         if (0 <= b) {
-            // -a +b: -((-a-1)/b) - 1
-            return -(int64)((((uint64) (-(a + 1)))/ (uint64) b) - 1);
+            return -(S)((((U) (-(a + 1)))/ (U) b) + 1);
         } else {
-            // -a -b: ((-a-1)/(-b)) + 1
-            return (int64)((((uint64) (-(a + 1)))/ (uint64) -b) + 1);
+            return (S)((((U) (-(a + 1)))/ (U) -b) + 1);
         }
     }
 }
+
+template <typename S, typename U>
+inline S EuclideanModulus(S a, S b) {
+    U bp = (0 <= b) ? (U) b : (U) -b;
+    if (0 <= a) {
+        return (S)((U) a % bp);
+    } else {
+        U c = ((U) (-(a + 1))) % bp;
+        return (S)(bp - c - 1);
+    }
+}
+
+inline int8  EuclideanDivision_int8 (int8  a, int8  b) { return EuclideanDivision<int8,  uint8 >(a, b); }
+inline int16 EuclideanDivision_int16(int16 a, int16 b) { return EuclideanDivision<int16, uint16>(a, b); }
+inline int32 EuclideanDivision_int32(int32 a, int32 b) { return EuclideanDivision<int32, uint32>(a, b); }
+inline int64 EuclideanDivision_int64(int64 a, int64 b) { return EuclideanDivision<int64, uint64>(a, b); }
+
+inline int8  EuclideanModulus_int8 (int8  a, int8  b) { return EuclideanModulus<int8,  uint8 >(a, b); }
+inline int16 EuclideanModulus_int16(int16 a, int16 b) { return EuclideanModulus<int16, uint16>(a, b); }
+inline int32 EuclideanModulus_int32(int32 a, int32 b) { return EuclideanModulus<int32, uint32>(a, b); }
+inline int64 EuclideanModulus_int64(int64 a, int64 b) { return EuclideanModulus<int64, uint64>(a, b); }
 
 /*********************************************************
  *  ARRAYS
@@ -361,7 +413,20 @@ struct DafnySequence {
         return ret;
     }
 
-    // TODO: isPrefixOf, isProperPrefixOf
+    // Dafny sequence ordering: `s <= t` is "s is a prefix of t", `s < t` is
+    // "s is a proper prefix of t". The C++ backend emits IsPrefixOf / IsProperPrefixOf
+    // for the <= / < operators. `this` is the left operand (the candidate prefix).
+    bool IsPrefixOf(const DafnySequence<T>& other) const {
+        if (len > other.len) { return false; }
+        for (uint64 i = 0; i < len; i++) {
+            if (!(start[i] == other.start[i])) { return false; }
+        }
+        return true;
+    }
+
+    bool IsProperPrefixOf(const DafnySequence<T>& other) const {
+        return len < other.len && IsPrefixOf(other);
+    }
 
     DafnySequence<T> concatenate(DafnySequence<T> other) {
         DafnySequence<T> ret(this->size() + other.size());
