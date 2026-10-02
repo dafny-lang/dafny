@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=false --general-newtypes=false
+// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=false --general-newtypes=false --enforce-determinism
 
 newtype sreal = r: real | r > -4 as real
 newtype sint = r: int | r > -4 as int

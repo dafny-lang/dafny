@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --general-newtypes=false
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --general-newtypes=false --enforce-determinism
 // This file tests legacy conversions. In the new resolver, these require explicit casts.
 method Main() {
   var a: bv8 := 0xFF;
