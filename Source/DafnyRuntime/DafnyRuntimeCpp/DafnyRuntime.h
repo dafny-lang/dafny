@@ -620,11 +620,14 @@ inline std::ostream& operator<<(std::ostream& out, const DafnySet<U>& val){
 template <typename U>
 struct std::hash<DafnySet<U>> {
     size_t operator()(const DafnySet<U>& s) const {
-        size_t seed = 0;
-        for (auto const& elt:s.set) {
-            hash_combine<U>(seed, elt);
+        // Commutative fold (XOR of per-element hashes) so the result does not depend on
+        // the unordered_set's iteration order: equal sets must hash equally, otherwise
+        // a set used as a set element / map key disagrees with operator==.
+        size_t h = 0;
+        for (auto const& elt : s.set) {
+            h ^= std::hash<U>()(elt) * 0x9e3779b97f4a7c15ULL;
         }
-        return seed;
+        return h;
     }
 };
 

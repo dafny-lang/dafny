@@ -1,0 +1,1 @@
+Fix the C++ backend hashing a `set` by insertion order, so two equal sets built in different orders were treated as distinct when used as a set element or map key.
