@@ -16,7 +16,8 @@ public static class DafnyCliTests {
     "DAFNY_INTEGRATION_TESTS_MODE",
     "DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS",
     "DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE",
-    "DAFNY_INTEGRATION_TESTS_ROOT_DIR"
+    "DAFNY_INTEGRATION_TESTS_ROOT_DIR",
+    "DAFNY_CPP_BOOST_PREFIX"  // where the C++ backend finds Boost for --bignum=boost
   ];
 
   static DafnyCliTests() {
