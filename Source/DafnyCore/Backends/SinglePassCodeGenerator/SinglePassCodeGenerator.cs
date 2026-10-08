@@ -1537,10 +1537,10 @@ namespace Microsoft.Dafny.Compilers {
 
     /// <summary>
     /// Returns a bound of an integer range as an expression of type "int" that computes the bound's additions and
-    /// subtractions, and its multiplications and divisions by constants, in "int". Bounds discovery adds 1 for "x <= e",
-    /// moves terms across an inequality, and substitutes for another bound variable a bound that the variable itself
-    /// never reaches, any of which can take the result out of the range of the bound's type. Every other subexpression
-    /// is computed in its own type and converted.
+    /// subtractions, its multiplications and divisions by constants, and its products of type "int", in "int". Bounds
+    /// discovery adds 1 for "x <= e", moves terms across an inequality, and substitutes for another bound variable a
+    /// bound that the variable itself never reaches, any of which can take the result out of the range of the bound's
+    /// type. Every other subexpression is computed in its own type and converted.
     /// </summary>
     protected static Expression ExactIntegerRangeBound(Expression bound) {
       if (ConstantFolder.TryFoldInteger(bound) is { } n) {
@@ -1563,7 +1563,8 @@ namespace Microsoft.Dafny.Compilers {
     static bool ComputedInInt(BinaryExpr bin) =>
       bin.ResolvedOp switch {
         BinaryExpr.ResolvedOpcode.Add or BinaryExpr.ResolvedOpcode.Sub => true,
-        BinaryExpr.ResolvedOpcode.Mul => ConstantFolder.TryFoldInteger(bin.E0) != null || ConstantFolder.TryFoldInteger(bin.E1) != null,
+        BinaryExpr.ResolvedOpcode.Mul => bin.Type.IsIntegerType ||
+                                         ConstantFolder.TryFoldInteger(bin.E0) != null || ConstantFolder.TryFoldInteger(bin.E1) != null,
         BinaryExpr.ResolvedOpcode.Div => ConstantFolder.TryFoldInteger(bin.E1) is { IsZero: false },
         _ => false
       };

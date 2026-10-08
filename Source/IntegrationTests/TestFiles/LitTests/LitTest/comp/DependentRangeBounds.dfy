@@ -25,10 +25,17 @@ method Main() {
   var scaled := set i: int, j: int, k: int {:nowarn} | 0 <= j < 5 && 0 <= i < 10 - 2 * j && 0 <= k < i :: (i, j, k);
   print |cascade|, " ", |scaled|, "\n";
 
+  // A product of nonnegative factors grows with them, so k's lower bound gives one for k * k, which breaks the cycle of
+  // j's and k's bounds, while low, which can be negative, gives none for j * j.
+  var cycle := set i: int, j: int, k: int {:nowarn} | 0 <= k <= j < (i - 1) * (i - 1) + 1 && k * k <= i < 3 :: (i, j, k);
+  var low := -5;
+  var floored := set i: int, j: int {:nowarn} | 0 <= j < 3 && low <= j && j * j <= i < 10 :: (i, j);
+  print |cycle|, " ", |floored|, "\n";
+
   // Bounds that neither grow nor shrink with a later variable, which neither this order nor its reverse can use, the
   // second time with a k that needs only one of its two bounds.
   var dips := set i: int, j: int, k: int {:nowarn} | 0 <= j < 3 && 0 <= k < (j - 1) * (j - 1) + 1 && 0 <= i < k * k :: (i, j, k);
-  var optional := set i: int, j: int, k: int {:nowarn} | 0 <= j < 3 && 0 <= k < j * j && 0 <= i < k * k && k < i + 50 :: (i, j, k);
+  var optional := set i: int, j: int, k: int {:nowarn} | 0 <= j < 4 && 0 <= k < (j - 1) * (j - 1) + 1 && 0 <= i < k * k && k < i + 50 :: (i, j, k);
   print |dips|, " ", |optional|, "\n";
 
   // The same through bounds of other kinds: a sequence's length, membership in a set and in a sequence, and an
@@ -53,8 +60,8 @@ method Main() {
   // and of binding guards and quantifiers whose matching loop it rewrites with a variable for j - 1 or j + k, which
   // then appears in i's bound and so has to come after j and k but before i, however they are declared. The term that
   // such a variable stands for can have a quantifier in it.
-  var splitForall := set x: int {:nowarn} | 0 <= x < 2 && forall i: int, j: int | 0 <= j < 3 && 0 <= i < j * j :: Small(i) && Low(j);
-  var splitExists := set x: int {:nowarn} | 0 <= x < 2 && exists i: int, j: int | 0 <= j < 3 && 0 <= i < j * j :: Small(i) || Low(j);
+  var splitForall := set x: int {:nowarn} | 0 <= x < 2 && forall i: int, j: int | 0 <= j < 3 && 0 <= i < (j - 1) * (j - 1) + 1 :: Small(i) && Low(j);
+  var splitExists := set x: int {:nowarn} | 0 <= x < 2 && exists i: int, j: int | 0 <= j < 3 && 0 <= i < (j - 1) * (j - 1) + 1 :: Small(i) || Low(j);
   if i: int, j: int :| 0 <= j < 5 && 0 <= i < (j - 1) * (j - 1) + 1 && i * j == 2 {
     print |splitForall|, " ", |splitExists|, " ", i, " ", j, "\n";
   }
@@ -77,8 +84,9 @@ method Main() {
   forall i, j | 0 <= j < 5 && 0 <= i < 10 - j {
     a[i, j] := 1;
   }
-  // No substitution can tell that 10 - j * j shrinks as j grows, so this enumerates j first.
-  forall i, j | 0 <= j < 5 && 0 <= i < 10 - j * j {
+  // 10 - (j - 2) * (j - 2) first grows and then shrinks as j grows, so no bound of j can replace it, and this
+  // enumerates j first.
+  forall i, j | 0 <= j < 5 && 0 <= i < 10 - (j - 2) * (j - 2) {
     a[i, j] := a[i, j] + 1;
   }
   var count := 0;
@@ -90,10 +98,12 @@ method Main() {
   var x: int, y: int :| 0 <= y < 1 && 0 <= x < 10 - y && x * x == 81;
   print count, " ", x, " ", y, " ", Root(), "\n";
 
-  // 9 - j at j's bound 10 is -1, which u8 and u64 do not hold.
+  // 9 - j at j's bound 10 is -1, which u8 and u64 do not hold, and j's bound e + 1 is 256.
   var lowered := set i: u8, j: u8 {:nowarn} | j <= 9 && 9 - j <= i < 20 :: (i, j);
   var lowered64 := set i: u64, j: u64 {:nowarn} | j <= 9 && 9 - j <= i < 20 :: (i, j);
-  print |lowered|, " ", |lowered64|, "\n";
+  var e: u8 := 255;
+  var squared := set i: int, j: u8 {:nowarn} | j <= e && 0 <= i < (j as int) * (j as int) && i < 300 && i + 1 == (j as int) * (j as int) :: j;
+  print |lowered|, " ", |lowered64|, " ", |squared|, "\n";
 
   // Native variables that only another order bounds by more than their type's limits, up to which they would be
   // enumerated otherwise: the reverse order, a cascade, and a b and c that bound each other.

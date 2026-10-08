@@ -923,18 +923,21 @@ namespace Microsoft.Dafny {
           return -1; // forget about "bv OP thatSide"
         }
         var upperOnBv = op is BinaryExpr.ResolvedOpcode.Lt or BinaryExpr.ResolvedOpcode.Le ? whereIsBv == 0 : whereIsBv != 0;
+        // A product of nonnegative factors grows, or shrinks, with "bj" only where "bj" is nonnegative: up to an upper
+        // bound if "bj" has a nonnegative lower bound, and down to a lower bound only if that bound is nonnegative.
+        var bjIsNonnegative = TypeImpliedIntegerBounds(bj.Type).Lower >= 0 ||
+                              jBounds.LowerBounds.Any(lower => IsNonnegative(lower, bj, false));
+        var bjBounds = jBounds.UpperBounds.Select(upper => (Bound: upper, IsUpper: true, Nonnegative: bjIsNonnegative))
+          .Concat(jBounds.LowerBounds.Select(lower => (Bound: lower, IsUpper: false, Nonnegative: IsNonnegative(lower, bj, false))))
+          .Where(b => !FreeVariables(b.Bound).Contains(bv)).ToList();
         var next = new List<Expression>();
         foreach (var side in sides) {
           if (!FreeVariables(side).Contains(bj)) {
             next.Add(side);
             continue;
           }
-          var grows = IsMonotonic(side, bj, true);
-          if (grows || IsMonotonic(side, bj, false)) {
-            next.AddRange((grows == upperOnBv ? jBounds.UpperBounds : jBounds.LowerBounds)
-              .Where(u => !FreeVariables(u).Contains(bv))
-              .Select(u => BoogieGenerator.Substitute(side, bj, u)));
-          }
+          next.AddRange(bjBounds.Where(b => IsMonotonic(side, bj, b.IsUpper == upperOnBv, b.Nonnegative))
+            .Select(b => BoogieGenerator.Substitute(side, bj, b.Bound)));
         }
         if (next.Count == 0) {
           return -1; // forget about "bv OP thatSide"
@@ -960,9 +963,10 @@ namespace Microsoft.Dafny {
     /// If "position", then returns "true" if "x" occurs only positively in "expr".
     /// If "!position", then returns "true" if "x" occurs only negatively in "expr".
     /// "x" may occur under additions, subtractions, multiplications and divisions by constants, and conversions between
-    /// integer-based types, the operations that "SinglePassCodeGenerator.ExactIntegerRangeBound" computes in "int".
+    /// integer-based types, the operations that "SinglePassCodeGenerator.ExactIntegerRangeBound" computes in "int", and,
+    /// if "xIsNonnegative", under a product of nonnegative factors of type "int".
     /// </summary>
-    public static bool IsMonotonic(Expression expr, IVariable x, bool position) {
+    public static bool IsMonotonic(Expression expr, IVariable x, bool position, bool xIsNonnegative) {
       Contract.Requires(expr != null && expr.Type != null);
       Contract.Requires(x != null);
 
@@ -975,23 +979,48 @@ namespace Microsoft.Dafny {
           return position;
         case ConversionExpr conversionExpr when conversionExpr.E.Type.IsNumericBased(Type.NumericPersuasion.Int) &&
                                                 expr.Type.IsNumericBased(Type.NumericPersuasion.Int):
-          return IsMonotonic(conversionExpr.E, x, position);
+          return IsMonotonic(conversionExpr.E, x, position, xIsNonnegative);
         case BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.Add } binaryExpr:
-          return IsMonotonic(binaryExpr.E0, x, position) && IsMonotonic(binaryExpr.E1, x, position);
+          return IsMonotonic(binaryExpr.E0, x, position, xIsNonnegative) &&
+                 IsMonotonic(binaryExpr.E1, x, position, xIsNonnegative);
         case BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.Sub } binaryExpr:
-          return IsMonotonic(binaryExpr.E0, x, position) && IsMonotonic(binaryExpr.E1, x, !position);
+          return IsMonotonic(binaryExpr.E0, x, position, xIsNonnegative) &&
+                 IsMonotonic(binaryExpr.E1, x, !position, xIsNonnegative);
         case BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.Mul } binaryExpr:
           if (ConstantFolder.TryFoldInteger(binaryExpr.E0) is { } c0) {
-            return IsMonotonic(binaryExpr.E1, x, c0.Sign < 0 ? !position : position);
+            return IsMonotonic(binaryExpr.E1, x, c0.Sign < 0 ? !position : position, xIsNonnegative);
           }
-          return ConstantFolder.TryFoldInteger(binaryExpr.E1) is { } c1 &&
-                 IsMonotonic(binaryExpr.E0, x, c1.Sign < 0 ? !position : position);
+          if (ConstantFolder.TryFoldInteger(binaryExpr.E1) is { } c1) {
+            return IsMonotonic(binaryExpr.E0, x, c1.Sign < 0 ? !position : position, xIsNonnegative);
+          }
+          return expr.Type.IsIntegerType &&
+                 IsNonnegative(binaryExpr.E0, x, xIsNonnegative) && IsNonnegative(binaryExpr.E1, x, xIsNonnegative) &&
+                 IsMonotonic(binaryExpr.E0, x, position, xIsNonnegative) && IsMonotonic(binaryExpr.E1, x, position, xIsNonnegative);
         case BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.Div } binaryExpr:
           return ConstantFolder.TryFoldInteger(binaryExpr.E1) is { IsZero: false } d &&
-                 IsMonotonic(binaryExpr.E0, x, d.Sign < 0 ? !position : position);
+                 IsMonotonic(binaryExpr.E0, x, d.Sign < 0 ? !position : position, xIsNonnegative);
         default:
           return false;
       }
+    }
+
+    /// <summary>
+    /// Returns whether "expr" is nonnegative, given that "x" is if "xIsNonnegative" and that every other variable lies
+    /// in the range of its type.
+    /// </summary>
+    static bool IsNonnegative(Expression expr, IVariable x, bool xIsNonnegative) {
+      expr = expr.Resolved;
+      if (ConstantFolder.TryFoldInteger(expr) is { } c) {
+        return c.Sign >= 0;
+      }
+      return expr switch {
+        IdentifierExpr { Var: var v } => v == x ? xIsNonnegative : TypeImpliedIntegerBounds(v.Type).Lower >= 0,
+        ConversionExpr conversion => conversion.E.Type.IsNumericBased(Type.NumericPersuasion.Int) &&
+                                     IsNonnegative(conversion.E, x, xIsNonnegative),
+        BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.Add or BinaryExpr.ResolvedOpcode.Mul } binary =>
+          IsNonnegative(binary.E0, x, xIsNonnegative) && IsNonnegative(binary.E1, x, xIsNonnegative),
+        _ => false
+      };
     }
   }
 }
