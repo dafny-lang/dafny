@@ -3382,7 +3382,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var wrOuter = wr;
-      wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
+      wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.EnumerationOrder, s.Range, wr);
 
       var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr);
       {
@@ -3457,10 +3457,10 @@ namespace Microsoft.Dafny.Compilers {
       EndStmt(wr);
     }
 
-    protected ConcreteSyntaxTree CompileGuardedLoops(List<BoundVar> bvs, List<BoundedPool> bounds, Expression range, ConcreteSyntaxTree wr) {
+    protected ConcreteSyntaxTree CompileGuardedLoops(List<BoundVar> bvs, List<BoundedPool> bounds, List<int> order, Expression range, ConcreteSyntaxTree wr) {
       var n = bvs.Count;
       Contract.Assert(bounds.Count == n);
-      for (int i = 0; i < n; i++) {
+      foreach (var i in Enumeration(order, n)) {
         var bound = bounds[i];
         var bv = bvs[i];
         var tmpVar = ProtectedFreshId("_guard_loop_");
@@ -3481,6 +3481,14 @@ namespace Microsoft.Dafny.Compilers {
       TrParenExpr(range, guardWriter, false, wStmts);
 
       return wr;
+    }
+
+    /// <summary>
+    /// Returns the indices of bound variables in the order that bounds discovery chose to enumerate them in.
+    /// </summary>
+    protected static IEnumerable<int> Enumeration(List<int> order, int count) {
+      Contract.Requires(order == null || order.Count == count);
+      return order ?? Enumerable.Range(0, count);
     }
 
     protected virtual ConcreteSyntaxTree EmitAnd(Action<ConcreteSyntaxTree> lhs, ConcreteSyntaxTree wr) {
@@ -3630,7 +3638,7 @@ namespace Microsoft.Dafny.Compilers {
         TrLocalVar(bv, false, wr);
       }
       var ivars = exists.BoundVars.ConvertAll(bv => (IVariable)bv);
-      TrAssignSuchThat(ivars, exists.Term, exists.Bounds, wr, false);
+      TrAssignSuchThat(ivars, exists.Term, exists.Bounds, wr, false, exists.EnumerationOrder);
     }
 
     private bool CanSequentializeForall(List<BoundVar> bvs, List<BoundedPool> bounds, Expression range, Expression lhs, Expression rhs) {
@@ -3757,7 +3765,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<BoundedPool> bounds, ConcreteSyntaxTree wr, bool inLetExprBody) {
+    private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<BoundedPool> bounds, ConcreteSyntaxTree wr, bool inLetExprBody,
+        List<int> order = null) {
       Contract.Requires(lhss != null);
       Contract.Requires(constraint != null);
       Contract.Requires(bounds != null);
@@ -3804,7 +3813,7 @@ namespace Microsoft.Dafny.Compilers {
         currentBlock = wr;
       }
 
-      for (int i = 0; i < n; i++) {
+      foreach (var i in Enumeration(order, n)) {
         var bound = bounds[i];
         Contract.Assert((bound.Virtues & BoundedPool.PoolVirtues.Enumerable) != 0);  // if we have got this far, it must be an enumerable bound
         var bv = lhss[i];

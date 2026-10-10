@@ -83,7 +83,7 @@ namespace Microsoft.Dafny.Triggers {
         }
 
         foreach (var e in stream) {
-          yield return new ForallExpr(quantifier.Origin, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          yield return new ForallExpr(quantifier.Origin, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds, EnumerationOrder = quantifier.EnumerationOrder };
         }
       } else if (quantifier is ExistsExpr) {
         IReadOnlyList<Expression> stream;
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.Triggers {
           stream = SplitExpr(body, BinaryExpr.Opcode.Or).ToList();
         }
         foreach (var e in stream) {
-          yield return new ExistsExpr(quantifier.Origin, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          yield return new ExistsExpr(quantifier.Origin, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds, EnumerationOrder = quantifier.EnumerationOrder };
         }
       } else {
         yield return quantifier;

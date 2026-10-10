@@ -33,6 +33,10 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
 
   [FilledInDuringResolution] public List<BoundedPool?>? Bounds;
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
+  /// <summary>
+  /// The order in which the compiled code enumerates "BoundVars", as indices into it, or null for the order given.
+  /// </summary>
+  [FilledInDuringResolution] public List<int>? EnumerationOrder;
 
   public List<BoundVar> UncompilableBoundVars() {
     var v = BoundedPool.PoolVirtues.Finite | BoundedPool.PoolVirtues.Enumerable;
@@ -56,6 +60,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
 
     if (cloner.CloneResolvedFields) {
       Bounds = original.Bounds?.Select(b => b?.Clone(cloner)).ToList();
+      EnumerationOrder = original.EnumerationOrder;
     }
   }
   public override IEnumerable<INode> Children =>
