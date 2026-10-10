@@ -97,8 +97,11 @@ module MainTests {
   import ZeroCopyWrapper
   import AbstractSyntaxWrapper
   import opened Std.Collections.Seq
+  import Std.JSON.API
   import Std.JSON.Spec
+  import Std.JSON.Values
   import opened Std.BoundedInts
+  import opened Std.Unicode.UnicodeStringsWithUnicodeChar
 
   const VECTORS := [
     "true",
@@ -141,5 +144,12 @@ module MainTests {
   @Test
   method SpecTest() {
     expect Spec.EscapeUnicode(7) == ['0' as uint16, '0' as uint16, '0' as uint16, '7' as uint16];
+  }
+
+  @Test
+  method UnicodeEscapeTest() {
+    var bs :- expect ToUTF8Checked("\"\\u0041\\u00e9\\u00C9\\ud83d\\ude00\"");
+    var js :- expect API.Deserialize(bs);
+    expect js == Values.JSON.String("AéÉ😀");
   }
 }

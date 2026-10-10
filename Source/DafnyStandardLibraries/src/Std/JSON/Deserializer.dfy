@@ -40,8 +40,7 @@ module Std.JSON.Deserializer {
     const chars := [
       '0' as uint16, '1' as uint16, '2' as uint16, '3' as uint16, '4' as uint16,
       '5' as uint16, '6' as uint16, '7' as uint16, '8' as uint16, '9' as uint16,
-      'a' as uint16, 'b' as uint16, 'c' as uint16, 'd' as uint16, 'e' as uint16, 'f' as uint16,
-      'A' as uint16, 'B' as uint16, 'C' as uint16, 'D' as uint16, 'E' as uint16, 'F' as uint16
+      'a' as uint16, 'b' as uint16, 'c' as uint16, 'd' as uint16, 'e' as uint16, 'f' as uint16
     ]
 
     const charToDigit :=
@@ -52,10 +51,13 @@ module Std.JSON.Deserializer {
         'A' as uint16 := 0xA, 'B' as uint16 := 0xB, 'C' as uint16 := 0xC, 'D' as uint16 := 0xD, 'E' as uint16 := 0xE, 'F' as uint16 := 0xF
       ]
 
-    // The size of the map makes this impractical to verify easily.
-    @Axiom
     lemma CharsConsistent()
       ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
+    {
+      forall d: nat | d < |chars|
+        ensures chars[d] in charToDigit && charToDigit[chars[d]] == d
+      {}
+    }
   }
 
   const HEX_TABLE_16 := Uint16StrConversion.charToDigit
@@ -64,10 +66,11 @@ module Std.JSON.Deserializer {
     requires |str| <= 4
     requires forall c | c in str :: c in HEX_TABLE_16
   {
-    assume {:axiom} false; // BUG Verification inconclusive
     Uint16StrConversion.ToNatBound(str);
     var hd := Uint16StrConversion.ToNat(str);
-    assert hd < 0x1_0000;
+    assert hd < 0x1_0000 by {
+      LemmaPowIncreases(16, |str|, 4);
+    }
     hd as uint16
   }
 

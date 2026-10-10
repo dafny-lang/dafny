@@ -1,0 +1,1 @@
+`Std.JSON` decoded `\uXXXX` escapes in base 22: `"\u0041"` became `"Y"`, and `"\uffff"` threw an `OverflowException` on C#. It now decodes them in base 16.
