@@ -1517,6 +1517,57 @@ namespace Microsoft.Dafny.Compilers {
       }
       );
     }
+
+    /// <summary>
+    /// Emits a bound of an integer range for "EmitIntegerRange": the largest of "bounds" if "isLower", else the
+    /// smallest, each computed in "int" (see "ExactIntegerRangeBound").
+    /// </summary>
+    protected virtual void EmitIntegerRangeBound(List<Expression> bounds, bool isLower, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      // Each comparison repeats both of its operands, so the comparisons form a balanced tree.
+      Expression Tightest(List<Expression> exact) {
+        if (exact.Count == 1) {
+          return exact[0];
+        }
+        var a = Tightest(exact.GetRange(0, exact.Count / 2));
+        var b = Tightest(exact.GetRange(exact.Count / 2, exact.Count - exact.Count / 2));
+        return new ITEExpr(b.Origin, false, isLower ? Expression.CreateLess(a, b) : Expression.CreateLess(b, a), b, a) { Type = Type.Int };
+      }
+      EmitExpr(Tightest(bounds.ConvertAll(ExactIntegerRangeBound)), inLetExprBody, wr, wStmts);
+    }
+
+    /// <summary>
+    /// Returns a bound of an integer range as an expression of type "int" that computes the bound's additions and
+    /// subtractions, and its multiplications and divisions by constants, in "int". Bounds discovery adds 1 for "x <= e",
+    /// moves terms across an inequality, and substitutes for another bound variable a bound that the variable itself
+    /// never reaches, any of which can take the result out of the range of the bound's type. Every other subexpression
+    /// is computed in its own type and converted.
+    /// </summary>
+    protected static Expression ExactIntegerRangeBound(Expression bound) {
+      if (ConstantFolder.TryFoldInteger(bound) is { } n) {
+        return new LiteralExpr(bound.Origin, n) { Type = Type.Int };
+      }
+      bound = bound.Resolved;
+      if (bound is BinaryExpr bin && bound.Type.IsNumericBased(Type.NumericPersuasion.Int) && ComputedInInt(bin)) {
+        return new BinaryExpr(bin.Origin, bin.Op, ExactIntegerRangeBound(bin.E0), ExactIntegerRangeBound(bin.E1)) {
+          ResolvedOp = bin.ResolvedOp,
+          Type = Type.Int
+        };
+      }
+      if (bound is ConversionExpr conversion && conversion.E.Type.IsNumericBased(Type.NumericPersuasion.Int) &&
+          bound.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+        return ExactIntegerRangeBound(conversion.E);
+      }
+      return bound.Type.IsIntegerType ? bound : new ConversionExpr(bound.Origin, bound, Type.Int) { Type = Type.Int };
+    }
+
+    static bool ComputedInInt(BinaryExpr bin) =>
+      bin.ResolvedOp switch {
+        BinaryExpr.ResolvedOpcode.Add or BinaryExpr.ResolvedOpcode.Sub => true,
+        BinaryExpr.ResolvedOpcode.Mul => ConstantFolder.TryFoldInteger(bin.E0) != null || ConstantFolder.TryFoldInteger(bin.E1) != null,
+        BinaryExpr.ResolvedOpcode.Div => ConstantFolder.TryFoldInteger(bin.E1) is { IsZero: false },
+        _ => false
+      };
+
     protected abstract void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
     protected virtual void FinishModule() { }
@@ -3414,7 +3465,7 @@ namespace Microsoft.Dafny.Compilers {
         var bv = bvs[i];
         var tmpVar = ProtectedFreshId("_guard_loop_");
         var wStmtsLoop = wr.Fork();
-        var elementType = CompileCollection(bound, bv, false, false, null, out var collection, out var newtypeConversionsWereExplicit, wStmtsLoop, bounds, bvs, i);
+        var elementType = CompileCollection(bound, bv, false, false, null, out var collection, out var newtypeConversionsWereExplicit, wStmtsLoop);
         wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, true, false, range.Origin, collection, wr);
       }
 
@@ -3446,10 +3497,8 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     Type CompileCollection(BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
         Substituter/*?*/ su, out Action<ConcreteSyntaxTree> collectionWriter, out bool newtypeConversionsWereExplicit,
-        ConcreteSyntaxTree wStmts,
-        List<BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
+        ConcreteSyntaxTree wStmts) {
       Contract.Requires(bound != null);
-      Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
 
       wStmts = wStmts.Fork();
 
@@ -3468,22 +3517,16 @@ namespace Microsoft.Dafny.Compilers {
       } else if (bound is IntBoundedPool) {
         var b = (IntBoundedPool)bound;
         var res = EmitIntegerRange(bv.Type, wLo => {
-          if (b.LowerBound == null) {
+          if (b.LowerBounds.Count == 0) {
             EmitNull(bv.Type, wLo);
-          } else if (bounds != null) {
-            var low = SubstituteBound(b, bounds, boundVars, boundIndex, true);
-            EmitExpr(su.Substitute(low), inLetExprBody, wLo, wStmts);
           } else {
-            EmitExpr(su.Substitute(b.LowerBound), inLetExprBody, wLo, wStmts);
+            EmitIntegerRangeBound(b.LowerBounds.Select(su.Substitute).ToList(), true, inLetExprBody, wLo, wStmts);
           }
         }, wHi => {
-          if (b.UpperBound == null) {
+          if (b.UpperBounds.Count == 0) {
             EmitNull(bv.Type, wHi);
-          } else if (bounds != null) {
-            var high = SubstituteBound(b, bounds, boundVars, boundIndex, false);
-            EmitExpr(su.Substitute(high), inLetExprBody, wHi, wStmts);
           } else {
-            EmitExpr(su.Substitute(b.UpperBound), inLetExprBody, wHi, wStmts);
+            EmitIntegerRangeBound(b.UpperBounds.Select(su.Substitute).ToList(), false, inLetExprBody, wHi, wStmts);
           }
         });
 
@@ -3577,29 +3620,6 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void EmitDatatypeBoundedPool(IVariable bv, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("{0}.AllSingletonConstructors{1}", TypeName_Companion(bv.Type, wr, bv.Origin, null), propertySuffix);
-    }
-
-    private Expression SubstituteBound(IntBoundedPool b, List<BoundedPool> bounds, List<BoundVar> boundVars, int index, bool lowBound) {
-      Contract.Requires(b != null);
-      Contract.Requires((lowBound ? b.LowerBound : b.UpperBound) != null);
-      Contract.Requires(bounds != null);
-      Contract.Requires(boundVars != null);
-      Contract.Requires(bounds.Count == boundVars.Count);
-      Contract.Requires(0 <= index && index < boundVars.Count);
-      // if the outer bound is dependent on the inner boundvar, we need to
-      // substitute the inner boundvar with its bound.
-      var bnd = lowBound ? b.LowerBound : b.UpperBound;
-      var sm = new Dictionary<IVariable, Expression>();
-      for (int i = index + 1; i < boundVars.Count; i++) {
-        var bound = bounds[i];
-        if (bound is IntBoundedPool) {
-          var ib = (IntBoundedPool)bound;
-          var bv = boundVars[i];
-          sm[bv] = lowBound ? ib.LowerBound : ib.UpperBound;
-        }
-      }
-      var su = new Substituter(null, sm, new Dictionary<TypeParameter, Type>());
-      return su.Substitute(bnd);
     }
 
     private void IntroduceAndAssignBoundVars(ExistsExpr exists, ConcreteSyntaxTree wr) {

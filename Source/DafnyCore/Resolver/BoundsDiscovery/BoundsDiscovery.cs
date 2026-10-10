@@ -7,6 +7,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
+using System.Numerics;
 
 namespace Microsoft.Dafny {
   public partial class ModuleResolver {
@@ -321,6 +322,25 @@ namespace Microsoft.Dafny {
       return knownBounds;
     }
 
+    /// <summary>
+    /// Returns the constant bounds that "type" implies by itself, or null on a side it does not bound.
+    /// </summary>
+    internal static (BigInteger?, BigInteger?) TypeImpliedIntegerBounds(Type type) {
+      BigInteger? lower = null, upper = null;
+      var value = new BoundVar(Token.NoToken, "_value", type);
+      foreach (var bound in DiscoverAllBounds_SingleVar(value, Expression.CreateBoolLiteral(Token.NoToken, true), out _)) {
+        if (bound is IntBoundedPool pool) {
+          if (pool.LowerBound != null && ConstantFolder.TryFoldInteger(pool.LowerBound) is { } lo && (lower == null || lower < lo)) {
+            lower = lo;
+          }
+          if (pool.UpperBound != null && ConstantFolder.TryFoldInteger(pool.UpperBound) is { } hi && (upper == null || hi < upper)) {
+            upper = hi;
+          }
+        }
+      }
+      return (lower, upper);
+    }
+
     public static List<BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr,
       out bool constraintConsistsSolelyOfRangeConstraints) where VT : IVariable {
       expr = Expression.CreateAnd(GetImpliedTypeConstraint(v, v.Type), expr);
@@ -399,7 +419,7 @@ namespace Microsoft.Dafny {
         }
         var e0 = c.E0;
         var e1 = c.E1;
-        int whereIsBv = SanitizeForBoundDiscovery(bvars, j, c.ResolvedOp, knownBounds, ref e0, ref e1);
+        int whereIsBv = SanitizeForBoundDiscovery(bvars, j, c.ResolvedOp, knownBounds, ref e0, ref e1, out var thatSides);
         if (whereIsBv < 0) {
           continue;
         }
@@ -452,10 +472,10 @@ namespace Microsoft.Dafny {
               conjunctsQualifyingAsRangeConstraints++;
               if (whereIsBv == 0) {
                 // bv < E
-                bounds.Add(new IntBoundedPool(null, e1));
+                bounds.Add(new IntBoundedPool([], thatSides));
               } else {
                 // E < bv
-                bounds.Add(new IntBoundedPool(Expression.CreateIncrement(e0, 1), null));
+                bounds.Add(new IntBoundedPool(thatSides.ConvertAll(e => Expression.CreateIncrement(e, 1)), []));
               }
             }
             break;
@@ -464,10 +484,10 @@ namespace Microsoft.Dafny {
             if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
               if (whereIsBv == 0) {
                 // bv <= E
-                bounds.Add(new IntBoundedPool(null, Expression.CreateIncrement(e1, 1)));
+                bounds.Add(new IntBoundedPool([], thatSides.ConvertAll(e => Expression.CreateIncrement(e, 1))));
               } else {
                 // E <= bv
-                bounds.Add(new IntBoundedPool(e0, null));
+                bounds.Add(new IntBoundedPool(thatSides, []));
               }
             }
             break;
@@ -651,10 +671,11 @@ namespace Microsoft.Dafny {
     /// One of "e0" and "e1" is the identifier "boundVars[bvi]"; the return value is either 0 or 1, and indicates which.
     /// The other of "e0" and "e1" is an expression whose free variables are not among "boundVars[bvi..]".
     /// Ensures that the resulting "e0" and "e1" are not ConcreteSyntaxExpression's.
+    /// "thatSides" holds every expression that can take the place of that other one, starting with it.
     /// </summary>
     static int SanitizeForBoundDiscovery<VT>(List<VT> boundVars, int bvi, BinaryExpr.ResolvedOpcode op,
       List<BoundedPool> knownBounds,
-      ref Expression e0, ref Expression e1) where VT : IVariable {
+      ref Expression e0, ref Expression e1, out List<Expression> thatSides) where VT : IVariable {
       Contract.Requires(boundVars != null);
       Contract.Requires(0 <= bvi && bvi < boundVars.Count);
       Contract.Requires(knownBounds != null);
@@ -665,6 +686,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(!(Contract.ValueAtReturn(out e0) is ConcreteSyntaxExpression));
       Contract.Ensures(!(Contract.ValueAtReturn(out e1) is ConcreteSyntaxExpression));
 
+      thatSides = [];
       IVariable bv = boundVars[bvi];
       e0 = e0.Resolved;
       e1 = e1.Resolved;
@@ -800,6 +822,7 @@ namespace Microsoft.Dafny {
           return -1; // forget about "bv OP thatSide"
         }
       }
+      thatSides = [thatSide];
 
       // As we return, also return the adjusted sides
       if (whereIsBv == 0) {

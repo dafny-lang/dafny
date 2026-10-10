@@ -535,9 +535,7 @@ namespace Microsoft.Dafny {
         return bound;  // nothing to substitute
       } else if (bound is IntBoundedPool) {
         var b = (IntBoundedPool)bound;
-        return new IntBoundedPool(
-          b.LowerBound == null ? null : Substitute(b.LowerBound),
-          b.UpperBound == null ? null : Substitute(b.UpperBound));
+        return new IntBoundedPool(b.LowerBounds.Select(Substitute).ToList(), b.UpperBounds.Select(Substitute).ToList());
       } else if (bound is SetBoundedPool) {
         var b = (SetBoundedPool)bound;
         return new SetBoundedPool(Substitute(b.Set), b.BoundVariableType, b.CollectionElementType, b.IsFiniteCollection);

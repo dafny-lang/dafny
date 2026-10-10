@@ -5,18 +5,29 @@
 //
 //-----------------------------------------------------------------------------
 
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
 public class IntBoundedPool : BoundedPool {
-  public readonly Expression LowerBound;
-  public readonly Expression UpperBound;
-  public IntBoundedPool(Expression lowerBound, Expression upperBound) {
-    Contract.Requires(lowerBound != null || upperBound != null);
-    LowerBound = lowerBound;
-    UpperBound = upperBound;
+  /// <summary>
+  /// The bounds on each side that could not be compared statically. The compiled range starts at the largest of the
+  /// lower bounds and ends at the smallest of the upper bounds.
+  /// </summary>
+  public readonly IReadOnlyList<Expression> LowerBounds;
+  public readonly IReadOnlyList<Expression> UpperBounds;
+
+  public IntBoundedPool(IReadOnlyList<Expression> lowerBounds, IReadOnlyList<Expression> upperBounds) {
+    Contract.Requires(lowerBounds.Count != 0 || upperBounds.Count != 0);
+    LowerBounds = lowerBounds;
+    UpperBounds = upperBounds;
   }
+
+  public Expression LowerBound => LowerBounds.FirstOrDefault();
+  public Expression UpperBound => UpperBounds.FirstOrDefault();
+
   public override PoolVirtues Virtues {
     get {
       if (LowerBound != null && UpperBound != null) {
@@ -29,6 +40,6 @@ public class IntBoundedPool : BoundedPool {
   public override int Preference() => LowerBound != null && UpperBound != null ? 5 : 4;
 
   public override BoundedPool Clone(Cloner cloner) {
-    return new IntBoundedPool(cloner.CloneExpr(LowerBound), cloner.CloneExpr(UpperBound));
+    return new IntBoundedPool(LowerBounds.Select(cloner.CloneExpr).ToList(), UpperBounds.Select(cloner.CloneExpr).ToList());
   }
 }

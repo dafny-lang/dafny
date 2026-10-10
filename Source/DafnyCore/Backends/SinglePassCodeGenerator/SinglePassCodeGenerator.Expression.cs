@@ -419,8 +419,7 @@ namespace Microsoft.Dafny.Compilers {
               var bv = e.BoundVars[i];
 
               var collectionElementType = CompileCollection(bound, bv, inLetExprBody, false, su, out var collection,
-            out var newtypeConversionsWereExplicit, wStmts,
-                e.Bounds, e.BoundVars, i);
+                out var newtypeConversionsWereExplicit, wStmts);
               wBody = EmitQuantifierExpr(collection, quantifierExpr is ForallExpr, collectionElementType, bv, wBody);
               var native = AsNativeType(e.BoundVars[i].Type);
               var tmpVarName = ProtectedFreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
