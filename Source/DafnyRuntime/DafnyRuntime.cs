@@ -2119,7 +2119,12 @@ namespace Dafny {
       }
     }
     public override int GetHashCode() {
-      return num.GetHashCode() + 29 * den.GetHashCode();
+      // Hash the reduced form so equal values hash equal. Zero first: den may be 0.
+      if (num.IsZero) {
+        return BigInteger.Zero.GetHashCode() + 29 * BigInteger.One.GetHashCode();
+      }
+      var gcd = BigInteger.GreatestCommonDivisor(num, den);
+      return (num / gcd).GetHashCode() + 29 * (den / gcd).GetHashCode();
     }
     public override bool Equals(object obj) {
       if (obj is BigRational) {
