@@ -58,4 +58,12 @@ public class ClonerTest {
     var clone = new Field(new Cloner(), original);
     Assert.Same(clone.ExplicitType, clone.Type);
   }
+
+  [Fact]
+  public void ClonerGivesAnIdPatternItsOwnSyntacticType() {
+    var original = new IdPattern(Token.NoToken, "e", new UserDefinedType(Token.NoToken, "C", null), null);
+    var clone = new IdPattern(new Cloner(), original);
+    Assert.NotSame(original.SyntacticType, clone.SyntacticType);
+    Assert.Same(clone.SyntacticType, clone.Type);
+  }
 }
