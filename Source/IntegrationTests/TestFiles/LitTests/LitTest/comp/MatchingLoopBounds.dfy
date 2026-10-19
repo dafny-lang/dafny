@@ -1,7 +1,7 @@
 // RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
-// To break a matching loop, the trigger generator replaces j - 1 with a new bound variable, which comes last, so the
-// bounds of the other variables must not mention it.
+// Dafny breaks the matching loop through j - 1 only in the verifier's translation, so the compiled code enumerates i and
+// j with their bounds as written.
 
 method Main() {
   if j: int, i: int :| 0 <= j < 5 && 0 <= i < (j - 1) * (j - 1) + 1 && i * j == 2 {
