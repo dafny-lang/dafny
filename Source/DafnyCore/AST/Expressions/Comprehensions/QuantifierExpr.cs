@@ -16,17 +16,19 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
 
   /// <summary>
   /// The parts that the trigger generator split the quantifier into and selected triggers for, which the verifier
-  /// translates instead of it, or null if it did not split the quantifier
+  /// translates instead of it, or null if it did not split the quantifier. In order, a part that the trigger generator
+  /// joined from conjuncts with others between them is a part for each run of its consecutive conjuncts, as the CanCall
+  /// assumption needs, since the conjuncts between them can guard their calls.
   /// </summary>
-  internal List<QuantifierExpr>? Parts() {
-    return Triggers.QuantifierSplitter.Parts(this);
+  internal List<QuantifierExpr>? Parts(bool inOrder = false) {
+    return Triggers.QuantifierSplitter.Parts(this, inOrder);
   }
 
   /// <summary>
   /// The conjunction of the parts, for a forall, or their disjunction
   /// </summary>
-  internal Expression? PartsExpression() {
-    var parts = Parts();
+  internal Expression? PartsExpression(bool inOrder = false) {
+    var parts = Parts(inOrder);
     if (parts == null) {
       return null;
     }

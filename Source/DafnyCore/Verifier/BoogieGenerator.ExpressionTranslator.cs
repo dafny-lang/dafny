@@ -1939,7 +1939,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
-          if (e is QuantifierExpr q && q.PartsExpression() is { } parts) {
+          if (e is QuantifierExpr q && q.PartsExpression(inOrder: true) is { } parts) {
             return CanCallAssumption(parts, cco);
           }
 

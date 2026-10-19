@@ -1,0 +1,6 @@
+split-quantifiers-assume-calls-in-order.dfy(24,0): Error: a postcondition could not be proved on this return path
+split-quantifiers-assume-calls-in-order.dfy(23,10): Related location: this is the postcondition that could not be proved
+split-quantifiers-assume-calls-in-order.dfy(34,140): Error: a postcondition could not be proved on this return path
+split-quantifiers-assume-calls-in-order.dfy(30,10): Related location: this is the postcondition that could not be proved
+
+Dafny program verifier finished with 2 verified, 2 errors
