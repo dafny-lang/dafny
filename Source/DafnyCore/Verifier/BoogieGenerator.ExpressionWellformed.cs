@@ -212,13 +212,13 @@ namespace Microsoft.Dafny {
         // Create local variables corresponding to the bound variables:
         var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran);
         // Get the body of the quantifier and suitably substitute for the type variables and bound variables
-        var body = Substitute(e.LogicalBody(true), null, substMap);
+        var body = Substitute(e.LogicalBody(), null, substMap);
         CheckWellformedAndAssume(body, wfOptions, locals, builder, etran, comment);
 
         if (e is ForallExpr) {
           // Although we do the WF check on the original quantifier, we assume the split one.
           // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
-          builder.Add(TrAssumeCmdWithDependencies(etran, expr.Origin, e.SplitQuantifierExpression ?? e, comment));
+          builder.Add(TrAssumeCmdWithDependencies(etran, expr.Origin, e, comment));
         }
         return;
       }

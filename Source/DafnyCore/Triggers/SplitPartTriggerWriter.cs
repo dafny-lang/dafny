@@ -18,12 +18,9 @@ class SplitPartTriggerWriter {
   // The terms of the loops that the matching-loop rewrite could not name, as they mention variables bound inside the
   // quantifier, with these variables
   private List<(Expression Term, List<IVariable> Inner)> unnamed = [];
-  // The part as written while the triggers are selected on the matching-loop rewrite's copy
-  private ComprehensionExpr asWritten;
 
   private bool AllowsLoops {
     get {
-      Contract.Requires(!(Comprehension is QuantifierExpr) || ((QuantifierExpr)Comprehension).SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       // This is different from nowarn: it won't remove loops at all, even if another trigger is available.
       return Attributes.Contains(Comprehension.Attributes, "matchingloop");
     }
@@ -115,7 +112,6 @@ class SplitPartTriggerWriter {
     }
     var qq = expr;
 
-    asWritten = Comprehension;
     Comprehension = qq;
     Candidates.Clear();
     CandidateTerms.Clear();
@@ -126,17 +122,6 @@ class SplitPartTriggerWriter {
     // don't rewrite the quantifier if we are not auto generate triggers.
     // This is because rewriting introduces new boundvars and will cause
     // user provided triggers not mention all boundvars
-  }
-
-  /// <summary>
-  /// Puts back the part as written once the triggers are selected on the matching-loop rewrite's copy, which only the
-  /// trigger generator sees
-  /// </summary>
-  internal void RestoreAsWritten() {
-    if (asWritten != null) {
-      Comprehension = asWritten;
-      asWritten = null;
-    }
   }
 
   /// <summary>
@@ -299,7 +284,7 @@ class SplitPartTriggerWriter {
       var example = $"{(binder is ForallExpr ? "forall" : "exists")} " +
                     $"{string.Join(", ", binder.BoundVars.Select(variable => variable.Name))}, {name} | " +
                     $"{(binder.Range == null ? "" : "... && ")}{name} == {termText}";
-      var conjuncts = binder.SplitQuantifier?.ConvertAll(part => ((QuantifierExpr)part).Term) ?? [binder.Term];
+      var conjuncts = QuantifierSplitter.Conjuncts(binder).ConvertAll(part => part.Term);
       var how = conjuncts.TrueForAll(conjunct =>
         conjunct.AllSubExpressions(false, false).Any(e => ExprExtensions.ExpressionEq(e, term)))
         ? $"replace '{termText}' with a new variable bound alongside '{innerText}'"

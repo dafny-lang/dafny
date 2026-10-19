@@ -594,8 +594,8 @@ namespace Microsoft.Dafny {
       private Expr TranslateQuantifierExpr(QuantifierExpr quantifierExpr) {
         QuantifierExpr e = quantifierExpr;
 
-        if (e.SplitQuantifier != null) {
-          return TrExpr(e.SplitQuantifierExpression);
+        if (e.PartsExpression() is { } parts) {
+          return TrExpr(parts);
         } else {
           List<Variable> bvars = [];
           var bodyEtran = this;
@@ -1939,8 +1939,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
-          if (e is QuantifierExpr q && q.SplitQuantifier != null) {
-            return CanCallAssumption(q.SplitQuantifierExpression, cco);
+          if (e is QuantifierExpr q && q.PartsExpression() is { } parts) {
+            return CanCallAssumption(parts, cco);
           }
 
           // Determine the CanCall's for the range and term

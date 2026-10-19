@@ -1,0 +1,1 @@
+Fix the error `quantifiers in non-ghost contexts must be compilable` in a program that uses a library that Dafny compiled to C#, for a compiled quantifier of the library, such as `forall i :: 0 <= i < n ==> 0 <= F(i) && F(i) < 100`, that Dafny splits into parts for its triggers and joins again.

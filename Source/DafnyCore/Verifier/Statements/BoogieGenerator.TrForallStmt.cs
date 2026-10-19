@@ -176,8 +176,8 @@ public partial class BoogieGenerator {
       if (forallExpressions != null) {
         // translate based on the forallExpressions since the triggers are computed based on it already.
         QuantifierExpr expr = (QuantifierExpr)forallExpressions[0];
-        while (expr.SplitQuantifier != null && expr.SplitQuantifierExpression is QuantifierExpr quantifierExpr) {
-          expr = quantifierExpr;
+        if (expr.Parts() is [var part]) {
+          expr = part;
         }
         boundVars = expr.BoundVars;
         typeAndAdditionalAntecedents = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);

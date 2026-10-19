@@ -4,12 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Diagnostics.Contracts;
 using DafnyCore.Generic;
 
 namespace Microsoft.Dafny.Triggers {
 
-  record QuantifierGroup(SplitPartTriggerWriter Quantifier, List<ComprehensionExpr> Expressions);
+  record QuantifierGroup(SplitPartTriggerWriter Quantifier, List<int> Conjuncts);
 
   /// <summary>
   /// For a comprehension that has been split into parts, determine triggers for each part.
@@ -21,24 +20,30 @@ namespace Microsoft.Dafny.Triggers {
     private readonly ErrorReporter reporter;
     private readonly ComprehensionExpr comprehension;  //  the expression where the splits are originated from
     private List<SplitPartTriggerWriter> partWriters;
+    // The conjuncts of each part, if the parts are copies, which the verifier makes again from the comprehension
+    private List<List<int>> conjuncts;
 
     internal ComprehensionTriggerGenerator(ComprehensionExpr comprehension, IEnumerable<ComprehensionExpr> quantifiers, ErrorReporter reporter) {
-      Contract.Requires(quantifiers.All(q => !(q is QuantifierExpr) || ((QuantifierExpr)q).SplitQuantifier == null));
       this.reporter = reporter;
       this.comprehension = comprehension;
       partWriters = quantifiers.Select(q => new SplitPartTriggerWriter(q)).ToList();
+      if (partWriters[0].Comprehension != comprehension) {
+        conjuncts = partWriters.Select((_, i) => new List<int> { i }).ToList();
+      }
     }
 
     internal void ComputeTriggers(TriggersCollector triggersCollector) {
       CollectAndShareTriggers(triggersCollector);
       TrimInvalidTriggers();
       BuildDependenciesGraph();
+      var asWritten = partWriters.ConvertAll(writer => writer.Comprehension);
       if (DetectAndFilterLoopingCandidates() && RewriteMatchingLoop(triggersCollector.ForModule)) {
         CollectWithoutShareTriggers(triggersCollector);
         TrimInvalidTriggers();
         DetectAndFilterLoopingCandidates();
-        foreach (var triggerWriter in partWriters) {
-          triggerWriter.RestoreAsWritten();
+        // The rewrite's copies, which only the trigger generator sees, have selected the triggers of the parts as written
+        for (var i = 0; i < partWriters.Count; i++) {
+          partWriters[i].Comprehension = asWritten[i];
         }
       }
       FilterWeakerTriggers();
@@ -155,20 +160,20 @@ namespace Microsoft.Dafny.Triggers {
     private void CombineSplitQuantifier() {
       if (partWriters.Count > 1) {
         var groups = new List<QuantifierGroup>();
-        groups.Add(new QuantifierGroup(partWriters[0], [partWriters[0].Comprehension]));
+        groups.Add(new QuantifierGroup(partWriters[0], [0]));
         for (int i = 1; i < partWriters.Count; i++) {
           bool found = false;
           for (int j = 0; j < groups.Count; j++) {
             if (HasSameTriggers(partWriters[i], groups[j].Quantifier)) {
               // belong to the same group
-              groups[j].Expressions.Add(partWriters[i].Comprehension);
+              groups[j].Conjuncts.Add(i);
               found = true;
               break;
             }
           }
           if (!found) {
             // start a new group
-            groups.Add(new QuantifierGroup(partWriters[i], [partWriters[i].Comprehension]));
+            groups.Add(new QuantifierGroup(partWriters[i], [i]));
           }
         }
         if (groups.Count == partWriters.Count) {
@@ -176,26 +181,12 @@ namespace Microsoft.Dafny.Triggers {
           return;
         }
         // merge expressions in each group back to one quantifier.
-        List<SplitPartTriggerWriter> list = [];
-        List<Expression> splits = [];
         foreach (var group in groups) {
-          SplitPartTriggerWriter q = group.Quantifier;
-          if (q.Comprehension is ForallExpr forallExpr) {
-            IOrigin tok = forallExpr.Origin is NestedOrigin nestedToken ? nestedToken.Outer : forallExpr.Origin;
-            Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.And, group.Expressions);
-            q.Comprehension = new ForallExpr(tok, forallExpr.BoundVars, forallExpr.Range, expr, TriggerUtils.CopyAttributes(forallExpr.Attributes)) { Type = forallExpr.Type, Bounds = forallExpr.Bounds };
-          } else if (q.Comprehension is ExistsExpr existsExpr) {
-            IOrigin tok = existsExpr.Origin is NestedOrigin nestedToken ? nestedToken.Outer : existsExpr.Origin;
-            Expression expr = QuantifiersToExpression(tok, BinaryExpr.ResolvedOpcode.Or, group.Expressions);
-            q.Comprehension = new ExistsExpr(tok, existsExpr.BoundVars, existsExpr.Range, expr, TriggerUtils.CopyAttributes(existsExpr.Attributes)) { Type = existsExpr.Type, Bounds = existsExpr.Bounds };
-          }
-          list.Add(q);
-          splits.Add(q.Comprehension);
+          group.Quantifier.Comprehension =
+            QuantifierSplitter.Merge(group.Conjuncts.ConvertAll(i => partWriters[i].Comprehension));
         }
-
-        partWriters = list;
-        Contract.Assert(this.comprehension is QuantifierExpr); // only QuantifierExpr has SplitQuantifier
-        ((QuantifierExpr)this.comprehension).SplitQuantifier = splits;
+        partWriters = groups.ConvertAll(group => group.Quantifier);
+        conjuncts = groups.ConvertAll(group => group.Conjuncts);
       }
     }
 
@@ -208,14 +199,6 @@ namespace Microsoft.Dafny.Triggers {
       return arg1.Terms.SequenceEqual(arg2.Terms, new PredicateEqualityComparer<TriggerTerm>(comparer));
     }
 
-    private Expression QuantifiersToExpression(IOrigin tok, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr> expressions) {
-      var expr = expressions[0].Term;
-      for (int i = 1; i < expressions.Count; i++) {
-        expr = new BinaryExpr(tok, op, expr, expressions[i].Term);
-      }
-      return expr;
-    }
-
     internal void CommitTriggers(SystemModuleManager systemModuleManager) {
       if (partWriters.Count > 1) {
         reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null,
@@ -226,7 +209,12 @@ namespace Microsoft.Dafny.Triggers {
 
       for (var index = 0; index < partWriters.Count; index++) {
         var triggerWriter = partWriters[index];
+        var given = triggerWriter.Comprehension.Attributes;
         triggerWriter.CommitTrigger(reporter, partWriters.Count > 1 ? index : null, systemModuleManager);
+        if (conjuncts != null) {
+          QuantifierSplitter.RecordPart((QuantifierExpr)comprehension, index, conjuncts[index],
+            triggerWriter.Comprehension.Attributes, given);
+        }
       }
     }
 
