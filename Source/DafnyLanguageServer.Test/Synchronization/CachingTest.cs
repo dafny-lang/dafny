@@ -381,6 +381,20 @@ method Foo() {
   }
 
   [Fact]
+  public async Task ArrayAllocationInMatchCaseDoesNotCrash() {
+    // Resolution runs on the parse cache's clone, and the match flattener clones each case again.
+    var source = @"
+datatype D = X | Y
+method M(d: D) {
+  match d
+  case X => var a := new D[10];
+  case Y =>
+}";
+    var documentItem = CreateAndOpenTestDocument(source);
+    await AssertNoResolutionErrors(documentItem);
+  }
+
+  [Fact]
   public async Task CachingWorksWhenManyChangesAreMadeWithoutWaits() {
     var largeImport1 = GetLargeFile("Imported1", 100);
     var largeImport2 = GetLargeFile("Imported2", 100);
