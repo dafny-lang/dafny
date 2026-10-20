@@ -78,16 +78,16 @@ jobs:
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"
       # label, and skip checking the nightly build above.
       # This is the best way to fix an issue in master that was only caught by the nightly build.
-      all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.push.labels.*.name, 'run-deep-tests')}}
+      all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') }}
       num_shards: 5
       # Omit Rust in the nightly build (or rather simulating it here) because Rust is known to have random issues
-      compilers: ${{ (contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.push.labels.*.name, 'run-deep-tests')) && 'cs,java,go,js,cpp,dfy,py' || '' }}
+      compilers: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') && 'cs,java,go,js,cpp,dfy,py' || '' }}
 
   test-coverage-analysis:
     runs-on: ubuntu-24.04
     # Don't include in run-deep-tests, because those tests run on
     # release builds instead of source packages.
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'run-deep-tests') && !contains(github.event.push.labels.*.name, 'run-deep-tests')}}))
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'run-deep-tests') }}
     needs: [xunit-tests, integration-tests]
     steps:
       # Check out Dafny so that highlighted source is possible
