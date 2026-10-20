@@ -325,9 +325,12 @@ namespace Microsoft.Dafny {
                 ihBody = BplImp(less, ihBody);
                 List<Variable> bvars = [];
                 Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
+                var ihNames = new NamedTerms(this, e.Attributes, substMap);
+                bvars.AddRange(ihNames.Variables);
                 Bpl.Expr ih;
-                var tr = TrTrigger(etran, e.Attributes, expr.Origin, substMap);
-                ih = new Bpl.ForallExpr(expr.Origin, bvars, tr, BplImp(typeAntecedent, ihBody));
+                var tr = TrTrigger(etran, e.Attributes, expr.Origin, substMap, names: ihNames, boundVariables: bvars);
+                ih = new Bpl.ForallExpr(expr.Origin, bvars, tr,
+                  BplImp(BplAnd(ihNames.Definitions(etran), typeAntecedent), ihNames.Replace(etran, ihBody)));
 
                 // More precisely now:
                 //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
@@ -361,13 +364,16 @@ namespace Microsoft.Dafny {
                 foreach (var kase in caseProduct) {
                   var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
                   var etranBody = etran.LayerOffset(1);
-                  var bdy = etranBody.TrExpr(e.LogicalBody());
+                  var names = new NamedTerms(this, e.Attributes);
+                  ante = BplAnd(names.Definitions(etranBody), ante);
+                  var bdy = names.Replace(etranBody, etranBody.TrExpr(e.LogicalBody()));
                   Bpl.Expr q;
-                  var trig = TrTrigger(etranBody, e.Attributes, expr.Origin);
+                  var caseVars = bvars.Concat(names.Variables).ToList();
+                  var trig = TrTrigger(etranBody, e.Attributes, expr.Origin, names: names, boundVariables: caseVars);
                   if (position) {
-                    q = new Bpl.ForallExpr(kase.tok, bvars, trig, BplImp(ante, bdy));
+                    q = new Bpl.ForallExpr(kase.tok, caseVars, trig, BplImp(ante, bdy));
                   } else {
-                    q = new Bpl.ExistsExpr(kase.tok, bvars, trig, BplAnd(ante, bdy));
+                    q = new Bpl.ExistsExpr(kase.tok, caseVars, trig, BplAnd(ante, bdy));
                   }
                   splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, q));
                 }
@@ -613,8 +619,21 @@ namespace Microsoft.Dafny {
 
       protected override void VisitOneExpr(Expression expr) {
         if (expr is QuantifierExpr quantifierExpr && quantifierExpr.SplitQuantifier == null) {
-          foreach (var trigger in quantifierExpr.Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
-            collector.Visit(trigger);
+          var named = Attributes.FindExpressions(quantifierExpr.Attributes, "_named") ?? [];
+          foreach (var trigger in quantifierExpr.Attributes.AsEnumerable().Where(a => a.Name is "trigger" or "_trigger").SelectMany(a => a.Args)) {
+            Collect(trigger, named);
+          }
+        }
+      }
+
+      // The translation binds a variable to each named term, which then takes the term's place in the trigger, whatever
+      // is substituted for the term's variables
+      private void Collect(Expression term, List<Expression> named) {
+        if (term is IdentifierExpr) {
+          collector.Visit(term);
+        } else if (!named.Exists(namedTerm => Triggers.ExprExtensions.ExpressionEq(namedTerm, term))) {
+          foreach (var subterm in term.SubExpressions) {
+            Collect(subterm, named);
           }
         }
       }

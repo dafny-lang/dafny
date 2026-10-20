@@ -1,0 +1,1 @@
+Fix crashes like `undeclared identifier: _t#0#0` and `An item with the same key has already been added` when Dafny breaks a matching loop in a nested quantifier or one that it splits into parts for its triggers.
