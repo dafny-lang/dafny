@@ -22,7 +22,6 @@ public static class RewriterCollection {
     result.Add(new MatchFlattener(reporter));
 
     if (reporter.Options.AutoTriggers) {
-      result.Add(new QuantifierSplittingRewriter(reporter));
       result.Add(new TriggerGeneratingRewriter(reporter, program.SystemModuleManager));
     }
 
