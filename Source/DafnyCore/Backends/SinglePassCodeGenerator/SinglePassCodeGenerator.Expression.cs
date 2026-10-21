@@ -414,13 +414,12 @@ namespace Microsoft.Dafny.Compilers {
             var n = e.BoundVars.Count;
             Contract.Assert(e.Bounds.Count == n);
             var wBody = wr;
-            for (int i = 0; i < n; i++) {
+            foreach (var i in Enumeration(e.EnumerationOrder, n)) {
               var bound = e.Bounds[i];
               var bv = e.BoundVars[i];
 
               var collectionElementType = CompileCollection(bound, bv, inLetExprBody, false, su, out var collection,
-            out var newtypeConversionsWereExplicit, wStmts,
-                e.Bounds, e.BoundVars, i);
+                out var newtypeConversionsWereExplicit, wStmts);
               wBody = EmitQuantifierExpr(collection, quantifierExpr is ForallExpr, collectionElementType, bv, wBody);
               var native = AsNativeType(e.BoundVars[i].Type);
               var tmpVarName = ProtectedFreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
@@ -476,7 +475,7 @@ namespace Microsoft.Dafny.Compilers {
               .Select(conj => (conj, ModuleResolver.FreeVariables(conj))).ToList();
             unusedConjuncts.ForEach(entry => entry.frees.IntersectWith(e.BoundVars));
             wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
-            for (var i = 0; i < n; i++) {
+            foreach (var i in Enumeration(e.EnumerationOrder, n)) {
               var bound = e.Bounds[i];
               var bv = e.BoundVars[i];
               processedBounds.Add(bv);
@@ -530,7 +529,7 @@ namespace Microsoft.Dafny.Compilers {
               .Select(conj => (conj, ModuleResolver.FreeVariables(conj))).ToList();
             unusedConjuncts.ForEach(entry => entry.frees.IntersectWith(e.BoundVars));
             wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
-            for (var i = 0; i < n; i++) {
+            foreach (var i in Enumeration(e.EnumerationOrder, n)) {
               var bound = e.Bounds[i];
               var bv = e.BoundVars[i];
               processedBounds.Add(bv);

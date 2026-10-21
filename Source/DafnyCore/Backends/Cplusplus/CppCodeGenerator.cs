@@ -2397,6 +2397,62 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(source.Origin, Feature.TypeTests);
     }
 
+    // C++ has no unbounded integers, so range bounds are computed in a 128-bit integer, which holds every bound of a
+    // range over a 64-bit type, including the one past its maximum.
+    protected override void EmitIntegerRangeBound(List<Expression> bounds, bool isLower, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      wr.Write(string.Concat(Enumerable.Repeat(isLower ? "dafny_range_max(" : "dafny_range_min(", bounds.Count - 1)));
+      for (var i = 0; i < bounds.Count; i++) {
+        if (i != 0) {
+          wr.Write(", ");
+        }
+        EmitRangeInt(ExactIntegerRangeBound(bounds[i]), inLetExprBody, wr, wStmts);
+        if (i != 0) {
+          wr.Write(")");
+        }
+      }
+    }
+
+    // Emits a bound from "ExactIntegerRangeBound", whose arithmetic is in "int", in "dafny_range_int" instead.
+    void EmitRangeInt(Expression bound, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      switch (bound) {
+        case LiteralExpr { Value: BigInteger n }:
+          wr.Write(RangeIntLiteral(n));
+          break;
+        case BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.Add or BinaryExpr.ResolvedOpcode.Sub or BinaryExpr.ResolvedOpcode.Mul } bin:
+          wr.Write("(");
+          EmitRangeInt(bin.E0, inLetExprBody, wr, wStmts);
+          wr.Write(bin.ResolvedOp switch {
+            BinaryExpr.ResolvedOpcode.Add => " + ",
+            BinaryExpr.ResolvedOpcode.Sub => " - ",
+            _ => " * "
+          });
+          EmitRangeInt(bin.E1, inLetExprBody, wr, wStmts);
+          wr.Write(")");
+          break;
+        case BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.Div } div:
+          wr.Write("dafny_range_div(");
+          EmitRangeInt(div.E0, inLetExprBody, wr, wStmts);
+          wr.Write(", ");
+          EmitRangeInt(div.E1, inLetExprBody, wr, wStmts);
+          wr.Write(")");
+          break;
+        default:
+          wr.Write("((dafny_range_int) ");
+          TrParenExpr(bound is ConversionExpr conversion ? conversion.E : bound, wr, inLetExprBody, wStmts);
+          wr.Write(")");
+          break;
+      }
+    }
+
+    static string RangeIntLiteral(BigInteger n) {
+      if (n.Sign < 0) {
+        return $"(-{RangeIntLiteral(-n)})";
+      }
+      return n <= ulong.MaxValue
+        ? $"((dafny_range_int) {n}ULL)"
+        : $"(((dafny_range_int) {n >> 64}ULL << 64) | {n & ulong.MaxValue}ULL)";
+    }
+
     protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       throw new UnsupportedFeatureException(source.Origin, Feature.TypeTests);
     }
