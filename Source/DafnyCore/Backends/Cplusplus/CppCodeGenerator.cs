@@ -322,6 +322,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool DatatypeDeclarationAndMemberCompilationAreSeparate => false;
     public override bool SupportsDatatypeWrapperErasure => false;
 
+    // std::function has no == or std::hash. Dafny compares a datatype with a field whose type lacks equality
+    // only against a nullary constructor, which never reaches the field, so operator== and std::hash skip it.
+    private static bool IsComparable(Formal f) => !f.IsGhost && f.Type.SupportsEquality;
+
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
       if (dt is CoDatatypeDecl) {
         throw new UnsupportedFeatureException(dt.Origin, Feature.Codatatypes);
@@ -355,10 +359,14 @@ namespace Microsoft.Dafny.Compilers {
         // Declare the struct members
         var i = 0;
         var argNames = new List<string>();
+        var comparedNames = new List<string>();
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
             ws.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Origin), FormalName(arg, i));
             argNames.Add(FormalName(arg, i));
+            if (IsComparable(arg)) {
+              comparedNames.Add(FormalName(arg, i));
+            }
             i++;
           }
         }
@@ -387,9 +395,9 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         // Overload the comparison operator
-        var wrCompOp = ws.NewNamedBlock("friend bool operator==(const {0} &left, const {0} &right)", DtT_protected);
+        var wrCompOp = ws.NewNamedBlock("friend bool operator==([[maybe_unused]] const {0} &left, [[maybe_unused]] const {0} &right)", DtT_protected);
         wrCompOp.Write("\treturn true");
-        foreach (var arg in argNames) {
+        foreach (var arg in comparedNames) {
           wrCompOp.WriteLine("\t\t&& left.{0} == right.{0}", arg);
         }
         wrCompOp.WriteLine(";");
@@ -403,10 +411,10 @@ namespace Microsoft.Dafny.Compilers {
         hashWr.WriteLine("template <{0}>", TypeParameters(dt.TypeArgs));
         var fullName = dt.EnclosingModuleDefinition.GetCompileName(Options) + "::" + DtT_protected + InstantiateTemplate(dt.TypeArgs);
         var hwr = hashWr.NewBlock(string.Format("struct std::hash<{0}>", fullName), ";");
-        var owr = hwr.NewBlock(string.Format("std::size_t operator()(const {0}& x) const", fullName));
+        var owr = hwr.NewBlock(string.Format("std::size_t operator()([[maybe_unused]] const {0}& x) const", fullName));
         owr.WriteLine("size_t seed = 0;");
         foreach (var arg in ctor.Formals) {
-          if (!arg.IsGhost) {
+          if (IsComparable(arg)) {
             owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
           }
         }
@@ -431,24 +439,21 @@ namespace Microsoft.Dafny.Compilers {
           }
 
           // Overload the comparison operator
-          wstruct.WriteLine("friend bool operator==(const {0} &left, const {0} &right) {{ ", structName);
+          wstruct.WriteLine("friend bool operator==([[maybe_unused]] const {0} &left, [[maybe_unused]] const {0} &right) {{ ", structName);
 
-          var preReturn = wstruct.Fork();
           wstruct.Write("\treturn true ");
           i = 0;
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
-              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive destructor needs to use a pointer
-                wstruct.WriteLine("\t\t&& *(left.{0}) == *(right.{0})", FormalName(arg, i));
-              } else {
-                wstruct.WriteLine("\t\t&& left.{0} == right.{0}", FormalName(arg, i));
+              if (IsComparable(arg)) {
+                if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive destructor needs to use a pointer
+                  wstruct.WriteLine("\t\t&& *(left.{0}) == *(right.{0})", FormalName(arg, i));
+                } else {
+                  wstruct.WriteLine("\t\t&& left.{0} == right.{0}", FormalName(arg, i));
+                }
               }
               i++;
             }
-          }
-
-          if (i == 0) { // Avoid a warning from the C++ compiler
-            preReturn.WriteLine("(void)left; (void) right;");
           }
 
           wstruct.WriteLine(";\n}");
@@ -460,22 +465,17 @@ namespace Microsoft.Dafny.Compilers {
           hashWr.WriteLine("template <{0}>", TypeParameters(dt.TypeArgs));
           var fullName = dt.EnclosingModuleDefinition.GetCompileName(Options) + "::" + structName + InstantiateTemplate(dt.TypeArgs);
           var hwr = hashWr.NewBlock(string.Format("struct std::hash<{0}>", fullName), ";");
-          var owr = hwr.NewBlock(string.Format("std::size_t operator()(const {0}& x) const", fullName));
+          var owr = hwr.NewBlock(string.Format("std::size_t operator()([[maybe_unused]] const {0}& x) const", fullName));
           owr.WriteLine("size_t seed = 0;");
-          int argCount = 0;
           foreach (var arg in ctor.Formals) {
-            if (!arg.IsGhost) {
+            if (IsComparable(arg)) {
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                 // Recursive destructor needs to use a pointer
                 owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
               } else {
                 owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
               }
-              argCount++;
             }
-          }
-          if (argCount == 0) {
-            owr.WriteLine("(void)x;");
           }
           owr.WriteLine("return seed;");
         }
