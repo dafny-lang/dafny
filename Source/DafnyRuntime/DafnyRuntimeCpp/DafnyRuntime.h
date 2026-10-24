@@ -176,6 +176,13 @@ struct get_default<std::shared_ptr<U>> {
   }
 };
 
+template<typename R, typename... Args>
+struct get_default<std::function<R(Args...)>> {
+  static std::function<R(Args...)> call() {
+    return [](Args...) -> R { return get_default<R>::call(); };
+  }
+};
+
 /*********************************************************
  *  TUPLES                                               *
  *********************************************************/
