@@ -531,14 +531,11 @@ struct std::hash<DafnySequence<U>> {
     }
 };
 
+// By identity, like operator==: an array's elements can change while it is in a set.
 template <typename U>
 struct std::hash<DafnyArray<U>> {
     size_t operator()(const DafnyArray<U>& s) const {
-        size_t seed = 0;
-        for (size_t i = 0; i < s.size(); i++) {
-            hash_combine<U>(seed, s.at(i));
-        }
-        return seed;
+        return std::hash<U*>()(s.ptr());
     }
 };
 
