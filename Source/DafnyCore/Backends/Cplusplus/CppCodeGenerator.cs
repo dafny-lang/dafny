@@ -1497,10 +1497,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitNewArray(Type elementType, IOrigin tok, List<string> dimensions,
         bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var initValue = mustInitialize ? DefaultValue(elementType, wr, tok) : null;
-      // TODO: Handle initValue
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
-        wr.Write($"DafnyArray<{TypeName(elementType, wr, tok)}>::New({dimensions[0]})");
+        var init = initValue == null ? "" : $", {initValue}";
+        wr.Write($"DafnyArray<{TypeName(elementType, wr, tok)}>::New({dimensions[0]}{init})");
       } else {
         throw new UnsupportedFeatureException(tok, Feature.MultiDimensionalArrays);
       }
