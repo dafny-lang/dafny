@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.Compilers {
     private List<string> classDefaults = [];
 
     // An instance const with an initializer is a getter, computed on each use as in the other backends, so it
-    // runs on an object whose constructor has assigned the consts it reads.
+    // runs on an object that a shared_ptr owns and whose constructor has assigned the consts it reads.
     private static bool IsGetter(MemberDecl member) => member is ConstantField { Rhs: not null, IsStatic: false };
 
     /*
@@ -256,7 +256,7 @@ namespace Microsoft.Dafny.Compilers {
         classDefWriter.WriteLine(DeclareTemplate(typeParameters));
       }
 
-      var methodDeclWriter = classDefWriter.NewBlock(string.Format("class {0}", className), ";");
+      var methodDeclWriter = classDefWriter.NewBlock(string.Format("class {0} : public std::enable_shared_from_this<{0}{1}>", className, InstantiateTemplate(typeParameters)), ";");
       var methodDefWriter = wr;
 
       classDeclWriter.WriteLine("class {0};", className);
@@ -2026,9 +2026,21 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"[=]({parameters}) -> {TypeName(resultType, wr, tok)} {{ return ");
       var w = wr.Fork();
       wr.Write("; }");
-      TrExprList(arguments, wr, inLetExprBody, wStmts);
+      var wArgs = wr.ForkInParens();
+      var wArgStmts = wStmts;
+      wArgs.Comma(arguments, (arg, _) => {
+        if (arg is ThisExpr) {
+          wArgs.Write("this->shared_from_this()");
+        } else {
+          EmitExpr(arg, inLetExprBody, wArgs, wArgStmts);
+        }
+      });
       return w;
     }
+
+    // `this` is a raw pointer, so a lambda that mentions it gets a shared_ptr instead (see EmitBetaRedex): the
+    // lambda can outlive every other shared_ptr to the object.
+    protected override bool TargetLambdaBindsReceiver => true;
 
     protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, ConcreteSyntaxTree wr) {
       wr.Write("is_{1}({0})", source, DatatypeSubStructName(ctor));
