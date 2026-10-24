@@ -64,6 +64,10 @@ namespace Microsoft.Dafny.Compilers {
     private List<DatatypeDecl> datatypeDecls = [];
     private List<string> classDefaults = [];
 
+    // An instance const with an initializer is a getter, computed on each use as in the other backends, so it
+    // runs on an object whose constructor has assigned the consts it reads.
+    private static bool IsGetter(MemberDecl member) => member is ConstantField { Rhs: not null, IsStatic: false };
+
     /*
      * Unlike other Dafny and Dafny's other backends, C++ cares about
      * the order in which types are declared.  To make this more likely
@@ -280,6 +284,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override bool SupportsProperties { get => false; }
+
+    // The base declares a backing field for a const that the constructor assigns; without a prefix, that field is
+    // the const itself.
+    protected override string InternalFieldPrefix => "";
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
       TraitDecl trait, List<Type> superClasses /*?*/, IOrigin tok, ConcreteSyntaxTree wr) {
@@ -787,7 +795,7 @@ namespace Microsoft.Dafny.Compilers {
           MethodDeclWriter, MethodWriter, lookasideBody);
       }
       public ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IOrigin tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
-        return CodeGenerator.CreateGetter(name, enclosingDecl, resultType, tok, isStatic, isConst, createBody, MethodDeclWriter, MethodWriter);
+        return CodeGenerator.CreateGetter(name, enclosingDecl, resultType, tok, isStatic, isConst, createBody, member, MethodDeclWriter, MethodWriter);
       }
       public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IOrigin tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
         return CodeGenerator.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, MethodWriter);
@@ -911,7 +919,16 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(tok, Feature.RuntimeTypeDescriptors, string.Format("RuntimeTypeDescriptor {0} not yet supported", type));
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl cls, Type resultType, IOrigin tok, bool isStatic, bool isConst, bool createBody, ConcreteSyntaxTree wdr, ConcreteSyntaxTree wr) {
+    protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl cls, Type resultType, IOrigin tok, bool isStatic, bool isConst, bool createBody, MemberDecl member, ConcreteSyntaxTree wdr, ConcreteSyntaxTree wr) {
+      if (IsGetter(member)) {
+        return createBody ? wdr.NewNamedBlock("{0} {1}()", TypeName(resultType, wr, tok), name) : null;
+      }
+      if (member is ConstantField { IsStatic: false }) {
+        // A const that the constructor assigns is its own backing field (see InternalFieldPrefix), so the getter,
+        // which would read that field, is dropped.
+        return createBody ? new ConcreteSyntaxTree() : null;
+      }
+
       // Compiler insists on using Getter for constants, but we just use the raw variable name to hold the value,
       // because o/w Compiler tries to use the Getter function as an Lvalue in assignments
       // Unfortunately, Compiler doesn't tell us what the initial value is, so we hack around it
@@ -1871,6 +1888,8 @@ namespace Microsoft.Dafny.Compilers {
           IdName(member.EnclosingClass),
           IdName(member)
         ));
+      } else if (IsGetter(member)) {
+        return SuffixLvalue(obj, "->{0}()", IdName(member));
       } else {
         return SuffixLvalue(obj, "->{0}", IdName(member));
       }
