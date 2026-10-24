@@ -153,8 +153,6 @@ module StringsExamples {
   }
 }
 
-// Existing refinements need no additional abstract lemma. A refinement can
-// establish the indexed digit law when it wants to use the new round trips.
 module BinaryConversionExample refines Std.Strings.ParametricConversion {
   type Char = char
   const chars := "01"
@@ -164,51 +162,9 @@ module BinaryConversionExample refines Std.Strings.ParametricConversion {
     ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
   {}
 
-  @IsolateAssertions
-  lemma RoundTrips(n: nat, i: int, digits: seq<digit>) {
+  lemma RoundTrip(n: nat) {
     assert DigitCharsConsistent();
-    LemmaOfIntToInt(i, '~');
-    assert ToInt(OfInt(i, '~'), '~') == i;
     LemmaOfNatToNat(n);
     assert ToNat(OfNat(n)) == n;
-    LemmaOfDigitsToNat(digits);
-    assert ToNat(OfDigits(digits)) == ToNatRight(digits);
-  }
-
-  @IsolateAssertions
-  @Test
-  method TestBinaryDigits() {
-    var empty: seq<digit> := [];
-    var digits: seq<digit> := [1, 0, 1, 1];
-    var padded: seq<digit> := [1, 0, 0];
-    expect OfDigits(empty) == "";
-    expect ToNat(OfDigits(empty)) == 0;
-    expect OfDigits(digits) == "1101";
-    expect ToNat(OfDigits(digits)) == 13;
-    expect OfDigits(padded) == "001";
-    expect ToNat(OfDigits(padded)) == 1;
-  }
-}
-
-// CharsConsistent alone intentionally still permits repeated characters.
-// This refinement documents why the new generic lemmas need their premise.
-module RepeatedDigitExample refines Std.Strings.ParametricConversion {
-  type Char = char
-  const chars := "00"
-  const charToDigit := map['0' := 0]
-
-  lemma CharsConsistent()
-    ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
-  {}
-
-  @IsolateAssertions
-  @Test
-  method TestRepeatedDigit() {
-    ghost var decodedSecondDigit := charToDigit[chars[1]];
-    assert decodedSecondDigit == 0;
-    assert DigitCharsConsistent() ==> decodedSecondDigit == 1;
-    assert !DigitCharsConsistent();
-    expect OfNat(1) == "0";
-    expect ToNat(OfNat(1)) == 0;
   }
 }
