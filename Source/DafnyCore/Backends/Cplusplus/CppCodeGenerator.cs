@@ -563,7 +563,7 @@ namespace Microsoft.Dafny.Compilers {
                   returnType = String.Format("std::shared_ptr<{0}>", returnType);
                 }
 
-                var wDtor = ws.NewNamedBlock("{0} dtor_{1}()", returnType,
+                var wDtor = ws.NewNamedBlock("{0} dtor_{1}() const", returnType,
                   arg.CompileName);
                 if (dt.IsRecordType) {
                   wDtor.WriteLine("return this.{0};", IdName(arg));
@@ -2043,7 +2043,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IOrigin tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
-      var parameters = inNames.Comma((name, i) => $"{TypeName(inTypes[i], wr, tok)} {name}");
+      var parameters = inNames.Comma((name, i) => $"[[maybe_unused]] {TypeName(inTypes[i], wr, tok)} {name}");
       return wr.NewBigExprBlock($"[=]({parameters}) -> {TypeName(resultType, wr, tok)} ");
     }
 
