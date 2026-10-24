@@ -108,9 +108,6 @@ module Std.Strings {
     {
       if digits != [] {
         LemmaOfDigitsToNat(digits[1..]);
-        assert OfDigits(digits) == OfDigits(digits[1..]) + [chars[digits[0]]];
-        assert OfDigits(digits)[..|OfDigits(digits)| - 1] == OfDigits(digits[1..]);
-        assert OfDigits(digits)[|OfDigits(digits)| - 1] == chars[digits[0]];
       }
     }
 
@@ -119,10 +116,7 @@ module Std.Strings {
       ensures forall c <- OfNat(n) :: IsDigitChar(c)
       ensures ToNat(OfNat(n)) == n
     {
-      if n == 0 {
-        assert chars[0] in charToDigit;
-        assert charToDigit[chars[0]] == 0;
-      } else {
+      if n != 0 {
         LemmaOfDigitsToNat(FromNat(n));
         LemmaNatSeqNat(n);
       }
@@ -136,14 +130,9 @@ module Std.Strings {
     {
       if n >= 0 {
         LemmaOfNatToNat(n);
-        assert OfInt(n, minus) == OfNat(n);
-        assert |OfNat(n)| > 0;
         assert OfNat(n)[0] in OfNat(n);
-        assert OfNat(n)[0] in charToDigit;
-        assert !([minus] <= OfNat(n));
       } else {
         LemmaOfNatToNat(-n);
-        assert OfInt(n, minus) == [minus] + OfNat(-n);
       }
     }
 
