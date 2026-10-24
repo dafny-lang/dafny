@@ -1107,17 +1107,11 @@ namespace Microsoft.Dafny.Compilers {
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
             return "nullptr";
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-            // Default total function value: a lambda returning the range default
-            // (matches the other backends, which return a callable, not an empty one).
             var rangeType = udt.TypeArgs.Last();
             var rangeDefaultValue = TypeInitializationValue(rangeType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-            // Unnamed params: the default stub ignores its arguments (avoids
-            // -Wunused-parameter without suppressing the warning globally).
-            var argDecls = new List<string>();
-            for (var i = 0; i < udt.TypeArgs.Count - 1; i++) {
-              argDecls.Add(TypeName(udt.TypeArgs[i], wr, tok));
-            }
-            return $"{TypeName(udt, wr, tok)}([=]({string.Join(", ", argDecls)}) -> {TypeName(rangeType, wr, tok)} {{ return {rangeDefaultValue}; }})";
+            // Unnamed parameters, to avoid -Wunused-parameter.
+            var parameters = udt.TypeArgs.SkipLast(1).Comma(ta => TypeName(ta, wr, tok));
+            return $"{TypeName(udt, wr, tok)}([]({parameters}) -> {TypeName(rangeType, wr, tok)} {{ return {rangeDefaultValue}; }})";
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
             // non-null array type; we know how to initialize them
             var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
@@ -2009,15 +2003,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
       List<Type> boundTypes, Type resultType, IOrigin tok, bool inLetExprBody, ConcreteSyntaxTree wr,
       ref ConcreteSyntaxTree wStmts) {
-      // An immediately-applied lambda: [=](T0 v0, ...) -> R { return <body>; }(args)
-      wr.Write("[=](");
-      for (var i = 0; i < boundVars.Count; i++) {
-        if (i != 0) {
-          wr.Write(", ");
-        }
-        wr.Write($"{TypeName(boundTypes[i], wr, tok, null, false)} {boundVars[i]}");
-      }
-      wr.Write($") -> {TypeName(resultType, wr, tok, null, false)} {{ return ");
+      var parameters = boundVars.Comma((name, i) => $"{TypeName(boundTypes[i], wr, tok)} {name}");
+      wr.Write($"[=]({parameters}) -> {TypeName(resultType, wr, tok)} {{ return ");
       var w = wr.Fork();
       wr.Write("; }");
       TrExprList(arguments, wr, inLetExprBody, wStmts);
@@ -2056,15 +2043,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IOrigin tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
-      wr.Write("[=](");
-      for (var i = 0; i < inNames.Count; i++) {
-        if (i != 0) {
-          wr.Write(", ");
-        }
-        wr.Write($"[[maybe_unused]] {TypeName(inTypes[i], wr, tok, null, false)} {inNames[i]}");
-      }
-      var w = wr.NewBigExprBlock($") -> {TypeName(resultType, wr, tok, null, false)} ");
-      return w;
+      var parameters = inNames.Comma((name, i) => $"{TypeName(inTypes[i], wr, tok)} {name}");
+      return wr.NewBigExprBlock($"[=]({parameters}) -> {TypeName(resultType, wr, tok)} ");
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IOrigin bvTok, Type bodyType, IOrigin bodyTok,
