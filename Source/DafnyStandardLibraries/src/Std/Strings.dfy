@@ -32,6 +32,11 @@ module Std.Strings {
     lemma CharsConsistent()
       ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
 
+    // Each canonical digit character decodes to its index; aliases are allowed.
+    ghost predicate DigitCharsConsistent() {
+      forall d: nat | d < |chars| :: chars[d] in charToDigit && charToDigit[chars[d]] == d
+    }
+
     function BASE(): nat {
       base
     }
@@ -93,6 +98,41 @@ module Std.Strings {
         var c := str[|str| - 1];
         assert IsDigitChar(c);
         ToNat(str[..|str| - 1]) * base + charToDigit[c]
+    }
+
+    lemma {:induction false} LemmaOfDigitsToNat(digits: seq<digit>)
+      requires DigitCharsConsistent()
+      ensures forall c <- OfDigits(digits) :: IsDigitChar(c)
+      ensures ToNat(OfDigits(digits)) == ToNatRight(digits)
+    {
+      if digits != [] {
+        LemmaOfDigitsToNat(digits[1..]);
+      }
+    }
+
+    lemma LemmaOfNatToNat(n: nat)
+      requires DigitCharsConsistent()
+      ensures forall c <- OfNat(n) :: IsDigitChar(c)
+      ensures ToNat(OfNat(n)) == n
+    {
+      if n != 0 {
+        LemmaOfDigitsToNat(FromNat(n));
+        LemmaNatSeqNat(n);
+      }
+    }
+
+    lemma LemmaOfIntToInt(n: int, minus: Char)
+      requires DigitCharsConsistent()
+      requires minus !in charToDigit
+      ensures OfInt(n, minus) != [minus]
+      ensures ToInt(OfInt(n, minus), minus) == n
+    {
+      if n >= 0 {
+        LemmaOfNatToNat(n);
+        assert OfNat(n)[0] in OfNat(n);
+      } else {
+        LemmaOfNatToNat(-n);
+      }
     }
 
     lemma {:induction false} ToNatBound(str: String)
@@ -181,10 +221,36 @@ module Std.Strings {
         'a' := 0xA, 'b' := 0xB, 'c' := 0xC, 'd' := 0xD, 'e' := 0xE, 'f' := 0xF,
         'A' := 0xA, 'B' := 0xB, 'C' := 0xC, 'D' := 0xD, 'E' := 0xE, 'F' := 0xF
       ]
-    // The size of the map makes this impractical to verify easily.
-    @Axiom
+    lemma DigitsConsistent()
+      ensures DigitCharsConsistent()
+    {
+      forall d: nat | d < |chars|
+        ensures chars[d] in charToDigit && charToDigit[chars[d]] == d
+      {}
+    }
+
     lemma CharsConsistent()
       ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
+    {
+      DigitsConsistent();
+    }
+
+    lemma LemmaNatRoundTrip(n: nat)
+      ensures forall c <- OfNat(n) :: IsDigitChar(c)
+      ensures ToNat(OfNat(n)) == n
+    {
+      DigitsConsistent();
+      LemmaOfNatToNat(n);
+    }
+
+    lemma LemmaIntRoundTrip(n: int, minus: Char)
+      requires minus !in charToDigit
+      ensures OfInt(n, minus) != [minus]
+      ensures ToInt(OfInt(n, minus), minus) == n
+    {
+      DigitsConsistent();
+      LemmaOfIntToInt(n, minus);
+    }
   }
 
   @DisableNonlinearArithmetic
@@ -199,6 +265,30 @@ module Std.Strings {
     lemma CharsConsistent()
       ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
     {}
+
+    lemma DigitsConsistent()
+      ensures DigitCharsConsistent()
+    {
+      forall d: nat | d < |chars|
+        ensures chars[d] in charToDigit && charToDigit[chars[d]] == d
+      {}
+    }
+
+    lemma LemmaNatRoundTrip(n: nat)
+      ensures forall c <- OfNat(n) :: IsDigitChar(c)
+      ensures ToNat(OfNat(n)) == n
+    {
+      DigitsConsistent();
+      LemmaOfNatToNat(n);
+    }
+
+    lemma LemmaIntRoundTrip(n: int)
+      ensures OfInt(n, '-') != ['-']
+      ensures ToInt(OfInt(n, '-'), '-') == n
+    {
+      DigitsConsistent();
+      LemmaOfIntToInt(n, '-');
+    }
   }
 
   module CharStrEscaping refines ParametricEscaping {
@@ -243,6 +333,20 @@ module Std.Strings {
     requires DecimalConversion.IsNumberStr(str, '-')
   {
     DecimalConversion.ToInt(str, '-')
+  }
+
+  lemma LemmaNatRoundTrip(n: nat)
+    ensures forall c <- OfNat(n) :: DecimalConversion.IsDigitChar(c)
+    ensures ToNat(OfNat(n)) == n
+  {
+    DecimalConversion.LemmaNatRoundTrip(n);
+  }
+
+  lemma LemmaIntRoundTrip(n: int)
+    ensures OfInt(n) != "-"
+    ensures ToInt(OfInt(n)) == n
+  {
+    DecimalConversion.LemmaIntRoundTrip(n);
   }
 
   /**
