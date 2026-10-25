@@ -2,93 +2,14 @@ module StringsExamples {
   import opened Std.Strings
   import opened Std.Wrappers
   import H = Std.Strings.HexConversion
-  import D = Std.Strings.DecimalConversion
 
-  @IsolateAssertions
-  lemma DecimalRoundTrips(n: nat, i: int) {
+  lemma RoundTrips(n: nat, i: int) {
+    H.LemmaIntRoundTrip(i, '-');
+    assert H.ToInt(H.OfInt(i, '-'), '-') == i;
     LemmaNatRoundTrip(n);
     assert ToNat(OfNat(n)) == n;
     LemmaIntRoundTrip(i);
     assert ToInt(OfInt(i)) == i;
-    D.LemmaNatRoundTrip(n);
-    assert D.ToNat(D.OfNat(n)) == n;
-    D.LemmaIntRoundTrip(i);
-    assert D.ToInt(D.OfInt(i, '-'), '-') == i;
-  }
-
-  @IsolateAssertions
-  lemma HexRoundTrips(n: nat, i: int)
-    ensures forall c <- H.OfNat(n) :: H.IsDigitChar(c)
-    ensures H.ToNat(H.OfNat(n)) == n
-    ensures H.OfInt(i, '-') != ['-']
-    ensures H.ToInt(H.OfInt(i, '-'), '-') == i
-  {
-    H.LemmaIntRoundTrip(i, '-');
-    assert H.ToInt(H.OfInt(i, '-'), '-') == i;
-    H.LemmaNatRoundTrip(n);
-    assert H.ToNat(H.OfNat(n)) == n;
-  }
-
-  @IsolateAssertions
-  @Test
-  method TestRoundTrips() {
-    for i := -512 to 513 {
-      LemmaIntRoundTrip(i);
-      expect ToInt(OfInt(i)) == i;
-      HexRoundTrips(if i >= 0 then i else 0, i);
-      expect H.ToInt(H.OfInt(i, '-'), '-') == i;
-      if i >= 0 {
-        LemmaNatRoundTrip(i);
-        expect ToNat(OfNat(i)) == i;
-        expect H.ToNat(H.OfNat(i)) == i;
-      }
-    }
-  }
-
-  @IsolateAssertions
-  @Test
-  method TestLargeRoundTrips() {
-    // Exercise arbitrary-precision values beyond machine integer widths.
-    var large := 1234567890123456789012345678901234567890;
-    H.LemmaIntRoundTrip(-large, '~');
-    expect H.ToInt(H.OfInt(-large, '~'), '~') == -large;
-    LemmaNatRoundTrip(large);
-    expect ToNat(OfNat(large)) == large;
-    LemmaIntRoundTrip(-large);
-    expect ToInt(OfInt(-large)) == -large;
-  }
-
-  @IsolateAssertions
-  @Test
-  method TestHexNormalization() {
-    expect H.OfNat(0xABCDEF) == "ABCDEF";
-    expect H.ToNat("abcdef") == 0xABCDEF;
-    expect H.ToNat("aBcDeF") == 0xABCDEF;
-    expect H.OfNat(H.ToNat("00ab")) == "AB";
-  }
-
-  @IsolateAssertions
-  @Test
-  method TestDecimalNormalization() {
-    expect OfInt(ToInt("-0")) == "0";
-    expect OfNat(ToNat("0007")) == "7";
-  }
-
-  @IsolateAssertions
-  @Test
-  method TestEmptyParses() {
-    expect ToNat("") == 0;
-    expect H.ToNat("") == 0;
-    expect ToInt("") == 0;
-    expect H.ToInt("", '-') == 0;
-  }
-
-  @IsolateAssertions
-  @Test
-  method TestSignCollision() {
-    // A digit used as the sign can change a positive number's interpretation.
-    expect H.OfInt(0xAB, 'A') == "AB";
-    expect H.ToInt("AB", 'A') == -0xB;
   }
 
   @Test

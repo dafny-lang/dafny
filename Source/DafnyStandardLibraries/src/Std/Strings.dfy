@@ -32,8 +32,7 @@ module Std.Strings {
     lemma CharsConsistent()
       ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
 
-    // Unlike CharsConsistent, this law distinguishes every digit index.
-    // It is an explicit premise so refinements with repeated chars remain valid.
+    // Each canonical digit character decodes to its index; aliases are allowed.
     ghost predicate DigitCharsConsistent() {
       forall d: nat | d < |chars| :: chars[d] in charToDigit && charToDigit[chars[d]] == d
     }
@@ -222,7 +221,6 @@ module Std.Strings {
         'a' := 0xA, 'b' := 0xB, 'c' := 0xC, 'd' := 0xD, 'e' := 0xE, 'f' := 0xF,
         'A' := 0xA, 'B' := 0xB, 'C' := 0xC, 'D' := 0xD, 'E' := 0xE, 'F' := 0xF
       ]
-    @IsolateAssertions
     lemma DigitsConsistent()
       ensures DigitCharsConsistent()
     {
@@ -231,7 +229,6 @@ module Std.Strings {
       {}
     }
 
-    @IsolateAssertions
     lemma CharsConsistent()
       ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
     {
@@ -269,7 +266,6 @@ module Std.Strings {
       ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
     {}
 
-    @IsolateAssertions
     lemma DigitsConsistent()
       ensures DigitCharsConsistent()
     {
