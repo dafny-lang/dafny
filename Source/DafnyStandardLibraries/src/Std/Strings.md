@@ -30,10 +30,11 @@ module NumberRoundTrips {
 }
 ```
 
-`DecimalConversion` and `HexConversion` have the same lemmas. Other refinements of `ParametricConversion`
-get them as `LemmaOfNatToNat` and `LemmaOfIntToInt` by proving `DigitCharsConsistent()`, which, unlike
-`CharsConsistent`, requires every canonical digit character to decode to its index:
-`charToDigit[chars[d]] == d`. Additional parsing aliases are allowed.
-The generic and hexadecimal integer lemmas take a sign character that must be outside `charToDigit`.
+`DecimalConversion` and `HexConversion` also provide these lemmas. For hexadecimal integers,
+supply a sign character outside the digit map, for example `HexConversion.LemmaIntRoundTrip(i, '-')`.
+
+Refinements of `ParametricConversion` use `LemmaOfNatToNat` and `LemmaOfIntToInt` after proving
+`DigitCharsConsistent()`: each canonical character `chars[d]` must decode to digit `d`.
+Additional parsing aliases are allowed. The generic integer lemma also requires `minus !in charToDigit`.
 See [`StringsExamples.dfy`](../../examples/StringsExamples.dfy) for a binary refinement that
 discharges the digit-consistency premise.
