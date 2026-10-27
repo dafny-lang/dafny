@@ -1,0 +1,1 @@
+Go compilation now correctly initializes arrays of native bitvectors.
