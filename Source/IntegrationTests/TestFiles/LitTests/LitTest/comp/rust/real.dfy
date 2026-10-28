@@ -4,6 +4,9 @@
 
 newtype Pos = r: real | r >= 0.0
 newtype Small = i: int | 0 <= i < 100
+newtype I8 = x: int | -128 <= x < 128
+type NonNeg = r: real | r >= 0.0
+type MyReal = real
 
 method Main() {
   var a: real := 0.25;
@@ -25,4 +28,9 @@ method Main() {
   var k: Small := 7;
   var q: real := k as real;
   print p.Floor, " ", (p as real) * 2.0, " ", q / 2.0, " ", (q / 2.0).Floor as Small, " ", (q * 2.0) as Small, "\n";
+  var neg: real := -2.5;
+  var nn: NonNeg := 2.5;
+  var my: MyReal := -1.5;
+  var i8: I8 := -3;
+  print neg.Floor as I8, " ", (neg * 2.0) as I8, " ", nn.Floor, " ", my.Floor, " ", i8 as real, " ", i8 as real / 2.0, "\n";
 }
