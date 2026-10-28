@@ -1,0 +1,1 @@
+Rust: support `real`. Programs using it compile again, decimals print correctly (`0.25` printed as `0.04`), and `as int`, `as real` and `.Floor` work.
