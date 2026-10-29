@@ -498,9 +498,10 @@ axiom (forall o: ORDINAL, m,n: int ::
     (0 <= m - n ==> ORD#Minus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Plus(o, ORD#FromNat(m-n))) &&
     (m - n <= 0 ==> ORD#Minus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Minus(o, ORD#FromNat(n-m))));
 // o-m+n == EITHER o-(m-n) OR o+(n-m)
+// (o-m is specified only for m <= ORD#Offset(o), so that is the guard)
 axiom (forall o: ORDINAL, m,n: int ::
   { ORD#Plus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) }
-  0 <= m && 0 <= n && n <= ORD#Offset(o) + m ==>
+  0 <= m && 0 <= n && m <= ORD#Offset(o) ==>
     (0 <= m - n ==> ORD#Plus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Minus(o, ORD#FromNat(m-n))) &&
     (m - n <= 0 ==> ORD#Plus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Plus(o, ORD#FromNat(n-m))));
 
