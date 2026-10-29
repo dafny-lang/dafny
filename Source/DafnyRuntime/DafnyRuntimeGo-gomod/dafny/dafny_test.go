@@ -209,3 +209,59 @@ func TestCardinalityOverflow(t *testing.T) {
 
 	SeqOfBytes(a).Cardinality()
 }
+
+// An extern type that implements EqualsGeneric as identity, which is what an
+// extern class or trait must do (see the EqualsGeneric doc comment). Dafny
+// cannot generate this: Go forbids declaring methods on a foreign package's type.
+type externReference struct {
+	v int
+}
+
+func (_this *externReference) Equals(other *externReference) bool {
+	return _this == other
+}
+
+func (_this *externReference) EqualsGeneric(x interface{}) bool {
+	other, ok := x.(*externReference)
+	return ok && _this.Equals(other)
+}
+
+// An extern type that implements nothing, standing for a Go type whose author
+// has not followed the contract.
+type externOpaque struct {
+	v int
+}
+
+func TestAreEqualUsesEqualsGenericForExternReferences(t *testing.T) {
+	a := &externReference{v: 1}
+	b := &externReference{v: 1}
+	if !AreEqual(a, a) {
+		t.Error("an extern reference must equal itself")
+	}
+	if AreEqual(a, b) {
+		t.Error("distinct extern references must not be equal, even when structurally identical")
+	}
+	if AreEqual(a, &externOpaque{v: 1}) {
+		t.Error("references of different types must not be equal")
+	}
+}
+
+func TestAreEqualFallsBackToDeepEqual(t *testing.T) {
+	// Without EqualsGeneric there is nothing to distinguish a reference from a
+	// value, so the fallback compares structurally. This is why an extern class
+	// must implement EqualsGeneric to get the identity equality Dafny assumes.
+	if !AreEqual(&externOpaque{v: 1}, &externOpaque{v: 1}) {
+		t.Error("a pointer without EqualsGeneric keeps DeepEqual semantics")
+	}
+	if !AreEqual([]interface{}{1, 2}, []interface{}{1, 2}) {
+		t.Error("non-pointer values must keep DeepEqual semantics")
+	}
+}
+
+func TestAreEqualObjectIdentity(t *testing.T) {
+	// Dafny-generated reference types implement EqualsGeneric themselves.
+	o := New_Object()
+	if !AreEqual(o, o) || AreEqual(o, New_Object()) {
+		t.Error("Object identity equality must be preserved")
+	}
+}
