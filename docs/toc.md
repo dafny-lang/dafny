@@ -1,8 +1,6 @@
 ---
 title: Dafny Resources for Users
 layout: default
-# Feel free to add content and custom Front Matter to this file.
-# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 ---
 
 <link rel="stylesheet" href="assets/main.css">
@@ -58,9 +56,7 @@ There are also publications and lecture notes:
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
 
 And some books:
-* K. Rustan M. Leino, 2023, [_Program Proofs_](https://mitpress.mit.edu/9780262546232/program-proofs/), available March, 2023.
-* K. Rustan M. Leino and Kaleb Leino, 2020, [_Program Proofs_](https://www.lulu.com/shop/k-rustan-m-leino-and-kaleb-leino/program-proofs/paperback/product-wqy8w5.html). Draft version of the book being published by MIT Press, available only until its release in March 2023. 
-* Boro Sitnovski, 2022, [_Introducing Software Verification with Dafny Language_](https://link.springer.com/book/10.1007/978-1-4842-7978-6_)
+* K. Rustan M. Leino, 2023, [_Program Proofs_](https://mitpress.mit.edu/9780262546232/program-proofs/), MIT Press.
 * Jason Koenig, K. Rustan M. Leino, 2016, [_Getting Started with Dafny: A Guide_](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/krml220.pdf)
 
 Miscellaneous notes about compiling Dafny code
