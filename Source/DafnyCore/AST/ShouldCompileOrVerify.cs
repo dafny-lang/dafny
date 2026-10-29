@@ -25,7 +25,7 @@ public static class ShouldCompileOrVerify {
       return true;
     }
 
-    if (program.Options.Backend?.TargetId != "lib") {
+    if (program.Options.Backend?.TargetId != Compilers.LibraryBackend.Id) {
       if (!ProgramResolver.ShouldCompile(module)) {
         return false;
       }
