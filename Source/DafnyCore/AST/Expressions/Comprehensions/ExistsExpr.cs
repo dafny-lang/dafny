@@ -21,7 +21,7 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
   public ExistsExpr(Cloner cloner, ExistsExpr existsExpr) : base(cloner, existsExpr) {
   }
 
-  public override Expression LogicalBody(bool bypassSplitQuantifier = false) {
+  public override Expression LogicalBody() {
     if (Range == null) {
       return Term;
     }
@@ -37,10 +37,6 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
   /// Assumes the expression has been resolved.
   /// </summary>
   public Expression AlphaRename(string prefix) {
-    if (SplitQuantifierExpression is ExistsExpr splitQuantifierExpression) {
-      return splitQuantifierExpression.AlphaRename(prefix);
-    }
-
     var substMap = new Dictionary<IVariable, Expression>();
     var bvars = new List<BoundVar>();
     foreach (var bv in BoundVars) {
@@ -52,7 +48,8 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
     var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
     var range = Range == null ? null : s.Substitute(Range);
     var term = s.Substitute(Term);
-    var attrs = s.SubstAttributes(Attributes);
+    // The verifier assumes the renamed guard's CanCall assumption, which for several parts is weaker than the guard's
+    var attrs = s.SubstAttributes(Triggers.QuantifierSplitter.WithoutSeveralParts(this));
 
     var ex = new ExistsExpr(Origin, bvars, range, term, attrs) {
       Type = Type.Bool,

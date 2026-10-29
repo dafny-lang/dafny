@@ -1,0 +1,1 @@
+Fix the existence check of a let-such-that expression, such as `var d :| exists i :: B(i) || (A(i, d) && A(i + 1, d)); d`, failing where that of the same `:|` statement succeeds, when Dafny splits an existential in it into parts for its triggers.

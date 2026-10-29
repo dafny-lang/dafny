@@ -1,0 +1,4 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
+split-quantifiers-induction.legacy.dfy(16,9): Error: assertion could not be proved
+
+Dafny program verifier finished with 1 verified, 1 error
