@@ -14,6 +14,7 @@ public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
   public readonly Expression? ElementInit;
   public readonly List<Expression>? InitDisplay;
 
+  // ExplicitType itself, if there is one, since resolution resolves this type in place.
   [FilledInDuringResolution]
   public Type ElementType;
 
@@ -43,7 +44,7 @@ public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
   public AllocateArray(Cloner cloner, AllocateArray original)
     : base(cloner, original) {
     ExplicitType = cloner.CloneType(original.ExplicitType);
-    ElementType = cloner.CloneType(original.ElementType);
+    ElementType = ExplicitType ?? cloner.CloneType(original.ElementType);
     if (original.InitDisplay != null) {
       Contract.Assert(original.ArrayDimensions.Count == 1);
       ArrayDimensions = [cloner.CloneExpr(original.ArrayDimensions[0])];
