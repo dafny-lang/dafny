@@ -18,6 +18,9 @@ module.exports = async ({github, context, core, workflow_id, sha, ...config}) =>
   const workflow_runs_completed = workflow_runs.filter(run => run.status === "completed")
   // The status property can be one of: “queued”, “in_progress”, or “completed”.
   const workflow_runs_in_progress = workflow_runs.filter(run => run.status !== "completed")
+  // Conclusions other than success and failure/timed_out are skipped, so an older success can
+  // still satisfy the gate; collected only so the final message can say what it actually found.
+  const inconclusive = []
   for (const run of workflow_runs_completed) {
     // The conclusion property can be one of:
     // “success”, “failure”, “neutral”, “cancelled”, “skipped”, “timed_out”, or “action_required”.
@@ -40,7 +43,20 @@ module.exports = async ({github, context, core, workflow_id, sha, ...config}) =>
         ` their PRs and add the label [run-deep-tests] to their PRs`;
       core.setFailed(`Last run of ${runFilterDesc} did not succeed: ${run.html_url}${extraMessage}`)
       return
+    } else {
+      inconclusive.push(run)
     }
+  }
+  if (inconclusive.length > 0) {
+    const found = inconclusive
+      .map(run => `  - ${run.conclusion}: ${run.html_url}`)
+      .join("\n")
+    core.setFailed(
+      `No run of ${runFilterDesc} either succeeded or failed outright. Completed runs found:\n${found}\n` +
+      `A "startup_failure" means the workflow file itself could not be processed, so no jobs ran ` +
+      `and there are no logs to inspect - look for an invalid expression or context in the ` +
+      `workflow and the workflows it calls, rather than for a missing run.`)
+    return
   }
   core.setFailed(`No completed runs of ${runFilterDesc} found!`)
 }
