@@ -121,3 +121,17 @@ The correspondence between the Dafny and Python types is shown in this table.
 | function (arrow) types        | class 'function' |
 |-------------------------------|------------------------------|
 
+A Dafny `class` or `trait` has object identity, and the verifier assumes that
+`==` and the built-in collections compare such values by identity. The Python
+backend now compiles `==` and `!=` on reference types to `is` and `is not`, so
+an extern class that overrides `__eq__` no longer changes the result of a direct
+comparison. The built-in
+`set`, `multiset`, and `map` collections, however, still hash and compare their
+elements with `__eq__` and `__hash__`, so an extern class that overrides those
+can still make a compiled program contradict what the verifier proved — for
+example by giving a `set` fewer elements than was verified. A type whose
+equality should be structural is better modelled as a Dafny `datatype`, or, when
+it must be backed by Python code, as an opaque value type `type {:extern} T(==)`,
+whose equality the verifier leaves uninterpreted and whose Python `__eq__` and
+`__hash__` are then used at run time without contradicting any verified fact.
+
