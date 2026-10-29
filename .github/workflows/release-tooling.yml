@@ -1,0 +1,43 @@
+
+# Cheap PR-time checks on the release tooling itself. Both jobs need only Python,
+# git and make, and finish in seconds.
+#
+# Deliberately a standalone workflow rather than jobs in msbuild.yml: the
+# `singletons` job there is gated on `needs.check-deep-tests.result == 'success'`
+# and is skipped in the merge queue, so these would go quiet whenever master's
+# last nightly failed and on precisely the changes most likely to break them.
+
+name: Release tooling
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  news-fragments:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Dafny
+      uses: actions/checkout@v7
+    - name: Check that release notes are where the release script reads them
+      run: make news-check
+    - name: Test the release-note check itself
+      run: make news-check-test
+
+  prepare-release-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Dafny
+      uses: actions/checkout@v7
+    - name: Test Scripts/prepare_release.py
+      run: make prepare-release-test

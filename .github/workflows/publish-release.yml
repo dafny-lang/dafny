@@ -12,11 +12,11 @@ env:
 jobs:
   deep-integration-tests:
     if: github.repository_owner == 'dafny-lang'
-    uses: ./.github/workflows/integration-tests-reusable.yml
+    uses: ./.github/workflows/release-deep-tests-reusable.yml
     with:
+      # refs/tags/vX.Y.Z. The release branch runs the same tests before the tag
+      # exists; see release-branch-deep-tests.yml.
       ref: ${{ github.ref }}
-      all_platforms: true
-      num_shards: 5
 
   get-version:
     runs-on: ubuntu-22.04
