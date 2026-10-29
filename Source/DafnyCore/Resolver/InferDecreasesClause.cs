@@ -178,6 +178,11 @@ public class InferDecreasesClause {
           Type = Type.Bool
         };
         var s = new SetComprehension(e.Origin, true, [bvDecl], bvInE, bv,
+          // Not flagged as resolver-generated: "bvInE" is this comprehension's range as well as the
+          // trigger's sole argument -- the same object -- so the trigger cannot hold an expression shape
+          // the range does not already hold. If the range survives refinement cloning and re-resolution,
+          // so does the trigger. Flagging it made RefinementCloner drop it, costing the refined module its
+          // trigger and producing a spurious "could not find a trigger" warning.
           new Attributes("trigger", [bvInE], null)) {
           Type = resolver.SystemModuleManager.ObjectSetType(),
           Bounds = [boundedPool]

@@ -1,0 +1,4 @@
+git-issue-6378b.dfy(24,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+git-issue-6378b.dfy(31,10): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+
+Dafny program verifier finished with 1 verified, 2 errors
