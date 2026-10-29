@@ -857,7 +857,19 @@ namespace Microsoft.Dafny {
         Alternatively, we could call all the rewriter.PostResolve methods
       */
 
-      new MatchFlattener(reporter).PostResolve(module);
+      // Only flatten a module that resolved cleanly. Bounds discovery and type inference are
+      // themselves error-gated, so on an erroneous module the AST handed to MatchFlattener still
+      // has null Bounds and null Types, and flattening it crashes instead of reporting the errors.
+      // LiteralModuleDecl.Resolve gates its rewriters the same way.
+      //
+      // This is the same condition that guards SuccessfullyResolved above, deliberately: the two
+      // must agree, or a module could be left marked resolved but unflattened and reach Boogie
+      // generation with .Flattened unset, which is the crash the comment above describes. Note
+      // that Resolve can return false without reporting an error -- an unresolved import bails out
+      // silently -- so testing the error count alone would not be enough.
+      if (module.SuccessfullyResolved) {
+        new MatchFlattener(reporter).PostResolve(module);
+      }
 
       return sig;
     }
