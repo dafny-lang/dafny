@@ -21,7 +21,7 @@ public class ForallExpr : QuantifierExpr, ICloneable<ForallExpr> {
   public ForallExpr(Cloner cloner, ForallExpr original) : base(cloner, original) {
   }
 
-  public override Expression LogicalBody(bool bypassSplitQuantifier = false) {
+  public override Expression LogicalBody() {
     if (Range == null) {
       return Term;
     }

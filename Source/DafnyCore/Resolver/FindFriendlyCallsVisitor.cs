@@ -88,7 +88,6 @@ class FindFriendlyCallsVisitor : ResolverTopDownVisitor<CallingPosition> {
       return false;
     } else if (expr is QuantifierExpr) {
       var e = (QuantifierExpr)expr;
-      Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
       var cpos = IsCoContext ? cp : Invert(cp);
       if (ContinuityIsImportant) {
         if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {

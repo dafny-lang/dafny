@@ -13,6 +13,7 @@ public class TriggerGeneratingRewriter : IRewriter {
     var finder = new Triggers.QuantifierCollector(Reporter);
 
     foreach (var decl in ModuleDefinition.AllCallablesIncludingPrefixDeclarations(definition.TopLevelDecls)) {
+      finder.InPrefixDeclaration = decl is PrefixPredicate or PrefixLemma;
       finder.Visit(decl, null);
     }
 

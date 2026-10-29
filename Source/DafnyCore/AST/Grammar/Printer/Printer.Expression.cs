@@ -1168,8 +1168,9 @@ namespace Microsoft.Dafny {
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
-        if (e.SplitQuantifier != null) {
-          PrintExpr(e.SplitQuantifierExpression, contextBindingStrength, fragileContext, isRightmost,
+        // A serialized program is parsed again, so it has the quantifier as written, not the verifier's parts
+        if (printMode != PrintModes.Serialization && e.PartsExpression() is { } parts) {
+          PrintExpr(parts, contextBindingStrength, fragileContext, isRightmost,
             isFollowedBySemicolon, indent, keyword, resolv_count);
           return;
         }
