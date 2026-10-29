@@ -1,7 +1,7 @@
 use crate::DafnyPrint;
 use crate::Rc;
-use num::bigint::BigInt;
-use num::rational::BigRational;
+pub use num::bigint::BigInt;
+pub use num::rational::BigRational;
 use num::FromPrimitive;
 use num::ToPrimitive;
 use num::{bigint::ParseBigIntError, Integer, Num, One, Signed, Zero};
@@ -147,9 +147,13 @@ impl DafnyInt {
     }
 }
 
-// fn dafny_rational_to_int(r: &BigRational) -> BigInt {
-//     euclidian_division(r.numer().clone(), r.denom().clone())
-// }
+pub fn dafny_rational_to_int(r: &BigRational) -> DafnyInt {
+    bigint_to_dafny_int(&r.floor().to_integer())
+}
+
+pub fn dafny_int_to_rational(i: &DafnyInt) -> BigRational {
+    BigRational::from_integer(dafny_int_to_bigint(i))
+}
 
 impl DafnyPrint for BigInt {
     fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
@@ -186,7 +190,7 @@ fn divides_a_power_of_10(mut i: BigInt) -> (bool, BigInt, usize) {
 
     while i.is_multiple_of(&two) {
         i /= &two;
-        factor *= &two;
+        factor *= &five;
         log10 += 1;
     }
 
