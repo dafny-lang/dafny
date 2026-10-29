@@ -262,7 +262,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(L <= MaxTupleNonGhostDims);
       EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
       var wrOuter = wr;
-      wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
+      wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.EnumerationOrder, s.Range, wr);
       var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr);
       wrTuple.Write($"{L}<{tupleTypeArgs}>(");
       if (s0.Lhs is MemberSelectExpr lhs1) {

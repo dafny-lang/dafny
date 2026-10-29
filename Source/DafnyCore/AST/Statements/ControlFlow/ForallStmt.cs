@@ -16,6 +16,10 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
 
   [FilledInDuringResolution] public List<BoundedPool> Bounds;
   // invariant: if successfully resolved, Bounds.Count == BoundVars.Count;
+  /// <summary>
+  /// The order in which the compiled code enumerates "BoundVars", as indices into it, or null for the order given.
+  /// </summary>
+  [FilledInDuringResolution] public List<int> EnumerationOrder;
 
   /// <summary>
   /// Assign means there are no ensures clauses and the body consists of one update statement,
@@ -58,6 +62,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
 
     if (cloner.CloneResolvedFields) {
       Bounds = original.Bounds.ConvertAll(bp => bp?.Clone(cloner));
+      EnumerationOrder = original.EnumerationOrder;
       Kind = original.Kind;
       EffectiveEnsuresClauses = original.EffectiveEnsuresClauses?.Select(cloner.CloneExpr).ToList();
     }
