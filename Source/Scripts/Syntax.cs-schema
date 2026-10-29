@@ -189,6 +189,10 @@ class CharLiteralExpr : LiteralExpr
 {
 }
 
+class WildcardExpr : Expression
+{
+}
+
 class UnchangedExpr : Expression
 {
     List<FrameExpression> frame;
@@ -316,6 +320,10 @@ abstract class PredicateStmt : Statement
 class ExpectStmt : PredicateStmt
 {
     Expression? message;
+}
+
+class AssumeStmt : PredicateStmt
+{
 }
 
 class AssertStmt : PredicateStmt
