@@ -537,21 +537,34 @@ struct DafnySet {
         return true;
     }
 
-    bool IsProperSubsetOf(const DafnySet<T>& other) {
+    bool IsProperSubsetOf(const DafnySet<T>& other) const {
         return IsSubsetOf(other) && (size() < other.size());
      }
+
+    bool IsSupersetOf(const DafnySet<T>& other) const {
+        return other.IsSubsetOf(*this);
+    }
+
+    bool IsProperSupersetOf(const DafnySet<T>& other) const {
+        return other.IsProperSubsetOf(*this);
+    }
 
     bool contains(T t) const {
         return set.find(t) != set.end();
     }
 
-    bool disjoint(const DafnySet<T>& other) {
+    bool IsDisjointFrom(const DafnySet<T>& other) const {
         for (auto const& elt:set) {
             if (other.set.find(elt) != other.set.end()) {
                 return false;
             }
         }
         return true;
+    }
+
+    [[deprecated("Use IsDisjointFrom instead")]]
+    bool disjoint(const DafnySet<T>& other) const {
+        return IsDisjointFrom(other);
     }
 
     DafnySet<T> Union(const DafnySet<T>& other) {

@@ -41,6 +41,24 @@ method Basic() {
   Test("Membership", 1 in s);
   Test("NonMembership1", !(5 in s));
   Test("NonMembership2", !(1 in (s - {1})));
+
+  // Superset (>=), proper superset (>) and disjointness (!!) exercise
+  // DafnySet::IsSupersetOf / IsProperSupersetOf / IsDisjointFrom, which
+  // the C++ runtime previously did not implement.
+  var u:set<uint32> := {1, 2};
+  var w:set<uint32> := {5, 6};
+  Test("Superset", s >= u);
+  Test("SelfSuperset", s >= s);
+  Test("NotSuperset", !(u >= s));
+  Test("NotSupersetIncomparable", !(u >= w));
+  Test("NotSupersetLargerIncomparable", !(s >= w));
+  Test("ProperSuperset", s > u);
+  Test("ProperSupersetIdentity", !(s > s));
+  Test("NotProperSupersetIncomparable", !(u > w));
+  Test("NotProperSupersetLargerIncomparable", !(s > w));
+  Test("Disjoint", s !! w);
+  Test("DisjointReverse", w !! s);
+  Test("NotDisjoint", !(s !! u));
 }
 
 method SetSeq() {
