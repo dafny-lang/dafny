@@ -46,6 +46,13 @@ public class Snippets {
     var fsCache = FsCaches.GetOrCreateValue(options)!;
     List<string> lines = fsCache.GetOrAdd(uri, key => {
       try {
+        var resolvedKey = DafnyFile.ResolveEmbeddedUri(key);
+        if (string.Equals(Path.GetExtension(resolvedKey.LocalPath), DooFile.Extension, StringComparison.OrdinalIgnoreCase)) {
+          // Positions in doo-sourced declarations refer to the program text stored inside
+          // the .doo archive, not to the raw bytes of the archive itself.
+          using var dooReader = new StringReader(DooFile.ReadProgramText(resolvedKey));
+          return Util.Lines(dooReader).ToList();
+        }
         // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
         // an in-memory version of each file it parses.
         var file = DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance, new ErrorReporterSink(options), options, uri, Token.NoToken);
