@@ -696,9 +696,6 @@ struct DafnyMap {
     }
 
     DafnyMap(std::initializer_list<std::pair<const K,V>> il) {
-        // Dafny map-literal semantics: on a duplicate key the LAST value wins.
-        // std::unordered_map's initializer-list ctor uses insert(), which KEEPS the
-        // first and drops later duplicates, so assign element-by-element instead.
         for (const auto& kv : il) {
             map.insert_or_assign(kv.first, kv.second);
         }
