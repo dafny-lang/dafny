@@ -1,0 +1,1 @@
+Fix unsoundness ("1 == 2" was provable) in `greatest` (`least`) predicates that call themselves under an existential (universal) quantifier over a type that may involve `ORDINAL`, such as a datatype with an `ORDINAL` field or a type parameter; these are now rejected unless the quantifier has a finite range
