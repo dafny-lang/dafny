@@ -1930,7 +1930,7 @@ namespace Microsoft.Dafny {
       var q = new Bpl.ForallExpr(tok, bvs, BplImp(ante, pre));
       var indicesDesc = new IndicesInDomain(forArray ? "array" : "sequence", dims, init);
       builder.Add(AssertAndForget(builder.Context, tok, q, indicesDesc));
-      if (!forArray && options.DoReadsChecks) {
+      if (options.DoReadsChecks) {
         // unwrap renamed local lambdas
         var unwrappedFunc = init;
         while (unwrappedFunc is ConcreteSyntaxExpression { ResolvedExpression: not null } cse) {
@@ -1942,7 +1942,7 @@ namespace Microsoft.Dafny {
         // check read effects
         Type objset = program.SystemModuleManager.ObjectSetType();
         Expression wrap = new BoogieWrapper(
-          FunctionCall(tok, Reads(1), TrType(objset), args),
+          FunctionCall(tok, Reads(dims.Count), TrType(objset), args),
           objset);
         var reads = new FrameExpression(tok, wrap, null);
         Action<IOrigin, Bpl.Expr, ProofObligationDescription, Bpl.QKeyValue> maker = (t, e, d, qk) => {
@@ -1966,7 +1966,7 @@ namespace Microsoft.Dafny {
           Utils.MakeDafnyFrameCheck(contextReads, readsCall, null),
           null
         );
-        var readsDesc = new ReadFrameSubset("invoke the function passed as an argument to the sequence constructor", readsDescExpr);
+        var readsDesc = new ReadFrameSubset($"invoke the function passed as an argument to the {(forArray ? "array initializer" : "sequence constructor")}", readsDescExpr);
         CheckFrameSubset(tok, [reads], null, null,
           etran, etran.ReadsFrame(tok), maker, (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), readsDesc, options.AssertKv);
       }
