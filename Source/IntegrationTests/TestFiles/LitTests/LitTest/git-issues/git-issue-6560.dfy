@@ -17,13 +17,6 @@ method Main() {
   var e := new bv65[2];
   e[0] := 7;
   print e[0], " ", e[1], "\n";
-  var f := new bv8[2](_ => 0);
-  f[0] := 7;
-  print f[0], " ", f[1], "\n";
-  var g := new bv1[2];
-  g[0] := 1;
-  print g[0], " ", g[1], "\n";
-  var h := new bv9[2];
-  h[0] := 7;
-  print h[0], " ", h[1], "\n";
+  var f := new (bv8, bv16)[1];
+  print f[0].0, " ", f[0].1, "\n";
 }

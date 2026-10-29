@@ -1,1 +1,1 @@
-Go compilation now correctly initializes arrays of native bitvectors.
+Go backend: default bitvector values now carry their Go type.
