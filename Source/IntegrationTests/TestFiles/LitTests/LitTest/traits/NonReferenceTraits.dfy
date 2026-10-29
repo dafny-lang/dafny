@@ -216,14 +216,14 @@ module UninitializedConsts {
     ghost const A: AutoInit
     ghost const B: AutoInit := 15
 
-    const g: Nonempty // error: requires initialization
+    const g: Nonempty
     const h: Nonempty := 15
     ghost const G: Nonempty
     ghost const H: Nonempty := 15
 
-    const s: PossiblyEmpty // error: requires initialization
+    const s: PossiblyEmpty
     const t: PossiblyEmpty := 15
-    ghost const S: PossiblyEmpty // error: requires initialization
+    ghost const S: PossiblyEmpty
     ghost const T: PossiblyEmpty := 15
   }
 
