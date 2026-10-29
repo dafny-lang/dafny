@@ -1,0 +1,1 @@
+Counterexample extraction and test generation no longer fail on locales with a non-period decimal separator, by upgrading to Boogie 3.5.7

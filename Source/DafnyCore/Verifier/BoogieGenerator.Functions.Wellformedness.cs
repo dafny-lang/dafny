@@ -69,7 +69,7 @@ public partial class BoogieGenerator {
       var proc = new Procedure(f.Origin, "CheckWellformed" + NameSeparator + f.FullSanitizedName,
         [],
         Concat(Concat(typeInParams, heapParameters), procedureParameters), outParams,
-        false, requires, mod, ens, etran.TrAttributes(f.Attributes, null));
+        false, requires, [], ens, [], mod, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       generator.sink.AddTopLevelDeclaration(proc);
 
