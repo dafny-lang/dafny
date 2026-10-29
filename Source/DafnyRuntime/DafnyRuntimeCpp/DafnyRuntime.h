@@ -87,12 +87,6 @@ void dafny_print<bool>(bool x) {
   }
 }
 
-// Special-case the 8-bit integer types (uint8/int8 -> unsigned/signed char). A raw
-// `std::cout << (unsigned char)` prints the CHARACTER, not the number, so an
-// 8-bit-range newtype like `u8 = 0..256` would print 255 as the 0xFF byte instead
-// of "255". Cast to a wider integer so it prints as a number, matching cs/java/py.
-// (Dafny `char` is a distinct type — DafnySequence<char> etc. — so this does not
-// affect character printing.)
 template<>
 inline void dafny_print<uint8_t>(uint8_t x) { std::cout << (unsigned)x; }
 template<>
