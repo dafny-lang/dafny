@@ -218,10 +218,13 @@ RHS condition.
 x, y :| 0 < x+y < 10;
 ```
 This is read as assign values to `x` and `y` such that `0 < x+y < 10` is true.
-The given boolean expression need not constrain the LHS values uniquely:
-the choice of satisfying values is non-deterministic. 
-This can be used to make a choice as in the
-following example where we choose an element in a set.
+
+Every assign-such-that operator `x :| P(x)` yields an assertion that `exists x :: P(x)`. Dafny will report an error if it cannot prove that values
+exist that satisfy the condition.
+
+An assign-such-that operator can occur in both ghost contexts and compiled contexts. In a ghost context, there is nothing more to say. In a compiled context, it matters whether the operator appears in a statement or in an expression. A statement can mutate the program state and can be nondeterministic. Expressions are deterministic and do not mutate the state.
+
+An assign-such-that *statement* is *nondeterministic* in that the given boolean expression does not need to constrain the LHS values uniquely and Dafny makes no guarantee about which value will get picked. In fact, the value assigned to may be different each time the statement is executed, even if the program state is otherwise the same. For example, in the following we non-deterministically choose an element in a set:
 
 <!-- %check-verify -->
 ```dafny
@@ -238,9 +241,6 @@ method Sum(X: set<int>) returns (s: int)
 }
 ```
 
-Dafny will report an error if it cannot prove that values
-exist that satisfy the condition. 
-
 In this variation, with an `assume` keyword
 <!-- %no-check -->
 ```dafny
@@ -248,6 +248,46 @@ In this variation, with an `assume` keyword
 ```
 Dafny assumes without proof that an appropriate value exists.
 
+An assign-such-that *expression* is *deterministic* in that the LHS values must be uniquely determined. In case `x :| P(x); Body(x)` appears in an expression and `x` is non-ghost, Dafny adds as a proof obligation, `forall x, y | P(x) && P(y) :: Body(x) == Body(y)`. For example, removing the `ghost` keyword in the following functional variation of the `Sum` method leads to a failure in verification, since uniqueness is not guaranteed a priori:
+
+<!-- %check-verify -->
+```dafny
+ghost function Sum(X: set<int>): int {
+  if X == {} then 
+    0
+  else 
+    var x :| x in X;
+    x + Sum(X - {x})
+}
+```
+
+For `Sum` to be compilable, the constraint on `x` must be strengthened to denote a unique value. In this case, we can always pick the *smallest* integer in `X`. As we strengthen the constraint, the existence condition becomes harder (and the uniqueness condition easier) to verify. The following definition deals with that problem by calling a lemma just before the let-such-that expression:
+
+<!-- %check-verify -->
+```dafny
+function Sum(X: set<int>): int {
+  if X == {} then 
+    0
+  else 
+    ThereIsASmallest(X);
+    var x :| x in X && (forall y :: y in X ==> x <= y); 
+    x + Sum(X - {x})
+}
+
+lemma ThereIsASmallest(X: set<int>)
+  requires X != {}
+  ensures exists x :: x in X && (forall y :: y in X ==> x <= y)
+{
+  var x :| x in X;
+  if X != {x} {
+    var Y := X - {x};
+    assert X == Y + {x};
+    ThereIsASmallest(Y);
+  }
+}
+```
+
+Note that the lemma makes use of a (nondeterministic) assign-such-that statement.
 
 Note that the syntax
 
