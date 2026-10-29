@@ -1,0 +1,1 @@
+Fixed a resolver crash when an untyped, module-level `const` read a datatype discriminator (`x.Ctor?`) or destructor (`x.field`)
