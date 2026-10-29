@@ -423,46 +423,49 @@ public partial class BoogieGenerator {
         sink.AddTopLevelDeclaration(new Axiom(tok,
           BplForall(bvarsOuter, BplTrigger(isAlloc),
             BplImp(goodHeap,
-              BplIff(isAlloc,
+              BplIff(
+                isAlloc,
                 BplForall(bvarsInner,
                   new Bpl.Trigger(tok, true, new List<Bpl.Expr> { applied }, BplTrigger(reads)),
-                  BplImp(BplAnd(isAllocBoxes, pre), isAllocReads)))))));
+                  BplImp(BplAnd(isAllocBoxes, pre), isAllocReads))
+                  )))));
       }
-      /*  This is the allocatedness consequence axiom of arrow types:
-        axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
-          { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
-          $IsGoodHeap(h) &&
-          $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h)
-          ==>
-              (forall bx0: Box ::
-                { Apply1(t0, t1, f, h, bx0) }
-                $IsAllocBox(bx0, t0, h)
-                && precondition of f(bx0) holds in h
-                ==>
-                  $IsAllocBox(Apply1(t0, t1, f, h, bx0), t1, h))
-          ));
-      */
-      {
-        var bvarsOuter = new List<Bpl.Variable>();
-        var f = BplBoundVar("f", Predef.HandleType, bvarsOuter);
-        var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, Predef.Ty, bvarsOuter));
-        var h = BplBoundVar("h", Predef.HeapType, bvarsOuter);
-        var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
-        var isAlloc = MkIsAlloc(f, ClassTyCon(ad, types), h);
+    //   /*  This is the allocatedness consequence axiom of arrow types:
+    //     axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
+    //       { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
+    //       $IsGoodHeap(h) &&
+    //       $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h)
+    //       ==>
+    //           (forall bx0: Box ::
+    //             { Apply1(t0, t1, f, h, bx0) }
+    //             $IsAllocBox(bx0, t0, h)
+    //             && precondition of f(bx0) holds in h
+    //             ==>
+    //               $IsAllocBox(Apply1(t0, t1, f, h, bx0), t1, h))
+    //       ));
+    //   */
+    //   {
+    //     var bvarsOuter = new List<Bpl.Variable>();
+    //     var f = BplBoundVar("f", Predef.HandleType, bvarsOuter);
+    //     var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, Predef.Ty, bvarsOuter));
+    //     var h = BplBoundVar("h", Predef.HeapType, bvarsOuter);
+    //     var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
+    //     var isAlloc = MkIsAlloc(f, ClassTyCon(ad, types), h);
 
-        var bvarsInner = new List<Bpl.Variable>();
-        var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, Predef.BoxType, bvarsInner));
-        var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIsAlloc(boxes[i], types[i], h, true)));
-        var pre = FunctionCall(tok, Requires(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-        var applied = FunctionCall(tok, Apply(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-        var applied_isAlloc = MkIsAlloc(applied, types[ad.Arity], h, true);
+    //     var bvarsInner = new List<Bpl.Variable>();
+    //     var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, Predef.BoxType, bvarsInner));
+    //     var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIsAlloc(boxes[i], types[i], h, true)));
+    //     var pre = FunctionCall(tok, Requires(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+    //     var applied = FunctionCall(tok, Apply(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+    //     var applied_isAlloc = MkIsAlloc(applied, types[ad.Arity], h, true);
 
-        sink.AddTopLevelDeclaration(new Axiom(tok,
-          BplForall(bvarsOuter, BplTrigger(isAlloc),
-            BplImp(BplAnd(goodHeap, isAlloc),
-              BplForall(bvarsInner, BplTrigger(applied),
-                BplImp(BplAnd(isAllocBoxes, pre), applied_isAlloc))))));
-      }
+    //     sink.AddTopLevelDeclaration(new Axiom(tok,
+    //       BplForall(bvarsOuter, BplTrigger(isAlloc),
+    //         BplImp(BplAnd(goodHeap, isAlloc),
+    //           BplForall(bvarsInner, BplTrigger(applied),
+    //             BplImp(BplAnd(isAllocBoxes, pre), applied_isAlloc))))));
+    //   }
+    //
     }
   }
 
