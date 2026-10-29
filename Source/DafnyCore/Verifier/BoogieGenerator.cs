@@ -5154,14 +5154,20 @@ namespace Microsoft.Dafny {
     /// antecedents for those corresponding bound variables.  If none of the bound variables is used, "body"
     /// is returned. Also, if none of the bound variables is used in "body" (whether or not they are used in "trg"),
     /// then "body" is returned.
+    /// Except: a bound variable is left out together with its antecedent, and "forall x :: A(x) ==> body", where
+    /// "body" does not mention "x", is "(exists x :: A(x)) ==> body" -- which is "body" only if "A" is inhabited.
+    /// So if any variable left out is in "possiblyEmpty" (its type is not known to be nonempty), then "body" is
+    /// replaced by "(exists L :: B) ==> body", where L are the variables left out and B their antecedents.
     /// The order of the contents of "varsAndAntecedents" matters: For any index "i" into "varsAndAntecedents", the
     /// antecedent varsAndAntecedents[i].Item2 may depend on a variable varsAndAntecedents[j].Item1 if "j GREATER-OR-EQUAL i"
     /// but not if "j LESS i".
     /// Caution: if "trg" is null, makes a forall without any triggers.
     /// </summary>
-    static Bpl.Expr BplForallTrim(IEnumerable<Tuple<Bpl.Variable, Bpl.Expr/*?*/>> varsAndAntecedents, Bpl.Trigger trg, Bpl.Expr body) {
+    static Bpl.Expr BplForallTrim(IEnumerable<Tuple<Bpl.Variable, Bpl.Expr/*?*/>> varsAndAntecedents, Bpl.Trigger trg, Bpl.Expr body,
+      ISet<Bpl.Variable> possiblyEmpty) {
       Contract.Requires(varsAndAntecedents != null);
       Contract.Requires(body != null);
+      Contract.Requires(possiblyEmpty != null);
 
       // We'd like to compute the free variables of "body" and "trg". It would be nice to use the Boogie
       // routine Bpl.Expr.ComputeFreeVariables for this purpose. However, calling it requires the Boogie
@@ -5169,27 +5175,33 @@ namespace Microsoft.Dafny {
       // free variables in "body" and "trg".
       var vis = new VariableNameVisitor();
       vis.Visit(body);
-      if (varsAndAntecedents.All(pair => !vis.Names.Contains(pair.Item1.Name))) {
-        // the body doesn't mention any of the bound variables, so no point in wrapping a quantifier around it
-        return body;
-      }
-      for (var tt = trg; tt != null; tt = tt.Next) {
-        tt.Tr.ForEach(ee => vis.Visit(ee));
-      }
-
       var args = new List<Bpl.Variable>();
       Bpl.Expr typeAntecedent = Bpl.Expr.True;
-      foreach (var pair in varsAndAntecedents) {
-        var bv = pair.Item1;
-        var wh = pair.Item2;
-        if (vis.Names.Contains(bv.Name)) {
-          args.Add(bv);
-          if (wh != null) {
-            typeAntecedent = BplAnd(typeAntecedent, wh);
-            vis.Visit(wh);  // this adds to "vis.Names" the free variables of "wh"
+      // if the body doesn't mention any of the bound variables, no bound variable is kept (but see "possiblyEmpty")
+      if (varsAndAntecedents.Any(pair => vis.Names.Contains(pair.Item1.Name))) {
+        for (var tt = trg; tt != null; tt = tt.Next) {
+          tt.Tr.ForEach(ee => vis.Visit(ee));
+        }
+
+        foreach (var pair in varsAndAntecedents) {
+          var bv = pair.Item1;
+          var wh = pair.Item2;
+          if (vis.Names.Contains(bv.Name)) {
+            args.Add(bv);
+            if (wh != null) {
+              typeAntecedent = BplAnd(typeAntecedent, wh);
+              vis.Visit(wh);  // this adds to "vis.Names" the free variables of "wh"
+            }
           }
         }
       }
+
+      var leftOut = varsAndAntecedents.Where(pair => !args.Contains(pair.Item1)).ToList();
+      if (leftOut.Any(pair => pair.Item2 != null && possiblyEmpty.Contains(pair.Item1))) {
+        var leftOutAntecedent = BplAnd(leftOut.Where(pair => pair.Item2 != null).Select(pair => pair.Item2));
+        body = BplImp(new Bpl.ExistsExpr(body.tok, leftOut.Select(pair => pair.Item1).ToList(), leftOutAntecedent), body);
+      }
+
       if (args.Count == 0) {
         return body;
       } else {
