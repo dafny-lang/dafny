@@ -21,6 +21,8 @@ method TestBasicLiteralAssignment() {
   var small: fp64 := ~4.56e-7;
 
   assert large == 12300000000.0;
+  // Pin the rounded value exactly; the range below cannot detect a 1-ULP rounding error.
+  assert small == 4.5600000000000000689370977836889498036043733009137213230133056640625e-7;
   assert 0.0 < small < ~0.000001;
 
   // Dot shorthand forms with fp64

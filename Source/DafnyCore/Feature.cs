@@ -193,7 +193,10 @@ public enum Feature {
   StandardLibraries,
 
   [FeatureDescription("Standard library ActionsExterns", "sec-dafny-standard-libraries")]
-  StandardLibrariesActionsExterns
+  StandardLibrariesActionsExterns,
+
+  [FeatureDescription("Floating-point types (fp32 and fp64)", "sec-floating-point-type")]
+  FloatingPointTypes
 }
 
 public class UnsupportedFeatureException : Exception {

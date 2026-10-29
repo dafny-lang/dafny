@@ -116,6 +116,436 @@ namespace Dafny {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Dafny's fp32/fp64 are value identity on the SMT FloatingPoint sort: there is
+  // exactly one NaN, and +0.0 and -0.0 are distinct. C#'s float/double reproduce
+  // neither -- "==" is IEEE (NaN != NaN, +0.0 == -0.0) and Equals is a third
+  // relation again (NaN == NaN and +0.0 == -0.0). So fp values are represented by
+  // these wrappers, whose Equals/GetHashCode implement the verifier's semantics
+  // and whose arithmetic delegates to float/double.
+  //
+  // The wrapped value is stored VERBATIM; NaN payloads are never rewritten.
+  // Canonicalization happens only in EqualityKey, the one place that observes it.
+  // The struct therefore has NO representation invariant, which is what makes it
+  // safe against MemoryMarshal.Cast and other bit-level interop: Equals is a
+  // function of the bit pattern that is constant on each equivalence class, so
+  // any representative gives the same answer.
+  //
+  // This file compiles against netstandard2.0 and net452 at LangVersion 7.3, so
+  // double.IsNegative/IsFinite/IsNormal/IsSubnormal and
+  // BitConverter.SingleToInt32Bits are unavailable here.
+  // ---------------------------------------------------------------------------
+  /// <summary>
+  /// Reformats what "R" produced as a Dafny floating-point literal: a lowercase exponent marker
+  /// with no "+", and a decimal point when there is no exponent. "R" already gives the shortest
+  /// digits that identify the value, which are the digits Dafny's literal printer produces, so only
+  /// the punctuation differs.
+  /// </summary>
+  internal static class FpFormat {
+    internal static string DafnyLiteralForm(string rendered) {
+      var s = rendered.Replace("E+", "e").Replace("E", "e");
+      var marker = s.IndexOf('e');
+      if (marker < 0) {
+        return s.IndexOf('.') < 0 ? s + ".0" : s;
+      }
+      // "R" pads an exponent to two digits, so 1e-9 arrives as 1e-09; a Dafny literal is unpadded.
+      var exponent = s.Substring(marker + 1);
+      var sign = exponent.Length > 0 && exponent[0] == '-' ? "-" : "";
+      var digits = (sign.Length > 0 ? exponent.Substring(1) : exponent).TrimStart('0');
+      return s.Substring(0, marker + 1) + sign + (digits.Length == 0 ? "0" : digits);
+    }
+  }
+
+  public readonly struct Fp64 : IEquatable<Fp64>, IComparable<Fp64>, IComparable {
+    private readonly double value;
+
+    private const long NaNCanonicalBits = unchecked((long)0x7ff8000000000000UL);
+    private const long SignBit = unchecked((long)0x8000000000000000UL);
+    private const long ExponentMask = unchecked((long)0x7ff0000000000000UL);
+    private const long SignificandMask = unchecked((long)0x000fffffffffffffUL);
+
+    public Fp64(double value) { this.value = value; }
+
+    public double Value => value;
+
+    public static Fp64 FromDoubleBits(long bits) => new Fp64(BitConverter.Int64BitsToDouble(bits));
+    public long ToDoubleBits() => BitConverter.DoubleToInt64Bits(value);
+
+    public static readonly Fp64 Zero = new Fp64(0.0);
+
+    private static bool IsNaNBits(long bits) =>
+      (bits & ExponentMask) == ExponentMask && (bits & SignificandMask) != 0;
+
+    /// <summary>
+    /// This value's identity in the SMT FloatingPoint sort: the raw bits, except that every NaN
+    /// maps to one pattern. Two Fp64s are the same Dafny value exactly when their keys are equal.
+    /// </summary>
+    private long EqualityKey => IsNaNBits(BitConverter.DoubleToInt64Bits(value))
+      ? NaNCanonicalBits
+      : BitConverter.DoubleToInt64Bits(value);
+
+    public bool Equals(Fp64 other) {
+      var a = BitConverter.DoubleToInt64Bits(value);
+      var b = BitConverter.DoubleToInt64Bits(other.value);
+      // Differing bit patterns are the same value only when both are NaN, the sort having one NaN.
+      return a == b || (IsNaNBits(a) && IsNaNBits(b));
+    }
+    public override bool Equals(object obj) => obj is Fp64 other && Equals(other);
+    public override int GetHashCode() => EqualityKey.GetHashCode();
+
+    // Dafny's "==". NOT IEEE equality; fp64.Equal maps to IeeeEqual below.
+    public static bool operator ==(Fp64 a, Fp64 b) => a.Equals(b);
+    public static bool operator !=(Fp64 a, Fp64 b) => !a.Equals(b);
+
+    // fp64.Equal: IEEE fp.eq.
+    public static bool IeeeEqual(Fp64 a, Fp64 b) => a.value == b.value;
+
+    private bool IsNegativeZero => BitConverter.DoubleToInt64Bits(value) == SignBit;
+    private bool IsPositiveZero => BitConverter.DoubleToInt64Bits(value) == 0L;
+
+    // Dafny's "<": IEEE fp.lt refined so that -0.0 < +0.0 and NaN is above every number. Mirrors
+    // FpLess in the verifier, which gives the reasons for both refinements. The result is a strict
+    // total order agreeing with "==", so unlike IEEE it is defined on every pair: 1.0 < NaN is true
+    // and NaN < NaN is false.
+    //
+    // double.IsNaN rather than the bit form used by IsNaN below: the two agree on every input,
+    // unlike double.IsNegative, and "d != d" is a single compare.
+    public static bool operator <(Fp64 a, Fp64 b) =>
+      a.value < b.value || (a.IsNegativeZero && b.IsPositiveZero)
+                        || (!double.IsNaN(a.value) && double.IsNaN(b.value));
+
+    // Totality makes "a <= b" and "!(b < a)" the same relation, so one definition serves all four.
+    // The verifier's FpAtMost does not take this shortcut, for a reason that applies only there:
+    // it turns antisymmetry into trichotomy, which the default solver options cannot discharge.
+    public static bool operator >(Fp64 a, Fp64 b) => b < a;
+    public static bool operator <=(Fp64 a, Fp64 b) => !(b < a);
+    public static bool operator >=(Fp64 a, Fp64 b) => !(a < b);
+
+    // fp64.Less and friends keep raw IEEE, mirroring fp64.Equal versus "==".
+    public static bool IeeeLess(Fp64 a, Fp64 b) => a.value < b.value;
+    public static bool IeeeLessOrEqual(Fp64 a, Fp64 b) => a.value <= b.value;
+
+    public static Fp64 operator +(Fp64 a, Fp64 b) => new Fp64(a.value + b.value);
+    public static Fp64 operator -(Fp64 a, Fp64 b) => new Fp64(a.value - b.value);
+    public static Fp64 operator *(Fp64 a, Fp64 b) => new Fp64(a.value * b.value);
+    public static Fp64 operator /(Fp64 a, Fp64 b) => new Fp64(a.value / b.value);
+    public static Fp64 operator -(Fp64 a) => new Fp64(-a.value);
+
+    public static explicit operator double(Fp64 a) => a.value;
+    public static explicit operator Fp64(double d) => new Fp64(d);
+
+    [Obsolete("Compare Dafny.Fp64 with Dafny.Fp64; wrap the double as new Dafny.Fp64(d).", true)]
+    public bool Equals(double other) => throw new NotSupportedException();
+
+    /// <summary>
+    /// Dafny's order as .NET's comparison protocol: negative exactly where "&lt;" holds, zero exactly
+    /// where Equals holds. That consistency is what SortedSet and SortedDictionary require, so
+    /// Comparer&lt;Fp64&gt;.Default is correct for them.
+    ///
+    /// Not a delegation to System.Double.CompareTo, which returns 0 for the two zeros and places NaN
+    /// below negative infinity.
+    /// </summary>
+    public int CompareTo(Fp64 other) => OrderKey(this).CompareTo(OrderKey(other));
+
+    int IComparable.CompareTo(object obj) {
+      if (obj == null) {
+        return 1;
+      }
+      if (obj is Fp64 other) {
+        return CompareTo(other);
+      }
+      throw new ArgumentException("Expected a Dafny.Fp64", nameof(obj));
+    }
+
+    private static long OrderKey(Fp64 v) {
+      // Map sign-magnitude onto a monotone two's-complement key. The "- 1" keeps -0.0 strictly below
+      // +0.0; without it the two collide. Canonicalized, so all NaNs share the top position, which
+      // the canonical pattern already exceeding +infinity's gives for free.
+      var bits = v.EqualityKey;
+      return bits < 0 ? long.MinValue - bits - 1 : bits;
+    }
+
+    // -------- Classification --------
+    // The SMT-LIB FloatingPoint predicates, which is what the verifier reasons about. Over the bits
+    // rather than via System.double for two reasons: double.IsNormal/IsSubnormal are absent on some
+    // target frameworks of this library, and double.IsNegative(double.NaN) is true, where SMT-LIB and
+    // IEEE 754 agree NaN has no sign. That divergence is observable -- the verifier proves
+    // !x.IsNegative from x.IsNaN.
+    private static long Exponent(double d) => BitConverter.DoubleToInt64Bits(d) & ExponentMask;
+    private static long Significand(double d) => BitConverter.DoubleToInt64Bits(d) & SignificandMask;
+
+    public static bool IsNaN(Fp64 a) => IsNaNBits(BitConverter.DoubleToInt64Bits(a.value));
+    public static bool IsInfinite(Fp64 a) => Exponent(a.value) == ExponentMask && Significand(a.value) == 0;
+    public static bool IsFinite(Fp64 a) => Exponent(a.value) != ExponentMask;
+    public static bool IsZero(Fp64 a) => Exponent(a.value) == 0 && Significand(a.value) == 0;
+    public static bool IsSubnormal(Fp64 a) => Exponent(a.value) == 0 && Significand(a.value) != 0;
+    public static bool IsNormal(Fp64 a) => Exponent(a.value) != 0 && Exponent(a.value) != ExponentMask;
+    public static bool IsNegative(Fp64 a) => !IsNaN(a) && (BitConverter.DoubleToInt64Bits(a.value) & SignBit) != 0;
+    public static bool IsPositive(Fp64 a) => !IsNaN(a) && (BitConverter.DoubleToInt64Bits(a.value) & SignBit) == 0;
+
+    // -------- Constants --------
+    // Pi and E are the dyadic rationals the verifier uses (BoogieGenerator.ExpressionTranslator).
+    // Both operands are exactly representable and the denominator is a power of two, so the quotient
+    // is exact and the two agree by construction rather than by how a decimal literal rounds.
+    public static readonly Fp64 NaN = FromDoubleBits(NaNCanonicalBits);
+    public static readonly Fp64 PositiveInfinity = new Fp64(double.PositiveInfinity);
+    public static readonly Fp64 NegativeInfinity = new Fp64(double.NegativeInfinity);
+    public static readonly Fp64 Pi = new Fp64(7074237752028440.0 / 2251799813685248.0);  // / 2^51
+    public static readonly Fp64 E = new Fp64(6121026514868073.0 / 2251799813685248.0);  // / 2^51
+    public static readonly Fp64 MaxValue = new Fp64(double.MaxValue);
+    public static readonly Fp64 MinValue = new Fp64(double.MinValue);
+    public static readonly Fp64 MinNormal = FromDoubleBits(0x0010000000000000L);  // 2^-1022
+    public static readonly Fp64 MinSubnormal = FromDoubleBits(1L);  // 2^-1074
+    public static readonly Fp64 Epsilon = new Fp64(1.0 / 4503599627370496.0);  // 2^-52
+
+    // -------- The fp64.* built-ins --------
+    // The code generator emits a call to the static of the same name for each, so this is the one
+    // place their meaning is defined. Equal and Less are IEEE where the operators above are Dafny's;
+    // separate names are what keep one from being emitted where the other was meant.
+    public static bool Equal(Fp64 a, Fp64 b) => IeeeEqual(a, b);
+    public static bool Less(Fp64 a, Fp64 b) => IeeeLess(a, b);
+    public static bool LessOrEqual(Fp64 a, Fp64 b) => IeeeLessOrEqual(a, b);
+    public static bool Greater(Fp64 a, Fp64 b) => IeeeLess(b, a);
+    public static bool GreaterOrEqual(Fp64 a, Fp64 b) => IeeeLessOrEqual(b, a);
+
+    public static Fp64 Add(Fp64 a, Fp64 b) => a + b;
+    public static Fp64 Sub(Fp64 a, Fp64 b) => a - b;
+    public static Fp64 Mul(Fp64 a, Fp64 b) => a * b;
+    public static Fp64 Div(Fp64 a, Fp64 b) => a / b;
+    public static Fp64 Neg(Fp64 a) => -a;
+
+    public static Fp64 Abs(Fp64 a) => new Fp64(Math.Abs(a.value));
+    public static Fp64 Floor(Fp64 a) => new Fp64(Math.Floor(a.value));
+    public static Fp64 Ceiling(Fp64 a) => new Fp64(Math.Ceiling(a.value));
+    public static Fp64 Round(Fp64 a) => new Fp64(Math.Round(a.value, MidpointRounding.ToEven));
+    public static Fp64 Sqrt(Fp64 a) => new Fp64(Math.Sqrt(a.value));
+    public static Fp64 FromReal(BigRational r) => new Fp64(r.ToDouble());
+
+    // SMT-LIB fp.min/fp.max discard a NaN operand where Math.Min/Math.Max propagate one, and the
+    // verifier holds them to that: fp.min(NaN, 1.0) == 1.0 is forced. On two zeros of opposite sign
+    // SMT-LIB leaves the result free, so either is sound.
+    public static Fp64 Min(Fp64 a, Fp64 b) => IsNaN(a) ? b : IsNaN(b) ? a : new Fp64(Math.Min(a.value, b.value));
+    public static Fp64 Max(Fp64 a, Fp64 b) => IsNaN(a) ? b : IsNaN(b) ? a : new Fp64(Math.Max(a.value, b.value));
+
+    public static BigInteger ToInt(Fp64 a) => (BigInteger)Math.Truncate((double)a.value);
+
+    // The "as" conversions. Each rounds, but each is only emitted where the verifier has discharged
+    // an exactness obligation, so on a proved execution the rounding is the identity.
+    public static Fp64 FromInt(BigInteger i) => new Fp64((double)i);
+    /// <summary>
+    /// The exact value as a rational. Every finite fp64 is m * 2^e for integers m and e, so no
+    /// approximation is involved. This does not go through BigRational's double constructor, which
+    /// rejects subnormals outright and leaves the fraction unreduced -- 1.5 would come back as
+    /// 2^52*3 over 2^53 and print with fifty-odd decimal places.
+    /// </summary>
+    public static BigRational ToReal(Fp64 a) {
+      if (!IsFinite(a)) {
+        throw new ArgumentException("Can't convert " + a + " to a rational.");
+      }
+      // Both zeros land here: reals have no signed zero, and the reduction loop below shifts while
+      // the low bit is clear, so a zero significand would not terminate.
+      if (IsZero(a)) {
+        return new BigRational(0);
+      }
+      var bits = BitConverter.DoubleToInt64Bits(a.value);
+      var biasedExponent = (int)((bits & ExponentMask) >> 52);
+      var mantissa = bits & SignificandMask;
+      // Subnormals have no implicit leading one, and their exponent is that of the smallest normal.
+      var significand = biasedExponent == 0 ? mantissa : mantissa | (SignificandMask + 1);
+      var exponent = (biasedExponent == 0 ? 1 : biasedExponent) - 1075;
+      // Cancel the common powers of two, so 1.5 comes out as 3/2.
+      while ((significand & 1) == 0) {
+        significand >>= 1;
+        exponent++;
+      }
+      var value = (bits & SignBit) != 0 ? -new BigInteger(significand) : new BigInteger(significand);
+      return exponent >= 0
+        ? new BigRational(value * BigInteger.Pow(2, exponent), BigInteger.One)
+        : new BigRational(value, BigInteger.Pow(2, -exponent));
+    }
+    // Widening, which is exact for every fp32 value.
+    public static Fp64 FromFp32(Fp32 a) => new Fp64((double)a.Value);
+
+    public override string ToString() {
+      if (double.IsNaN(value)) { return "NaN"; }
+      if (double.IsPositiveInfinity(value)) { return "Infinity"; }
+      if (double.IsNegativeInfinity(value)) { return "-Infinity"; }
+      // Spelled out because .NET Framework's "R" drops the sign on negative zero, and here the
+      // sign is the whole difference between two distinct Dafny values.
+      if (IsNegativeZero) { return "-0.0"; }
+      return FpFormat.DafnyLiteralForm(value.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+    }
+  }
+
+  public readonly struct Fp32 : IEquatable<Fp32>, IComparable<Fp32>, IComparable {
+    private readonly float value;
+
+    private const int NaNCanonicalBits = unchecked((int)0x7fc00000U);
+    private const int SignBit = unchecked((int)0x80000000U);
+    private const int ExponentMask = unchecked((int)0x7f800000U);
+    private const int SignificandMask = unchecked((int)0x007fffffU);
+
+    // netstandard2.0 has no BitConverter.SingleToInt32Bits, and going via GetBytes would allocate
+    // on every comparison, so reinterpret through an explicit-layout union.
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
+    private struct Bits {
+      [System.Runtime.InteropServices.FieldOffset(0)] public float F;
+      [System.Runtime.InteropServices.FieldOffset(0)] public int I;
+    }
+
+    private static int ToBits(float f) { var b = new Bits(); b.F = f; return b.I; }
+    private static float OfBits(int i) { var b = new Bits(); b.I = i; return b.F; }
+
+    public Fp32(float value) { this.value = value; }
+
+    public float Value => value;
+
+    public static Fp32 FromFloatBits(int bits) => new Fp32(OfBits(bits));
+    public int ToFloatBits() => ToBits(value);
+
+    public static readonly Fp32 Zero = new Fp32(0.0f);
+
+    private static bool IsNaNBits(int bits) =>
+      (bits & ExponentMask) == ExponentMask && (bits & SignificandMask) != 0;
+
+    private int EqualityKey => IsNaNBits(ToBits(value)) ? NaNCanonicalBits : ToBits(value);
+
+    public bool Equals(Fp32 other) {
+      var a = ToBits(value);
+      var b = ToBits(other.value);
+      // See Fp64.Equals: only NaNs can differ in bits and still be the same value.
+      return a == b || (IsNaNBits(a) && IsNaNBits(b));
+    }
+    public override bool Equals(object obj) => obj is Fp32 other && Equals(other);
+    public override int GetHashCode() => EqualityKey.GetHashCode();
+
+    public static bool operator ==(Fp32 a, Fp32 b) => a.Equals(b);
+    public static bool operator !=(Fp32 a, Fp32 b) => !a.Equals(b);
+
+    public static bool IeeeEqual(Fp32 a, Fp32 b) => a.value == b.value;
+
+    private bool IsNegativeZero => ToBits(value) == SignBit;
+    private bool IsPositiveZero => ToBits(value) == 0;
+
+    // As Fp64: a strict total order agreeing with "==", with -0.0 below +0.0 and NaN at the top;
+    // float.IsNaN for the same reason given there, and the other three derived by totality.
+    public static bool operator <(Fp32 a, Fp32 b) =>
+      a.value < b.value || (a.IsNegativeZero && b.IsPositiveZero)
+                        || (!float.IsNaN(a.value) && float.IsNaN(b.value));
+    public static bool operator >(Fp32 a, Fp32 b) => b < a;
+    public static bool operator <=(Fp32 a, Fp32 b) => !(b < a);
+    public static bool operator >=(Fp32 a, Fp32 b) => !(a < b);
+
+    public static bool IeeeLess(Fp32 a, Fp32 b) => a.value < b.value;
+    public static bool IeeeLessOrEqual(Fp32 a, Fp32 b) => a.value <= b.value;
+
+    public static Fp32 operator +(Fp32 a, Fp32 b) => new Fp32(a.value + b.value);
+    public static Fp32 operator -(Fp32 a, Fp32 b) => new Fp32(a.value - b.value);
+    public static Fp32 operator *(Fp32 a, Fp32 b) => new Fp32(a.value * b.value);
+    public static Fp32 operator /(Fp32 a, Fp32 b) => new Fp32(a.value / b.value);
+    public static Fp32 operator -(Fp32 a) => new Fp32(-a.value);
+
+    public static explicit operator float(Fp32 a) => a.value;
+    public static explicit operator Fp32(float f) => new Fp32(f);
+
+    [Obsolete("Compare Dafny.Fp32 with Dafny.Fp32; wrap the float as new Dafny.Fp32(f).", true)]
+    public bool Equals(float other) => throw new NotSupportedException();
+
+    /// <summary>As Fp64.CompareTo, including why NaN sits above every number here and below every
+    /// number in System.Single.CompareTo.</summary>
+    public int CompareTo(Fp32 other) => OrderKey(this).CompareTo(OrderKey(other));
+
+    int IComparable.CompareTo(object obj) {
+      if (obj == null) {
+        return 1;
+      }
+      if (obj is Fp32 other) {
+        return CompareTo(other);
+      }
+      throw new ArgumentException("Expected a Dafny.Fp32", nameof(obj));
+    }
+
+    private static int OrderKey(Fp32 v) {
+      var bits = v.EqualityKey;
+      return bits < 0 ? int.MinValue - bits - 1 : bits;
+    }
+
+    // -------- Classification --------
+    // As Fp64: the SMT-LIB predicates, over the bits for the reasons given there.
+    private static int Exponent(float d) => ToBits(d) & ExponentMask;
+    private static int Significand(float d) => ToBits(d) & SignificandMask;
+
+    public static bool IsNaN(Fp32 a) => IsNaNBits(ToBits(a.value));
+    public static bool IsInfinite(Fp32 a) => Exponent(a.value) == ExponentMask && Significand(a.value) == 0;
+    public static bool IsFinite(Fp32 a) => Exponent(a.value) != ExponentMask;
+    public static bool IsZero(Fp32 a) => Exponent(a.value) == 0 && Significand(a.value) == 0;
+    public static bool IsSubnormal(Fp32 a) => Exponent(a.value) == 0 && Significand(a.value) != 0;
+    public static bool IsNormal(Fp32 a) => Exponent(a.value) != 0 && Exponent(a.value) != ExponentMask;
+    public static bool IsNegative(Fp32 a) => !IsNaN(a) && (ToBits(a.value) & SignBit) != 0;
+    public static bool IsPositive(Fp32 a) => !IsNaN(a) && (ToBits(a.value) & SignBit) == 0;
+
+    // -------- Constants --------
+    // As Fp64: exact dyadic quotients, matching the fp32 cases in the translator.
+    public static readonly Fp32 NaN = FromFloatBits(NaNCanonicalBits);
+    public static readonly Fp32 PositiveInfinity = new Fp32(float.PositiveInfinity);
+    public static readonly Fp32 NegativeInfinity = new Fp32(float.NegativeInfinity);
+    public static readonly Fp32 Pi = new Fp32(13176795f / 4194304f);  // / 2^22
+    public static readonly Fp32 E = new Fp32(11401300f / 4194304f);  // / 2^22
+    public static readonly Fp32 MaxValue = new Fp32(float.MaxValue);
+    public static readonly Fp32 MinValue = new Fp32(float.MinValue);
+    public static readonly Fp32 MinNormal = FromFloatBits(0x00800000);  // 2^-126
+    public static readonly Fp32 MinSubnormal = FromFloatBits(1);  // 2^-149
+    public static readonly Fp32 Epsilon = new Fp32(1.0f / 8388608.0f);  // 2^-23
+
+    // -------- The fp32.* built-ins --------
+    // As Fp64: one static per built-in, with Equal and Less the IEEE counterparts of the operators.
+    public static bool Equal(Fp32 a, Fp32 b) => IeeeEqual(a, b);
+    public static bool Less(Fp32 a, Fp32 b) => IeeeLess(a, b);
+    public static bool LessOrEqual(Fp32 a, Fp32 b) => IeeeLessOrEqual(a, b);
+    public static bool Greater(Fp32 a, Fp32 b) => IeeeLess(b, a);
+    public static bool GreaterOrEqual(Fp32 a, Fp32 b) => IeeeLessOrEqual(b, a);
+
+    public static Fp32 Add(Fp32 a, Fp32 b) => a + b;
+    public static Fp32 Sub(Fp32 a, Fp32 b) => a - b;
+    public static Fp32 Mul(Fp32 a, Fp32 b) => a * b;
+    public static Fp32 Div(Fp32 a, Fp32 b) => a / b;
+    public static Fp32 Neg(Fp32 a) => -a;
+
+    // Each of these computes in double and rounds back. That is exact for Abs, Floor, Ceiling and
+    // Round, whose results are already representable in fp32. For Sqrt it is also correctly
+    // rounded rather than merely close: double rounding through a format with at least 2p+2 bits
+    // is harmless for square root, and 53 >= 2*24+2.
+    public static Fp32 Abs(Fp32 a) => new Fp32(Math.Abs(a.value));
+    public static Fp32 Floor(Fp32 a) => new Fp32((float)Math.Floor((double)a.value));
+    public static Fp32 Ceiling(Fp32 a) => new Fp32((float)Math.Ceiling((double)a.value));
+    public static Fp32 Round(Fp32 a) => new Fp32((float)Math.Round((double)a.value, MidpointRounding.ToEven));
+    public static Fp32 Sqrt(Fp32 a) => new Fp32((float)Math.Sqrt((double)a.value));
+    public static Fp32 FromReal(BigRational r) => new Fp32(r.ToSingle());
+    // Narrowing, rounding to nearest. This is the only rounding fp64 -> fp32 conversion, since
+    // "as fp32" asserts exact representability instead.
+    public static Fp32 FromFp64(Fp64 a) => new Fp32((float)a.Value);
+
+    // As Fp64: discard a NaN rather than propagating it, per SMT-LIB.
+    public static Fp32 Min(Fp32 a, Fp32 b) => IsNaN(a) ? b : IsNaN(b) ? a : new Fp32(Math.Min(a.value, b.value));
+    public static Fp32 Max(Fp32 a, Fp32 b) => IsNaN(a) ? b : IsNaN(b) ? a : new Fp32(Math.Max(a.value, b.value));
+
+    public static BigInteger ToInt(Fp32 a) => (BigInteger)Math.Truncate((double)a.value);
+
+    public static Fp32 FromInt(BigInteger i) => new Fp32((float)i);
+    // Every fp32 value is an fp64 value, so widening first is exact.
+    public static BigRational ToReal(Fp32 a) => Fp64.ToReal(Fp64.FromFp32(a));
+
+    public override string ToString() {
+      if (float.IsNaN(value)) { return "NaN"; }
+      if (float.IsPositiveInfinity(value)) { return "Infinity"; }
+      if (float.IsNegativeInfinity(value)) { return "-Infinity"; }
+      // Spelled out because .NET Framework's "R" drops the sign on negative zero, and here the
+      // sign is the whole difference between two distinct Dafny values.
+      if (IsNegativeZero) { return "-0.0"; }
+      return FpFormat.DafnyLiteralForm(value.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+    }
+  }
+
   public interface ISet<out T> {
     int Count { get; }
     long LongCount { get; }
@@ -1381,22 +1811,6 @@ namespace Dafny {
       return g == null ? 1001 : g.GetHashCode();
     }
 
-    // fp64.IsPositive helper - matches SMT-LIB fp.isPositive semantics
-    // Returns true for positive values including +0.0, false for -0.0, negative values, and NaN
-    public static bool Fp64IsPositive(double value) {
-      // >= 0.0 excludes negatives and NaN but includes both zeros
-      // 1.0/(-0.0) gives -Infinity, allowing us to detect and exclude -0.0
-      return value >= 0.0 && !(value == 0.0 && 1.0 / value < 0.0);
-    }
-
-    // fp32.IsPositive helper - matches SMT-LIB fp.isPositive semantics
-    // Returns true for positive values including +0.0, false for -0.0, negative values, and NaN
-    public static bool Fp32IsPositive(float value) {
-      // >= 0.0f excludes negatives and NaN but includes both zeros
-      // 1.0f/(-0.0f) gives -Infinity, allowing us to detect and exclude -0.0f
-      return value >= 0.0f && !(value == 0.0f && 1.0f / value < 0.0f);
-    }
-
     public static int ToIntChecked(BigInteger i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
         if (msg == null) {
@@ -1455,6 +1869,8 @@ namespace Dafny {
     public static readonly TypeDescriptor<Rune> RUNE = new TypeDescriptor<Rune>(new Rune('D'));  // See CharType.DefaultValue in Dafny source code
     public static readonly TypeDescriptor<BigInteger> INT = new TypeDescriptor<BigInteger>(BigInteger.Zero);
     public static readonly TypeDescriptor<BigRational> REAL = new TypeDescriptor<BigRational>(BigRational.ZERO);
+    public static readonly TypeDescriptor<Fp32> FP32 = new TypeDescriptor<Fp32>(Fp32.Zero);
+    public static readonly TypeDescriptor<Fp64> FP64 = new TypeDescriptor<Fp64>(Fp64.Zero);
     public static readonly TypeDescriptor<byte> UINT8 = new TypeDescriptor<byte>(0);
     public static readonly TypeDescriptor<ushort> UINT16 = new TypeDescriptor<ushort>(0);
     public static readonly TypeDescriptor<uint> UINT32 = new TypeDescriptor<uint>(0);
@@ -1910,9 +2326,15 @@ namespace Dafny {
       var scaledNum = absNum << scaleBits;
       var quotient = BigInteger.DivRem(scaledNum, absDen, out var remainder);
 
-      // Round to nearest even
-      if (remainder * 2 > absDen || (remainder * 2 == absDen && !quotient.IsEven)) {
-        quotient++;
+      // Fold the remainder into a sticky bit rather than rounding it away here. The narrowing below
+      // rounds to nearest, ties to even, and rounding twice differs from rounding once: the first
+      // rounding destroys the residual that decides the second.
+      //
+      // An OR suffices. The scaling above leaves at least two bits below the narrowing point, so
+      // bit 0 is discarded there; and if bit 0 is already set then the discarded tail is non-zero
+      // anyway, so it cannot be the exact tie the sticky bit exists to break.
+      if (!remainder.IsZero) {
+        quotient |= BigInteger.One;
       }
 
       if (quotient.IsZero) {
@@ -1928,24 +2350,12 @@ namespace Dafny {
         return isNegative ? double.NegativeInfinity : double.PositiveInfinity;
       }
 
-      // Handle underflow and subnormals
+      // Underflow and subnormals. Far underflow needs no special case: the shift below is computed
+      // from the biased exponent, so a value far beneath the smallest subnormal gets a correspondingly
+      // large shift and rounds to zero, and one exactly halfway to the smallest subnormal rounds to
+      // even, which is zero. A shift by the quotient's own width would ignore how far below the range
+      // the value sits and return the smallest subnormal instead.
       if (biasedExponent <= 0) {
-        var minBiasedExp = 2 - significandSize;
-        if (biasedExponent < minBiasedExp) {
-          // Special case: exactly at the halfway point
-          if (biasedExponent == minBiasedExp - 1 && quotient == BigInteger.One << (quotientBits - 1)) {
-            // Exactly halfway between 0 and smallest subnormal - round to even (0)
-            return isNegative ? -0.0 : 0.0;
-          }
-
-          // Otherwise, check if rounding brings us to smallest subnormal
-          var rounded = ApplyRoundedRightShift(quotient, quotientBits);
-          if (rounded > 0) {
-            // Rounds up to smallest subnormal
-            return ConvertSubnormalToDouble(1, significandSize, bias, significandFieldBits, isNegative);
-          }
-          return isNegative ? -0.0 : 0.0;
-        }
         var shiftAmount = quotientBits - significandSize - biasedExponent + 1;
         if (shiftAmount > 0) {
           quotient = ApplyRoundedRightShift(quotient, shiftAmount);

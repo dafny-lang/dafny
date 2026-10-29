@@ -25,6 +25,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.FloatingPointTypes,
       Feature.Iterators,
       Feature.SubsetTypeTests,
       Feature.MethodSynthesis,

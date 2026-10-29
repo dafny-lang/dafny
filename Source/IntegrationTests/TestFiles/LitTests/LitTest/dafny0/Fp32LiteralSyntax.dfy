@@ -31,7 +31,7 @@ method TestExactFp32Literals() {
   // Small integers are exactly representable
   var forty_two: fp32 := 42.0;
   var two_fifty_five: fp32 := 255.0;
-  assert forty_two > 41.0 && forty_two < 43.0;
+  assert forty_two == 42.0;
   assert two_fifty_five == 256.0 - 1.0;
 
   // Scientific notation for exact values
@@ -69,6 +69,12 @@ method TestApproximateFp32Literals() {
   assert ~2.1 < b < ~2.3;
   assert ~3.2 < c < ~3.4;
 
+  // Pin the rounded values exactly. A range check would still pass if ~ rounded to the
+  // wrong neighbour, so compare against the correctly-rounded binary32 value.
+  assert a == 1.10000002384185791015625;
+  assert b == 2.2000000476837158203125;
+  assert c == 3.2999999523162841796875;
+
   // Mathematical constants are approximate
   var pi: fp32 := ~3.14159265358979323846;
   var e: fp32 := ~2.71828182845904523536;
@@ -76,6 +82,8 @@ method TestApproximateFp32Literals() {
   // Verify constants are in expected ranges
   assert ~3.14 < pi < ~3.15;
   assert ~2.71 < e < ~2.72;
+  assert pi == 3.1415927410125732421875;  // 13176795 * 2^(-22)
+  assert e == 2.71828174591064453125;     // 11401300 * 2^(-22)
 
   // Negative approximate values use ~- syntax
   var neg_a: fp32 := ~-1.1;
@@ -135,6 +143,11 @@ method TestFinancialCalculations() {
   // Verify calculations
   assert ~1.6 < tax < ~1.7;      // Tax should be approximately $1.65
   assert ~21.6 < total < ~21.7;  // Total should be approximately $21.64
+
+  // The results are determinate, so pin them: the ranges above are wide enough that a
+  // wrong rounding mode in fp multiply or add would go unnoticed.
+  assert tax == 1.64917504787445068359375;
+  assert total == 21.6391754150390625;
 }
 
 method TestScientificComputations() {
@@ -147,6 +160,8 @@ method TestScientificComputations() {
   // Verify calculations
   assert 78.5 < area < ~78.6;           // Area of circle with radius 5 ≈ 78.54
   assert ~31.4 < circumference < 31.5;  // Circumference ≈ 31.42
+  assert area == 78.53981781005859375;
+  assert circumference == 31.415927886962890625;
 }
 
 method TestRealVsFp32Arithmetic() {
