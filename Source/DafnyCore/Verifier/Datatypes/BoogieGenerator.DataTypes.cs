@@ -76,9 +76,12 @@ namespace Microsoft.Dafny {
     /// Except, in the event that the datatype has exactly one constructor, then instead generate:
     ///     forall a, b ::
     ///       { Dt#Equal(a, b) }
-    ///       true
-    ///       ==>
-    ///       ...as before
+    ///       (Dt#Equal(a, b) ==> X#Equal(a.x, b.x) && Y#Equal(a.y, b.y)) &&
+    ///       (Ctor?(a) && Ctor?(b) && X#Equal(a.x, b.x) && Y#Equal(a.y, b.y) ==> Dt#Equal(a, b))
+    /// Dt#Equal is equality (see AddExtensionalityAxiom), so the first conjunct holds of all values and needs
+    /// no antecedent. The second one does: a and b range over all of DatatypeType, the sort that every
+    /// datatype shares, and without the antecedent it would make equal any two values, of any datatypes,
+    /// whose projections agree.
     /// </summary>
     private void AddInductiveDatatypeAxioms(Dictionary<DatatypeCtor, Bpl.Function> constructorFunctions,
       IndDatatypeDecl dt) {
@@ -99,19 +102,15 @@ namespace Microsoft.Dafny {
 
       foreach (var ctor in dt.Ctors) {
         Bpl.Trigger trigger;
-        Bpl.Expr ante;
+        var ctorQ = GetReadonlyField(ctor.QueryField);
+        var ctorQa = FunctionCall(ctor.Origin, ctorQ.Name, Bpl.Type.Bool, a);
+        var ctorQb = FunctionCall(ctor.Origin, ctorQ.Name, Bpl.Type.Bool, b);
+        var ante = BplAnd(ctorQa, ctorQb);
         if (dt.Ctors.Count == 1) {
-          ante = Bpl.Expr.True;
           trigger = BplTrigger(dtEqual);
         } else {
-          var ctorQ = GetReadonlyField(ctor.QueryField);
-          var ctorQa = FunctionCall(ctor.Origin, ctorQ.Name, Bpl.Type.Bool, a);
-          var ctorQb = FunctionCall(ctor.Origin, ctorQ.Name, Bpl.Type.Bool, b);
-          ante = BplAnd(ctorQa, ctorQb);
-          trigger = dt.Ctors.Count == 1
-            ? BplTrigger(dtEqual)
-            : new Bpl.Trigger(ctor.Origin, true, new List<Bpl.Expr> { dtEqual, ctorQa },
-              new Bpl.Trigger(ctor.Origin, true, new List<Bpl.Expr> { dtEqual, ctorQb }));
+          trigger = new Bpl.Trigger(ctor.Origin, true, new List<Bpl.Expr> { dtEqual, ctorQa },
+            new Bpl.Trigger(ctor.Origin, true, new List<Bpl.Expr> { dtEqual, ctorQb }));
         }
 
         Bpl.Expr eqs = Bpl.Expr.True;
@@ -124,7 +123,10 @@ namespace Microsoft.Dafny {
           eqs = BplAnd(eqs, eq);
         }
 
-        var ax = BplForall(new List<Variable> { aVar, bVar }, trigger, BplImp(ante, BplIff(dtEqual, eqs)));
+        var body = dt.Ctors.Count == 1
+          ? BplAnd(BplImp(dtEqual, eqs), BplImp(BplAnd(ante, eqs), dtEqual))
+          : BplImp(ante, BplIff(dtEqual, eqs));
+        var ax = BplForall(new List<Variable> { aVar, bVar }, trigger, body);
         AddOtherDefinition(constructorFunctions[ctor], new Bpl.Axiom(dt.Origin, ax, $"Datatype extensional equality definition: {ctor.FullName}"));
       }
     }
