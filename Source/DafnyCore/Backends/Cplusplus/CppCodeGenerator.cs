@@ -23,7 +23,27 @@ namespace Microsoft.Dafny.Compilers {
       this.headers = headers;
     }
 
-    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+    // When set (via --bignum=<impl>), the C++ backend emits arbitrary-precision
+    // DafnyBigInt/DafnyReal (a big-integer library behind a typedef seam) and DafnyMultiset,
+    // re-enabling unbounded int, exact real and multiset support. True when any --bignum=<impl>
+    // is selected; the generator is backend-agnostic (it only ever emits DafnyBigInt and the
+    // free helpers), so which library is chosen matters only to the runtime seam, not here.
+    private bool Bignum => Options.Get(CppBackend.BignumOption) != null;
+
+    public override IReadOnlySet<Feature> UnsupportedFeatures {
+      get {
+        var features = BaseUnsupportedFeatures;
+        if (Bignum) {
+          // --bignum=<impl> re-enables these three; FunctionValues stays unsupported here.
+          features.Remove(Feature.UnboundedIntegers);
+          features.Remove(Feature.RealNumbers);
+          features.Remove(Feature.Multisets);
+        }
+        return features;
+      }
+    }
+
+    private static HashSet<Feature> BaseUnsupportedFeatures => new HashSet<Feature> {
       Feature.UnboundedIntegers,
       Feature.RealNumbers,
       Feature.CollectionsOfTraits,
@@ -931,6 +951,18 @@ namespace Microsoft.Dafny.Compilers {
         return "object";
       }
 
+      if (Bignum) {
+        if (xType is IntType or BigOrdinalType) {
+          return "DafnyBigInt";
+        } else if (xType is RealType) {
+          return "DafnyReal";
+        } else if (xType is BitvectorType bvBoost && bvBoost.NativeType == null) {
+          // Non-native bitvectors also need arbitrary precision.
+          return "DafnyBigInt";
+        }
+        // otherwise fall through to the base type spelling below
+      }
+
       if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
@@ -1000,6 +1032,37 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    // --bignum=<impl> helpers -------------------------------------------------
+
+    // Emit `fromExpr` as a DafnyBigInt value (used as the numerator when building a
+    // DafnyReal).
+    private void EmitToBigInt(Expression fromExpr, Type fromType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      if (AsNativeType(fromType) != null || fromType.IsCharType) {
+        // Widen through dafny_from_native so every native width (incl. uint64/bv64) keeps
+        // all its bits; a plain (long) cast would turn values above LONG_MAX negative.
+        wr.Write("dafny_from_native(");
+        if (fromType.IsCharType) {
+          wr.Write("(long)");
+        }
+        wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+        wr.Write(")");
+      } else {
+        wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+      }
+    }
+
+    // Emit a collection index/bound as a uint64. A Dafny `int` index is a DafnyBigInt
+    // here, so narrow it via dafny_to_ulong(); a native-int index is emitted as-is.
+    private void EmitIndexAsUint64(Expression index, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      if (AsNativeType(index.Type) == null && index.Type.NormalizeToAncestorType() is IntType) {
+        wr.Write("(uint64)dafny_to_ulong(");
+        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Write(")");
+      } else {
+        wr.Append(Expr(index, inLetExprBody, wStmts));
+      }
+    }
+
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
@@ -1008,6 +1071,18 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IOrigin tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
+      if (Bignum) {
+        if (xType is IntType or BigOrdinalType) {
+          return "DafnyBigInt(0)";
+        } else if (xType is RealType) {
+          return "DafnyReal(0L)";
+        } else if (xType is BitvectorType bvBoost && bvBoost.NativeType == null) {
+          return "DafnyBigInt(0)";
+        } else if (xType is MultiSetType msBoost) {
+          return $"DafnyMultiset<{TypeName(msBoost.Arg, wr, tok)}>::empty()";
+        }
+        // otherwise fall through to the base default-value logic below
+      }
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
@@ -1271,6 +1346,23 @@ namespace Microsoft.Dafny.Compilers {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
+      if (Bignum) {
+        // Materialize int/real print arguments into a concrete DafnyBigInt / DafnyReal
+        // via dafny_as_int / dafny_as_real so the dedicated dafny_print overloads (which
+        // produce Dafny-compatible output) are selected rather than the generic
+        // std::cout template. In particular a cardinality (|s|) arrives as a plain
+        // uint64; dafny_as_int folds it to a DafnyBigInt so it prints as a Dafny int.
+        var t = arg.Type.NormalizeToAncestorType();
+        if (AsNativeType(arg.Type) == null &&
+            (t.IsNumericBased(Type.NumericPersuasion.Int) || t.IsNumericBased(Type.NumericPersuasion.Real))) {
+          var wStmtsBoost = wr.Fork();
+          var conv = t.IsNumericBased(Type.NumericPersuasion.Real) ? "dafny_as_real" : "dafny_as_int";
+          wr.Write($"dafny_print({conv}(");
+          wr.Append(Expr(arg, false, wStmtsBoost));
+          wr.WriteLine("));");
+          return;
+        }
+      }
       var wStmts = wr.Fork();
       wr.Write("dafny_print(");
       wr.Append(Expr(arg, false, wStmts));
@@ -1451,6 +1543,26 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
+      if (Bignum) {
+        if (e.Value is BigInteger iBoost && !(e is CharLiteralExpr) && AsNativeType(e.Type) == null) {
+          EmitIntegerLiteral(iBoost, wr);
+          return;
+        }
+        if (e.Value is BaseTypes.BigDec n) {
+          // Dafny real literal = exact rational (mantissa * 10^exponent). Build the
+          // UNREDUCED num/den (mirroring C#'s Dafny.BigRational, which does NOT
+          // reduce literals) and hand them to DafnyReal as a decimal-string pair.
+          BigInteger num = n.Mantissa;
+          BigInteger den = BigInteger.One;
+          if (n.Exponent >= 0) {
+            num *= BigInteger.Pow(10, n.Exponent);
+          } else {
+            den = BigInteger.Pow(10, -n.Exponent);
+          }
+          wr.Write($"DafnyReal(\"{num}\", \"{den}\")");
+          return;
+        }
+      }
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.Origin));
       } else if (e.Value == null) {
@@ -1481,6 +1593,17 @@ namespace Microsoft.Dafny.Compilers {
     }
     void EmitIntegerLiteral(BigInteger i, ConcreteSyntaxTree wr) {
       Contract.Requires(wr != null);
+      if (Bignum) {
+        // Use the i64 constructor in range, else the decimal-string form. long.MinValue
+        // is excluded on purpose: emitted as a negative literal it overflows a signed
+        // long in C++ and comes out wrong, so it goes through the string form too.
+        if (i > long.MinValue && i <= long.MaxValue) {
+          wr.Write($"DafnyBigInt({i}L)");
+        } else {
+          wr.Write($"DafnyBigInt(\"{i}\")");
+        }
+        return;
+      }
       wr.Write(i.ToString());
     }
 
@@ -1776,6 +1899,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false) {
+      if (Bignum && member is SpecialField sfBoost && sfBoost.SpecialId == SpecialField.ID.Floor) {
+        // `r.Floor` on a real (a DafnyReal value type). The base backend spells the
+        // Floor special field as `->int()`, which assumes a shared_ptr receiver and a
+        // member named `int` -- both wrong for DafnyReal. DafnyReal exposes `.Floor()`
+        // returning a DafnyBigInt, so emit that. (`real as int` is handled in
+        // EmitConversionExpr.)
+        return SuffixLvalue(obj, ".Floor()");
+      }
       if (member.IsStatic && member is ConstantField) {
         // This used to work, but now obj comes in wanting to use TypeName on the class, which results in (std::shared_ptr<_module::MyClass>)::c;
         //return SuffixLvalue(obj, "::{0}", member.CompileName);
@@ -1864,6 +1995,27 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      if (Bignum) {
+        if (source.Type.NormalizeToAncestorType() is MultiSetType) {
+          // m[x] on a multiset is the multiplicity of x. (Map keeps the base spelling.)
+          wr.Write("DafnyBigInt((long)");
+          TrParenExpr(source, wr, inLetExprBody, wStmts);
+          wr.Write(".multiplicity(");
+          wr.Append(Expr(index, inLetExprBody, wStmts));
+          wr.Write("))");
+          return;
+        }
+        if (source.Type.NormalizeToAncestorType() is SeqType) {
+          // s[i]: DafnySequence::select takes a uint64, but in this target a Dafny
+          // `int` index is a DafnyBigInt. Narrow it (a native-int index passes through
+          // unchanged). Base cpp never hits this because it rejects unbounded int.
+          TrParenExpr(source, wr, inLetExprBody, wStmts);
+          wr.Write(".select(");
+          EmitIndexAsUint64(index, inLetExprBody, wr, wStmts);
+          wr.Write(")");
+          return;
+        }
+      }
       TrParenExpr(source, wr, inLetExprBody, wStmts);
       if (source.Type.NormalizeToAncestorType() is SeqType) {
         // seq
@@ -1880,6 +2032,18 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
         CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      if (Bignum && source.Type.NormalizeToAncestorType() is MultiSetType) {
+        // m[x := n] on a multiset sets x's multiplicity to n. The base emits
+        // `.update(index, value)`, but DafnyMultiset::update takes a uint64 count while
+        // the Dafny multiplicity `value` has type `int` (a DafnyBigInt), so narrow it.
+        TrParenExpr(source, wr, inLetExprBody, wStmts);
+        wr.Write(".update(");
+        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Write(", (uint64)dafny_to_ulong(");
+        wr.Append(Expr(value, inLetExprBody, wStmts));
+        wr.Write("))");
+        return;
+      }
       TrParenExpr(source, wr, inLetExprBody, wStmts);
       wr.Write(".update(");
       wr.Append(Expr(index, inLetExprBody, wStmts));
@@ -1890,6 +2054,23 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo /*?*/, Expression hi /*?*/,
         bool fromArray, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      if (Bignum && !fromArray) {
+        // s[lo..hi] lowers to `.take(hi).drop(lo)`, whose bounds are uint64. In this
+        // target a Dafny `int` bound is a DafnyBigInt, so narrow lo/hi. The array-slice
+        // form defers to the base below.
+        TrParenExpr(source, wr, inLetExprBody, wStmts);
+        if (hi != null) {
+          wr.Write(".take(");
+          EmitIndexAsUint64(hi, inLetExprBody, wr, wStmts);
+          wr.Write(")");
+        }
+        if (lo != null) {
+          wr.Write(".drop(");
+          EmitIndexAsUint64(lo, inLetExprBody, wr, wStmts);
+          wr.Write(")");
+        }
+        return;
+      }
       if (fromArray) {
         string typeName = "";
 
@@ -1951,6 +2132,25 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts) {
+      if (Bignum) {
+        var srcType = expr.E.Type.NormalizeToAncestorType();
+        if (srcType is SeqType seqSrc) {
+          var elemName = TypeName(seqSrc.Arg, wr, expr.Origin, null, false);
+          // multiset(s) for a seq s: insert every element (with repetition).
+          wr.Write($"[](DafnySequence<{elemName}> _s) -> DafnyMultiset<{elemName}> {{ DafnyMultiset<{elemName}> _m; for (uint64 _i = 0; _i < _s.size(); _i++) {{ _m.multiset.insert(_s.select(_i)); }} return _m; }}(");
+          wr.Append(Expr(expr.E, inLetExprBody, wStmts));
+          wr.Write(")");
+          return;
+        }
+        if (srcType is SetType setSrc) {
+          var elemName = TypeName(setSrc.Arg, wr, expr.Origin, null, false);
+          // multiset(s) for a set s: each distinct element once.
+          wr.Write($"[](DafnySet<{elemName}> _s) -> DafnyMultiset<{elemName}> {{ DafnyMultiset<{elemName}> _m; for (auto const& _e : _s.set) {{ _m.multiset.insert(_e); }} return _m; }}(");
+          wr.Append(Expr(expr.E, inLetExprBody, wStmts));
+          wr.Write(")");
+          return;
+        }
+      }
       throw new UnsupportedFeatureException(expr.Origin, Feature.Multisets);
     }
 
@@ -2033,6 +2233,16 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      if (Bignum && op == ResolvedUnaryOp.Cardinality) {
+        // |s| (Cardinality). The base emits `.size()`, a uint64. In this target a Dafny
+        // `int` is a DafnyBigInt, so a bare uint64 collides in mixed expressions like
+        // `|s| == 0` or `|s| + x`. Materialize the size as a DafnyBigInt so |s| behaves
+        // as a Dafny int everywhere.
+        wr.Write("DafnyBigInt((long)");
+        TrParenExpr(expr, wr, inLetExprBody, wStmts);
+        wr.Write(".size())");
+        return;
+      }
       switch (op) {
         case ResolvedUnaryOp.BoolNot:
           TrParenExpr("!", expr, wr, inLetExprBody, wStmts);
@@ -2082,6 +2292,38 @@ namespace Microsoft.Dafny.Compilers {
       truncateResult = false;
       convertE1_to_int = false;
       coerceE1 = false;
+
+      if (Bignum) {
+        var normResult = resultType.NormalizeToAncestorType();
+        var nonNativeInt = normResult.IsNumericBased(Type.NumericPersuasion.Int) && AsNativeType(resultType) == null;
+        var isReal = normResult.IsNumericBased(Type.NumericPersuasion.Real);
+
+        // DafnyBigInt (non-native int) and DafnyReal (real) both overload the arithmetic
+        // operators, so most ops map straight to a C++ operator. The exceptions are
+        // integer division/modulo, which Dafny defines as EUCLIDEAN (non-negative
+        // remainder) whereas both bignum backends' operators truncate toward zero, so
+        // those go through the DafnyEuclideanDiv/Mod runtime helpers.
+        if (nonNativeInt || isReal) {
+          switch (op) {
+            case BinaryExpr.ResolvedOpcode.Add: opString = "+"; return;
+            case BinaryExpr.ResolvedOpcode.Sub: opString = "-"; return;
+            case BinaryExpr.ResolvedOpcode.Mul: opString = "*"; return;
+            case BinaryExpr.ResolvedOpcode.Div:
+              if (isReal) {
+                opString = "/";                       // exact rational division
+              } else {
+                staticCallString = "DafnyEuclideanDiv";
+              }
+              return;
+            case BinaryExpr.ResolvedOpcode.Mod:
+              // real has no modulo in Dafny; only int reaches here.
+              staticCallString = "DafnyEuclideanMod";
+              return;
+            default:
+              break;   // comparisons / equality fall through to the base handling
+          }
+        }
+      }
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.Iff:
@@ -2301,6 +2543,82 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      if (Bignum) {
+        var fromNativeBoost = AsNativeType(fromType);
+        var toNativeBoost = AsNativeType(toType);
+
+        if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType || fromType.IsCharType) {
+          if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+            // int/char/bv -> real : make an exact rational with denominator 1.
+            wr.Write("DafnyReal(");
+            EmitToBigInt(fromExpr, fromType, inLetExprBody, wr, wStmts);
+            wr.Write(")");
+            return;
+          } else if (toType.IsCharType) {
+            wr.Write("(char)");
+            if (fromNativeBoost == null) {
+              // DafnyBigInt -> char : narrow to a native long first.
+              wr.Write("dafny_to_long(");
+              TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+              wr.Write(")");
+            } else {
+              TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+            }
+            return;
+          } else {
+            // (int or bv or char) -> (int or bv or ORDINAL)
+            if (fromNativeBoost != null && toNativeBoost != null) {
+              wr.Write(GetNativeTypeName(toNativeBoost));
+              TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+              return;
+            } else if (fromNativeBoost == null && toNativeBoost == null) {
+              // big -> big : identity (DafnyBigInt).
+              wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+              return;
+            } else if (fromNativeBoost != null) {
+              // native -> DafnyBigInt : widen through dafny_from_native, which handles
+              // every native integer width (incl. uint64/bv64) without losing bits on
+              // LP64 or LLP64. (See the rationale on dafny_from_native in DafnyRuntime.h.)
+              wr.Write("dafny_from_native(");
+              if (fromType.IsCharType) {
+                wr.Write("(long)");
+              }
+              TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+              wr.Write(")");
+              return;
+            } else {
+              // DafnyBigInt -> native : extract as long, then narrow.
+              wr.Write($"({GetNativeTypeName(toNativeBoost)})(dafny_to_long(");
+              TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
+              wr.Write("))");
+              return;
+            }
+          }
+        } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
+          if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+            wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+            return;
+          } else {
+            // real -> int : floor of the (unreduced) rational toward negative
+            // infinity, matching Dafny's `.Floor` / `r as int`.
+            if (toNativeBoost != null) {
+              // Narrow the floored DafnyBigInt to the native target type.
+              wr.Write($"({GetNativeTypeName(toNativeBoost)})dafny_to_long((");
+              wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+              wr.Write(").Floor())");
+            } else {
+              wr.Write("(");
+              wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+              wr.Write(").Floor()");
+            }
+            return;
+          }
+        } else if (fromType.IsBigOrdinalType) {
+          wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+          return;
+        }
+        // otherwise fall through to the base conversion handling below
+      }
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType || fromType.IsCharType) {
         if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           throw new UnsupportedFeatureException(fromExpr.Origin, Feature.RealNumbers);
@@ -2403,6 +2721,17 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitCollectionDisplay(CollectionType ct, IOrigin tok, List<Expression> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      if (Bignum && ct is MultiSetType) {
+        wr.Write($"DafnyMultiset<{TypeName(ct.TypeArgs[0], wr, tok, null, false)}>::Create({{");
+        for (var i = 0; i < elements.Count; i++) {
+          wr.Append(Expr(elements[i], inLetExprBody, wStmts));
+          if (i < elements.Count - 1) {
+            wr.Write(",");
+          }
+        }
+        wr.Write("})");
+        return;
+      }
       if (ct is SetType) {
         wr.Write("DafnySet<{0}>::Create({{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
         for (var i = 0; i < elements.Count; i++) {

@@ -77,10 +77,21 @@ jobs:
       uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 6.0.x
-    - name: C++ for ubuntu 24.04
+    # The C++ backend needs a C++ toolchain, and Boost for the --bignum=boost test.
+    # Boost is a native system library with no cross-platform package manager, so it
+    # is installed per-OS (apt / brew / vcpkg).
+    - name: Install C++ toolchain and Boost (Ubuntu)
       if: matrix.os == 'ubuntu-24.04'
+      run: sudo apt-get install -y build-essential libboost-dev
+    - name: Install Boost (macOS)
+      if: matrix.os == 'macos-14'
+      run: brew install boost
+    - name: Install Boost (Windows)
+      if: matrix.os == 'windows-2022'
+      shell: bash
       run: |
-        sudo apt-get install -y build-essential
+        vcpkg install boost-multiprecision:x64-windows
+        echo "DAFNY_CPP_BOOST_PREFIX=$VCPKG_INSTALLATION_ROOT/installed/x64-windows" >> "$GITHUB_ENV"
     - name: Set up oldest supported JDK
       if: matrix.target-language-version != 'newest'
       uses: actions/setup-java@v6

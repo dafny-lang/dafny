@@ -68,7 +68,10 @@ public static class DafnyCommands {
     CommonOptionBag.Target,
     CommonOptionBag.SpillTranslation,
     CommonOptionBag.InternalIncludeRuntimeOptionForExecution,
-    CommonOptionBag.ExecutionCoverageReport
+    CommonOptionBag.ExecutionCoverageReport,
+    // So `dafny run`/`build --target cpp --bignum=<impl>` accept the C++ backend's flag
+    // (translate already gets it via the backend's SupportedOptions).
+    Compilers.CppBackend.BignumOption
   }.Concat(TranslationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
