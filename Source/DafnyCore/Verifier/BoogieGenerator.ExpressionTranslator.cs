@@ -615,14 +615,17 @@ namespace Microsoft.Dafny {
 
           List<bool> freeOfAlloc = BoundedPool.HasBounds(e.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
           antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc)); // initHeapForAllStmt
+          var names = new NamedTerms(BoogieGenerator, e.Attributes);
+          bvars.AddRange(names.Variables);
 
           Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
-          Boogie.Trigger tr = BoogieGenerator.TrTrigger(bodyEtran, e.Attributes, GetToken(e), bvars, null, null);
+          Boogie.Trigger tr = BoogieGenerator.TrTrigger(bodyEtran, e.Attributes, GetToken(e), bvars, null, null, names);
 
           if (e.Range != null) {
             antecedent = BplAnd(antecedent, bodyEtran.TrExpr(e.Range));
           }
-          Boogie.Expr body = bodyEtran.TrExpr(e.Term);
+          antecedent = BplAnd(names.Definitions(bodyEtran), names.Replace(bodyEtran, antecedent));
+          Boogie.Expr body = names.Replace(bodyEtran, bodyEtran.TrExpr(e.Term));
 
           if (e is ForallExpr) {
             return new Boogie.ForallExpr(GetToken(quantifierExpr), [], bvars, kv, tr, BplImp(antecedent, body));
@@ -1980,8 +1983,13 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           }
           // Create a list of all possible bound variables
           var bvarsAndAntecedents = TrBoundVariables_SeparateWhereClauses(e.BoundVars);
+          // Those of named terms come first, so that the variables that their definitions mention are kept
+          var names = new NamedTerms(BoogieGenerator, e.Attributes);
+          bvarsAndAntecedents.InsertRange(0, names.VariablesAndDefinitions(this));
+          canCall = names.Replace(this, canCall);
           // Produce the quantified CanCall expression, with a suitably reduced set of bound variables
-          var tr = BoogieGenerator.TrTrigger(this, e.Attributes, expr.Origin);
+          var tr = BoogieGenerator.TrTrigger(this, e.Attributes, expr.Origin, names: names,
+            boundVariables: bvarsAndAntecedents.ConvertAll(x => x.Item1));
           return BplForallTrim(bvarsAndAntecedents, tr, canCall);
 
         } else if (expr is StmtExpr) {

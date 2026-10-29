@@ -15,6 +15,11 @@ class SplitPartTriggerWriter {
   private List<TriggerCandidate> RejectedCandidates { get; }
   public List<Tuple<Expression, IdentifierExpr>> NamedExpressions { get; }
   private List<TriggerMatch> loopingMatches;
+  // The terms of the loops that the matching-loop rewrite could not name, as they mention variables bound inside the
+  // quantifier, with these variables
+  private List<(Expression Term, List<IVariable> Inner)> unnamed = [];
+  // The part as written while the triggers are selected on the matching-loop rewrite's copy
+  private ComprehensionExpr asWritten;
 
   private bool AllowsLoops {
     get {
@@ -75,8 +80,8 @@ class SplitPartTriggerWriter {
     // rewrite quantifier to avoid matching loops
     // before:
     //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
-    // after:
-    //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
+    // after, in the verifier's translation:
+    //    assert forall i,j {:trigger a[i], a[j]} :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
     var substMap = new List<Tuple<Expression, IdentifierExpr>>();
     foreach (var triggerMatch in loopingMatches) {
       var e = triggerMatch.OriginalExpr;
@@ -96,21 +101,21 @@ class SplitPartTriggerWriter {
 
     var expr = (QuantifierExpr)Comprehension;
     if (substMap.Count > 0) {
-      var s = new ExprSubstituter(substMap);
-      expr = s.Substitute(Comprehension) as QuantifierExpr;
-      NamedExpressions.AddRange(substMap);
+      // The copy only selects the triggers. The verifier binds a variable to each term in its translation of the part as
+      // written.
+      var s = new NamedTermSubstituter(expr, substMap, reporter.Options);
+      var range = expr.Range == null ? null : s.Substitute(expr.Range);
+      var term = s.Substitute(expr.Term);
+      var used = substMap.FindAll(x => s.Used.Contains(x.Item2));
+      unnamed = s.Unnamed;
+      NamedExpressions.AddRange(used);
+      expr = Bind(expr, range, term, used);
     } else {
-      // make a copy of the expr
-      if (expr is ForallExpr) {
-        expr = new ForallExpr(expr.Origin, expr.BoundVars, expr.Range, expr.Term,
-          TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
-      } else {
-        expr = new ExistsExpr(expr.Origin, expr.BoundVars, expr.Range, expr.Term,
-          TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
-      }
+      expr = Bind(expr, expr.Range, expr.Term, []);
     }
     var qq = expr;
 
+    asWritten = Comprehension;
     Comprehension = qq;
     Candidates.Clear();
     CandidateTerms.Clear();
@@ -121,6 +126,81 @@ class SplitPartTriggerWriter {
     // don't rewrite the quantifier if we are not auto generate triggers.
     // This is because rewriting introduces new boundvars and will cause
     // user provided triggers not mention all boundvars
+  }
+
+  /// <summary>
+  /// Puts back the part as written once the triggers are selected on the matching-loop rewrite's copy, which only the
+  /// trigger generator sees
+  /// </summary>
+  internal void RestoreAsWritten() {
+    if (asWritten != null) {
+      Comprehension = asWritten;
+      asWritten = null;
+    }
+  }
+
+  /// <summary>
+  /// A copy of the quantifier with the range and term given that also binds each name's variable to its term, as the
+  /// verifier's translation does, which keeps the term's own subterms as candidates
+  /// </summary>
+  private static QuantifierExpr Bind(QuantifierExpr quantifier, Expression range, Expression term,
+    List<Tuple<Expression, IdentifierExpr>> names) {
+    foreach (var (named, variable) in names) {
+      var definition = new BinaryExpr(quantifier.Origin, BinaryExpr.ResolvedOpcode.EqCommon, variable, named);
+      range = range == null ? definition : new BinaryExpr(quantifier.Origin, BinaryExpr.ResolvedOpcode.And, definition, range);
+    }
+    var boundVars = quantifier.BoundVars.Concat(names.Select(x => (BoundVar)x.Item2.Var)).ToList();
+    var bounds = quantifier.Bounds?.Concat(names.Select(x => (BoundedPool)new ExactBoundedPool(x.Item1))).ToList();
+    var attributes = TriggerUtils.CopyAttributes(quantifier.Attributes);
+    return quantifier is ForallExpr
+      ? new ForallExpr(quantifier.Origin, boundVars, range, term, attributes) { Type = quantifier.Type, Bounds = bounds }
+      : new ExistsExpr(quantifier.Origin, boundVars, range, term, attributes) { Type = quantifier.Type, Bounds = bounds };
+  }
+
+  /// <summary>
+  /// Replaces each term that mentions no variable bound inside the part with its variable. A term that reads the heap is
+  /// not replaced inside an "old" or a lambda, where it reads another heap and the verifier does not replace it either.
+  /// </summary>
+  private class NamedTermSubstituter : Substituter {
+    // Each term that the substituter replaces, with its variable and whether it reads the heap
+    private readonly List<(Expression Term, IdentifierExpr Variable, bool ReadsHeap)> terms = [];
+    private bool otherHeap;
+    public readonly HashSet<IdentifierExpr> Used = [];
+    // The other terms, with the variables bound inside the part that they mention
+    public readonly List<(Expression Term, List<IVariable> Inner)> Unnamed = [];
+
+    public NamedTermSubstituter(QuantifierExpr part, List<Tuple<Expression, IdentifierExpr>> substMap, DafnyOptions options)
+      : base(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>()) {
+      var scope = FreeVariablesUtil.ComputeFreeVariables(options, part);
+      scope.UnionWith(part.BoundVars);
+      foreach (var (term, variable) in substMap) {
+        var termVariables = new HashSet<IVariable>();
+        var readsHeap = false;
+        FreeVariablesUtil.ComputeFreeVariables(options, term, termVariables, ref readsHeap);
+        if (termVariables.IsSubsetOf(scope)) {
+          terms.Add((term, variable, readsHeap));
+        } else {
+          Unnamed.Add((term, termVariables.Except(scope).ToList()));
+        }
+      }
+    }
+
+    public override Expression Substitute(Expression expr) {
+      foreach (var (term, variable, readsHeap) in terms) {
+        if (!(readsHeap && otherHeap) && ExprExtensions.ExpressionEq(expr, term)) {
+          Used.Add(variable);
+          return variable;
+        }
+      }
+      if (expr is not (OldExpr or LambdaExpr)) {
+        return base.Substitute(expr);
+      }
+      var outer = otherHeap;
+      otherHeap = true;
+      var result = base.Substitute(expr);
+      otherHeap = outer;
+      return result;
+    }
   }
 
   // TODO Check whether this makes verification faster
@@ -194,8 +274,56 @@ class SplitPartTriggerWriter {
       }
     } else if (!CouldSuppressLoops && !AllowsLoops) {
       errorReporter.Message(MessageSource.Rewriter, warningLevel, null, reportingToken,
-        "Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. " + hint);
+        "Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. " +
+        (HowToBreakLoop(errorReporter.Options) ?? hint));
     }
+  }
+
+  /// <summary>
+  /// How to break a loop through a term that the rewrite could not name as it mentions the variables of a quantifier
+  /// inside this one, if each instance of this one instantiates that quantifier, so that the solver gives these
+  /// variables no new values, or else null. If that quantifier also has conjuncts without the term, the advice moves
+  /// those with it to a quantifier of their own, as the triggers of all would need a term for the new variable.
+  /// </summary>
+  private string HowToBreakLoop(DafnyOptions options) {
+    foreach (var (term, inner) in unnamed) {
+      if (Binder(((QuantifierExpr)Comprehension).Term, inner[0], Comprehension is ForallExpr) is not { } binder ||
+          !inner.All(variable => binder.BoundVars.Contains(variable))) {
+        continue;
+      }
+      var termText = Printer.ExprToString(options, term);
+      var innerText = string.Join(", ", inner.Select(variable => variable.Name));
+      var used = Comprehension.AllSubExpressions(false, false).OfType<IdentifierExpr>().Select(e => e.Name)
+        .Concat(binder.BoundVars.Select(variable => variable.Name)).ToHashSet();
+      var name = Enumerable.Range(0, used.Count + 1).Select(i => i == 0 ? "t" : $"t{i}").First(n => !used.Contains(n));
+      var example = $"{(binder is ForallExpr ? "forall" : "exists")} " +
+                    $"{string.Join(", ", binder.BoundVars.Select(variable => variable.Name))}, {name} | " +
+                    $"{(binder.Range == null ? "" : "... && ")}{name} == {termText}";
+      var conjuncts = binder.SplitQuantifier?.ConvertAll(part => ((QuantifierExpr)part).Term) ?? [binder.Term];
+      var how = conjuncts.TrueForAll(conjunct =>
+        conjunct.AllSubExpressions(false, false).Any(e => ExprExtensions.ExpressionEq(e, term)))
+        ? $"replace '{termText}' with a new variable bound alongside '{innerText}'"
+        : $"move the {(binder is ForallExpr ? "conjuncts" : "disjuncts")} with '{termText}' to a separate quantifier over " +
+          $"'{innerText}', and replace the term there with a new variable";
+      return $"To break the loop, {how}, as in '{example}', or add {{:nowarn}} to silence this warning. " +
+             "For more information, see the section on quantifier instantiation rules in the reference manual.";
+    }
+    return null;
+  }
+
+  // The quantifier that binds the variable, if expr reaches it only through conjunctions, disjunctions, implications,
+  // negations and quantifiers of the given kind, which negations and antecedents flip
+  private static QuantifierExpr Binder(Expression expr, IVariable variable, bool forall) {
+    return expr.Resolved switch {
+      QuantifierExpr quantifier when quantifier is ForallExpr != forall => null,
+      QuantifierExpr quantifier => quantifier.BoundVars.Contains(variable) ? quantifier : Binder(quantifier.Term, variable, forall),
+      UnaryOpExpr { ResolvedOp: UnaryOpExpr.ResolvedOpcode.BoolNot } not => Binder(not.E, variable, !forall),
+      BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.And or BinaryExpr.ResolvedOpcode.Or } binary =>
+        Binder(binary.E0, variable, forall) ?? Binder(binary.E1, variable, forall),
+      BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.Imp } binary =>
+        Binder(binary.E0, variable, !forall) ?? Binder(binary.E1, variable, forall),
+      _ => null
+    };
   }
 
   public static void DisableEmptyTriggers(Attributes attribs, String attrName) {
@@ -209,10 +337,18 @@ class SplitPartTriggerWriter {
   }
 
   private void AddTriggerAttribute(SystemModuleManager systemModuleManager) {
+    // A trigger has each named term where the copy has its variable. Only a translation that binds a variable to each
+    // term can use such a trigger, so it is internal, as the terms are
+    var terms = new Substituter(null, NamedExpressions.ToDictionary(x => x.Item2.Var, x => x.Item1),
+      new Dictionary<TypeParameter, Type>());
     foreach (var candidate in Candidates) {
-      Comprehension.Attributes = new Attributes("trigger",
-        candidate.Terms.ConvertAll(t => Expression.WrapAsParsedStructureIfNecessary(t.Expr, systemModuleManager)),
+      Comprehension.Attributes = new Attributes(NamedExpressions.Count == 0 ? "trigger" : "_trigger",
+        candidate.Terms.ConvertAll(t => Expression.WrapAsParsedStructureIfNecessary(
+          NamedExpressions.Count == 0 ? t.Expr : terms.Substitute(t.Expr), systemModuleManager)),
         Comprehension.Attributes);
+    }
+    if (Candidates.Count != 0 && NamedExpressions.Count != 0) {
+      Comprehension.Attributes = new Attributes("_named", NamedExpressions.ConvertAll(x => x.Item1), Comprehension.Attributes);
     }
   }
 
@@ -222,7 +358,8 @@ class SplitPartTriggerWriter {
   }
 
   private bool NeedsAutoTriggers() {
-    return !Attributes.Contains(Comprehension.Attributes, "trigger") && WantsAutoTriggers();
+    return !Attributes.Contains(Comprehension.Attributes, "trigger") && !Attributes.Contains(Comprehension.Attributes, "_trigger") &&
+           WantsAutoTriggers();
   }
 
   bool WantsMatchingLoopRewrite() {

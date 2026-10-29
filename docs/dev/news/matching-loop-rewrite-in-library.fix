@@ -1,0 +1,1 @@
+Fix the parse error `cannot declare identifier beginning with underscore` in a program that uses a library that Dafny compiled to C#, for a quantifier of the library whose matching loop Dafny broke, such as `forall i :: 0 <= i < |s| - 1 ==> s[i] <= s[i + 1]`.
