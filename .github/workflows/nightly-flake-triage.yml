@@ -1,0 +1,57 @@
+# Record which test failed when the nightly build goes red, into one issue per test. The test
+# name only exists in the run's own output, which expires after 90 days.
+#
+# `workflow_run` only ever runs the copy of this file on the default branch, so this cannot be
+# exercised from a pull request. Dispatch it against a past run to try it, or to backfill.
+
+name: Nightly flake triage
+
+on:
+  # Matched against the `name:` of nightly-build.yml, exactly. The "(Manual trigger)" variant is
+  # excluded on purpose: that is usually someone testing a fix, where a new issue is noise.
+  workflow_run:
+    workflows: ["Nightly test and release workflow"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Workflow run ID to triage'
+        required: true
+        type: number
+
+jobs:
+  triage:
+    # workflow_run fires whatever the conclusion. A dispatch is always deliberate.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read     # list the run's jobs, read its artifacts, download job logs
+      issues: write
+      contents: read
+    env:
+      TRIAGE_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+    steps:
+      # Only to get the script below onto disk, so take nothing else.
+      - name: Checkout the triage script
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/workflows
+          sparse-checkout-cone-mode: false
+
+      # Preferred source for the test names: `--logger trx` is an explicit contract in
+      # integration-tests-reusable.yml. Best effort - the upload may have been skipped.
+      - name: Download the run's test results
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          run-id: ${{ env.TRIAGE_RUN_ID }}
+          github-token: ${{ github.token }}
+          pattern: integration-test-results-*
+          path: test-results
+
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const triage = require('${{ github.workspace }}/.github/workflows/nightly-flake-triage.js')
+            // From the environment, not interpolated: `script:` is JavaScript source.
+            await triage({github, context, core}, Number(process.env.TRIAGE_RUN_ID))
