@@ -382,7 +382,6 @@ namespace Microsoft.Dafny.Compilers {
           var ci = 0;
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
-              // Field named via FormalName (_a0, …), not arg.CompileName (_h0).
               wc.WriteLine("{0} = {1};", FormalName(arg, ci), DefaultValue(arg.Type, wc, arg.Origin));
               ci++;
             }
@@ -412,8 +411,6 @@ namespace Microsoft.Dafny.Compilers {
           var hi = 0;
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
-              // Field is declared via FormalName (_a0, …); match it (arg.CompileName
-              // is _h0/… and does not name the field).
               owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), FormalName(arg, hi));
               hi++;
             }
@@ -474,7 +471,6 @@ namespace Microsoft.Dafny.Compilers {
           int argCount = 0;
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
-              // Field is named via FormalName (_a0, …), not arg.CompileName (_h0).
               var fname = FormalName(arg, argCount);
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                 // Recursive destructor needs to use a pointer
@@ -507,10 +503,6 @@ namespace Microsoft.Dafny.Compilers {
             var fi = 0;
             foreach (Formal arg in ctor.Formals) {
               if (!arg.IsGhost) {
-                // The struct field and the create() parameter are both named via
-                // FormalName (_a0, _a1, ...); use the same name here. (arg.CompileName
-                // is _h0/… and does not match the declared field, so the emitted C++
-                // failed to compile for any constructor with unnamed fields.)
                 var fname = FormalName(arg, fi);
                 if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                   // This is a recursive destructor, so we need to allocate space and copy the input in
@@ -536,7 +528,6 @@ namespace Microsoft.Dafny.Compilers {
           var di = 0;
           foreach (Formal arg in default_ctor.Formals) {
             if (!arg.IsGhost) {
-              // Field named via FormalName (_a0, …), not arg.CompileName (_h0).
               wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", FormalName(arg, di),
                 DefaultValue(arg.Type, wd, arg.Origin));
               di++;
@@ -575,11 +566,7 @@ namespace Microsoft.Dafny.Compilers {
         ws.WriteLine("friend bool operator==(const {0} &left, const {0} &right) {{ ", DtT_protected);
         ws.WriteLine("\treturn left.v == right.v;\n}");
 
-        // Create destructors. Emit one even for UNNAMED fields (a match/case on such
-        // a field compiles a dtor_<name>() call, so it must exist). Unnamed fields use
-        // a constructor-qualified name (DestructorMethodName) to avoid the collision
-        // where every ctor's first unnamed field would otherwise be dtor__a0 (illegal:
-        // same name, different return type).
+        // Create destructors
         foreach (var ctor in dt.Ctors) {
           var ctorNonGhost = ctor.Formals.Where(f => !f.IsGhost).ToList();
           foreach (var dtor in ctor.Destructors) {
@@ -2050,7 +2037,6 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IOrigin tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       // C++ lambda: `[&](T0 n0, T1 n1) -> R { ... }`, capturing by reference.
-      // (The old `function (n) {}` was JS/Java syntax and did not compile.)
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
       wr.Write("[&](");
       for (var i = 0; i < inNames.Count; i++) {
@@ -2309,7 +2295,7 @@ namespace Microsoft.Dafny.Compilers {
           callString = "IsProperSubsetOf"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-          callString = "disjoint"; break;  // DafnySet::disjoint (IsDisjointFrom doesn't exist in the cpp runtime)
+          callString = "IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
@@ -2451,23 +2437,6 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       throw new UnsupportedFeatureException(source.Origin, Feature.TypeTests);
-    }
-
-    // `for x in lo..hi` (e.g. from a bounded set/seq comprehension over a native
-    // newtype). The base emits `<Newtype>.IntegerRange(...)`, which for cpp names a
-    // typedef with no such method. cpp has a global iterable `IntegerRange(lo, hi)`
-    // in the runtime; use it. Only the native path is reachable (non-native ints
-    // are rejected by the target).
-    protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {
-      var result = AsNativeType(type) != null ? type : new IntType();
-      Action<ConcreteSyntaxTree> writeRange = (wr) => {
-        wr.Write("IntegerRange(");
-        wLo(wr);
-        wr.Write(", ");
-        wHi(wr);
-        wr.Write(')');
-      };
-      return (result, writeRange);
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, IOrigin tok, List<Expression> elements,
