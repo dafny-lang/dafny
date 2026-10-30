@@ -25,6 +25,10 @@ method Main() {
   var t: set<u32> := {1, 2};
   print s >= t, " ", s > t, " ", t >= s, " ", s > s, " ", s >= s, " ", t !! {5}, " ", t !! s, "\n";
 
+  // Set comprehension (compiled to a C++ lambda)
+  var w: set<u32> := set x | x in s && x < 3 :: x + 10;
+  print 11 in w, " ", 13 in w, "\n";
+
   // Sequence and string prefix
   var p: seq<u32> := [1, 2];
   var q: seq<u32> := [1, 2, 3];
