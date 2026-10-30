@@ -622,7 +622,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void EmitDatatypePrintOperator(DatatypeDecl dt, string DtT_protected, ConcreteSyntaxTree wdef) {
-      var w = wdef.NewNamedBlock(
+      var w = wdef.NewBlock(
         $"{DeclareTemplate(dt.TypeArgs)}\ninline std::ostream& operator<<(std::ostream& out, const {DtT_protected}{InstantiateTemplate(dt.TypeArgs)}& d)");
       w.WriteLine("(void)d;");
       var modPrefix = dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".";
