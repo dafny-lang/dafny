@@ -44,8 +44,21 @@ method Main() {
   // 8-bit and bool values inside collections and tuples.
   var c: u8 := 65;
   print [c], " ", {c}, " ", (c, true), " ", [true, false], "\n";
+
+  // Datatypes in a module and in a nested module.
+  print Shapes.Dot, " ", Shapes.Flag(true), " ", Outer.Inner.Leaf, "\n";
 }
 
 datatype Rec = Rec(a: u32, b: bool)
 datatype Chain = End | Link(h: u32, t: Chain)
 datatype Maybe<T> = Nothing | Just(v: T)
+
+module Shapes {
+  datatype Shape = Dot | Flag(b: bool)
+}
+
+module Outer {
+  module Inner {
+    datatype Tree = Leaf
+  }
+}
