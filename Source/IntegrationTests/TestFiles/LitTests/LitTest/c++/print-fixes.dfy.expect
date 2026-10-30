@@ -9,3 +9,4 @@ Rec.Rec(1, false)
 Chain.Link(1, Chain.Link(2, Chain.End))
 Maybe.Just(7)
 [65] {65} (65, true) [true, false]
+Shapes.Shape.Dot Shapes.Shape.Flag(true) Inner.Tree.Leaf
