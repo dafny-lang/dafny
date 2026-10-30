@@ -46,7 +46,7 @@ method Main() {
   print [c], " ", {c}, " ", (c, true), " ", [true, false], "\n";
 
   // Datatypes in a module and in a nested module.
-  print Shapes.Dot, " ", Shapes.Flag(true), " ", Outer.Inner.Leaf, "\n";
+  print Shapes.Dot, " ", Shapes.Flag(true), " ", Outer.Inner.Leaf, " ", Outer.Inner.Node(false), "\n";
 }
 
 datatype Rec = Rec(a: u32, b: bool)
@@ -59,6 +59,6 @@ module Shapes {
 
 module Outer {
   module Inner {
-    datatype Tree = Leaf
+    datatype Tree = Leaf | Node(b: bool)
   }
 }
