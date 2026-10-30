@@ -213,38 +213,20 @@ struct std::hash<Tuple<Types...>> {
  *********************************************************/
 
 
-// Euclidean division/modulus for signed integers, matching Dafny's semantics
-// (remainder is always non-negative). Templated so every signed native width
-// (int8/int16/int32/int64) gets a correct helper; the C++ backend emits calls
-// like EuclideanDivision_int32 / EuclideanModulus_int8, which the aliases below
-// resolve to. Uses the unsigned type for the magnitude arithmetic to avoid
-// signed-overflow UB (as the original int64 version did).
+// Euclidean division and modulus (the remainder is never negative). Magnitudes are
+// taken in the unsigned type U, so no input overflows.
+template <typename S, typename U>
+inline U dafny_unsigned_abs(S x) { return x < 0 ? (U) (0u - (U) x) : (U) x; }
 template <typename S, typename U>
 inline S EuclideanDivision(S a, S b) {
-    if (0 <= a) {
-        if (0 <= b) {
-            return (S)((U) a / (U) b);
-        } else {
-            return -(S)((U) a / (U) -b);
-        }
-    } else {
-        if (0 <= b) {
-            return -(S)((((U) (-(a + 1)))/ (U) b) + 1);
-        } else {
-            return (S)((((U) (-(a + 1)))/ (U) -b) + 1);
-        }
-    }
+    U ma = dafny_unsigned_abs<S, U>(a), mb = dafny_unsigned_abs<S, U>(b);
+    U q = a < 0 ? (U) ((ma - 1) / mb + 1) : (U) (ma / mb);
+    return (a < 0) != (b < 0) ? (S) (U) (0u - q) : (S) q;
 }
-
 template <typename S, typename U>
 inline S EuclideanModulus(S a, S b) {
-    U bp = (0 <= b) ? (U) b : (U) -b;
-    if (0 <= a) {
-        return (S)((U) a % bp);
-    } else {
-        U c = ((U) (-(a + 1))) % bp;
-        return (S)(bp - c - 1);
-    }
+    U mb = dafny_unsigned_abs<S, U>(b), r = (U) (dafny_unsigned_abs<S, U>(a) % mb);
+    return (S) (a < 0 && r != 0 ? (U) (mb - r) : r);
 }
 
 inline int8  EuclideanDivision_int8 (int8  a, int8  b) { return EuclideanDivision<int8,  uint8 >(a, b); }
@@ -610,7 +592,7 @@ struct DafnySet {
         return set.find(t) != set.end();
     }
 
-    bool disjoint(const DafnySet<T>& other) {
+    bool IsDisjointFrom(const DafnySet<T>& other) {
         for (auto const& elt:set) {
             if (other.set.find(elt) != other.set.end()) {
                 return false;
