@@ -351,14 +351,10 @@ namespace Microsoft.Dafny.Compilers {
         var ws = wdecl.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), DtT_protected), ";");
 
         // Declare the struct members
-        var i = 0;
         var argNames = new List<string>();
-        foreach (Formal arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            ws.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Origin), FormalName(arg, i));
-            argNames.Add(FormalName(arg, i));
-            i++;
-          }
+        foreach (var (arg, name) in NonGhostFields(ctor.Formals)) {
+          ws.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Origin), name);
+          argNames.Add(name);
         }
 
         if (argNames.Count > 0) {
@@ -378,14 +374,8 @@ namespace Microsoft.Dafny.Compilers {
         // Create a constructor with no arguments
         ws.WriteLine("{0}();", DtT_protected);
         var wc = wdef.NewNamedBlock("{1}\n{0}{2}::{0}()", DtT_protected, DeclareTemplate(dt.TypeArgs), InstantiateTemplate(dt.TypeArgs));
-        {
-          var ci = 0;
-          foreach (var arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              wc.WriteLine("{0} = {1};", FormalName(arg, ci), DefaultValue(arg.Type, wc, arg.Origin));
-              ci++;
-            }
-          }
+        foreach (var (arg, name) in NonGhostFields(ctor.Formals)) {
+          wc.WriteLine("{0} = {1};", name, DefaultValue(arg.Type, wc, arg.Origin));
         }
 
         // Overload the comparison operator
@@ -407,14 +397,8 @@ namespace Microsoft.Dafny.Compilers {
         var hwr = hashWr.NewBlock(string.Format("struct std::hash<{0}>", fullName), ";");
         var owr = hwr.NewBlock(string.Format("std::size_t operator()(const {0}& x) const", fullName));
         owr.WriteLine("size_t seed = 0;");
-        {
-          var hi = 0;
-          foreach (var arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), FormalName(arg, hi));
-              hi++;
-            }
-          }
+        foreach (var (arg, name) in NonGhostFields(ctor.Formals)) {
+          owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), name);
         }
         owr.WriteLine("return seed;");
       } else {
@@ -424,15 +408,12 @@ namespace Microsoft.Dafny.Compilers {
           string structName = DatatypeSubStructName(ctor);
           var wstruct = wdecl.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), structName), ";");
           // Declare the struct members
-          var i = 0;
-          foreach (Formal arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive declaration needs to use a pointer
-                wstruct.WriteLine("std::shared_ptr<{0}> {1};", TypeName(arg.Type, wdecl, arg.Origin), FormalName(arg, i));
-              } else {
-                wstruct.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Origin), FormalName(arg, i));
-              }
-              i++;
+          var fields = NonGhostFields(ctor.Formals).ToList();
+          foreach (var (arg, name) in fields) {
+            if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive declaration needs to use a pointer
+              wstruct.WriteLine("std::shared_ptr<{0}> {1};", TypeName(arg.Type, wdecl, arg.Origin), name);
+            } else {
+              wstruct.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Origin), name);
             }
           }
 
@@ -441,19 +422,15 @@ namespace Microsoft.Dafny.Compilers {
 
           var preReturn = wstruct.Fork();
           wstruct.Write("\treturn true ");
-          i = 0;
-          foreach (Formal arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive destructor needs to use a pointer
-                wstruct.WriteLine("\t\t&& *(left.{0}) == *(right.{0})", FormalName(arg, i));
-              } else {
-                wstruct.WriteLine("\t\t&& left.{0} == right.{0}", FormalName(arg, i));
-              }
-              i++;
+          foreach (var (arg, name) in fields) {
+            if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive destructor needs to use a pointer
+              wstruct.WriteLine("\t\t&& *(left.{0}) == *(right.{0})", name);
+            } else {
+              wstruct.WriteLine("\t\t&& left.{0} == right.{0}", name);
             }
           }
 
-          if (i == 0) { // Avoid a warning from the C++ compiler
+          if (fields.Count == 0) { // Avoid a warning from the C++ compiler
             preReturn.WriteLine("(void)left; (void) right;");
           }
 
@@ -468,20 +445,15 @@ namespace Microsoft.Dafny.Compilers {
           var hwr = hashWr.NewBlock(string.Format("struct std::hash<{0}>", fullName), ";");
           var owr = hwr.NewBlock(string.Format("std::size_t operator()(const {0}& x) const", fullName));
           owr.WriteLine("size_t seed = 0;");
-          int argCount = 0;
-          foreach (var arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              var fname = FormalName(arg, argCount);
-              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
-                // Recursive destructor needs to use a pointer
-                owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), fname);
-              } else {
-                owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), fname);
-              }
-              argCount++;
+          foreach (var (arg, fname) in fields) {
+            if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
+              // Recursive destructor needs to use a pointer
+              owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), fname);
+            } else {
+              owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), fname);
             }
           }
-          if (argCount == 0) {
+          if (fields.Count == 0) {
             owr.WriteLine("(void)x;");
           }
           owr.WriteLine("return seed;");
@@ -499,19 +471,12 @@ namespace Microsoft.Dafny.Compilers {
           wc.WriteLine("{0}{1} COMPILER_result;", DtT_protected, InstantiateTemplate(dt.TypeArgs));
           wc.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(ctor, true));
 
-          {
-            var fi = 0;
-            foreach (Formal arg in ctor.Formals) {
-              if (!arg.IsGhost) {
-                var fname = FormalName(arg, fi);
-                if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
-                  // This is a recursive destructor, so we need to allocate space and copy the input in
-                  wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", fname, DtT_protected);
-                } else {
-                  wc.WriteLine("COMPILER_result_subStruct.{0} = {0};", fname);
-                }
-                fi++;
-              }
+          foreach (var (arg, fname) in NonGhostFields(ctor.Formals)) {
+            if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
+              // This is a recursive destructor, so we need to allocate space and copy the input in
+              wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", fname, DtT_protected);
+            } else {
+              wc.WriteLine("COMPILER_result_subStruct.{0} = {0};", fname);
             }
           }
 
@@ -524,15 +489,8 @@ namespace Microsoft.Dafny.Compilers {
         var wd = wdef.NewNamedBlock(String.Format("{1}\n{0}{2}::{0}()", DtT_protected, DeclareTemplate(dt.TypeArgs), InstantiateTemplate(dt.TypeArgs)));
         var default_ctor = dt.Ctors[0]; // Arbitrarily choose the first one
         wd.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(default_ctor, true));
-        {
-          var di = 0;
-          foreach (Formal arg in default_ctor.Formals) {
-            if (!arg.IsGhost) {
-              wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", FormalName(arg, di),
-                DefaultValue(arg.Type, wd, arg.Origin));
-              di++;
-            }
-          }
+        foreach (var (arg, name) in NonGhostFields(default_ctor.Formals)) {
+          wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", name, DefaultValue(arg.Type, wd, arg.Origin));
         }
 
         wd.WriteLine("v = COMPILER_result_subStruct;");
@@ -1828,11 +1786,11 @@ namespace Microsoft.Dafny.Compilers {
 
               wr.Write("(");
               obj(wr);
-              wr.Write(".dtor_{0}()", sf.GetCompileName(Options));
+              wr.Write(".dtor_{0}()", IdProtect(sf.GetCompileName(Options)));
             } else {
               wr.Write("(");
               obj(wr);
-              wr.Write(".{0}", sf.GetCompileName(Options));
+              wr.Write(".{0}", IdProtect(sf.GetCompileName(Options)));
             }
 
             wr.Write(")");
@@ -1992,6 +1950,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, ConcreteSyntaxTree wr) {
       wr.Write("is_{1}({0})", source, DatatypeSubStructName(ctor));
+    }
+
+    // Non-ghost formals with their C++ field names (_a0, _a1, ... for unnamed ones).
+    private IEnumerable<(Formal Arg, string Name)> NonGhostFields(List<Formal> formals) {
+      return formals.Where(f => !f.IsGhost).Select((f, i) => (f, FormalName(f, i)));
     }
 
     // Name of a datatype destructor METHOD (dtor_<name>()). For a named field this is
@@ -2285,14 +2248,6 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Subset:
         case BinaryExpr.ResolvedOpcode.MultiSubset:
           callString = "IsSubsetOf"; break;
-        case BinaryExpr.ResolvedOpcode.Superset:
-        case BinaryExpr.ResolvedOpcode.MultiSuperset:
-          // a >= b  <=>  b <= a. The runtime has no IsSupersetOf, so reuse IsSubsetOf
-          // with the arguments reversed.
-          callString = "IsSubsetOf"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.ProperSuperset:
-        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-          callString = "IsProperSubsetOf"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
           callString = "IsDisjointFrom"; break;
@@ -2330,7 +2285,10 @@ namespace Microsoft.Dafny.Compilers {
           preOpString = "!"; callString = "contains"; reverseArguments = true; break;
 
         default:
-          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected binary expression
+          base.CompileBinOp(op, e0Type, e1Type, tok, resultType,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
+            errorWr);
+          break;
       }
     }
 
