@@ -2,6 +2,7 @@
 
 newtype i8 = x: int | -128 <= x < 128
 newtype i32 = x: int | -0x8000_0000 <= x < 0x8000_0000
+newtype i64 = x: int | -0x8000_0000_0000_0000 <= x < 0x8000_0000_0000_0000
 newtype u32 = x: int | 0 <= x < 0x1_0000_0000
 
 // Field names that are C++ keywords
@@ -19,6 +20,8 @@ method Main() {
   print (a / 3) as i32, " ", (a / c) as i32, " ", (b % 3) as i32, " ", (b % c) as i32, " ", ((-7 as i8) / 3) as i32, " ", ((-7 as i8) % 3) as i32, "\n";
   var e: i32 := -0x8000_0000;
   print e / 7, " ", e / -7, " ", (e + 1) % 7, " ", (e + 1) % -7, "\n";
+  var g: i64 := -7;
+  print g / 3, " ", g % 3, " ", g / -3, " ", g % -3, "\n";
 
   // Superset and disjointness
   var s: set<u32> := {1, 2, 3};
