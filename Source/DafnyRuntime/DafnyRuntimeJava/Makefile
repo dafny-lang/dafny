@@ -8,10 +8,13 @@ GENERATED_SYSTEM_MODULE_TARGET=src/main/dafny-generated/_System
 GENERATED_DAFNY_MODULE_SOURCE=../obj/systemModulePopulator-java/dafny
 GENERATED_DAFNY_MODULE_TARGET=src/main/dafny-generated/dafny
 
-all: check-system-module test
+all: check-system-module test javadoc
 
 test:
 	./gradlew test
+
+javadoc:
+	./gradlew javadoc
 
 # TODO: Add --optimize-erasable-datatype-wrapper:false elsewhere too
 build-system-module:

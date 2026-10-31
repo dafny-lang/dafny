@@ -15,7 +15,6 @@ fi
 brew install --cask dotnet
 ## For compilation
 brew install --cask oracle-jdk-javadoc
-brew install gradle
 brew install golang
 brew install node
 ## For testing with lit

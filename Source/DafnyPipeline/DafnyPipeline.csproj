@@ -81,15 +81,12 @@
       <LogicalName>DafnyStandardLibraries.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\java\**\*.java">
+    <DafnyRuntimeJavaSource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\java\**\*.java;..\DafnyRuntime\DafnyRuntimeJava\src\main\dafny-generated\**\*.java" />
+    <EmbeddedResource Include="@(DafnyRuntimeJavaSource)">
       <LinkBase>DafnyRuntimeJava</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\dafny-generated\**\*.java">
-      <LinkBase>DafnyRuntimeJava</LinkBase>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime-4.11.1.jar">
+    <EmbeddedResource Include="$(DafnyRuntimeJar)">
       <LogicalName>DafnyRuntime.jar</LogicalName>
       <Link>DafnyRuntime.jar</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -127,5 +124,49 @@
     </EmbeddedResource>
     <EmbeddedResource Remove="..\DafnyRuntime\DafnyRuntimeRust\target\**"/>
   </ItemGroup>
+
+  <PropertyGroup>
+    <DafnyRuntimeJar>$(BaseIntermediateOutputPath)DafnyRuntime.jar</DafnyRuntimeJar>
+    <DafnyRuntimeJavaArgFile>$(BaseIntermediateOutputPath)java-sources.txt</DafnyRuntimeJavaArgFile>
+  </PropertyGroup>
+
+  <Target Name="WriteDafnyRuntimeJavaSourceList">
+    <ItemGroup>
+      <_DafnyRuntimeJavaSource Include="@(DafnyRuntimeJavaSource)">
+        <ArgFilePath>$([System.String]::Copy('%(Identity)').Replace('\', '/'))</ArgFilePath>
+      </_DafnyRuntimeJavaSource>
+    </ItemGroup>
+    <!-- Rewritten only when the list changes, so adding or deleting a source rebuilds the jar. -->
+    <WriteLinesToFile File="$(DafnyRuntimeJavaArgFile)" Lines="@(_DafnyRuntimeJavaSource->'&quot;%(ArgFilePath)&quot;')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <FileWrites Include="$(DafnyRuntimeJavaArgFile)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="BuildDafnyRuntimeJar" BeforeTargets="PrepareResources" DependsOnTargets="WriteDafnyRuntimeJavaSourceList" Inputs="$(MSBuildProjectFile);$(DafnyRuntimeJavaArgFile);@(DafnyRuntimeJavaSource)" Outputs="$(DafnyRuntimeJar)">
+    <PropertyGroup>
+      <JavaBin Condition="'$(JAVA_HOME)' != ''">$(JAVA_HOME)/bin/</JavaBin>
+      <JavaClasses>$(BaseIntermediateOutputPath)java-classes</JavaClasses>
+    </PropertyGroup>
+    <Exec Command="&quot;$(JavaBin)javac&quot; -version" ConsoleToMSBuild="true" IgnoreExitCode="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ExitCode" PropertyName="JavacExitCode" />
+      <Output TaskParameter="ConsoleOutput" PropertyName="JavacVersion" />
+    </Exec>
+    <Error Condition="'$(JavacExitCode)' != '0'" Text="Building Dafny's Java runtime needs a JDK 8 or later, but running $(JavaBin)javac failed. Set JAVA_HOME to a JDK, or put its bin directory on the PATH." />
+    <PropertyGroup>
+      <!-- javac 8 lacks the release flag; there -source/-target is exact, as it compiles against its own Java 8 library. -->
+      <JavaTarget Condition="$(JavacVersion.Contains('javac 1.'))">-source 8 -target 8</JavaTarget>
+      <JavaTarget Condition="!$(JavacVersion.Contains('javac 1.'))">--release 8 -Xlint:-options</JavaTarget>
+    </PropertyGroup>
+    <Message Text="Compiling the Java runtime to $(DafnyRuntimeJar) ($(JavacVersion), $(JavaTarget))" Importance="high" />
+    <RemoveDir Directories="$(JavaClasses)" />
+    <MakeDir Directories="$(JavaClasses)" />
+    <Exec Command="&quot;$(JavaBin)javac&quot; $(JavaTarget) -encoding UTF-8 -g -proc:none -Xlint:unchecked -d &quot;$(JavaClasses)&quot; @&quot;$(DafnyRuntimeJavaArgFile)&quot;" />
+    <Exec Command="&quot;$(JavaBin)jar&quot; cf &quot;$(DafnyRuntimeJar)&quot; -C &quot;$(JavaClasses)&quot; ." />
+    <ItemGroup>
+      <!-- Register the generated file to be deleted when cleaning -->
+      <FileWrites Include="$(DafnyRuntimeJar)" />
+    </ItemGroup>
+  </Target>
 
 </Project>

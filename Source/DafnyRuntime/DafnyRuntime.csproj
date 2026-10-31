@@ -18,14 +18,6 @@
     <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <DafnyRuntimeJavaInputFile Include="./DafnyRuntimeJava/**/*.*" />
-    <DafnyRuntimeJavaInputFile Remove="./DafnyRuntimeJava/build/**/*.*" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="DafnyRuntimeJava\build\libs" />
-  </ItemGroup>
    <ItemGroup>
     <InternalsVisibleTo Include="$(MSBuildProjectName).Tests" />
   </ItemGroup>
@@ -46,20 +38,5 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <PropertyGroup>
-    <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime-4.11.1.jar</DafnyRuntimeJar>
-  </PropertyGroup>
-  <Target Name="BuildDafnyRuntimeJar" AfterTargets="ResolveReferences" BeforeTargets="CoreCompile" Inputs="$(MSBuildProjectFile);@(DafnyRuntimeJavaInputFile)" Outputs="$(DafnyRuntimeJar)">
-    
-    <Message Text="Compiling DafnyRuntimeJava to $(DafnyRuntimeJar)..." Importance="high" />
-    <!-- For some reason the DafnyRuntime.jar was often not (yet?) created after this Target was run, leading to build failures. 
-       We've removed the 'clean' step that was before 'build', so the DafnyRuntime.jar from a previous run can be used. -->
-    <Exec WorkingDirectory="DafnyRuntimeJava" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="./gradlew build" />
-    <Exec WorkingDirectory="DafnyRuntimeJava" Condition="$([MSBuild]::IsOSPlatform('Windows'))" Command="./gradlew.bat build" />
-    <ItemGroup>
-      <!-- Register the generated file to be deleted when cleaning -->
-      <FileWrites Include="$(DafnyRuntimeJar)" />
-    </ItemGroup>
-  </Target>
 
 </Project>

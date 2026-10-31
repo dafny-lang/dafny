@@ -32,14 +32,13 @@ sourceSets["main"].java {
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     options.compilerArgs += ['-Xlint:unchecked']
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.release = 8
+    }
 }
 
 test {
     useJUnitPlatform()
-}
-
-clean {
-    delete '../../../Binaries/DafnyRuntime.jar'
 }
 
 publishing {
