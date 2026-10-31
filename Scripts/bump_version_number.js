@@ -102,11 +102,6 @@ async function synchronizeRepositoryWithNewVersionNumber() {
   await replaceInFile(/by Dafny \d+\.\d+\.\d+/, `by Dafny ${version}`,
     `${TestDirectory}/comp/separate-compilation/translation-records/InvalidFormat.dfy.expect`);
 
-  //# * Update the Dafny runtime version number by searching for `DafnyRuntime-` and updating the version right afterwards, in the files `DafnyPipeline.csproj` and `DafnyRuntime.csproj`
-  await replaceInFile(/DafnyRuntime-(\d+\.\d+\.\d+)\.jar/, `DafnyRuntime-${version}.jar`,
-    `Source/DafnyPipeline/DafnyPipeline.csproj`, existingVersion);
-  await replaceInFile(/DafnyRuntime-(\d+\.\d+\.\d+)\.jar/, `DafnyRuntime-${version}.jar`,
-    `Source/DafnyRuntime/DafnyRuntime.csproj`, existingVersion);
 }
 
 async function updateDooVersion(dooPath, newVersion) {

@@ -84,6 +84,10 @@ jobs:
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeJava
           make all
+      - name: Check the shipped Java runtime matches Gradle's build
+        run: |
+          unzip -q Source/DafnyPipeline/obj/DafnyRuntime.jar -d shipped-java-runtime
+          diff -r --exclude=META-INF shipped-java-runtime Source/DafnyRuntime/DafnyRuntimeJava/build/classes/java/main
       - name: Test DafnyRuntimePython
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimePython
