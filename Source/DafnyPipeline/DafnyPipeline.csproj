@@ -132,7 +132,7 @@
   </ItemGroup>
 
   <Target Name="WriteDafnyRuntimeJavaSourceList">
-    <!-- Rewritten only when the list changes, so adding or deleting a source rebuilds the jar.
+    <!-- Rewritten only when the list changes, so deleting a source rebuilds the jar, which the Inputs timestamps alone cannot catch.
          A javac argument file reads '\' as an escape, so spell the paths with '/'. -->
     <WriteLinesToFile File="$(DafnyRuntimeJavaArgFile)" Lines="@(DafnyRuntimeJavaSource->'&quot;%(Identity)&quot;'->Replace('\', '/'))" Overwrite="true" WriteOnlyWhenDifferent="true" />
   </Target>
