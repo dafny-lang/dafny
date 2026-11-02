@@ -84,10 +84,12 @@ jobs:
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeJava
           make all
-      - name: Check the shipped Java runtime matches Gradle's build
+      - name: Check the shipped Java runtime
         run: |
           unzip -q Source/DafnyPipeline/obj/DafnyRuntime.jar -d shipped-java-runtime
           diff -r --exclude=META-INF shipped-java-runtime Source/DafnyRuntime/DafnyRuntimeJava/build/classes/java/main
+          # Class file major version 52, which is what docs/Installation.md promises.
+          python3 -c 'import pathlib, struct; bad = [str(p) for p in pathlib.Path("shipped-java-runtime").rglob("*.class") if struct.unpack(">H", p.read_bytes()[6:8])[0] != 52]; assert not bad, f"not Java 8 class files: {bad}"'
       - name: Test DafnyRuntimePython
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimePython
