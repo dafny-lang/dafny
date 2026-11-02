@@ -29,7 +29,10 @@ namespace Microsoft.Dafny {
       var loggerConfigs = options.Get(CommonOptionBag.VerificationLogFormat);
 
       var events = new LocalTestLoggerEvents();
-      var verificationResults = ((DafnyConsolePrinter)options.Printer).VerificationResults.ToList();
+      // VerificationResults is a ConcurrentBag, so it has no order of its own.
+      var verificationResults = ((DafnyConsolePrinter)options.Printer).VerificationResults
+        .OrderBy(entry => (entry.Implementation.Tok.filename, entry.Implementation.Tok.line,
+          entry.Implementation.Tok.col)).ToList();
       List<IDisposable> disposables = new();
       foreach (var loggerConfig in loggerConfigs) {
         VerificationResultLogger.ParseParametersAndLoggerName(loggerConfig, out var parameters, out var loggerName);
