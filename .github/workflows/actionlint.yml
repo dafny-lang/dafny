@@ -1,0 +1,35 @@
+# An invalid workflow file fails as `startup_failure`: no jobs, no logs, easy to miss.
+
+name: Lint workflows
+
+on:
+  workflow_dispatch:
+  # No `branches:` filter on purpose: it would exclude PRs stacked on another branch, and at a
+  # few seconds there is nothing to save by narrowing this.
+  pull_request:
+  merge_group:
+  # Two workflow changes can be valid apart and invalid merged: one deletes a job the other needs.
+  push:
+    branches: [ master, main-* ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Dafny
+        uses: actions/checkout@v7
+
+      # actionlint publishes no action, hence the container image. Dependabot ignores `docker://`,
+      # so bump this tag by hand - including when it rejects a new runner label as unknown.
+      - name: Run actionlint
+        uses: docker://rhysd/actionlint:1.7.12
+        with:
+          # The image bundles shellcheck, which actionlint would run over every `run:` block.
+          # Those findings are pre-existing and unrelated to workflow validity; see #6519.
+          args: -color -shellcheck=

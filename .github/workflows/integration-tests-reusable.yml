@@ -165,6 +165,7 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
         DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS: ${{ inputs.compilers }}
+      shell: pwsh
       run: |
         cmd /c mklink ${{ env.DAFNY_RELEASE }}\z3\bin\z3-4.16.0 ${{ env.DAFNY_RELEASE }}\z3\bin\z3-4.16.0.exe
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests/IntegrationTests.csproj
