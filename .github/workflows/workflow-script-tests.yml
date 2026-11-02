@@ -1,0 +1,28 @@
+# Unit tests for the scripts in this directory that github-script steps require.
+
+name: Workflow script tests
+
+on:
+  workflow_dispatch:
+  # Unfiltered, unlike the heavier workflows here: seconds are worth spending on every PR,
+  # including ones stacked on another branch, which a `branches:` list would exclude.
+  pull_request:
+  merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Dafny
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/workflows
+          sparse-checkout-cone-mode: false
+
+      - run: node --test .github/workflows/*.test.js
