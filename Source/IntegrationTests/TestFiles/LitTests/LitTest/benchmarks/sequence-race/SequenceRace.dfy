@@ -11,7 +11,8 @@
 // RUN: cp -r %S/SequenceRace-java %S/java/src/jmh/java
 
 // Note the intentional ">" as opposed to ">>", so we can check just the benchmark run output.
-// RUN: %S/java/gradlew jmh -p %S/java -PdafnyRuntimeJar=%binaryDir/DafnyRuntime.jar > "%t"
+// Gradle resolves a relative path against -p, not the working directory, so pass an absolute one.
+// RUN: %S/java/gradlew jmh -p %S/java -PdafnyRuntimeJar=%repositoryRoot/Binaries/DafnyRuntime.jar > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 
 // Verify the benchmark actually ran and did not hit any exceptions.
