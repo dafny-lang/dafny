@@ -38,16 +38,16 @@ jobs:
         id: populate-iterations-normal
         if: "!inputs.soak_test"
         working-directory: .
-        run: echo "iterations=[1]" >> $GITHUB_OUTPUT
+        run: echo "iterations=[1]" >> "$GITHUB_OUTPUT"
       - name: Populate iterations (soak test mode)
         id: populate-iterations-soak
         if: inputs.soak_test
         working-directory: .
-        run: echo "iterations=[`seq -s , 1 5`]" >> $GITHUB_OUTPUT
+        run: echo "iterations=[$(seq -s , 1 5)]" >> "$GITHUB_OUTPUT"
       - name: Populate shard list
         id: populate-shard-list
         working-directory: .
-        run: echo "shard-list=[`seq -s , 1 ${{ inputs.num_shards }}`]" >> $GITHUB_OUTPUT
+        run: echo "shard-list=[$(seq -s , 1 ${{ inputs.num_shards }})]" >> "$GITHUB_OUTPUT"
     outputs:
       iterations: ${{ steps.populate-iterations-normal.outputs.iterations }} ${{ steps.populate-iterations-soak.outputs.iterations }}
       shard-list: ${{ steps.populate-shard-list.outputs.shard-list }}

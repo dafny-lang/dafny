@@ -30,6 +30,6 @@ jobs:
       - name: Run actionlint
         uses: docker://rhysd/actionlint:1.7.12
         with:
-          # The image bundles shellcheck, which actionlint would run over every `run:` block.
-          # Those findings are pre-existing and unrelated to workflow validity; see #6519.
-          args: -color -shellcheck=
+          # The image bundles shellcheck, which actionlint runs over every `run:` block - and
+          # silently skips if a future image stops bundling it.
+          args: -color
