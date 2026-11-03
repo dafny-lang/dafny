@@ -1,0 +1,1 @@
+Go and Java: `%` now gives the right result when the left operand is the smallest value of a signed native int type.
