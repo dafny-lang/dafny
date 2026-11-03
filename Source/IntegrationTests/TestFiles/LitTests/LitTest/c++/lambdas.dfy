@@ -19,7 +19,7 @@ method Main() {
   var eq: (i32, i32) -> bool := (a: i32, b: i32) => a == b;
   print eq(21, 21), " ", eq(21, 22), "\n";   // true false
 
-  // A function value passed to and returned from another function.
+  // A function value passed to another function.
   var twice := ApplyTwice(inc, 40);
   print twice, "\n";               // 42
 }
