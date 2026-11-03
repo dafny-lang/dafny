@@ -2067,7 +2067,7 @@ namespace Microsoft.Dafny.Compilers {
         if (i != 0) {
           wr.Write(", ");
         }
-        wr.Write($"{TypeName(inTypes[i], wr, tok, null, false)} {inNames[i]}");
+        wr.Write($"[[maybe_unused]] {TypeName(inTypes[i], wr, tok, null, false)} {inNames[i]}");
       }
       var w = wr.NewBigExprBlock($") -> {TypeName(resultType, wr, tok, null, false)} ");
       return w;
