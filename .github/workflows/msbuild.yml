@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-24.04
     # Don't include in run-deep-tests, because those tests run on
     # release builds instead of source packages.
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'run-deep-tests') && !contains(github.event.push.labels.*.name, 'run-deep-tests')}}))
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'run-deep-tests') && !contains(github.event.push.labels.*.name, 'run-deep-tests') }}
     needs: [xunit-tests, integration-tests]
     steps:
       # Check out Dafny so that highlighted source is possible
