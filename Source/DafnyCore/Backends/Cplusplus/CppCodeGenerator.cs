@@ -1883,16 +1883,17 @@ namespace Microsoft.Dafny.Compilers {
           return SimpleLvalue(obj);
         }
       } else if (member is Function fn) {
-        var fnTypeArgs = ActualTypeArgs(typeArgs.Where(ta => ta.Formal.Parent == fn).Select(ta => ta.Actual).ToList());
+        string TypeArgsOf(object parent) => ActualTypeArgs(typeArgs.Where(ta => ta.Formal.Parent == parent).Select(ta => ta.Actual).ToList());
+        var fnTypeArgs = TypeArgsOf(fn);
         if (fn.IsStatic) {
-          return StringLvalue($"{IdProtect(fn.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options))}::{IdName(fn.EnclosingClass)}::{IdName(fn)}{fnTypeArgs}");
+          return StringLvalue($"{IdProtect(fn.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options))}::{IdName(fn.EnclosingClass)}{TypeArgsOf(fn.EnclosingClass)}::{IdName(fn)}{fnTypeArgs}");
         }
         // An instance function as a value: a lambda that keeps its object alive.
         return SimpleLvalue(wr => {
           var ins = fn.Ins.Where(f => !f.IsGhost).Select(f => (Type: f.Type.Subst(typeMap), Name: idGenerator.FreshId("_eta"))).ToList();
-          wr.Write("[_this = ");
+          wr.Write("[_this = dafny_shared(");
           obj(wr);
-          wr.Write($"]({ins.Comma(p => $"{TypeName(p.Type, wr, fn.Origin)} {p.Name}")}) -> {TypeName(fn.ResultType.Subst(typeMap), wr, fn.Origin)} ");
+          wr.Write($")]({ins.Comma(p => $"{TypeName(p.Type, wr, fn.Origin)} {p.Name}")}) -> {TypeName(fn.ResultType.Subst(typeMap), wr, fn.Origin)} ");
           wr.Write($"{{ return _this->{IdName(fn)}{fnTypeArgs}({ins.Comma(p => p.Name)}); }}");
         });
       } else if (IsGetter(member)) {
@@ -2092,9 +2093,10 @@ namespace Microsoft.Dafny.Compilers {
       w.Write("return ");
       wrBody = w.Fork();
       w.WriteLine(";");
-      wr.Write("(");
+      // The bound value may be the raw `this` where an object reference is expected.
+      wr.Write(bvType.IsRefType ? "(dafny_shared(" : "(");
       wrRhs = wr.Fork();
-      wr.Write(")");
+      wr.Write(bvType.IsRefType ? "))" : ")");
     }
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, IOrigin resultTok, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

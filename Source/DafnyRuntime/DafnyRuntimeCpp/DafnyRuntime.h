@@ -127,6 +127,12 @@ void dafny_print(std::shared_ptr<T> x) {
   }
 }
 
+// An object reference as a shared_ptr, also when it is the raw `this`.
+template <typename T>
+T dafny_shared(T x) { return x; }
+template <typename T>
+std::shared_ptr<T> dafny_shared(T* p) { return std::static_pointer_cast<T>(p->shared_from_this()); }
+
 /*********************************************************
  *  DEFAULTS                                             *
  *********************************************************/
