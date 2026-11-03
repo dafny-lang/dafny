@@ -1,0 +1,5 @@
+`generate-tests` now supports a new `Spec` mode for specification-driven test generation:
+- Analyzes `requires` and `ensures` clauses to generate test data using Equivalence Class Partitioning (ECP) through Disjunctive Normal Form (DNF) and Boundary Value Analysis (BVA).
+- Introduces new CLI flags: `--fdnf`, `--bva`, `--simplify`, `--repeat <n>`, and `--time`.
+- Test generation no longer requires target methods to be enclosed in a `module`.
+- Automatically supports generating tests for methods that fail verification (no need for `{:testEntry}`) to assist with debugging.

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 
@@ -15,6 +16,10 @@ namespace DafnyTestGeneration {
   public static class TestGenerator {
 
     public static bool SetNonZeroExitCode = false;
+    private static readonly Dictionary<string, List<string>> IgnoreNames = [];
+    private static readonly Dictionary<string, List<string>> LengthNames = [];
+    private static readonly Dictionary<string, BlockStmt> OriginalBodies = [];
+    private static readonly Dictionary<string, (List<AttributedExpression>, List<AttributedExpression>)> OriginalSpec = [];
 
     /// <summary>
     /// This method returns each capturedState that is unreachable, one by one,
@@ -115,7 +120,9 @@ namespace DafnyTestGeneration {
       ProgramModifier programModifier =
         options.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
           ? new PathBasedModifier(cache)
-          : new BlockBasedModifier(cache);
+          : options.TestGenOptions.Mode == TestGenerationOptions.Modes.Spec
+            ? new SpecBasedModifier(cache)
+            : new BlockBasedModifier(cache);
       return programModifier.GetModifications(boogieProgram, dafnyInfo);
     }
 
@@ -195,20 +202,48 @@ namespace DafnyTestGeneration {
       options.PrintMode = PrintModes.Everything;
       // Generate tests based on counterexamples produced from modifications
 
-      cache ??= new Modifications(options);
-      foreach (var modification in GetModifications(cache, program, out var dafnyInfo)) {
+      List<TestMethod> testMethods = new List<TestMethod>();
 
-        var log = await modification.GetCounterExampleLog(cache);
-        if (log == null) {
-          continue;
+      PrepareProgram(program, options.TestGenOptions.Mode == TestGenerationOptions.Modes.Spec);
+
+      for (int i = 0; i < options.TestGenOptions.Repeat; i++) {
+        testMethods.Clear();
+
+        Modifications currentCache = (i == 0)
+          ? (cache ?? new Modifications(options))
+          : new Modifications(program.Options);
+
+        foreach (var modification in GetModifications(currentCache, program, out var dafnyInfo)) {
+
+          var log = await modification.GetCounterExampleLog(currentCache);
+          if (log == null) {
+            continue;
+          }
+
+          var testMethod = await modification.GetTestMethod(currentCache, dafnyInfo);
+          if (testMethod == null) {
+            continue;
+          }
+
+          yield return testMethod;
+          testMethods.Add(testMethod);
         }
 
-        var testMethod = await modification.GetTestMethod(cache, dafnyInfo);
-        if (testMethod == null) {
-          continue;
+        if (testMethods.Count == 0) {
+          break;
         }
 
-        yield return testMethod;
+        if (options.TestGenOptions.Time) {
+          await options.OutputWriter.Status(
+            $"\n// REPEAT {i + 1} - TIME: {options.TestGenOptions.StopWatch.Elapsed.TotalSeconds} s\n");
+        }
+
+        if (i < options.TestGenOptions.Repeat - 1) {
+          program = await UpdateProgram(program, testMethods);
+          if (!Utils.AllMemberDeclarations(program.DefaultModule).Any()) {
+            break;
+          }
+        }
       }
     }
 
@@ -225,7 +260,9 @@ namespace DafnyTestGeneration {
       }
       SetNonZeroExitCode = firstPass.NonZeroExitCode;
       var program = await Utils.Parse(new BatchErrorReporter(options), code, false, uri);
+      AddTestEntryAttribute(program);
       var rawName = Regex.Replace(uri?.AbsolutePath ?? "", "[^a-zA-Z0-9_]", "");
+      var isWrappedInAModule = CheckIsWrappedInAModule(program);
 
       string EscapeDafnyStringLiteral(string str) {
         return $"\"{str.Replace(@"\", @"\\")}\"";
@@ -235,7 +272,9 @@ namespace DafnyTestGeneration {
         yield return $"include {EscapeDafnyStringLiteral(uri.AbsolutePath)}";
       }
 
-      yield return $"module {rawName}UnitTests {{";
+      if (isWrappedInAModule) {
+        yield return $"module {rawName}UnitTests {{";
+      }
 
       var cache = new Modifications(options);
       var methodsGenerated = 0;
@@ -259,7 +298,9 @@ namespace DafnyTestGeneration {
       }
 
       yield return TestMethod.EmitSynthesizeMethods(dafnyInfo, cache);
-      yield return "}";
+      if (isWrappedInAModule) {
+        yield return "}";
+      }
 
       PopulateCoverageReport(report, program, cache);
 
@@ -268,6 +309,245 @@ namespace DafnyTestGeneration {
           "*** Error: No tests were generated, because no code points could be " +
           "proven reachable (do you have a false assumption in the program?)");
         SetNonZeroExitCode = true;
+      }
+    }
+
+    /// <summary>
+    /// Return true iff the program has no elements that are not wrapped in a module
+    /// (so all elements can be imported provided the export sets allow it)
+    /// </summary>
+    private static bool CheckIsWrappedInAModule(Program program) {
+      if (program.DefaultModuleDef.Children.OfType<ClassLikeDecl>().Any() || program.DefaultModuleDef.Children.OfType<DefaultClassDecl>().Any(decl => decl.Children.Any())) {
+        return false;
+      }
+      return true;
+    }
+
+    /// <summary>
+    /// Updates the program for the Spec test generation mode, given the input parameters previously generated
+    /// for each testMethod.
+    /// </summary>
+    private static async Task<Program> UpdateProgram(Program program, List<TestMethod> testMethods) {
+      // Turn off BVA so it does not attempt the same values
+      program.Options.TestGenOptions.Bva = null;
+
+      // Delete method duplicates of functions
+      foreach (var module in program.Modules()) {
+        foreach (var decl in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+
+          var functionNames = new HashSet<string>();
+
+          foreach (var func in decl.Members.OfType<Function>()) {
+            functionNames.Add(func.Name);
+            func.ByMethodBody = null;
+            func.ByMethodDecl = null;
+            func.ByMethodTok = null;
+          }
+
+          decl.Members.RemoveAll(member =>
+            member is Method method && functionNames.Contains(method.Name)
+          );
+
+          foreach (var method in decl.Members.OfType<Method>()) {
+            if (OriginalBodies.TryGetValue(method.Name, out BlockStmt body)) {
+              method.SetBody(body);
+            }
+            if (OriginalSpec.TryGetValue(method.Name, out var spec)) {
+              method.Req = spec.Item1;
+              method.Ens = spec.Item2;
+            }
+          }
+        }
+      }
+
+      var entryPointsToDelete = new HashSet<MemberDecl>();
+
+      foreach (var entryPoint in Utils.AllMemberDeclarationsWithAttribute(program.DefaultModule,
+                 TestGenerationOptions.TestEntryAttribute)) {
+        bool insertedAssume = false;
+
+        for (var i = testMethods.Count - 1; i >= 0; i--) {
+          var testMethod = testMethods[i];
+          var shortName = testMethod.MethodName.Contains('.')
+            ? testMethod.MethodName.Substring(testMethod.MethodName.LastIndexOf('.') + 1)
+            : testMethod.MethodName;
+
+          if (entryPoint.Name != shortName) {
+            continue;
+          }
+
+          List<Formal> argFormals;
+
+          switch (entryPoint) {
+            case Method methodDecl:
+              argFormals = methodDecl.Ins.ToList();
+              break;
+            case Function functionDecl:
+              argFormals = functionDecl.Ins.ToList();
+              break;
+            default: return program;
+          }
+
+
+          foreach (var formal in argFormals) {
+            if ((!IgnoreNames.TryGetValue(entryPoint.Name, out var ignoredForEntry) || !ignoredForEntry.Contains(formal.Name)) && testMethod.ArgExpressions.TryGetValue(formal.Name, out var argExpr) && argExpr != null) {
+              var validTok = entryPoint.StartToken;
+
+              var nameSegment = new NameSegment(validTok, formal.Name, null);
+
+              List<Expression> allConstraints = [];
+
+              if (LengthNames.TryGetValue(entryPoint.Name, out var lengthEntry) && lengthEntry.Contains(formal.Name)) {
+                var cardinality = new UnaryOpExpr(validTok, UnaryOpExpr.Opcode.Cardinality, nameSegment);
+                var literalExpr = new LiteralExpr(validTok, argExpr.Children.Count());
+                allConstraints.Add(new BinaryExpr(validTok, BinaryExpr.Opcode.Neq, cardinality, literalExpr));
+              } else {
+                allConstraints.Add(new BinaryExpr(validTok, BinaryExpr.Opcode.Neq, nameSegment, argExpr));
+                allConstraints.AddRange(Utils.GetNestedConstraints(nameSegment, argExpr, validTok));
+              }
+
+              var axiomAttr = new Attributes(Attributes.AxiomAttributeName, [], null);
+
+              foreach (var constraint in allConstraints) {
+                var assumeStmt = new AssumeStmt(validTok, constraint, axiomAttr);
+                insertedAssume = true;
+                if (entryPoint is Method method) {
+                  if (method.Body != null) {
+                    method.Body.Body.Insert(0, assumeStmt);
+                    if (OriginalBodies.TryGetValue(method.Name, out var body)) {
+                      body.Body.Insert(0, assumeStmt);
+                    }
+                  } else {
+                    method.SetBody(new BlockStmt(validTok, [assumeStmt]));
+                  }
+                } else if (entryPoint is Function function) {
+                  function.Body = new StmtExpr(validTok, assumeStmt, function.Body);
+                }
+              }
+            }
+          }
+          testMethods.RemoveAt(i);
+        }
+        if (!insertedAssume) {
+          entryPointsToDelete.Add(entryPoint);
+        }
+      }
+
+      if (entryPointsToDelete.Count > 0) {
+        foreach (var module in program.Modules()) {
+          foreach (var decl in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+            decl.Members.RemoveAll(member => entryPointsToDelete.Contains(member));
+          }
+        }
+      }
+
+      return await Utils.GetFreshProgram(program);
+    }
+
+    /// <summary>
+    /// Adds {:testEntry} attribute to methods and functions that are known to have failed the verification step.
+    /// </summary>
+    private static void AddTestEntryAttribute(Program program) {
+      var failedMembers = program.Options.TestGenOptions.FailedVerification;
+
+      foreach (var member in Utils.AllMemberDeclarations(program.DefaultModule)) {
+        bool isFailedMember = failedMembers.Any(f =>
+          f == member.Name || f.EndsWith("." + member.Name));
+
+        if (member is Method { IsGhost: false } or Function { IsGhost: false }) {
+          if (isFailedMember && !member.HasUserAttribute(TestGenerationOptions.TestEntryAttribute, out _)) {
+            member.Attributes = new Attributes(
+              TestGenerationOptions.TestEntryAttribute,
+              [],
+              member.Attributes
+            );
+          }
+        }
+      }
+    }
+
+    /// <summary>
+    /// Deletes the implementation of the methods that will be tested, as this information is not useful
+    /// for specification-based test generation, and can be conflicting with the following steps.
+    /// </summary>
+    private static void PrepareProgram(Program program, bool isSpecMode) {
+      foreach (var entryPoint in Utils.AllMemberDeclarationsWithAttribute(program.DefaultModule,
+                 TestGenerationOptions.TestEntryAttribute)) {
+
+        if (entryPoint is Method method) {
+
+          var cloner = new Cloner();
+          var copiedReq = method.Req.Select(req =>
+            new AttributedExpression(cloner.CloneExpr(req.E), req.Label, req.Attributes)
+          ).ToList();
+          var copiedEns = method.Ens.Select(ens =>
+            new AttributedExpression(cloner.CloneExpr(ens.E), ens.Label, ens.Attributes)
+          ).ToList();
+          OriginalSpec[method.Name] = (copiedReq, copiedEns);
+
+          if (method.Body is not null) {
+            if (isSpecMode) {
+              method.SetBody(new BlockStmt(method.Body.Origin, []));
+            } else {
+              OriginalBodies[method.Name] = cloner.CloneBlockStmt(method.Body);
+            }
+          }
+
+          foreach (var formal in method.Ins) {
+            switch (formal.Type) {
+              case UserDefinedType { Name: "string" or "nat" }:
+                break;
+              case UserDefinedType tupleType when tupleType.Name.StartsWith("_tuple#"):
+                var tupleArgs = tupleType.TypeArgs;
+                if (tupleArgs.Any(arg => arg is UserDefinedType { Name: not "string" and not "nat" } udt &&
+                                         !udt.Name.StartsWith("_tuple#"))) {
+                  if (IgnoreNames.TryGetValue(method.Name, out var ignoreTupleList)) {
+                    ignoreTupleList.Add(formal.Name);
+                  } else {
+                    IgnoreNames[method.Name] = [formal.Name];
+                  }
+                }
+                break;
+              case UserDefinedType:
+                if (IgnoreNames.TryGetValue(method.Name, out var ignoreList)) {
+                  ignoreList.Add(formal.Name);
+                } else {
+                  IgnoreNames[method.Name] = [formal.Name];
+                }
+                break;
+              case SeqType seqType:
+                var seqArg = seqType.Arg;
+                if (seqArg is UserDefinedType) {
+                  if (LengthNames.TryGetValue(method.Name, out var lengthList)) {
+                    lengthList.Add(formal.Name);
+                  } else {
+                    LengthNames[method.Name] = [formal.Name];
+                  }
+                }
+                break;
+              case SetType setType:
+                var setArg = setType.Arg;
+                if (setArg is UserDefinedType) {
+                  if (LengthNames.TryGetValue(method.Name, out var lengthList)) {
+                    lengthList.Add(formal.Name);
+                  } else {
+                    LengthNames[method.Name] = [formal.Name];
+                  }
+                }
+                break;
+              case MapType mapType:
+                var mapArg = mapType.Arg;
+                if (mapArg is UserDefinedType) {
+                  if (LengthNames.TryGetValue(method.Name, out var lengthList)) {
+                    lengthList.Add(formal.Name);
+                  } else {
+                    LengthNames[method.Name] = [formal.Name];
+                  }
+                }
+                break;
+            }
+          }
+        }
       }
     }
   }
