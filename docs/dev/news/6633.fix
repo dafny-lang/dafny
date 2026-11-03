@@ -1,0 +1,1 @@
+A `newtype` with `%` in its bounds no longer gets a native type that is too small.
