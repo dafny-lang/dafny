@@ -1698,14 +1698,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    // std::function<R(A0, A1, ...)> for a Dafny arrow type A0,A1,... -> R.
     private string ArrowTypeName(ArrowType at, ConcreteSyntaxTree wr, IOrigin tok) {
-      var result = TypeName(at.Result, wr, tok, null, false);
-      var args = new List<string>();
-      foreach (var a in at.Args) {
-        args.Add(TypeName(a, wr, tok, null, false));
-      }
-      return $"std::function<{result}({string.Join(", ", args)})>";
+      return $"std::function<{TypeName(at.Result, wr, tok)}({at.Args.Comma(a => TypeName(a, wr, tok))})>";
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
