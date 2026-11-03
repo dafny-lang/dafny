@@ -1882,12 +1882,19 @@ namespace Microsoft.Dafny.Compilers {
           // this member selection is handled by some kind of enclosing function call, so nothing to do here
           return SimpleLvalue(obj);
         }
-      } else if (member is Function) {
-        return StringLvalue(String.Format("{0}::{1}::{2}",
-          IdProtect(member.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options)),
-          IdName(member.EnclosingClass),
-          IdName(member)
-        ));
+      } else if (member is Function fn) {
+        var fnTypeArgs = ActualTypeArgs(typeArgs.Where(ta => ta.Formal.Parent == fn).Select(ta => ta.Actual).ToList());
+        if (fn.IsStatic) {
+          return StringLvalue($"{IdProtect(fn.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options))}::{IdName(fn.EnclosingClass)}::{IdName(fn)}{fnTypeArgs}");
+        }
+        // An instance function as a value: a lambda that keeps its object alive.
+        return SimpleLvalue(wr => {
+          var ins = fn.Ins.Where(f => !f.IsGhost).Select(f => (Type: f.Type.Subst(typeMap), Name: idGenerator.FreshId("_eta"))).ToList();
+          wr.Write("[_this = ");
+          obj(wr);
+          wr.Write($"]({ins.Comma(p => $"{TypeName(p.Type, wr, fn.Origin)} {p.Name}")}) -> {TypeName(fn.ResultType.Subst(typeMap), wr, fn.Origin)} ");
+          wr.Write($"{{ return _this->{IdName(fn)}{fnTypeArgs}({ins.Comma(p => p.Name)}); }}");
+        });
       } else if (IsGetter(member)) {
         return SuffixLvalue(obj, "->{0}()", IdName(member));
       } else {
