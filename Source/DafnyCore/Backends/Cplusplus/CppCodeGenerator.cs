@@ -2397,6 +2397,19 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(source.Origin, Feature.TypeTests);
     }
 
+    // The base calls IntegerRange on the newtype, which is a typedef in C++, so call the runtime's IntegerRange instead.
+    protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {
+      var result = AsNativeType(type) != null ? type : new IntType();
+      Action<ConcreteSyntaxTree> writeRange = (wr) => {
+        wr.Write("IntegerRange(");
+        wLo(wr);
+        wr.Write(", ");
+        wHi(wr);
+        wr.Write(')');
+      };
+      return (result, writeRange);
+    }
+
     // C++ has no unbounded integers, so range bounds are computed in a 128-bit integer, which holds every bound of a
     // range over a 64-bit type, including the one past its maximum.
     protected override void EmitIntegerRangeBound(List<Expression> bounds, bool isLower, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

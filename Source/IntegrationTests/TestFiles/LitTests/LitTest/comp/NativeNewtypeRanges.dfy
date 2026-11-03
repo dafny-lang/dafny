@@ -1,5 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 --compilers cs,java,go,js,dfy,py,rs "%s" -- --allow-deprecation --unicode-char false
-// C++ is left out because it does not compile ranges over native newtypes yet.
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --allow-deprecation --unicode-char false
 
 // Comprehensions over native newtypes, bounded by variables rather than literals.
 // NativeNewtypeRangeForms.dfy has the forms that C++ does not support.
