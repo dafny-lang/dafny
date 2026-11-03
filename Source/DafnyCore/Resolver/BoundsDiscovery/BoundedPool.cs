@@ -8,8 +8,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Numerics;
-using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -69,8 +69,8 @@ public abstract class BoundedPool : ICloneable<BoundedPool> {
     foreach (var bound in bounds) {
       if (best is IntBoundedPool ibp0 && bound is IntBoundedPool ibp1) {
         best = new IntBoundedPool(
-          ChooseBestIntegerBound(ibp0.LowerBound, ibp1.LowerBound, true),
-          ChooseBestIntegerBound(ibp0.UpperBound, ibp1.UpperBound, false));
+          ChooseIntegerBounds(ibp0.LowerBounds.Concat(ibp1.LowerBounds), true),
+          ChooseIntegerBounds(ibp0.UpperBounds.Concat(ibp1.UpperBounds), false));
       } else if (best == null || bound.Preference() > best.Preference()) {
         best = bound;
       }
@@ -78,19 +78,88 @@ public abstract class BoundedPool : ICloneable<BoundedPool> {
     return best;
   }
 
-  [CanBeNull]
-  static Expression ChooseBestIntegerBound([CanBeNull] Expression a, [CanBeNull] Expression b, bool pickMax) {
-    if (a == null || b == null) {
-      return a ?? b;
+  /// <summary>
+  /// Returns the bounds, all on one side of a variable, that its enumeration has to take the largest ("pickMax") or the
+  /// smallest of at run time, in the order given. Of the constant bounds, only the tightest is kept, in the place of the
+  /// first, and only if no other bound kept implies it (see "Implies"). The other bounds cannot be compared statically,
+  /// so they are kept, except that one whose evaluation can fail is kept only if it comes first. A range is computed
+  /// before the compiled code checks the conjuncts that such a bound may rely on, like the "0 < k" of "i < 100 / k", so
+  /// a further one could fail where no element is in the range anyway, while a range with no further bound computes the
+  /// first one too.
+  /// </summary>
+  static List<Expression> ChooseIntegerBounds(IEnumerable<Expression> bounds, bool pickMax) {
+    Expression constantBound = null;
+    BigInteger constant = default;
+    var constantIndex = 0;
+    var others = new List<Expression>();
+    var first = true;
+    foreach (var bound in bounds) {
+      if (ConstantFolder.TryFoldInteger(bound) is { } value) {
+        if (constantBound == null) {
+          constantIndex = others.Count;
+        }
+        if (constantBound == null || (pickMax ? constant < value : value < constant)) {
+          constantBound = bound;
+          constant = value;
+        }
+      } else if (first || CannotFail(bound)) {
+        others.Add(bound);
+      }
+      first = false;
     }
+    if (constantBound != null && !others.Exists(other => Implies(other, constant, pickMax))) {
+      others.Insert(constantIndex, constantBound);
+    }
+    return others;
+  }
 
-    if (Expression.IsIntLiteral(a, out var aa) && Expression.IsIntLiteral(b, out var bb)) {
-      var x = pickMax ? BigInteger.Max(aa, bb) : BigInteger.Min(aa, bb);
-      return new LiteralExpr(a.Origin, x) { Type = a.Type };
+  /// <summary>
+  /// Returns whether "bound" is at least "constant" ("pickMax"), or as an exclusive upper bound at most it, wherever it
+  /// is evaluated. A variable, a field, a function result, an element, or a length lies in the range of its type, and so
+  /// does such a value plus a constant offset, shifted by the offset. Any other bound can lie outside the range of its
+  /// type: one that bounds discovery computed, like the "i - 49" that "i < j + 50" gives "j", or one that the compiled
+  /// code evaluates where a conjunct it relies on does not hold, like the "n - 1" next to "n > 0".
+  /// </summary>
+  static bool Implies(Expression bound, BigInteger constant, bool pickMax) {
+    var offset = BigInteger.Zero;
+    var e = bound.Resolved;
+    while (e is BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.Add or BinaryExpr.ResolvedOpcode.Sub } binary &&
+           ConstantFolder.TryFoldInteger(binary.E1) is { } k) {
+      offset += binary.ResolvedOp == BinaryExpr.ResolvedOpcode.Add ? k : -k;
+      e = binary.E0.Resolved;
     }
-    // we don't know how to determine which of "a" or "b" is better, so we'll just return "a"
-    // (better would be to return an expression that computes to the minimum of "a" and "b")
-    return a;
+    if (e is not (IdentifierExpr or MemberSelectExpr or FunctionCallExpr or SeqSelectExpr or UnaryOpExpr {
+      ResolvedOp: UnaryOpExpr.ResolvedOpcode.SeqLength or UnaryOpExpr.ResolvedOpcode.SetCard
+      or UnaryOpExpr.ResolvedOpcode.MultiSetCard or UnaryOpExpr.ResolvedOpcode.MapCard
+    })) {
+      return false;
+    }
+    var (lower, upper) = ModuleResolver.TypeImpliedIntegerBounds(e.Type);
+    return pickMax ? constant <= lower + offset : upper - 1 + offset <= constant;
+  }
+
+  /// <summary>
+  /// Returns whether evaluating "expr" cannot fail, as a division by a variable, a call, or an index can. A call can
+  /// fail without a "requires" too, since the type of a parameter can be constrained.
+  /// </summary>
+  static bool CannotFail(Expression expr) {
+    expr = expr.Resolved;
+    bool NonNull(Expression receiver) =>
+      receiver == null || (CannotFail(receiver) && (!receiver.Type.IsRefType || receiver.Type.IsNonNullRefType));
+    return expr switch {
+      LiteralExpr or IdentifierExpr or ThisExpr => true,
+      MemberSelectExpr { Member: Field and not DatatypeDestructor } select => NonNull(select.Obj),
+      UnaryOpExpr {
+        ResolvedOp: UnaryOpExpr.ResolvedOpcode.SeqLength or UnaryOpExpr.ResolvedOpcode.SetCard
+        or UnaryOpExpr.ResolvedOpcode.MultiSetCard or UnaryOpExpr.ResolvedOpcode.MapCard
+      } cardinality => CannotFail(cardinality.E),
+      ConversionExpr conversion => conversion.Type.IsIntegerType && CannotFail(conversion.E),
+      BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.Add or BinaryExpr.ResolvedOpcode.Sub or BinaryExpr.ResolvedOpcode.Mul } binary =>
+        CannotFail(binary.E0) && CannotFail(binary.E1),
+      BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.Div or BinaryExpr.ResolvedOpcode.Mod } binary =>
+        ConstantFolder.TryFoldInteger(binary.E1) is { IsZero: false } && CannotFail(binary.E0),
+      _ => false
+    };
   }
 
   public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds, PoolVirtues requiredVirtues) where VT : IVariable {
@@ -132,7 +201,7 @@ public abstract class BoundedPool : ICloneable<BoundedPool> {
     // pair up the bounds
     var n = Math.Min(lowerBounds.Count, upperBounds.Count);
     for (var i = 0; i < n; i++) {
-      others.Add(new IntBoundedPool(lowerBounds[i].LowerBound, upperBounds[i].UpperBound));
+      others.Add(new IntBoundedPool(lowerBounds[i].LowerBounds, upperBounds[i].UpperBounds));
     }
     for (var i = n; i < lowerBounds.Count; i++) {
       others.Add(lowerBounds[i]);

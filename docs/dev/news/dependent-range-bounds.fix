@@ -1,0 +1,1 @@
+Compiled comprehensions, quantifiers, `forall` statements, and such-that assignments no longer miss values where a variable's bound shrinks as a later variable grows, such as `set i, j | 0 <= j < 5 && 0 <= i < 10 - j`

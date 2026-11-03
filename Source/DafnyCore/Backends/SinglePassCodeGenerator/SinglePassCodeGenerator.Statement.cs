@@ -399,7 +399,7 @@ namespace Microsoft.Dafny.Compilers {
 
             if (CanSequentializeForall(s.BoundVars, s.Bounds, s.Range, s0.Lhs, rhs)) {
               // Just put the statement inside the loops
-              var wLoop = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
+              var wLoop = CompileGuardedLoops(s.BoundVars, s.Bounds, s.EnumerationOrder, s.Range, wr);
               TrStmt(s0, wLoop);
             } else {
               // Compile:
