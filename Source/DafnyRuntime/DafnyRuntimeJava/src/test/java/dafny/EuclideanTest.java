@@ -242,4 +242,20 @@ class EuclideanTest {
     assertEquals(BigInteger.ONE, DafnyEuclidean.EuclideanModulus(BigInteger.valueOf(13), two));
     assertEquals(BigInteger.ONE, DafnyEuclidean.EuclideanModulus(BigInteger.valueOf(-13), two));
   }
+
+  // Every byte pair against Euclidean division computed in int.
+  @Test
+  void testByteExhaustive() {
+    for (int x = Byte.MIN_VALUE; x <= Byte.MAX_VALUE; x++) {
+      for (int y = Byte.MIN_VALUE; y <= Byte.MAX_VALUE; y++) {
+        if (y == 0 || (x == Byte.MIN_VALUE && y == -1)) {
+          continue;
+        }
+        int r = Math.floorMod(x, Math.abs(y));
+        int q = (x - r) / y;
+        assertEquals(r, DafnyEuclidean.EuclideanModulus((byte) x, (byte) y), x + " % " + y);
+        assertEquals(q, DafnyEuclidean.EuclideanDivision((byte) x, (byte) y), x + " / " + y);
+      }
+    }
+  }
 }
