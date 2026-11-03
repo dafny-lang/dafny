@@ -132,7 +132,8 @@ public class DafnyEuclidean {
                     return b - Integer.remainderUnsigned(-a, b);
                 } else {
                     int bp = b < 0 ? -b : b;
-                    return bp - Integer.remainderUnsigned(a, bp);
+                    int c = Integer.remainderUnsigned(a, bp);
+                    return c == 0 ? c : bp - c;
                 }
             } else {
                 int bp = b < 0 ? -b : b;
@@ -159,7 +160,8 @@ public class DafnyEuclidean {
                     return b - Long.remainderUnsigned(-a, b);
                 } else {
                     long bp = b < 0 ? -b : b;
-                    return bp - Long.remainderUnsigned(a, bp);
+                    long c = Long.remainderUnsigned(a, bp);
+                    return c == 0 ? c : bp - c;
                 }
             } else {
                 long bp = b < 0 ? -b : b;
