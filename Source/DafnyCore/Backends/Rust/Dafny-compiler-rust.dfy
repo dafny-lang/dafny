@@ -2970,6 +2970,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
+        if fromTpe == Primitive(Real) {
+          var borrowed, borrowedOwnership := FromOwnership(r, exprOwnership, OwnershipBorrowed);
+          r := R.dafny_runtime.AsExpr().FSel("dafny_rational_to_int").Apply1(borrowed);
+          r := R.dafny_runtime.MSel("truncate!").AsExpr().Apply([r, R.ExprFromType(boundedToType)]);
+          r := WrapWithNewtype(r, OwnershipOwned, toTpe);
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+          return;
+        }
         var fromTpeRust := GenType(fromTpe, GenTypeContext.default());
         r := Error("No conversion available from "+fromTpeRust.ToString("")+" to " + boundedToType.ToString(""));
         r, resultingOwnership := FromOwned(r, expectedOwnership);
@@ -2994,6 +3002,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
+        if toTpe == Primitive(Real) {
+          r, resultingOwnership := FromOwnership(r, exprOwnership, OwnershipOwned);
+          r := R.dafny_runtime.MSel("int!").AsExpr().Apply1(r);
+          r := R.dafny_runtime.AsExpr().FSel("dafny_int_to_rational").Apply1(R.Borrow(r));
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+          return;
+        }
         var toTpeRust := GenType(toTpe, GenTypeContext.default());
         r := Error("No conversion available from "+unwrappedFromType.value.ToString("")+" to " + toTpeRust.ToString(""));
         r, resultingOwnership := FromOwned(r, expectedOwnership);
@@ -3002,11 +3017,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       assert !IsNewtype(fromTpe);
       match (fromTpe, toTpe) {
         case (Primitive(Int), Primitive(Real)) => {
-          r := rcNew(R.dafny_runtime.MSel("BigRational").AsExpr().FSel("from_integer").Apply1(r));
+          var borrowed, borrowedOwnership := FromOwnership(r, exprOwnership, OwnershipBorrowed);
+          r := R.dafny_runtime.AsExpr().FSel("dafny_int_to_rational").Apply1(borrowed);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
         }
         case (Primitive(Real), Primitive(Int)) => {
-          r := R.dafny_runtime.AsExpr().FSel("dafny_rational_to_int").Apply1(r);
+          var borrowed, borrowedOwnership := FromOwnership(r, exprOwnership, OwnershipBorrowed);
+          r := R.dafny_runtime.AsExpr().FSel("dafny_rational_to_int").Apply1(borrowed);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
         }
         case (Primitive(Int), Primitive(Char)) => {

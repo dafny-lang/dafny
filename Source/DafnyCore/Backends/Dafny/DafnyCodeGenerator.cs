@@ -2110,6 +2110,8 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case SpecialField.ID.Items:
           break;
+        case SpecialField.ID.Floor:
+          break;
         default:
           AddUnsupported(receiverType.Origin, "<i>Special field: " + id + "</i>");
           break;
@@ -2188,6 +2190,12 @@ namespace Microsoft.Dafny.Compilers {
         var objExpr = objReceiver.Finish();
         return new ExprLvalue((DAST.Expression)DAST.Expression.create_MapItems(
           objExpr), null, this);
+      } else if (member is SpecialField { SpecialId: SpecialField.ID.Floor }) {
+        obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));
+        var objExpr = objReceiver.Finish();
+        // real-to-int conversion is a floor
+        return new ExprLvalue((DAST.Expression)DAST.Expression.create_Convert(
+          objExpr, GenType(objType), GenType(expectedType)), null, this);
       } else if (member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
         obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));
         var objExpr = objReceiver.Finish();
