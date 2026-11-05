@@ -330,9 +330,15 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool DatatypeDeclarationAndMemberCompilationAreSeparate => false;
     public override bool SupportsDatatypeWrapperErasure => false;
 
-    // std::function has no == or std::hash. Dafny compares a datatype with a field whose type lacks equality
-    // only against a nullary constructor, which never reaches the field, so operator== and std::hash skip it.
-    private static bool IsComparable(Formal f) => !f.IsGhost && f.Type.SupportsEquality;
+    // std::function has no == or std::hash, so operator== and std::hash skip a function-typed field: Dafny compares
+    // such a datatype only against a nullary constructor, which EmitExpr turns into a constructor check.
+    private static bool IsComparable(Formal f) => !f.IsGhost && !HoldsFunction(f.Type);
+
+    // A reference type compares by identity, whatever its type arguments are.
+    private static bool HoldsFunction(Type type) {
+      var t = type.NormalizeExpand();
+      return t.IsArrowType || (!t.IsRefType && t.TypeArgs.Any(HoldsFunction));
+    }
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
       if (dt is CoDatatypeDecl) {
@@ -801,7 +807,7 @@ namespace Microsoft.Dafny.Compilers {
         return CodeGenerator.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, MethodWriter);
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IOrigin tok, string rhs, Field field) {
-        CodeGenerator.DeclareField(ClassName, enclosingDecl.TypeArgs, name, isStatic, isConst, type, tok, rhs, FieldWriter, Finisher);
+        CodeGenerator.DeclareField(ClassName, enclosingDecl.TypeArgs, CodeGenerator.IdProtect(name), isStatic, isConst, type, tok, rhs, FieldWriter, Finisher);
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         throw new Cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
@@ -2049,6 +2055,23 @@ namespace Microsoft.Dafny.Compilers {
     // `this` is a raw pointer, so a lambda that mentions it gets a shared_ptr instead (see EmitBetaRedex): the
     // lambda can outlive every other shared_ptr to the object.
     protected override bool TargetLambdaBindsReceiver => true;
+
+    private static DatatypeCtor NullaryCtor(Expression e) =>
+      e.Resolved is DatatypeValue { Ctor: var ctor } && !ctor.EnclosingDatatype.IsRecordType && ctor.Formals.All(f => f.IsGhost) ? ctor : null;
+
+    public override void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      // Without equality support, T may be a function type, for which Opt<T>'s operator== doesn't compile.
+      if (expr is BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.EqCommon or BinaryExpr.ResolvedOpcode.NeqCommon } binary &&
+          !binary.E0.Type.SupportsEquality && (NullaryCtor(binary.E1) ?? NullaryCtor(binary.E0)) is { } ctor) {
+        var other = NullaryCtor(binary.E1) != null ? binary.E0 : binary.E1;
+        var negation = binary.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon ? "!" : "";
+        wr.Write($"{negation}is_{DatatypeSubStructName(ctor)}(");
+        EmitExpr(other, inLetExprBody, wr, wStmts);
+        wr.Write(")");
+        return;
+      }
+      base.EmitExpr(expr, inLetExprBody, wr, wStmts);
+    }
 
     protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, ConcreteSyntaxTree wr) {
       wr.Write("is_{1}({0})", source, DatatypeSubStructName(ctor));
