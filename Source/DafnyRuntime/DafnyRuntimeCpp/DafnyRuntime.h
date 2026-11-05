@@ -133,6 +133,20 @@ T dafny_shared(T x) { return x; }
 template <typename T>
 std::shared_ptr<T> dafny_shared(T* p) { return std::static_pointer_cast<T>(p->shared_from_this()); }
 
+// A function value. Dafny compares a value that holds functions only with one that holds none, like
+// `Some(f) == None`, and such a comparison never gets to compare two functions. C++ still has to compile it.
+template <typename Signature>
+struct DafnyFunction : std::function<Signature> {
+  using std::function<Signature>::function;
+  friend bool operator==(const DafnyFunction&, const DafnyFunction&) { return false; }
+  friend bool operator!=(const DafnyFunction&, const DafnyFunction&) { return true; }
+};
+
+template <typename Signature>
+struct std::hash<DafnyFunction<Signature>> {
+  std::size_t operator()(const DafnyFunction<Signature>&) const { return 0; }
+};
+
 /*********************************************************
  *  DEFAULTS                                             *
  *********************************************************/
@@ -183,8 +197,8 @@ struct get_default<std::shared_ptr<U>> {
 };
 
 template<typename R, typename... Args>
-struct get_default<std::function<R(Args...)>> {
-  static std::function<R(Args...)> call() {
+struct get_default<DafnyFunction<R(Args...)>> {
+  static DafnyFunction<R(Args...)> call() {
     return [](Args...) -> R { return get_default<R>::call(); };
   }
 };

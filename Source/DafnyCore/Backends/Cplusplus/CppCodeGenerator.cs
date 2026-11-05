@@ -330,16 +330,6 @@ namespace Microsoft.Dafny.Compilers {
     protected override bool DatatypeDeclarationAndMemberCompilationAreSeparate => false;
     public override bool SupportsDatatypeWrapperErasure => false;
 
-    // std::function has no == or std::hash, so operator== and std::hash skip a function-typed field: Dafny compares
-    // such a datatype only against a nullary constructor, which EmitExpr turns into a constructor check.
-    private static bool IsComparable(Formal f) => !f.IsGhost && !HoldsFunction(f.Type);
-
-    // A reference type compares by identity, whatever its type arguments are.
-    private static bool HoldsFunction(Type type) {
-      var t = type.NormalizeExpand();
-      return t.IsArrowType || (!t.IsRefType && t.TypeArgs.Any(HoldsFunction));
-    }
-
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
       if (dt is CoDatatypeDecl) {
         throw new UnsupportedFeatureException(dt.Origin, Feature.Codatatypes);
@@ -373,14 +363,10 @@ namespace Microsoft.Dafny.Compilers {
         // Declare the struct members
         var i = 0;
         var argNames = new List<string>();
-        var comparedNames = new List<string>();
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
             ws.WriteLine("{0} {1};", TypeName(arg.Type, wdecl, arg.Origin), FormalName(arg, i));
             argNames.Add(FormalName(arg, i));
-            if (IsComparable(arg)) {
-              comparedNames.Add(FormalName(arg, i));
-            }
             i++;
           }
         }
@@ -411,7 +397,7 @@ namespace Microsoft.Dafny.Compilers {
         // Overload the comparison operator
         var wrCompOp = ws.NewNamedBlock("friend bool operator==([[maybe_unused]] const {0} &left, [[maybe_unused]] const {0} &right)", DtT_protected);
         wrCompOp.Write("\treturn true");
-        foreach (var arg in comparedNames) {
+        foreach (var arg in argNames) {
           wrCompOp.WriteLine("\t\t&& left.{0} == right.{0}", arg);
         }
         wrCompOp.WriteLine(";");
@@ -428,7 +414,7 @@ namespace Microsoft.Dafny.Compilers {
         var owr = hwr.NewBlock(string.Format("std::size_t operator()([[maybe_unused]] const {0}& x) const", fullName));
         owr.WriteLine("size_t seed = 0;");
         foreach (var arg in ctor.Formals) {
-          if (IsComparable(arg)) {
+          if (!arg.IsGhost) {
             owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
           }
         }
@@ -459,12 +445,10 @@ namespace Microsoft.Dafny.Compilers {
           i = 0;
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
-              if (IsComparable(arg)) {
-                if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive destructor needs to use a pointer
-                  wstruct.WriteLine("\t\t&& *(left.{0}) == *(right.{0})", FormalName(arg, i));
-                } else {
-                  wstruct.WriteLine("\t\t&& left.{0} == right.{0}", FormalName(arg, i));
-                }
+              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive destructor needs to use a pointer
+                wstruct.WriteLine("\t\t&& *(left.{0}) == *(right.{0})", FormalName(arg, i));
+              } else {
+                wstruct.WriteLine("\t\t&& left.{0} == right.{0}", FormalName(arg, i));
               }
               i++;
             }
@@ -482,7 +466,7 @@ namespace Microsoft.Dafny.Compilers {
           var owr = hwr.NewBlock(string.Format("std::size_t operator()([[maybe_unused]] const {0}& x) const", fullName));
           owr.WriteLine("size_t seed = 0;");
           foreach (var arg in ctor.Formals) {
-            if (IsComparable(arg)) {
+            if (!arg.IsGhost) {
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                 // Recursive destructor needs to use a pointer
                 owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
@@ -1716,7 +1700,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string ArrowTypeName(ArrowType at, ConcreteSyntaxTree wr, IOrigin tok) {
-      return $"std::function<{TypeName(at.Result, wr, tok)}({at.Args.Comma(a => TypeName(a, wr, tok))})>";
+      return $"DafnyFunction<{TypeName(at.Result, wr, tok)}({at.Args.Comma(a => TypeName(a, wr, tok))})>";
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
@@ -2055,23 +2039,6 @@ namespace Microsoft.Dafny.Compilers {
     // `this` is a raw pointer, so a lambda that mentions it gets a shared_ptr instead (see EmitBetaRedex): the
     // lambda can outlive every other shared_ptr to the object.
     protected override bool TargetLambdaBindsReceiver => true;
-
-    private static DatatypeCtor NullaryCtor(Expression e) =>
-      e.Resolved is DatatypeValue { Ctor: var ctor } && !ctor.EnclosingDatatype.IsRecordType && ctor.Formals.All(f => f.IsGhost) ? ctor : null;
-
-    public override void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      // Without equality support, T may be a function type, for which Opt<T>'s operator== doesn't compile.
-      if (expr is BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.EqCommon or BinaryExpr.ResolvedOpcode.NeqCommon } binary &&
-          !binary.E0.Type.SupportsEquality && (NullaryCtor(binary.E1) ?? NullaryCtor(binary.E0)) is { } ctor) {
-        var other = NullaryCtor(binary.E1) != null ? binary.E0 : binary.E1;
-        var negation = binary.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon ? "!" : "";
-        wr.Write($"{negation}is_{DatatypeSubStructName(ctor)}(");
-        EmitExpr(other, inLetExprBody, wr, wStmts);
-        wr.Write(")");
-        return;
-      }
-      base.EmitExpr(expr, inLetExprBody, wr, wStmts);
-    }
 
     protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, ConcreteSyntaxTree wr) {
       wr.Write("is_{1}({0})", source, DatatypeSubStructName(ctor));
