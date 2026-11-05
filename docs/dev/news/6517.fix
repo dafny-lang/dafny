@@ -1,0 +1,1 @@
+JSON verification logs no longer depend on verification timing: `vcResults` are ordered by `vcNum`, and `/verificationLogger:json` reports methods in source order
