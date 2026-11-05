@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <variant>
 #include <exception>
+#include <functional>
 
 typedef uint8_t  uint8;
 typedef uint16_t uint16;
@@ -175,6 +176,13 @@ struct get_default<std::shared_ptr<U>> {
   }
 };
 
+template<typename R, typename... Args>
+struct get_default<std::function<R(Args...)>> {
+  static std::function<R(Args...)> call() {
+    return [](Args...) -> R { return get_default<R>::call(); };
+  }
+};
+
 /*********************************************************
  *  TUPLES                                               *
  *********************************************************/
@@ -190,7 +198,7 @@ struct Tuple{
   using StdTuple = std::tuple<Types...>;
 
   template <std::size_t Index>
-  std::tuple_element_t<Index, StdTuple> get() {
+  std::tuple_element_t<Index, StdTuple> get() const {
     return std::get<Index>(values_);
   }
 
@@ -275,6 +283,11 @@ struct DafnyArray {
 
   static DafnyArray<T> Null() { return DafnyArray<T>(); }
   static DafnyArray<T> New(size_t len) { return DafnyArray<T>(len); }
+  static DafnyArray<T> New(size_t len, const T& init) {
+    DafnyArray<T> a(len);
+    std::fill(a.begin(), a.end(), init);
+    return a;
+  }
 
   size_t size() const { return len; }
   T& at(uint64 idx) const { return *(sptr.get() + idx); }
@@ -406,7 +419,7 @@ struct DafnySequence {
 
     // TODO: isPrefixOf, isProperPrefixOf
 
-    DafnySequence<T> concatenate(DafnySequence<T> other) {
+    DafnySequence<T> concatenate(DafnySequence<T> other) const {
         DafnySequence<T> ret(this->size() + other.size());
         std::copy(this->ptr(), this->ptr() + this->size(), ret.ptr());
         std::copy(other.ptr(), other.ptr() + other.size(), ret.ptr() + this->size());
@@ -530,14 +543,11 @@ struct std::hash<DafnySequence<U>> {
     }
 };
 
+// By identity, like operator==: an array's elements can change while it is in a set.
 template <typename U>
 struct std::hash<DafnyArray<U>> {
     size_t operator()(const DafnyArray<U>& s) const {
-        size_t seed = 0;
-        for (size_t i = 0; i < s.size(); i++) {
-            hash_combine<U>(seed, s.at(i));
-        }
-        return seed;
+        return std::hash<U*>()(s.ptr());
     }
 };
 
@@ -580,7 +590,7 @@ struct DafnySet {
         return true;
     }
 
-    bool IsProperSubsetOf(const DafnySet<T>& other) {
+    bool IsProperSubsetOf(const DafnySet<T>& other) const {
         return IsSubsetOf(other) && (size() < other.size());
      }
 
@@ -588,7 +598,7 @@ struct DafnySet {
         return set.find(t) != set.end();
     }
 
-    bool disjoint(const DafnySet<T>& other) {
+    bool disjoint(const DafnySet<T>& other) const {
         for (auto const& elt:set) {
             if (other.set.find(elt) != other.set.end()) {
                 return false;
@@ -597,14 +607,14 @@ struct DafnySet {
         return true;
     }
 
-    DafnySet<T> Union(const DafnySet<T>& other) {
+    DafnySet<T> Union(const DafnySet<T>& other) const {
         DafnySet<T> ret = DafnySet(other);
         ret.set.insert(set.begin(), set.end());
         return ret;
     }
 
     // Returns a DafnySet containing elements only found in the current DafnySet
-    DafnySet<T> Difference(const DafnySet<T>& other) {
+    DafnySet<T> Difference(const DafnySet<T>& other) const {
         DafnySet<T> ret;
         for (auto const& elt:set) {
             if (!other.contains(elt)) {
@@ -614,7 +624,7 @@ struct DafnySet {
         return ret;
     }
 
-    DafnySet<T> Intersection(const DafnySet<T>& other) {
+    DafnySet<T> Intersection(const DafnySet<T>& other) const {
         DafnySet<T> ret;
         for (auto const& elt:set) {
             if (other.set.find(elt) != other.set.end()) {
@@ -624,7 +634,7 @@ struct DafnySet {
         return ret;
     }
 
-    std::unordered_set<T> Elements() {
+    std::unordered_set<T> Elements() const {
         return set;
     }
 
@@ -712,7 +722,7 @@ struct DafnyMap {
         return map.find(key)->second;
     }
 
-    DafnyMap<K, V> update(K k, V v) {
+    DafnyMap<K, V> update(K k, V v) const {
         DafnyMap<K,V> ret(*this);
         auto ptr = ret.map.find(k);
         if (ptr == ret.map.end()) {
@@ -723,7 +733,7 @@ struct DafnyMap {
         return ret;
     }
 
-    DafnyMap<K, V> Merge(DafnyMap<K, V> other) {
+    DafnyMap<K, V> Merge(DafnyMap<K, V> other) const {
         DafnyMap<K,V> ret(other);
         for (const auto& kv : map) {
             auto ptr = other.map.find(kv.first);
@@ -734,7 +744,7 @@ struct DafnyMap {
         return ret;
     }
 
-    DafnyMap<K, V> Subtract(DafnySet<K> keys) {
+    DafnyMap<K, V> Subtract(DafnySet<K> keys) const {
         DafnyMap<K,V> ret = DafnyMap();
         for (const auto& kv : map) {
             if (!keys.contains(kv.first)) {
@@ -748,7 +758,7 @@ struct DafnyMap {
 
     bool isEmpty() const { return map.empty(); }
 
-    DafnySet<K> dafnyKeySet() {
+    DafnySet<K> dafnyKeySet() const {
         DafnySet<K> ret;
         for (const auto& kv : map) {
             ret.set.insert(kv.first);
@@ -756,7 +766,7 @@ struct DafnyMap {
         return ret;
     }
 
-    DafnySet<V> dafnyValues() {
+    DafnySet<V> dafnyValues() const {
         DafnySet<V> ret;
         for (const auto& kv : map) {
             ret.set.insert(kv.second);

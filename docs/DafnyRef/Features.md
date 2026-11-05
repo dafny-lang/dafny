@@ -3,7 +3,7 @@
 | [Unbounded integers](#sec-numeric-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |
 | [Real numbers](#sec-numeric-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |
 | [Ordinals](#sec-ordinals) |  X  |  X  |  X  |  X  |  X  |  |  X  |
-| [Function values](#sec-arrow-subset-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |
+| [Function values](#sec-arrow-subset-types) |  X  |  X  |  X  |  X  |  X  |  X  |  X  |
 | [Iterators](#sec-iterator-types) |  X  |  X  |  X  |  |  X  |  |  X  |
 | [Collections with trait element types](#sec-collection-types) |  X  |  X  |  X  |  X  |  X  |  |  X  |
 | [External module names with only underscores](#sec-extern-decls) |  X  |  X  |  |  X  |  X  |  X  |  X  |
