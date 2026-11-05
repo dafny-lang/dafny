@@ -335,7 +335,7 @@ module M3 refines M2 {
   }
 }
 
-method Main() {
+method {:isolate_assertions} Main() {
   var uf := new M3.UnionFind();
   var a := uf.New();
   var b := uf.New();
