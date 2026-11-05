@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment --spill-translation --allow-deprecation --unicode-char false
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --enforce-determinism --spill-translation --allow-deprecation --unicode-char false
 
 newtype i8 = x: int | -128 <= x < 128
 newtype i32 = x: int | -0x8000_0000 <= x < 0x8000_0000
