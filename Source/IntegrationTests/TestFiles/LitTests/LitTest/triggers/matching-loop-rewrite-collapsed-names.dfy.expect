@@ -1,0 +1,4 @@
+matching-loop-rewrite-collapsed-names.dfy(27,40): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+matching-loop-rewrite-collapsed-names.dfy(56,21): Warning: Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. For more information, see the section on quantifier instantiation rules in the reference manual.
+
+Dafny program verifier finished with 7 verified, 0 errors

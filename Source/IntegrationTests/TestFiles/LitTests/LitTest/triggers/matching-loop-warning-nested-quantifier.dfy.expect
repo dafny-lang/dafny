@@ -1,0 +1,4 @@
+matching-loop-warning-nested-quantifier.dfy(12,11): Warning: Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. To break the loop, replace 'i + j' with a new variable bound alongside 'j', as in 'forall j, t1 | ... && t1 == i + j', or add {:nowarn} to silence this warning. For more information, see the section on quantifier instantiation rules in the reference manual.
+matching-loop-warning-nested-quantifier.dfy(29,11): Warning: Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. To break the loop, move the conjuncts with 'i + j' to a separate quantifier over 'j', and replace the term there with a new variable, as in 'forall j, t | t == i + j', or add {:nowarn} to silence this warning. For more information, see the section on quantifier instantiation rules in the reference manual.
+
+Dafny program verifier finished with 4 verified, 0 errors
