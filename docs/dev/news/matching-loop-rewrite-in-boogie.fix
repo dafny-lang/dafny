@@ -1,0 +1,1 @@
+Fix unsoundness where, to break a matching loop, Dafny replaced a term with a new variable whose definition held outside the term's guards or in another state, or took another term for it, such as a term inside `old` or a call to a function with a precondition.

@@ -404,10 +404,8 @@ namespace Microsoft.Dafny.Compilers {
         case QuantifierExpr quantifierExpr: {
             var e = quantifierExpr;
 
-            // Compilation does not check whether a quantifier was split.
-
             wr = CaptureFreeVariables(quantifierExpr, true, out var su, inLetExprBody, wr, ref wStmts);
-            var logicalBody = su.Substitute(e.LogicalBody(true));
+            var logicalBody = su.Substitute(e.LogicalBody());
 
             Contract.Assert(e.Bounds !=
                             null); // for non-ghost quantifiers, the resolver would have insisted on finding bounds

@@ -1137,7 +1137,6 @@ namespace Microsoft.Dafny {
         ResolveLetOrFailExpr(e, resolutionContext);
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
-        Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {

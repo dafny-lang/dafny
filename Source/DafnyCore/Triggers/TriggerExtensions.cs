@@ -295,14 +295,6 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(QuantifierExpr expr1, QuantifierExpr expr2) {
-      if (!TriggerUtils.SameNullity(expr1.SplitQuantifier, expr2.SplitQuantifier)) {
-        return false;
-      }
-
-      if (expr1.SplitQuantifier != null && expr2.SplitQuantifier != null) {
-        return ShallowEq_Top(expr1.SplitQuantifierExpression, expr2.SplitQuantifierExpression);
-      }
-
       if (!TriggerUtils.SameNullity(expr1.Range, expr2.Range)) {
         return false;
       }

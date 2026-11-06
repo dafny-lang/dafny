@@ -814,7 +814,10 @@ public partial class BoogieGenerator {
     Expression b = Expression.CreateBoolLiteral(expression.Origin, false);
     var seenDisjunctsWithoutVariables = false;
     var seenDisjunctsWithVariables = false;
-    foreach (var disjunct in Expression.Disjuncts(expression)) {
+    // The parts of a split existential are disjuncts too
+    var disjuncts = Expression.Disjuncts(expression).SelectMany(disjunct =>
+      disjunct is ExistsExpr exists && exists.PartsExpression() is { } parts ? Expression.Disjuncts(parts) : [disjunct]);
+    foreach (var disjunct in disjuncts) {
       if (!seenDisjunctsWithVariables && !vars.Any(x => FreeVariablesUtil.ContainsFreeVariable(disjunct, false, x))) {
         a = Expression.CreateOr(a, disjunct);
         seenDisjunctsWithoutVariables = true;

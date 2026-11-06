@@ -884,7 +884,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           } else {
             wr.Write(" ");
           }
-        } else if (!(a is UserSuppliedAtAttribute) && !atAttributes) {
+        } else if (!(a is UserSuppliedAtAttribute) && !atAttributes && !Triggers.QuantifierSplitter.IsPartAttribute(a)) {
           wr.Write(" ");
           PrintOneAttribute(a);
         }

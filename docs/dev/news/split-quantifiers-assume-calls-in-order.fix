@@ -1,0 +1,1 @@
+Fix unsoundness where Dafny assumed a call in a conjunct of a quantifier that it splits into parts for its triggers to be well defined without a conjunct before it that guards the call, when it joined the conjunct and an earlier one into one part.

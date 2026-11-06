@@ -1,0 +1,66 @@
+split-quantifiers-stay-as-written.dfy(104,11): Info: auto-accumulator tail recursive
+split-quantifiers-stay-as-written.dfy(86,13): Info: Selected triggers: {P(x)}
+split-quantifiers-stay-as-written.dfy(92,13): Info: Quantifier was split into 3 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
+split-quantifiers-stay-as-written.dfy(92,13): Info: Part #0 is 'a && b'
+split-quantifiers-stay-as-written.dfy(92,13): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+split-quantifiers-stay-as-written.dfy(92,13): Info: Part #1 is 'P(x) || !P(x)'
+ Selected triggers: {P(x)}
+split-quantifiers-stay-as-written.dfy(92,13): Info: Part #2 is 'Q(x) ==> P(x + 1)'
+ Selected triggers: {P(_t#0), Q(x)} where _t#0 := x + 1
+split-quantifiers-stay-as-written.dfy(98,13): Info: Quantifier was split into 3 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
+split-quantifiers-stay-as-written.dfy(98,13): Info: Part #0 is 'a || b'
+split-quantifiers-stay-as-written.dfy(98,13): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+split-quantifiers-stay-as-written.dfy(98,13): Info: Part #1 is 'P(x) && P(x + 1)'
+ Selected triggers: {P(_t#0), P(x)} where _t#0 := x + 1
+split-quantifiers-stay-as-written.dfy(98,13): Info: Part #2 is 'Q(x)'
+ Selected triggers: {Q(x)}
+split-quantifiers-stay-as-written.dfy(104,11): Info: decreases n
+split-quantifiers-stay-as-written.dfy(118,22): Info: auto requires post forall x: int {:trigger P(x)} :: P(x) ==> c && d;
+split-quantifiers-stay-as-written.dfy(130,22): Info: auto requires post c ==> n > 0;
+ auto requires post (forall x: int :: true && c && Callee.Bad(n) == 0) && (forall x: int {:trigger P(x)} :: P(x) || !P(x)) && forall x: int /*{:_trigger P(x + 1), Q(x)}*/ /*{:_named x + 1}*/ :: Q(x) ==> P(x + 1);
+split-quantifiers-stay-as-written.dfy(142,22): Info: auto requires post (exists x: int :: false || c || d) || (exists x: int /*{:_trigger P(x + 1), P(x)}*/ /*{:_named x + 1}*/ :: P(x) && P(x + 1)) || exists x: int {:trigger Q(x)} :: Q(x);
+split-quantifiers-stay-as-written.dfy(123,13): Info: Selected triggers: {Callee.P(x)}
+split-quantifiers-stay-as-written.dfy(135,13): Info: Selected triggers: {Callee.Q(x)}
+split-quantifiers-stay-as-written.dfy(27,4): Info: <==
+split-quantifiers-stay-as-written.dfy(65,2): Info: ghost if
+split-quantifiers-stay-as-written.dfy(17,23): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
+split-quantifiers-stay-as-written.dfy(17,23): Info: Part #0 is 's[i] > 0'
+ Selected triggers: {s[i]}
+split-quantifiers-stay-as-written.dfy(17,23): Info: Part #1 is '10 / s[(i + 1) % |s|] > t[i]'
+ Selected triggers: {t[i]}
+split-quantifiers-stay-as-written.dfy(26,23): Info: Selected triggers: {Triple(3 * n)}
+split-quantifiers-stay-as-written.dfy(27,36): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
+split-quantifiers-stay-as-written.dfy(27,36): Info: Part #0 is 'Triple(x)'
+ Selected triggers: {Triple(x)}
+split-quantifiers-stay-as-written.dfy(27,36): Info: Part #1 is 'Even(x) && Even(x + 1)'
+ Selected triggers: {Even(_t#0), Even(x)} where _t#0 := x + 1
+split-quantifiers-stay-as-written.dfy(39,20): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
+split-quantifiers-stay-as-written.dfy(39,20): Info: Part #0 is 'B(i)'
+ Selected triggers: {B(i)}
+split-quantifiers-stay-as-written.dfy(39,20): Info: Part #1 is 'A(i, d) && A(i + 1, d)'
+ Selected triggers: {A(_t#0, d), A(i, d)} where _t#0 := i + 1
+split-quantifiers-stay-as-written.dfy(45,14): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
+split-quantifiers-stay-as-written.dfy(45,14): Info: Part #0 is 'B(i)'
+ Selected triggers: {B(i)}
+split-quantifiers-stay-as-written.dfy(45,14): Info: Part #1 is 'A(i, d) && A(i + 1, d)'
+ Selected triggers: {A(_t#0, d), A(i, d)} where _t#0 := i + 1
+split-quantifiers-stay-as-written.dfy(57,2): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
+split-quantifiers-stay-as-written.dfy(57,2): Info: Part #0 is 'P(x)'
+ Selected triggers: {P(x)}
+split-quantifiers-stay-as-written.dfy(57,2): Info: Part #1 is 'H(x) <= H(x + 1)'
+ Selected triggers: {H(_t#0), H(x)} where _t#0 := x + 1
+split-quantifiers-stay-as-written.dfy(66,9): Info: Quantifier was split into 2 parts. Better verification performance and error reporting may be obtained by splitting the quantifier in source. For more information, see the section on quantifier instantiation rules in the reference manual.
+split-quantifiers-stay-as-written.dfy(66,9): Info: Part #0 is 'P(x)'
+ Selected triggers: {P(x)}
+split-quantifiers-stay-as-written.dfy(66,9): Info: Part #1 is 'Big(x) && Big(x + 1)'
+ Selected triggers: {Big(_t#0), Big(x)} where _t#0 := x + 1
+split-quantifiers-stay-as-written.dfy(76,11): Info: Selected triggers: {G(x)}
+split-quantifiers-stay-as-written.dfy(78,9): Info: Selected triggers: {G(x)}
+split-quantifiers-stay-as-written.dfy(17,65): Error: possible division by zero
+split-quantifiers-stay-as-written.dfy(78,2): Error: assertion could not be proved
+split-quantifiers-stay-as-written.dfy(125,14): Error: function precondition could not be proved
+split-quantifiers-stay-as-written.dfy(86,13): Related location: this proposition could not be proved
+split-quantifiers-stay-as-written.dfy(138,14): Error: function precondition could not be proved
+split-quantifiers-stay-as-written.dfy(92,13): Related location: this proposition could not be proved
+
+Dafny program verifier finished with 11 verified, 4 errors
