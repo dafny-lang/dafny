@@ -1,0 +1,1 @@
+Fix soundness issue in the verifier's axiom for membership in the `Items` of a `map` or `imap`, which did not say that an item is a pair; as a consequence, facts such as `map[1 := 2].Items == {(1, 2)}` now verify
