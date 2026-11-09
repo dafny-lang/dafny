@@ -213,7 +213,7 @@ namespace Microsoft.Dafny {
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
       var proc = new Bpl.Procedure(decl.Origin, name, [],
         inParams, [],
-        false, req, varlist, [], etran.TrAttributes(decl.Attributes, null));
+        false, req, [], [], [], varlist, etran.TrAttributes(decl.Attributes, null));
       AddVerboseNameAttribute(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 

@@ -1025,7 +1025,7 @@ namespace Microsoft.Dafny {
       var implicitParameters = Util.Concat(typeInParams, inParams_Heap);
       var proc = new Boogie.Procedure(f.Origin, name, [],
         Util.Concat(implicitParameters, inParams), outParams,
-        false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
+        false, req, [], ens, [], mod, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
       var implImplicitParams = Boogie.Formal.StripWhereClauses(implicitParameters);
@@ -1765,7 +1765,7 @@ namespace Microsoft.Dafny {
       var mod = new List<Bpl.IdentifierExpr> { ordinaryEtran.HeapCastToIdentifierExpr };
       var ens = GetEnsures();
       var proc = new Bpl.Procedure(m.Origin, name, [],
-        inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
+        inParams, outParams.Values.ToList(), false, req, [], ens, [], mod, etran.TrAttributes(m.Attributes, null));
       AddVerboseNameAttribute(proc, m.FullDafnyName, kind);
 
       if (InsertChecksums) {

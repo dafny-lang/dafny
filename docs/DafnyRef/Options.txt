@@ -439,6 +439,8 @@ Usage: dafny [ option ... ] [ filename ... ]
                 with /print option, desugars calls
   /printLambdaLifting
                 with /print option, desugars lambda lifting
+  /printMeasureDesugaring
+                with /print option, desugars measure annotations
   /freeVarLambdaLifting
                 Boogie's lambda lifting transforms the bodies of lambda
                 expressions into templates with holes. By default, holes
@@ -533,12 +535,12 @@ Usage: dafny [ option ... ] [ filename ... ]
                 do not perform noninterference checks
   /trustRefinement
                 do not perform refinement checks
+  /trustInvariants
+                do not perform invariant checks
   /trustLayersUpto:<n>
                 do not verify layers <n> and below
   /trustLayersDownto:<n>
                 do not verify layers <n> and above
-  /trustSequentialization
-                do not perform sequentialization checks
   /civlDesugaredFile:<file>
                 print plain Boogie program to <file>
 
@@ -687,10 +689,10 @@ Usage: dafny [ option ... ] [ filename ... ]
                 Timeout in seconds for the single last
                 assertion in the keep going mode. Defaults to 30s.
   /vcsPathJoinMult:<f>
-                If more than one path join at a block, by how much
-                multiply the number of paths in that block, to accomodate
-                for the fact that the prover will learn something on one
-                paths, before proceeding to another. Defaults to 0.8.
+                If more than one path joins at a block, by how much to
+                multiply the number of paths in that block, to accommodate
+                the fact that the prover will learn something on one
+                path, before proceeding to another. Defaults to 0.8.
   /vcsPathCostMult:<f1>
   /vcsAssumeMult:<f2>
                 The cost of a block is
