@@ -507,7 +507,8 @@ public partial class BoogieGenerator {
 
     // A failed status has no extracted value to justify an overlapping target.
     if (checks.Count != 0 && statements[updateIndex + 1] is IfStmt failureHandling) {
-      TrStmt_CheckWellformed(failureHandling.Guard, prefixBuilder, locals, etran, false);
+      // Assume the checked preconditions so translating the if does not report them again.
+      TrStmt_CheckWellformed(failureHandling.Guard, prefixBuilder, locals, etran, subsumption: true);
       var succeeds = Bpl.Expr.Not(etran.TrExpr(failureHandling.Guard));
       foreach (var (lhs, condition, distinct, _) in checks) {
         builder.Add(Assert(GetToken(lhs), BplOr(distinct, succeeds),
