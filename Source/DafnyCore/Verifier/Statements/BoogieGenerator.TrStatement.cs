@@ -257,8 +257,7 @@ public partial class BoogieGenerator {
         break;
       case AssignOrReturnStmt returnStmt2: {
           AddComment(builder, returnStmt2, "assign-or-return statement (:-)");
-          AssignOrReturnStmt s = returnStmt2;
-          TrStmtList(s.ResolvedStatements, builder, locals, etran);
+          TrAssignOrReturnStmt(returnStmt2, builder, locals, etran);
           break;
         }
       case SingleAssignStmt assignStmt: {
@@ -471,7 +470,71 @@ public partial class BoogieGenerator {
     });
   }
 
-  private void TrUpdateStmt(BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran, AssignStatement statement) {
+  private void TrAssignOrReturnStmt(AssignOrReturnStmt statement, BoogieStmtListBuilder builder,
+    Variables locals, ExpressionTranslator etran) {
+    if (statement.Rhss is not { Count: > 0 } || statement.Lhss.Count != statement.Rhss.Count + 1) {
+      TrStmtList(statement.ResolvedStatements, builder, locals, etran);
+      return;
+    }
+
+    var statements = statement.ResolvedStatements;
+    // The initial update assigns the status and secondary outputs. The final update assigns Extract.
+    var updateIndex = statements.FindIndex(s => s is AssignStatement { Rhss.Count: > 1 });
+    Contract.Assert(updateIndex >= 0);
+    var update = (AssignStatement)statements[updateIndex];
+    var initialLhs = statement.Lhss[0].Resolved;
+    var checks = new List<(Expression Lhs, Expression Condition, Bpl.Expr Distinct, Bpl.Expr Rhs)>();
+    var prefixBuilder = builder.WithContext(builder.Context with { ReturnPosition = false });
+    TrStmtList(statements.Take(updateIndex).ToList(), prefixBuilder, locals, etran);
+    TrUpdateStmt(prefixBuilder, locals, etran, update, (lhss, rhss) => {
+      for (var i = 1; i < lhss.Count; i++) {
+        var lhs = lhss[i];
+        if (update.Rhss[i] is HavocRhs) {
+          AssertDistinctness(lhs, initialLhs, prefixBuilder, etran);
+          continue;
+        }
+        CheckDistinctness(lhs, initialLhs, etran, out var condition, out var distinct);
+        if (distinct == null) {
+          continue;
+        }
+        // Preserve locations before secondary assignments can change their receivers or indices.
+        distinct = SaveInTemp(distinct, true, CurrentIdGenerator.FreshId("$distinct"), Bpl.Type.Bool, prefixBuilder, locals);
+        var rhsType = lhs is MemberSelectExpr { Member: Field field } ? field.Type : lhs.Type;
+        var rhs = lhs is SeqSelectExpr or MultiSelectExpr ? rhss[i] : BoxIfNecessary(lhs.Origin, rhss[i], rhsType);
+        checks.Add((lhs, condition, distinct, rhs));
+      }
+    });
+
+    // A failed status has no extracted value to justify an overlapping target.
+    if (checks.Count != 0 && statements[updateIndex + 1] is IfStmt failureHandling) {
+      TrStmt_CheckWellformed(failureHandling.Guard, prefixBuilder, locals, etran, false);
+      var succeeds = Bpl.Expr.Not(etran.TrExpr(failureHandling.Guard));
+      foreach (var (lhs, condition, distinct, _) in checks) {
+        builder.Add(Assert(GetToken(lhs), BplOr(distinct, succeeds),
+          new DistinctLHS(Printer.ExprToString(options, lhs), Printer.ExprToString(options, initialLhs), false, false, condition),
+          builder.Context));
+      }
+    }
+
+    TrStmtList(statements.Skip(updateIndex + 1).ToList(), builder, locals, etran);
+    if (checks.Count == 0) {
+      return;
+    }
+    // Extract runs after the secondary writes and only on the non-failure continuation.
+    var extractLhs = ((AssignStatement)statements.Last()).Lhss.Single().Resolved;
+    var extractedType = extractLhs is MemberSelectExpr { Member: Field extractField } memberSelect &&
+      inBodyInitContext && Expression.AsThis(memberSelect.Obj) != null ? extractField.Type : extractLhs.Type;
+    var extracted = BoxIfNecessary(extractLhs.Origin, etran.TrExpr(extractLhs), extractedType);
+    foreach (var (lhs, condition, distinct, rhs) in checks) {
+      var assertion = BplOr(distinct, Bpl.Expr.Eq(extracted, rhs));
+      builder.Add(Assert(GetToken(lhs), assertion,
+        new DistinctLHS(Printer.ExprToString(options, lhs), Printer.ExprToString(options, initialLhs), false, true, condition),
+        builder.Context));
+    }
+  }
+
+  private void TrUpdateStmt(BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran, AssignStatement statement,
+    Action<List<Expression>, List<Bpl.Expr>> beforeAssignments = null) {
     // This UpdateStmt can be single-target assignment, a multi-assignment, a call statement, or
     // an array-range update.  Handle the multi-assignment here and handle the others as for .ResolvedStatements.
     var resolved = statement.ResolvedStatements;
@@ -495,7 +558,9 @@ public partial class BoogieGenerator {
       // ProcessLhss has laid down framing conditions and the ProcessUpdateAssignRhss will check subranges (nats),
       // but we need to generate the distinctness condition (two LHS are equal only when the RHS is also
       // equal). We need both the LHS and the RHS to do this, which is why we need to do it here.
-      CheckLhssDistinctness(finalRhss, statement.Rhss, lhss, builder, etran, lhsObjs, lhsFields, lhsNames, statement.OriginalInitialLhs);
+      CheckLhssDistinctness(finalRhss, statement.Rhss, lhss, builder, etran, lhsObjs, lhsFields, lhsNames,
+        beforeAssignments == null ? statement.OriginalInitialLhs : null);
+      beforeAssignments?.Invoke(lhss, finalRhss);
       // Now actually perform the assignments to the LHS.
       for (int i = 0; i < lhss.Count; i++) {
         lhsBuilder[i](finalRhss[i], statement.Rhss[i] is HavocRhs, builder, etran);
