@@ -1,0 +1,19 @@
+git-issue-6624.dfy(91,23): Warning: Support for member 'Extract' in type 'MethodStatus?' (used indirectly via a :- statement) being a method is deprecated; declare it to be a function instead
+git-issue-6624.dfy(99,23): Warning: Support for member 'Extract' in type 'MethodStatus?' (used indirectly via a :- statement) being a method is deprecated; declare it to be a function instead
+git-issue-6624.dfy(13,5): Error: when left-hand sides x and x could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624.dfy(24,5): Error: left-hand sides x and x could not be proved to refer to different locations
+git-issue-6624.dfy(49,13): Error: when left-hand sides b.value and b.value could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624.dfy(71,15): Error: when left-hand sides r.payload and r.payload could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624.dfy(99,15): Error: when left-hand sides r.payload and r.payload could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624.dfy(119,5): Error: left-hand sides x and x could not be proved to refer to different locations
+git-issue-6624.dfy(140,5): Error: left-hand sides x and x could not be proved to refer to different locations
+git-issue-6624.dfy(150,5): Error: when left-hand sides x and x could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624.dfy(164,5): Error: when left-hand sides x and x could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624.dfy(181,32): Error: when left-hand sides one.value and receiver.value could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624.dfy(189,9): Error: when left-hand sides x and x could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624.dfy(189,9): Error: when left-hand sides x and x could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624.dfy(203,5): Error: when left-hand sides x and x could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624.dfy(207,5): Error: when left-hand sides x and x could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624.dfy(211,5): Error: when left-hand sides x and x could not be proved to refer to different locations, they must be assigned the same value
+
+Dafny program verifier finished with 27 verified, 15 errors

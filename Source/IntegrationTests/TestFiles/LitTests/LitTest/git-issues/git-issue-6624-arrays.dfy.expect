@@ -1,0 +1,6 @@
+git-issue-6624-arrays.dfy(14,9): Error: when left-hand sides a[0] and a[0] could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624-arrays.dfy(30,12): Error: when left-hand sides a[j] and a[k] could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624-arrays.dfy(48,9): Error: when left-hand sides a[j] and a[i] could not be proved to refer to different locations, they must be assigned the same value
+git-issue-6624-arrays.dfy(62,12): Error: when left-hand sides a[0, 0] and a[0, 0] could not be proved to refer to different locations, they must be assigned the same value
+
+Dafny program verifier finished with 11 verified, 4 errors
