@@ -1,0 +1,1 @@
+Fix soundness issue in the verifier's axiom for `ORDINAL` arithmetic `(o - m) + n`, which also applied where `o - m` is not defined; it now applies exactly where `o - m` is defined
