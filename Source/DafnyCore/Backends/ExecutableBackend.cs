@@ -253,7 +253,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   protected static void WriteFromFile(string inputFilename, TextWriter outputWriter) {
-    var rd = new StreamReader(new FileStream(inputFilename, FileMode.Open, FileAccess.Read));
+    using var rd = new StreamReader(new FileStream(inputFilename, FileMode.Open, FileAccess.Read));
     SinglePassCodeGenerator.WriteFromStream(rd, outputWriter);
   }
 
@@ -289,7 +289,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
      */
 
     psi.RedirectStandardOutput = true;
-    var process = new Process();
+    using var process = new Process();
     process.StartInfo = psi;
     var outputBuilder = new List<string>();
     var errorBuilder = new List<string>();
