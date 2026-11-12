@@ -357,6 +357,26 @@ public partial class BoogieGenerator {
       less = FunctionCall(tok, "lt_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
       atmost = FunctionCall(tok, "le_bv" + bv.Width, Bpl.Type.Bool, e0, e1);
 
+    } else if (ty0.IsFloatingPointType) {
+      // fp32/fp64 have finitely many values, so -- as for the bitvector and char arms above -- any
+      // strict order on them is well founded and no lower bound is needed. Only "real", being dense,
+      // needs its "e0 <= e1 - 1" trick.
+      //
+      // FpLess is a strict total order agreeing with structural equality, so this arm needs no case
+      // analysis on NaN. That matters because TrLoop also uses "atmost", with allowNoChange, as a
+      // FREE invariant saying the metric has not risen above its initial value: assumed rather than
+      // proved, so a false one would let anything be proved. On a total order it follows from the
+      // strict check by transitivity, uniformly.
+      //
+      // A metric may therefore descend OUT of NaN, since less(aNumber, NaN) holds, but cannot ascend
+      // into one, that being an increase like any other. FpDecreases.dfy pins both directions.
+      eq = Bpl.Expr.Eq(e0, e1);
+      less = FpLess(tok, ty0.FloatRepresentation, e0, e1);
+      // FpAtMost, the same relation as BplOr(less, eq), so that this arm tracks the "<=" operator.
+      // Not bare fp.leq, which admits +0.0 <= -0.0 and would let allowNoChange accept a
+      // -0.0 -> +0.0 -> -0.0 cycle as a strict decrease.
+      atmost = FpAtMost(tok, ty0.FloatRepresentation, e0, e1);
+
     } else if (ty0 is BigOrdinalType) {
       eq = Bpl.Expr.Eq(e0, e1);
       less = FunctionCall(tok, "ORD#Less", Bpl.Type.Bool, e0, e1);

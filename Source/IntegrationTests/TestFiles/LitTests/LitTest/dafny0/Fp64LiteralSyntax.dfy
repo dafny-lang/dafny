@@ -31,7 +31,7 @@ method TestExactFp64Literals() {
   // Small integers are exactly representable
   var forty_two: fp64 := 42.0;
   var two_fifty_five: fp64 := 255.0;
-  assert forty_two > 41.0 && forty_two < 43.0;
+  assert forty_two == 42.0;
   assert two_fifty_five == 256.0 - 1.0;
 
   // Scientific notation for exact values
@@ -69,6 +69,12 @@ method TestApproximateFp64Literals() {
   assert ~0.19 < fifth < ~0.21;
   assert ~0.29 < three_tenths < ~0.31;
 
+  // Pin the rounded values exactly. A range check would still pass if ~ rounded to the
+  // wrong neighbour, so compare against the correctly-rounded binary64 value.
+  assert tenth == 0.1000000000000000055511151231257827021181583404541015625;
+  assert fifth == 0.200000000000000011102230246251565404236316680908203125;
+  assert three_tenths == 0.299999999999999988897769753748434595763683319091796875;
+
   // Mathematical constants are approximate
   var pi: fp64 := ~3.14159265358979323846;
   var e: fp64 := ~2.71828182845904523536;
@@ -76,6 +82,8 @@ method TestApproximateFp64Literals() {
   // Verify constants are in expected ranges
   assert ~3.14 < pi < ~3.15;
   assert ~2.71 < e < ~2.72;
+  assert pi == 3.141592653589793115997963468544185161590576171875;     // 7074237752028440 * 2^(-51)
+  assert e == 2.718281828459045090795598298427648842334747314453125;  // 6121026514868073 * 2^(-51)
 
   // Negative approximate values use ~- syntax
   var neg_tenth: fp64 := ~-0.1;
@@ -135,6 +143,11 @@ method TestFinancialCalculations() {
   // Verify calculations
   assert ~1.6 < tax < ~1.7;      // Tax should be approximately $1.65
   assert ~21.6 < total < ~21.7;  // Total should be approximately $21.64
+
+  // The results are determinate, so pin them: the ranges above are wide enough that a
+  // wrong rounding mode in fp multiply or add would go unnoticed.
+  assert tax == 1.649175000000000057553961596568115055561065673828125;
+  assert total == 21.639174999999998050270733074285089969635009765625;
 }
 
 method TestScientificComputations() {
@@ -147,6 +160,8 @@ method TestScientificComputations() {
   // Verify calculations
   assert 78.5 < area < ~78.6;           // Area of circle with radius 5 ≈ 78.54
   assert ~31.4 < circumference < 31.5;  // Circumference ≈ 31.42
+  assert area == 78.5398163397448314526627655141055583953857421875;
+  assert circumference == 31.41592653589793115997963468544185161590576171875;
 }
 
 method TestRealVsFp64Arithmetic() {

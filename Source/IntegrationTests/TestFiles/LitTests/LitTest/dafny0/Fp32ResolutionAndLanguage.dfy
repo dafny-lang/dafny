@@ -20,7 +20,10 @@ method TestBasicLiteralAssignment() {
   var large: fp32 := ~1.23e10;
   var small: fp32 := ~4.56e-7;
 
-  assert large == ~12300000000.0;
+  // Compare against the correctly-rounded binary32 values rather than against another ~
+  // literal: a ~-vs-~ comparison passes even if both sides round the same wrong way.
+  assert large == 12300000256.0;
+  assert small == 4.5600000930789974518120288848876953125e-7;
   assert 0.0 < small < ~0.000001;
 
   // Dot shorthand forms with fp32

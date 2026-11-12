@@ -276,11 +276,11 @@ public class SystemModuleManager {
     AddFloatStaticFunction(enclosingType, "FromReal", [("r", Type.Real)], floatType);
     AddFloatStaticFunction(enclosingType, "ToInt", [("f", floatType)], Type.Int);
 
-    // Cross-float conversions
+    // Cross-float conversions, narrowing only: fp32.FromFp64 rounds to nearest, which nothing else
+    // expresses, since "as fp32" asserts exact representability and "~" applies only to literals.
+    // Widening needs no method, "x as fp64" being exact for every input.
     if (floatType is Fp32Type) {
       AddFloatStaticFunction(enclosingType, "FromFp64", [("f", new Fp64Type())], floatType);
-    } else if (floatType is Fp64Type) {
-      AddFloatStaticFunction(enclosingType, "FromFp32", [("f", new Fp32Type())], floatType);
     }
   }
 
