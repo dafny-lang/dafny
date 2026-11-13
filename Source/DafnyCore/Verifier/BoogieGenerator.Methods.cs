@@ -1101,7 +1101,7 @@ namespace Microsoft.Dafny {
       List<Bpl.Variable> implInParams, Bpl.Variable/*?*/ resultVariable) {
       Contract.Requires(f.Ins.Count <= implInParams.Count);
 
-      var cco = new CanCallOptions(true, f);
+      var cco = new CanCallOptions(f, skipIsA: true);
       //generating class post-conditions
       foreach (var en in ConjunctsOf(f.Ens)) {
         builder.Add(TrAssumeCmd(f.Origin, etran.CanCallAssumption(en.E, cco)));
@@ -1145,7 +1145,7 @@ namespace Microsoft.Dafny {
         .Select(e => e.E)
         .Aggregate((Expression)Expression.CreateBoolLiteral(f.Origin, true), (e0, e1) => Expression.CreateAnd(e0, e1));
       //generating trait post-conditions with class variables
-      cco = new CanCallOptions(true, f, true);
+      cco = new CanCallOptions(f, true, skipIsA: true);
       FunctionCallSubstituter sub = new FunctionCallSubstituter(substMap, typeMap,
         (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
       foreach (var en in ConjunctsOf(f.OverriddenFunction.Ens)) {
@@ -1233,7 +1233,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
-      var cco = new CanCallOptions(true, f, true);
+      var cco = new CanCallOptions(f, true, skipIsA: true);
       FunctionCallSubstituter sub = new FunctionCallSubstituter(substMap, typeMap,
         (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
       var subReqs = new List<Expression>();
@@ -1246,7 +1246,7 @@ namespace Microsoft.Dafny {
 
       var allTraitReqs = subReqs.Aggregate((Expression)Expression.CreateBoolLiteral(f.Origin, true), (e0, e1) => Expression.CreateAnd(e0, e1));
       //generating class pre-conditions
-      cco = new CanCallOptions(true, f);
+      cco = new CanCallOptions(f, skipIsA: true);
       foreach (var req in ConjunctsOf(f.Req)) {
         foreach (var s in TrSplitExpr(new BodyTranslationContext(false), req.E, etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(TrAssumeCmd(f.Origin, etran.CanCallAssumption(req.E, cco)));
