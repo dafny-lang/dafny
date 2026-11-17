@@ -232,7 +232,7 @@ pub mod dafny_runtime_conversions {
         T: DafnyType,
     {
         let mut array: Vec<T> = Vec::with_capacity(s.cardinality_usize());
-        DafnySequence::<T>::append_recursive(&mut array, s);
+        DafnySequence::<T>::append_to_vec(&mut array, s);
         array.iter().map(elem_converter).collect()
     }
 
@@ -565,10 +565,10 @@ where
                         return Rc::clone(cache);
                     }
                 }
-                // Let's create an array of size length and fill it up recursively
+                // Let's create an array of size length and fill it up iteratively
                 // We don't materialize nested arrays because most of the time they are forgotten
                 let mut array: Vec<T> = Vec::with_capacity(*length);
-                Sequence::<T>::append_recursive(&mut array, self);
+                Sequence::<T>::append_to_vec(&mut array, self);
                 let result = Rc::new(array);
                 #[cfg(not(feature = "sync"))]
                 {
@@ -592,93 +592,64 @@ where
         }
     }
 
-    pub fn append_simple(array: &mut Vec<T>, this: &Sequence<T>) -> bool {
+    /// Appends the elements of `this` to `array` in order, visiting any
+    /// concatenation tree iteratively.
+    ///
+    /// The traversal uses an explicit heap-allocated work list of child
+    /// sequence handles instead of recursion, so the call-stack depth stays
+    /// constant no matter how deeply the concatenation tree is nested
+    /// ([issue #6620](https://github.com/dafny-lang/dafny/issues/6620)).
+    /// Subtrees whose elements are already cached are appended as a whole.
+    fn append_to_vec(array: &mut Vec<T>, this: &Sequence<T>) {
+        let mut pending: Vec<Rc<RefCell<Sequence<T>>>> = Vec::new();
         match this {
             Sequence::ArraySequence { values, .. } => {
-                for value in values.iter() {
-                    array.push(value.clone());
-                }
-                true
+                array.extend(values.iter().cloned());
             }
-            _ => false,
+            Sequence::ConcatSequence { left, right, .. } => {
+                // The caller `to_array` has already consulted the cache of
+                // `this`, so only the children remain to be visited.
+                // Children are pushed right-before-left so that the left
+                // subtree is processed first, preserving element order.
+                pending.push(Rc::clone(right));
+                pending.push(Rc::clone(left));
+            }
         }
-    }
-
-    pub fn append_recursive(array: &mut Vec<T>, this: &Sequence<T>) {
-        let mut this_ptr: *const Sequence<T> = this;
-        loop {
-            // SAFETY: The invariant is that this_ptr is always a pointer to a sub-sequence of the original `this`parameter when following the field name 'right', which are allocated in this scope
-            match unsafe { &*this_ptr } {
+        while let Some(child) = pending.pop() {
+            // `as_ref` first: a plain `child.borrow()` would resolve to the
+            // `Borrow` trait method on `Rc` instead of `RefCell::borrow`.
+            #[cfg(not(feature = "sync"))]
+            let child_ref = child.as_ref().borrow();
+            #[cfg(feature = "sync")]
+            let child_ref = child.as_ref().lock().unwrap();
+            match child_ref.deref() {
                 Sequence::ArraySequence { values, .. } => {
-                    for value in values.iter() {
-                        array.push(value.clone());
-                    }
-                    return;
+                    array.extend(values.iter().cloned());
                 }
                 Sequence::ConcatSequence {
-                    cache: boxed,
+                    cache,
                     left,
                     right,
                     ..
-                } =>
-                // Let's create an array of size length and fill it up recursively
-                {
-                    #[cfg(feature = "sync")]
-                    let into_boxed = boxed.as_ref();
-                    #[cfg(feature = "sync")]
-                    let into_boxed_borrowed = into_boxed;
-                    #[cfg(feature = "sync")]
-                    let guard = into_boxed_borrowed.lock().unwrap();
-                    #[cfg(feature = "sync")]
-                    let borrowed: Option<&Rc<Vec<T>>> = guard.as_ref();
-
+                } => {
                     #[cfg(not(feature = "sync"))]
-                    let into_boxed = boxed.as_ref().clone();
-                    #[cfg(not(feature = "sync"))]
-                    let into_boxed_borrowed = into_boxed.borrow();
-                    #[cfg(not(feature = "sync"))]
-                    let borrowed: Option<&Rc<Vec<T>>> = into_boxed_borrowed.as_ref();
-                    if let Some(values) = borrowed.as_ref() {
-                        for value in values.iter() {
-                            array.push(value.clone());
-                        }
-                        return;
-                    }
-                    #[cfg(not(feature = "sync"))]
-                    {
-                        let left_empty = left.as_ref().borrow().cardinality_usize() == 0;
-                        let right_empty = right.as_ref().borrow().cardinality_usize() == 0;
-                        if left_empty && right_empty {
-                            return;
-                        } else if left_empty {
-                            this_ptr = right.as_ref().as_ptr();
-                        } else if right_empty {
-                            this_ptr = left.as_ref().as_ptr();
-                        } else {
-                            if !Sequence::<T>::append_simple(array, &left.as_ref().borrow()) {
-                                Sequence::<T>::append_recursive(array, &left.as_ref().borrow());
-                            }
-                            this_ptr = right.as_ref().as_ptr();
-                        }
-                    }
+                    let cached: Option<Rc<Vec<T>>> = {
+                        let guard = cache.as_ref().borrow();
+                        guard.as_ref().map(|values| Rc::clone(values))
+                    };
                     #[cfg(feature = "sync")]
-                    {
-                        let left_guard = left.as_ref().lock().unwrap();
-                        let right_guard = right.as_ref().lock().unwrap();
-                        let left_empty: bool = left_guard.cardinality_usize() == 0;
-                        let right_empty: bool = right_guard.cardinality_usize() == 0;
-                        if left_empty && right_empty {
-                            return;
-                        } else if left_empty {
-                            this_ptr = right_guard.deref();
-                        } else if right_empty {
-                            this_ptr = left_guard.deref();
-                        } else {
-                            if !Sequence::<T>::append_simple(array, &left_guard) {
-                                Sequence::<T>::append_recursive(array, &left_guard);
-                            }
-                            this_ptr = right_guard.deref();
-                        }
+                    let cached: Option<Rc<Vec<T>>> = {
+                        let guard = cache.as_ref().lock().unwrap();
+                        guard.as_ref().map(|values| Rc::clone(values))
+                    };
+                    if let Some(values) = cached {
+                        array.extend(values.iter().cloned());
+                    } else {
+                        // The borrow of `child` is held only while the handles
+                        // of its distinct child cells are cloned here; the
+                        // children themselves are visited in later iterations.
+                        pending.push(Rc::clone(right));
+                        pending.push(Rc::clone(left));
                     }
                 }
             }
@@ -734,6 +705,53 @@ where
         SequenceIter {
             array: self.to_array(),
             index: 0,
+        }
+    }
+}
+
+impl<T: DafnyType> Drop for Sequence<T> {
+    /// Releases the sequence, dismantling any concatenation tree iteratively.
+    ///
+    /// The compiler-generated drop glue would release each concatenation
+    /// node's children recursively, so dropping a deep, unmaterialized
+    /// concatenation chain — including the tree released by `to_array` when it
+    /// empties a materialized node's children — would overflow the stack
+    /// ([issue #6620](https://github.com/dafny-lang/dafny/issues/6620)).
+    /// Instead, the child cells are taken out of the node and processed with
+    /// an explicit work list.
+    ///
+    /// A cell is dismantled only when `Rc::try_unwrap` proves that this
+    /// sequence is its last owner; cells still shared with other live
+    /// sequences are left untouched, so a shared subtree is always dismantled
+    /// by the sequence that holds the last reference to it.
+    fn drop(&mut self) {
+        if let Sequence::ConcatSequence { left, right, .. } = self {
+            // Take the child cells out so that the automatic field drops at
+            // the end of this method release nothing but these placeholder
+            // cells, whose contents are empty array sequences.
+            let mut pending: Vec<Rc<RefCell<Sequence<T>>>> =
+                vec![mem::take(left), mem::take(right)];
+            while let Some(child) = pending.pop() {
+                if let Ok(cell) = Rc::try_unwrap(child) {
+                    #[cfg(not(feature = "sync"))]
+                    let mut inner = cell.into_inner();
+                    #[cfg(feature = "sync")]
+                    let mut inner = cell
+                        .into_inner()
+                        // A poisoned lock still hands back its data; dropping
+                        // must not panic.
+                        .unwrap_or_else(|poison| poison.into_inner());
+                    if let Sequence::ConcatSequence { left, right, .. } = &mut inner {
+                        pending.push(mem::take(left));
+                        pending.push(mem::take(right));
+                    }
+                    // `inner` is dropped here: either a concatenation whose
+                    // children were just taken out, or an array sequence that
+                    // releases its element storage normally.
+                }
+                // If `Rc::try_unwrap` fails, another live sequence shares this
+                // cell: only our handle is released here.
+            }
         }
     }
 }
