@@ -140,6 +140,7 @@ struct DafnyFunction : std::function<Signature> {
   using std::function<Signature>::function;
   friend bool operator==(const DafnyFunction&, const DafnyFunction&) { return false; }
   friend bool operator!=(const DafnyFunction&, const DafnyFunction&) { return true; }
+  friend std::ostream& operator<<(std::ostream& out, const DafnyFunction&) { return out << "<function>"; }
 };
 
 template <typename Signature>
