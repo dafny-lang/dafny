@@ -570,17 +570,32 @@ where
                 let mut array: Vec<T> = Vec::with_capacity(*length);
                 Sequence::<T>::append_to_vec(&mut array, self);
                 let result = Rc::new(array);
+                // Releasing the children is only safe when this sequence is
+                // their last owner: another sequence may share these cells,
+                // and a concurrent materialization would observe emptied
+                // cells and produce a wrong result (15/15 failures in the
+                // `sync` regression test before this check was added).
+                // Exclusively-owned cells cannot be reached by any other
+                // thread, so the check makes the release race-free by
+                // construction. Cells that stay shared keep their children
+                // until `Drop` dismantles them for the last owner.
                 #[cfg(not(feature = "sync"))]
                 {
-                    *left.borrow_mut() = seq!();
-                    *right.borrow_mut() = seq!();
+                    if Rc::strong_count(left) == 1 {
+                        *left.borrow_mut() = seq!();
+                    }
+                    if Rc::strong_count(right) == 1 {
+                        *right.borrow_mut() = seq!();
+                    }
                 }
                 #[cfg(feature = "sync")]
                 {
-                    let mut left_guard = left.as_ref().lock().unwrap();
-                    let mut right_guard = right.as_ref().lock().unwrap();
-                    *left_guard = seq!();
-                    *right_guard = seq!();
+                    if Rc::strong_count(left) == 1 {
+                        *left.as_ref().lock().unwrap() = seq!();
+                    }
+                    if Rc::strong_count(right) == 1 {
+                        *right.as_ref().lock().unwrap() = seq!();
+                    }
                 }
                 #[cfg(not(feature = "sync"))]
                 let mut guard = cache.borrow_mut();
@@ -627,10 +642,7 @@ where
                     array.extend(values.iter().cloned());
                 }
                 Sequence::ConcatSequence {
-                    cache,
-                    left,
-                    right,
-                    ..
+                    cache, left, right, ..
                 } => {
                     #[cfg(not(feature = "sync"))]
                     let cached: Option<Rc<Vec<T>>> = {
@@ -717,41 +729,71 @@ impl<T: DafnyType> Drop for Sequence<T> {
     /// concatenation chain — including the tree released by `to_array` when it
     /// empties a materialized node's children — would overflow the stack
     /// ([issue #6620](https://github.com/dafny-lang/dafny/issues/6620)).
-    /// Instead, the child cells are taken out of the node and processed with
-    /// an explicit work list.
     ///
-    /// A cell is dismantled only when `Rc::try_unwrap` proves that this
-    /// sequence is its last owner; cells still shared with other live
-    /// sequences are left untouched, so a shared subtree is always dismantled
-    /// by the sequence that holds the last reference to it.
+    /// Instead, child cells that this sequence exclusively owns are emptied
+    /// one at a time, and their former children are processed from an explicit
+    /// work list. Cells still shared with other live sequences are left
+    /// untouched, so a shared subtree is always dismantled by the sequence
+    /// that holds the last reference to it.
+    ///
+    /// The common patterns stay allocation-free: cells with array contents
+    /// (including the empty cells left behind by `to_array`) and cells shared
+    /// with other owners require no work, so `pending` stays empty and its
+    /// `Vec::new` never allocates. Dismantling an n-node tree performs O(n)
+    /// work and one placeholder allocation per node.
     fn drop(&mut self) {
         if let Sequence::ConcatSequence { left, right, .. } = self {
-            // Take the child cells out so that the automatic field drops at
-            // the end of this method release nothing but these placeholder
-            // cells, whose contents are empty array sequences.
-            let mut pending: Vec<Rc<RefCell<Sequence<T>>>> =
-                vec![mem::take(left), mem::take(right)];
-            while let Some(child) = pending.pop() {
-                if let Ok(cell) = Rc::try_unwrap(child) {
-                    #[cfg(not(feature = "sync"))]
-                    let mut inner = cell.into_inner();
-                    #[cfg(feature = "sync")]
-                    let mut inner = cell
-                        .into_inner()
-                        // A poisoned lock still hands back its data; dropping
-                        // must not panic.
-                        .unwrap_or_else(|poison| poison.into_inner());
-                    if let Sequence::ConcatSequence { left, right, .. } = &mut inner {
-                        pending.push(mem::take(left));
-                        pending.push(mem::take(right));
-                    }
-                    // `inner` is dropped here: either a concatenation whose
-                    // children were just taken out, or an array sequence that
-                    // releases its element storage normally.
+            let mut pending: Vec<Rc<RefCell<Sequence<T>>>> = Vec::new();
+            // A cell is exclusively owned when this sequence holds its only
+            // strong reference; nobody else can borrow or lock it then. Under
+            // `sync`, concurrent owners can only lower the count, so a count
+            // of 1 cannot be a transient state of a race.
+            for field in [left, right] {
+                if Rc::strong_count(field) == 1 {
+                    Sequence::<T>::dismantle_exclusive_cell(field.as_ref(), &mut pending);
                 }
-                // If `Rc::try_unwrap` fails, another live sequence shares this
-                // cell: only our handle is released here.
             }
+            while let Some(child) = pending.pop() {
+                if Rc::strong_count(&child) == 1 {
+                    Sequence::<T>::dismantle_exclusive_cell(child.as_ref(), &mut pending);
+                }
+                // Otherwise another live sequence shares this cell and will
+                // dismantle it when it holds the last reference; releasing
+                // our handle here is all that is needed.
+            }
+        }
+    }
+}
+
+impl<T: DafnyType> Sequence<T> {
+    /// Empties an exclusively-owned cell whose contents are a concatenation,
+    /// moving the contents' child cells onto `pending` for further
+    /// dismantling. Cells with array contents are left alone: they are
+    /// released shallowly by the ordinary drop glue.
+    ///
+    /// The caller must hold the only strong reference to `cell`, which makes
+    /// the interior-mutability access below uncontended.
+    fn dismantle_exclusive_cell(
+        cell: &RefCell<Sequence<T>>,
+        pending: &mut Vec<Rc<RefCell<Sequence<T>>>>,
+    ) {
+        #[cfg(not(feature = "sync"))]
+        let mut guard = cell.borrow_mut();
+        #[cfg(feature = "sync")]
+        let mut guard = cell
+            .lock()
+            // A poisoned lock still hands back its data; dropping must not panic.
+            .unwrap_or_else(|poison| poison.into_inner());
+        if let Sequence::ConcatSequence { left, right, .. } = &*guard {
+            // Hold handles to the children, then empty the cell. Dropping the
+            // old contents while `guard` is held runs this same drop logic on
+            // them, which sees shared children and does nothing.
+            let old_left = Rc::clone(left);
+            let old_right = Rc::clone(right);
+            let old_contents = mem::take(&mut *guard);
+            drop(old_contents);
+            pending.push(old_left);
+            pending.push(old_right);
         }
     }
 }
