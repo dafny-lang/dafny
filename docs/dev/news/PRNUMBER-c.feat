@@ -1,0 +1,1 @@
+Add experimental C backends: `c` (minimal, fixed-width types only, no runtime bignum) and `c-extended` (adds unbounded `int`/exact `real` via GMP and multisets). Both emit C99 compiled with gcc. Marked experimental (`IsStable = false`).
