@@ -650,8 +650,10 @@ There are several points to note.
 * The caller and callee can have any (positive) number of output arguments,
   as long as the callee's first out-parameter has a failure-compatible type
   and the caller's first out-parameter type matches `PropagateFailure`.
-* If there is more than one LHS, the LHSs must denote different l-values, 
-  unless the RHS is a list of expressions and the corresponding RHS values are equal.
+* If there is more than one LHS, the LHSs must denote different l-values,
+  unless the RHS is a list of expressions and the corresponding assigned values are equal.
+  For a value-carrying type, the first LHS receives the result of `Extract`.
+  This LHS may denote the same l-value as another LHS only when execution reaches `Extract` and both assigned values are equal.
 * The LHS l-values are evaluated before the RHS method call,
   in case the method call has side-effects or return values that modify the l-values prior to assignments being made.
 
