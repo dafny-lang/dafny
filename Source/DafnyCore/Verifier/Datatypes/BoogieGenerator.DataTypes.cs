@@ -829,7 +829,7 @@ namespace Microsoft.Dafny {
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var proc = new Bpl.Procedure(ctor.Origin, "CheckWellformed" + NameSeparator + ctor.FullName, [],
         inParams, [],
-        false, req, varlist, [], etran.TrAttributes(ctor.Attributes, null));
+        false, req, [], [], [], varlist, etran.TrAttributes(ctor.Attributes, null));
       AddVerboseNameAttribute(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
