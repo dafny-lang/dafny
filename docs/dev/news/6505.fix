@@ -1,0 +1,1 @@
+`--cores` no longer depends on the locale, so `--cores:50.5%` means 50.5% everywhere and `--cores:50,5%` is an error; out-of-range values such as `-50%`, `NaN%` or `3000000000` are rejected instead of being misread or crashing the verifier
