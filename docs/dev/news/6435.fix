@@ -1,0 +1,1 @@
+`dafny format --stdin` now reformats input instead of always reporting it as correctly formatted
