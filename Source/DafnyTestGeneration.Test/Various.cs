@@ -555,7 +555,13 @@ method {:testEntry} m(a:int) returns (b:int)
       var program = await Parse(new BatchErrorReporter(options), source, false);
       options.TestGenOptions.WarnDeadCode = true;
       var stats = await TestGenerator.GetDeadCodeStatistics(program, new Modifications(options)).ToListAsync();
-      Assert.Single(stats); // the only line with stats
+      var summary = stats.Last();
+      var match = Regex.Match(summary, @"Out of (\d+) basic blocks, (\d+) are reachable\.");
+      Assert.True(match.Success, $"Could not parse summary line: {summary}");
+      var totalBlocks = int.Parse(match.Groups[1].Value);
+      var reachableBlocks = int.Parse(match.Groups[2].Value);
+      Assert.True(totalBlocks > 0, "Expected to find at least one basic block.");
+      Assert.Equal(totalBlocks, reachableBlocks); // all blocks are reachable
     }
 
     [Theory]

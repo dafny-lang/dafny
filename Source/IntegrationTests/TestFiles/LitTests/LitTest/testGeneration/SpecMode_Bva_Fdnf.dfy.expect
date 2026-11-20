@@ -1,0 +1,100 @@
+method {:test} Test0() {
+var seqint0 : seq<int> := [38];
+expect |seqint0| > 0, "If this check fails at runtime, the test does not meet the preconditions";
+expect forall i :: 0 <= i < |seqint0| ==> seqint0[i] >= 0, "If this check fails at runtime, the test does not meet the preconditions";
+var r0 := ConditionalGet(seqint0, 0);
+expect 0 < 0 ==> r0 == -1;
+expect 0 >= |seqint0| ==> r0 == -2;
+expect 0 <= 0 < |seqint0| ==> r0 == seqint0[0];
+}
+method {:test} Test2() {
+var seqint0 : seq<int> := [7719, 0];
+expect |seqint0| > 0, "If this check fails at runtime, the test does not meet the preconditions";
+expect forall i :: 0 <= i < |seqint0| ==> seqint0[i] >= 0, "If this check fails at runtime, the test does not meet the preconditions";
+var r0 := ConditionalGet(seqint0, 0);
+expect 0 < 0 ==> r0 == -1;
+expect 0 >= |seqint0| ==> r0 == -2;
+expect 0 <= 0 < |seqint0| ==> r0 == seqint0[0];
+}
+method {:test} Test4() {
+var seqint0 : seq<int> := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 38];
+expect |seqint0| > 0, "If this check fails at runtime, the test does not meet the preconditions";
+expect forall i :: 0 <= i < |seqint0| ==> seqint0[i] >= 0, "If this check fails at runtime, the test does not meet the preconditions";
+var r0 := ConditionalGet(seqint0, 100);
+expect 100 < 0 ==> r0 == -1;
+expect 100 >= |seqint0| ==> r0 == -2;
+expect 0 <= 100 < |seqint0| ==> r0 == seqint0[100];
+}
+method {:test} Test6() {
+var seqint0 : seq<int> := [100];
+expect |seqint0| > 0, "If this check fails at runtime, the test does not meet the preconditions";
+expect forall i :: 0 <= i < |seqint0| ==> seqint0[i] >= 0, "If this check fails at runtime, the test does not meet the preconditions";
+var r0 := ConditionalGet(seqint0, 0);
+expect 0 < 0 ==> r0 == -1;
+expect 0 >= |seqint0| ==> r0 == -2;
+expect 0 <= 0 < |seqint0| ==> r0 == seqint0[0];
+}
+method {:test} Test9() {
+var seqint0 : seq<int> := [0];
+expect |seqint0| > 0, "If this check fails at runtime, the test does not meet the preconditions";
+expect forall i :: 0 <= i < |seqint0| ==> seqint0[i] >= 0, "If this check fails at runtime, the test does not meet the preconditions";
+var r0 := ConditionalGet(seqint0, 1);
+expect 1 < 0 ==> r0 == -1;
+expect 1 >= |seqint0| ==> r0 == -2;
+expect 0 <= 1 < |seqint0| ==> r0 == seqint0[1];
+}
+method {:test} Test11() {
+var seqint0 : seq<int> := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+expect |seqint0| > 0, "If this check fails at runtime, the test does not meet the preconditions";
+expect forall i :: 0 <= i < |seqint0| ==> seqint0[i] >= 0, "If this check fails at runtime, the test does not meet the preconditions";
+var r0 := ConditionalGet(seqint0, 40);
+expect 40 < 0 ==> r0 == -1;
+expect 40 >= |seqint0| ==> r0 == -2;
+expect 0 <= 40 < |seqint0| ==> r0 == seqint0[40];
+}
+method {:test} Test12() {
+var seqint0 : seq<int> := [0];
+expect |seqint0| > 0, "If this check fails at runtime, the test does not meet the preconditions";
+expect forall i :: 0 <= i < |seqint0| ==> seqint0[i] >= 0, "If this check fails at runtime, the test does not meet the preconditions";
+var r0 := ConditionalGet(seqint0, 100);
+expect 100 < 0 ==> r0 == -1;
+expect 100 >= |seqint0| ==> r0 == -2;
+expect 0 <= 100 < |seqint0| ==> r0 == seqint0[100];
+}
+method {:test} Test23() {
+var seqint0 : seq<int> := [0];
+expect |seqint0| > 0, "If this check fails at runtime, the test does not meet the preconditions";
+expect forall i :: 0 <= i < |seqint0| ==> seqint0[i] >= 0, "If this check fails at runtime, the test does not meet the preconditions";
+var r0 := ConditionalGet(seqint0, -39);
+expect -39 < 0 ==> r0 == -1;
+expect -39 >= |seqint0| ==> r0 == -2;
+expect 0 <= -39 < |seqint0| ==> r0 == seqint0[-39];
+}
+method {:test} Test25() {
+var seqint0 : seq<int> := [0, 0];
+expect |seqint0| > 0, "If this check fails at runtime, the test does not meet the preconditions";
+expect forall i :: 0 <= i < |seqint0| ==> seqint0[i] >= 0, "If this check fails at runtime, the test does not meet the preconditions";
+var r0 := ConditionalGet(seqint0, -39);
+expect -39 < 0 ==> r0 == -1;
+expect -39 >= |seqint0| ==> r0 == -2;
+expect 0 <= -39 < |seqint0| ==> r0 == seqint0[-39];
+}
+method {:test} Test26() {
+var seqint0 : seq<int> := [0];
+expect |seqint0| > 0, "If this check fails at runtime, the test does not meet the preconditions";
+expect forall i :: 0 <= i < |seqint0| ==> seqint0[i] >= 0, "If this check fails at runtime, the test does not meet the preconditions";
+var r0 := ConditionalGet(seqint0, -100);
+expect -100 < 0 ==> r0 == -1;
+expect -100 >= |seqint0| ==> r0 == -2;
+expect 0 <= -100 < |seqint0| ==> r0 == seqint0[-100];
+}
+method {:test} Test27() {
+var seqint0 : seq<int> := [0];
+expect |seqint0| > 0, "If this check fails at runtime, the test does not meet the preconditions";
+expect forall i :: 0 <= i < |seqint0| ==> seqint0[i] >= 0, "If this check fails at runtime, the test does not meet the preconditions";
+var r0 := ConditionalGet(seqint0, -1);
+expect -1 < 0 ==> r0 == -1;
+expect -1 >= |seqint0| ==> r0 == -2;
+expect 0 <= -1 < |seqint0| ==> r0 == seqint0[-1];
+}
+
