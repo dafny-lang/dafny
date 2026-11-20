@@ -435,10 +435,13 @@ public partial class BoogieGenerator {
 
   /// <summary>
   /// Generate:
-  ///   assume (forall x,y :: Range#canCall AND
+  ///   assume (forall x,y :: Types(x,y) ==>
+  ///                         Range#canCall AND
   ///                         (Range(x,y)[$Heap:=oldHeap] ==>
   ///                           $Heap[ Object(x,y)[$Heap:=oldHeap], Field(x,y)[$Heap:=oldHeap] ] == G[$Heap:=oldHeap])));
   /// where
+  ///   Types(x,y)    is the type antecedent of the bound variables, outermost because Range#canCall
+  ///                 holds only for values of those types
   ///   x,y           represent boundVars
   ///   Object(x,y)   is the first part of lhs
   ///   Field(x,y)    is the second part of lhs
@@ -457,8 +460,8 @@ public partial class BoogieGenerator {
 
     List<bool> freeOfAlloc = BoundedPool.HasBounds(bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
     var xBvars = new List<Variable>();
-    Bpl.Expr xAnte = etran.TrBoundVariables(boundVars, xBvars, false, freeOfAlloc);
-    xAnte = BplAnd(xAnte, prevEtran.TrExpr(range));
+    Bpl.Expr typeAntecedent = etran.TrBoundVariables(boundVars, xBvars, false, freeOfAlloc);
+    Bpl.Expr xAnte = prevEtran.TrExpr(range);
     var g = prevEtran.TrExpr(rhs);
     GetObjFieldDetails(lhs, prevEtran, out var obj, out var field);
     var xHeapOF = ReadHeap(tok, etran.HeapExpr, obj, field);
@@ -485,6 +488,7 @@ public partial class BoogieGenerator {
     var body = BplAnd(canCalls, Bpl.Expr.Eq(xHeapOF, g));
     body = BplImp(xAnte, body);
     body = BplAnd(canCallRange, body);
+    body = BplImp(typeAntecedent, body);
     return new Bpl.ForallExpr(tok, xBvars, tr, body);
   }
 
