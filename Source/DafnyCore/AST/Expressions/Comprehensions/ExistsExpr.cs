@@ -57,6 +57,7 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
     var ex = new ExistsExpr(Origin, bvars, range, term, attrs) {
       Type = Type.Bool,
       Bounds = s.SubstituteBoundedPoolList(Bounds),
+      EnumerationOrder = EnumerationOrder,
     };
     return ex;
   }

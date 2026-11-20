@@ -535,9 +535,7 @@ namespace Microsoft.Dafny {
         return bound;  // nothing to substitute
       } else if (bound is IntBoundedPool) {
         var b = (IntBoundedPool)bound;
-        return new IntBoundedPool(
-          b.LowerBound == null ? null : Substitute(b.LowerBound),
-          b.UpperBound == null ? null : Substitute(b.UpperBound));
+        return new IntBoundedPool(b.LowerBounds.Select(Substitute).ToList(), b.UpperBounds.Select(Substitute).ToList());
       } else if (bound is SetBoundedPool) {
         var b = (SetBoundedPool)bound;
         return new SetBoundedPool(Substitute(b.Set), b.BoundVariableType, b.CollectionElementType, b.IsFiniteCollection);
@@ -833,6 +831,7 @@ namespace Microsoft.Dafny {
         rr.Kind = s.Kind;
         rr.CanConvert = s.CanConvert;
         rr.Bounds = SubstituteBoundedPoolList(s.Bounds);
+        rr.EnumerationOrder = s.EnumerationOrder;
         if (s.EffectiveEnsuresClauses != null) {
           rr.EffectiveEnsuresClauses = s.EffectiveEnsuresClauses.ConvertAll(Substitute);
         }
@@ -1089,6 +1088,7 @@ namespace Microsoft.Dafny {
         }
 
         ((ComprehensionExpr)newExpr).Bounds = newBounds;
+        ((ComprehensionExpr)newExpr).EnumerationOrder = e.EnumerationOrder;
       }
 
       // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.BoundVars)
