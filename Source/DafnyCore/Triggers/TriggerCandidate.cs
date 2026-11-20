@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny.Triggers;
@@ -38,14 +37,12 @@ class TriggerCandidate {
   /// instantiating the quantifier may lead to a ground term that again matches the trigger
   /// </summary>
   internal IEnumerable<TriggerMatch> LoopingSubterms(ComprehensionExpr quantifier, DafnyOptions options) {
-    Contract.Requires(!(quantifier is QuantifierExpr) || ((QuantifierExpr)quantifier).SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
     var matchingSubterms = MatchingSubterms(quantifier);
     var boundVars = new HashSet<BoundVar>(quantifier.BoundVars);
     return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms, boundVars, options));
   }
 
   private List<TriggerMatch> MatchingSubterms(ComprehensionExpr quantifier) {
-    Contract.Requires(!(quantifier is QuantifierExpr) || ((QuantifierExpr)quantifier).SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
     return Terms.SelectMany(term => quantifier.SubexpressionsMatchingTrigger(term.Expr)).Deduplicate(TriggerMatch.Eq);
   }
 

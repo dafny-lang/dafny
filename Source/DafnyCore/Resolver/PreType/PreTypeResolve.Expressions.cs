@@ -723,7 +723,6 @@ namespace Microsoft.Dafny {
             if (resolutionContext.CodeContext is Function enclosingFunction) {
               enclosingFunction.ContainsQuantifier = true;
             }
-            Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
             scope.PushMarker();
             foreach (var v in e.BoundVars) {
               resolver.ResolveType(v.Origin, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);

@@ -1,0 +1,1 @@
+Fix unsoundness where the well-formedness check of a quantifier that Dafny splits into parts for its triggers, for example in a lambda, assumed each part for every value while checking the next.
