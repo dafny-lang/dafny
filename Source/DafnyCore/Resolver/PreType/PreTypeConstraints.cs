@@ -609,6 +609,18 @@ namespace Microsoft.Dafny {
         }));
     }
 
+    /// <summary>
+    /// Like the format-string overload of <see cref="AddConfirmation"/>, but invokes <paramref name="errorMessage"/>
+    /// at error-reporting time to compute the message. This lets the caller inspect the fully resolved pre-type and
+    /// tailor the diagnostic (for example, to suggest `extends object` when the failing type is a non-reference trait).
+    /// </summary>
+    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IOrigin tok, Func<string> errorMessage) {
+      confirmations.Add(new Confirmation(
+        () => ConfirmConstraint(check, preType, null),
+        errorMessage,
+        (ResolverPass reporter) => { reporter.ReportError(tok, errorMessage()); }));
+    }
+
     public void AddConfirmation(IOrigin tok, Func<bool> check, Func<string> errorMessage) {
       confirmations.Add(new Confirmation(check, errorMessage,
         (ResolverPass reporter) => { reporter.ReportError(tok, errorMessage()); }));
