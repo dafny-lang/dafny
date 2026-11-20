@@ -15,14 +15,19 @@ public partial class BoogieGenerator {
   public partial class ExpressionTranslator {
 
     private Expr TranslateMultiSetDisplayExpr(MultiSetDisplayExpr displayExpr) {
-      Expr result = BoogieGenerator.FunctionCall(GetToken(displayExpr), BuiltinFunction.MultiSetEmpty, Predef.BoxType);
       var isLit = true;
+      var boxedElements = new List<Expr>();
       foreach (Expression ee in displayExpr.Elements) {
         var rawElement = TrExpr(ee);
         isLit = isLit && BoogieGenerator.IsLit(rawElement);
-        var ss = BoxIfNecessary(GetToken(displayExpr), rawElement, Cce.NonNull(ee.Type));
+        boxedElements.Add(BoxIfNecessary(GetToken(displayExpr), rawElement, Cce.NonNull(ee.Type)));
+      }
+      // Canonicalize element order so permuted displays produce identical terms. Like the set case, this only
+      // reorders -- multiplicity is preserved, so it is sound for a multiset.
+      Expr result = BoogieGenerator.FunctionCall(GetToken(displayExpr), BuiltinFunction.MultiSetEmpty, Predef.BoxType);
+      foreach (var boxedElement in CanonicalizeDisplayElements(boxedElements)) {
         result = BoogieGenerator.FunctionCall(GetToken(displayExpr), BuiltinFunction.MultiSetUnionOne, Predef.BoxType, result,
-          ss);
+          boxedElement);
       }
 
       if (isLit) {
