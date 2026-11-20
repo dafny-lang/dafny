@@ -91,7 +91,7 @@ static class MeasureComplexityCommand {
 
     PriorityQueue<VerificationTaskResult, int> worstPerformers = new();
 
-    var totalResources = 0;
+    long totalResources = 0;
     var worstAmount = cliCompilation.Options.Get(TopX);
     verificationResults.Subscribe(result => {
       foreach (var taskResult in result.Results) {
