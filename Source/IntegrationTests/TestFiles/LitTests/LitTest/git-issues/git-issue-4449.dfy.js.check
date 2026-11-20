@@ -1,1 +1,0 @@
-CHECK-L: TypeError: AnyName.B is not a constructor
