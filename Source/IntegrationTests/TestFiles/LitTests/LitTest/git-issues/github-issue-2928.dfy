@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" --
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --enforce-determinism
 
 method Main() {
   var c := '\0';
