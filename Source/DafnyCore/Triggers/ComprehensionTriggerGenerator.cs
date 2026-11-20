@@ -37,6 +37,9 @@ namespace Microsoft.Dafny.Triggers {
         CollectWithoutShareTriggers(triggersCollector);
         TrimInvalidTriggers();
         DetectAndFilterLoopingCandidates();
+        foreach (var triggerWriter in partWriters) {
+          triggerWriter.RestoreAsWritten();
+        }
       }
       FilterWeakerTriggers();
       CombineSplitQuantifier();
@@ -133,17 +136,13 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private bool RewriteMatchingLoop(ModuleDefinition module) {
-      if (comprehension is QuantifierExpr unSplitQuantifier) {
-        bool rewritten = false;
+      bool rewritten = false;
+      if (comprehension is QuantifierExpr) {
         foreach (var triggerWriter in partWriters) {
           rewritten |= triggerWriter.RewriteMatchingLoop(reporter, module);
         }
-        if (rewritten) {
-          unSplitQuantifier.SplitQuantifier = partWriters.Select(q => (Expression)q.Comprehension).ToList();
-          return true;
-        }
       }
-      return false;
+      return rewritten;
     }
 
     void FilterWeakerTriggers() {
