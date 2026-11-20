@@ -1,0 +1,1 @@
+No longer crash when verifying a refined module containing an assign-such-that statement

@@ -156,7 +156,7 @@ public class ForallStmtRewriter : IRewriter {
         if (vals != null) {
           foreach (var val in vals) {
             lhs = lhsBuilder(jj);
-            Attributes attributes = new Attributes("trigger", [lhs], stmt.Attributes);
+            Attributes attributes = new Attributes("trigger", [lhs], stmt.Attributes) { IsResolverGenerated = true };
             var newRhs = Substitute(rhs, i, val.FInverse);
             var newBounds = SubstituteBoundedPoolList(stmt.Bounds, i, val.FInverse);
 
