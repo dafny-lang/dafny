@@ -232,7 +232,7 @@ pub mod dafny_runtime_conversions {
         T: DafnyType,
     {
         let mut array: Vec<T> = Vec::with_capacity(s.cardinality_usize());
-        DafnySequence::<T>::append_recursive(&mut array, s);
+        DafnySequence::<T>::append_to_vec(&mut array, s);
         array.iter().map(elem_converter).collect()
     }
 
@@ -565,22 +565,37 @@ where
                         return Rc::clone(cache);
                     }
                 }
-                // Let's create an array of size length and fill it up recursively
+                // Let's create an array of size length and fill it up iteratively
                 // We don't materialize nested arrays because most of the time they are forgotten
                 let mut array: Vec<T> = Vec::with_capacity(*length);
-                Sequence::<T>::append_recursive(&mut array, self);
+                Sequence::<T>::append_to_vec(&mut array, self);
                 let result = Rc::new(array);
+                // Releasing the children is only safe when this sequence is
+                // their last owner: another sequence may share these cells,
+                // and a concurrent materialization would observe emptied
+                // cells and produce a wrong result (15/15 failures in the
+                // `sync` regression test before this check was added).
+                // Exclusively-owned cells cannot be reached by any other
+                // thread, so the check makes the release race-free by
+                // construction. Cells that stay shared keep their children
+                // until `Drop` dismantles them for the last owner.
                 #[cfg(not(feature = "sync"))]
                 {
-                    *left.borrow_mut() = seq!();
-                    *right.borrow_mut() = seq!();
+                    if Rc::strong_count(left) == 1 {
+                        *left.borrow_mut() = seq!();
+                    }
+                    if Rc::strong_count(right) == 1 {
+                        *right.borrow_mut() = seq!();
+                    }
                 }
                 #[cfg(feature = "sync")]
                 {
-                    let mut left_guard = left.as_ref().lock().unwrap();
-                    let mut right_guard = right.as_ref().lock().unwrap();
-                    *left_guard = seq!();
-                    *right_guard = seq!();
+                    if Rc::strong_count(left) == 1 {
+                        *left.as_ref().lock().unwrap() = seq!();
+                    }
+                    if Rc::strong_count(right) == 1 {
+                        *right.as_ref().lock().unwrap() = seq!();
+                    }
                 }
                 #[cfg(not(feature = "sync"))]
                 let mut guard = cache.borrow_mut();
@@ -592,93 +607,61 @@ where
         }
     }
 
-    pub fn append_simple(array: &mut Vec<T>, this: &Sequence<T>) -> bool {
+    /// Appends the elements of `this` to `array` in order, visiting any
+    /// concatenation tree iteratively.
+    ///
+    /// The traversal uses an explicit heap-allocated work list of child
+    /// sequence handles instead of recursion, so the call-stack depth stays
+    /// constant no matter how deeply the concatenation tree is nested
+    /// ([issue #6620](https://github.com/dafny-lang/dafny/issues/6620)).
+    /// Subtrees whose elements are already cached are appended as a whole.
+    fn append_to_vec(array: &mut Vec<T>, this: &Sequence<T>) {
+        let mut pending: Vec<Rc<RefCell<Sequence<T>>>> = Vec::new();
         match this {
             Sequence::ArraySequence { values, .. } => {
-                for value in values.iter() {
-                    array.push(value.clone());
-                }
-                true
+                array.extend(values.iter().cloned());
             }
-            _ => false,
+            Sequence::ConcatSequence { left, right, .. } => {
+                // The caller `to_array` has already consulted the cache of
+                // `this`, so only the children remain to be visited.
+                // Children are pushed right-before-left so that the left
+                // subtree is processed first, preserving element order.
+                pending.push(Rc::clone(right));
+                pending.push(Rc::clone(left));
+            }
         }
-    }
-
-    pub fn append_recursive(array: &mut Vec<T>, this: &Sequence<T>) {
-        let mut this_ptr: *const Sequence<T> = this;
-        loop {
-            // SAFETY: The invariant is that this_ptr is always a pointer to a sub-sequence of the original `this`parameter when following the field name 'right', which are allocated in this scope
-            match unsafe { &*this_ptr } {
+        while let Some(child) = pending.pop() {
+            // `as_ref` first: a plain `child.borrow()` would resolve to the
+            // `Borrow` trait method on `Rc` instead of `RefCell::borrow`.
+            #[cfg(not(feature = "sync"))]
+            let child_ref = child.as_ref().borrow();
+            #[cfg(feature = "sync")]
+            let child_ref = child.as_ref().lock().unwrap();
+            match child_ref.deref() {
                 Sequence::ArraySequence { values, .. } => {
-                    for value in values.iter() {
-                        array.push(value.clone());
-                    }
-                    return;
+                    array.extend(values.iter().cloned());
                 }
                 Sequence::ConcatSequence {
-                    cache: boxed,
-                    left,
-                    right,
-                    ..
-                } =>
-                // Let's create an array of size length and fill it up recursively
-                {
-                    #[cfg(feature = "sync")]
-                    let into_boxed = boxed.as_ref();
-                    #[cfg(feature = "sync")]
-                    let into_boxed_borrowed = into_boxed;
-                    #[cfg(feature = "sync")]
-                    let guard = into_boxed_borrowed.lock().unwrap();
-                    #[cfg(feature = "sync")]
-                    let borrowed: Option<&Rc<Vec<T>>> = guard.as_ref();
-
+                    cache, left, right, ..
+                } => {
                     #[cfg(not(feature = "sync"))]
-                    let into_boxed = boxed.as_ref().clone();
-                    #[cfg(not(feature = "sync"))]
-                    let into_boxed_borrowed = into_boxed.borrow();
-                    #[cfg(not(feature = "sync"))]
-                    let borrowed: Option<&Rc<Vec<T>>> = into_boxed_borrowed.as_ref();
-                    if let Some(values) = borrowed.as_ref() {
-                        for value in values.iter() {
-                            array.push(value.clone());
-                        }
-                        return;
-                    }
-                    #[cfg(not(feature = "sync"))]
-                    {
-                        let left_empty = left.as_ref().borrow().cardinality_usize() == 0;
-                        let right_empty = right.as_ref().borrow().cardinality_usize() == 0;
-                        if left_empty && right_empty {
-                            return;
-                        } else if left_empty {
-                            this_ptr = right.as_ref().as_ptr();
-                        } else if right_empty {
-                            this_ptr = left.as_ref().as_ptr();
-                        } else {
-                            if !Sequence::<T>::append_simple(array, &left.as_ref().borrow()) {
-                                Sequence::<T>::append_recursive(array, &left.as_ref().borrow());
-                            }
-                            this_ptr = right.as_ref().as_ptr();
-                        }
-                    }
+                    let cached: Option<Rc<Vec<T>>> = {
+                        let guard = cache.as_ref().borrow();
+                        guard.as_ref().map(|values| Rc::clone(values))
+                    };
                     #[cfg(feature = "sync")]
-                    {
-                        let left_guard = left.as_ref().lock().unwrap();
-                        let right_guard = right.as_ref().lock().unwrap();
-                        let left_empty: bool = left_guard.cardinality_usize() == 0;
-                        let right_empty: bool = right_guard.cardinality_usize() == 0;
-                        if left_empty && right_empty {
-                            return;
-                        } else if left_empty {
-                            this_ptr = right_guard.deref();
-                        } else if right_empty {
-                            this_ptr = left_guard.deref();
-                        } else {
-                            if !Sequence::<T>::append_simple(array, &left_guard) {
-                                Sequence::<T>::append_recursive(array, &left_guard);
-                            }
-                            this_ptr = right_guard.deref();
-                        }
+                    let cached: Option<Rc<Vec<T>>> = {
+                        let guard = cache.as_ref().lock().unwrap();
+                        guard.as_ref().map(|values| Rc::clone(values))
+                    };
+                    if let Some(values) = cached {
+                        array.extend(values.iter().cloned());
+                    } else {
+                        // The borrow of `child` is held only while the handles
+                        // of its distinct child cells are cloned here; the
+                        // children themselves are visited in later iterations.
+                        pending.push(Rc::clone(right));
+                        pending.push(Rc::clone(left));
                     }
                 }
             }
@@ -734,6 +717,83 @@ where
         SequenceIter {
             array: self.to_array(),
             index: 0,
+        }
+    }
+}
+
+impl<T: DafnyType> Drop for Sequence<T> {
+    /// Releases the sequence, dismantling any concatenation tree iteratively.
+    ///
+    /// The compiler-generated drop glue would release each concatenation
+    /// node's children recursively, so dropping a deep, unmaterialized
+    /// concatenation chain — including the tree released by `to_array` when it
+    /// empties a materialized node's children — would overflow the stack
+    /// ([issue #6620](https://github.com/dafny-lang/dafny/issues/6620)).
+    ///
+    /// Instead, child cells that this sequence exclusively owns are emptied
+    /// one at a time, and their former children are processed from an explicit
+    /// work list. Cells still shared with other live sequences are left
+    /// untouched, so a shared subtree is always dismantled by the sequence
+    /// that holds the last reference to it.
+    ///
+    /// The common patterns stay allocation-free: cells with array contents
+    /// (including the empty cells left behind by `to_array`) and cells shared
+    /// with other owners require no work, so `pending` stays empty and its
+    /// `Vec::new` never allocates. Dismantling an n-node tree performs O(n)
+    /// work and one placeholder allocation per node.
+    fn drop(&mut self) {
+        if let Sequence::ConcatSequence { left, right, .. } = self {
+            let mut pending: Vec<Rc<RefCell<Sequence<T>>>> = Vec::new();
+            // A cell is exclusively owned when this sequence holds its only
+            // strong reference; nobody else can borrow or lock it then. Under
+            // `sync`, concurrent owners can only lower the count, so a count
+            // of 1 cannot be a transient state of a race.
+            for field in [left, right] {
+                if Rc::strong_count(field) == 1 {
+                    Sequence::<T>::dismantle_exclusive_cell(field.as_ref(), &mut pending);
+                }
+            }
+            while let Some(child) = pending.pop() {
+                if Rc::strong_count(&child) == 1 {
+                    Sequence::<T>::dismantle_exclusive_cell(child.as_ref(), &mut pending);
+                }
+                // Otherwise another live sequence shares this cell and will
+                // dismantle it when it holds the last reference; releasing
+                // our handle here is all that is needed.
+            }
+        }
+    }
+}
+
+impl<T: DafnyType> Sequence<T> {
+    /// Empties an exclusively-owned cell whose contents are a concatenation,
+    /// moving the contents' child cells onto `pending` for further
+    /// dismantling. Cells with array contents are left alone: they are
+    /// released shallowly by the ordinary drop glue.
+    ///
+    /// The caller must hold the only strong reference to `cell`, which makes
+    /// the interior-mutability access below uncontended.
+    fn dismantle_exclusive_cell(
+        cell: &RefCell<Sequence<T>>,
+        pending: &mut Vec<Rc<RefCell<Sequence<T>>>>,
+    ) {
+        #[cfg(not(feature = "sync"))]
+        let mut guard = cell.borrow_mut();
+        #[cfg(feature = "sync")]
+        let mut guard = cell
+            .lock()
+            // A poisoned lock still hands back its data; dropping must not panic.
+            .unwrap_or_else(|poison| poison.into_inner());
+        if let Sequence::ConcatSequence { left, right, .. } = &*guard {
+            // Hold handles to the children, then empty the cell. Dropping the
+            // old contents while `guard` is held runs this same drop logic on
+            // them, which sees shared children and does nothing.
+            let old_left = Rc::clone(left);
+            let old_right = Rc::clone(right);
+            let old_contents = mem::take(&mut *guard);
+            drop(old_contents);
+            pending.push(old_left);
+            pending.push(old_right);
         }
     }
 }

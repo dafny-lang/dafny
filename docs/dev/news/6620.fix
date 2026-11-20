@@ -1,0 +1,4 @@
+Sequences on the Rust backend are no longer limited by the call stack: a
+sequence built by many successive concatenations (e.g. `s := s + [x]` in a
+long loop) can be indexed, materialized, and released without overflowing the
+stack, regardless of the nesting shape of the concatenations.
