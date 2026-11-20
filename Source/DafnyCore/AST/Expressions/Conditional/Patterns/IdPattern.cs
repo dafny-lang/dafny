@@ -41,7 +41,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
     Id = original.Id;
     Arguments = original.Arguments?.Select(cloner.CloneExtendedPattern).ToList();
     HasParenthesis = original.HasParenthesis;
-    SyntacticType = original.SyntacticType;
+    SyntacticType = cloner.CloneType(original.SyntacticType);
     if (cloner.CloneResolvedFields) {
       type = cloner.CloneType(original.type);
       BoundVar = cloner.CloneIVariable(original.BoundVar, false);

@@ -43,4 +43,27 @@ public class ClonerTest {
     Assert.Equal(2, dummyDecl2.Ins[1].StartToken.line);
     Assert.False(dummyDecl2.Ins[1].IsTypeExplicit);
   }
+
+  [Fact]
+  public void ClonerKeepsElementTypeAliasedToExplicitType() {
+    var original = new AllocateArray(Token.NoToken, new UserDefinedType(Token.NoToken, "C", null),
+      [new LiteralExpr(Token.NoToken, 10)], null);
+    var clone = original.Clone(new Cloner());
+    Assert.Same(clone.ExplicitType, clone.ElementType);
+  }
+
+  [Fact]
+  public void ClonerKeepsFieldTypeAliasedToExplicitType() {
+    var original = new Field(Token.NoToken, new Name("f"), false, new UserDefinedType(Token.NoToken, "C", null), null);
+    var clone = new Field(new Cloner(), original);
+    Assert.Same(clone.ExplicitType, clone.Type);
+  }
+
+  [Fact]
+  public void ClonerGivesAnIdPatternItsOwnSyntacticType() {
+    var original = new IdPattern(Token.NoToken, "e", new UserDefinedType(Token.NoToken, "C", null), null);
+    var clone = new IdPattern(new Cloner(), original);
+    Assert.NotSame(original.SyntacticType, clone.SyntacticType);
+    Assert.Same(clone.SyntacticType, clone.Type);
+  }
 }

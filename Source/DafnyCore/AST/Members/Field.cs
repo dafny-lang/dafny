@@ -15,6 +15,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
 
   public PreType? PreType;
 
+  // ExplicitType itself, if there is one, since resolution resolves this type in place.
   public Type Type;
 
   public Type? ExplicitType;
@@ -31,7 +32,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public Field(Cloner cloner, Field original) : base(cloner, original) {
     ExplicitType = cloner.CloneType(original.ExplicitType);
     // This is set even before resolution
-    Type = cloner.CloneType(original.Type);
+    Type = ExplicitType ?? cloner.CloneType(original.Type);
   }
 
   [SyntaxConstructor]
