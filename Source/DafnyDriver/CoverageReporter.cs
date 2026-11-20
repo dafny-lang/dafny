@@ -96,7 +96,8 @@ public class CoverageReporter {
           continue;
         }
         var suffix = indexFileMatch.Groups[1].Value;
-        var index = await new StreamReader(pathToIndexFile).ReadToEndAsync();
+        using var indexReader = new StreamReader(pathToIndexFile);
+        var index = await indexReader.ReadToEndAsync();
         var name = TitleRegexInverse.Match(index)?.Groups?[1]?.Value ?? "";
         var units = UnitsRegexInverse.Match(index)?.Groups?[1]?.Value ?? "";
         reports.Add(ParseCoverageReport(reportDir, $"{name} ({Path.GetFileName(reportDir)})", units, suffix));
@@ -127,7 +128,8 @@ public class CoverageReporter {
   private static CoverageReport ParseCoverageReport(string reportDir, string name, string units, string suffix) {
     var report = new CoverageReport(name: name, units: units, suffix: suffix, null);
     foreach (string fileName in Directory.EnumerateFiles(reportDir, $"*{suffix}.html", SearchOption.AllDirectories)) {
-      var source = new StreamReader(fileName).ReadToEnd();
+      using var sourceReader = new StreamReader(fileName);
+      var source = sourceReader.ReadToEnd();
       var uriMatch = UriRegexInversed.Match(source);
       if (!uriMatch.Success) {
         continue;
@@ -282,7 +284,8 @@ public class CoverageReporter {
       .Select(label => report.AllFiles().Select(sourceFile =>
         report.CoverageSpansForFile(sourceFile).Count(span => span.Label == label)).Sum()).OfType<object>());
 
-    var templateText = new StreamReader(templateStream).ReadToEnd();
+    using var templateReader = new StreamReader(templateStream);
+    var templateText = templateReader.ReadToEnd();
     templateText = LinksToOtherReportsRegex.Replace(templateText, linksToOtherReports);
     templateText = FileNameRegex.Replace(templateText, report.Name);
     templateText = TableHeaderRegex.Replace(templateText, MakeIndexFileTableRow(header));
@@ -325,14 +328,15 @@ public class CoverageReporter {
       return;
     }
     foreach (var styleFile in styleFiles) {
-      var styleFileStream = assembly.GetManifestResourceStream(styleFile);
+      using var styleFileStream = assembly.GetManifestResourceStream(styleFile);
       if (styleFileStream == null) {
         reporter.Warning(MessageSource.Documentation, ErrorRegistry.NoneId, Token.NoToken,
           $"Embedded coverage report style file {styleFile} not found.");
         continue;
       }
+      using var styleFileReader = new StreamReader(styleFileStream);
       File.WriteAllText(Path.Combine(resourceDirectory, styleFile[folderName.Length..]),
-        new StreamReader(styleFileStream).ReadToEnd());
+        styleFileReader.ReadToEnd());
     }
   }
 
@@ -396,7 +400,8 @@ public class CoverageReporter {
         "Embedded HTML template for coverage report not found. Returning raw HTML.");
       return labeledCode;
     }
-    var templateText = await new StreamReader(templateStream).ReadToEndAsync();
+    using var templateReader = new StreamReader(templateStream);
+    var templateText = await templateReader.ReadToEndAsync();
     templateText = PathToRootRegex.Replace(templateText, baseDirectory);
     templateText = LinksToOtherReportsRegex.Replace(templateText, linksToOtherReports);
     templateText = IndexLinkRegex.Replace(templateText, Path.GetFileName(GetPath(report, Path.Combine(baseDirectory, $"index{report.Suffix}.html"))));
