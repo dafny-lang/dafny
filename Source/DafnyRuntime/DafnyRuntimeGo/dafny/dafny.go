@@ -39,6 +39,14 @@ func UnicodeFromMainArguments(args []string) Sequence {
 
 // An EqualsGeneric can be compared to any other object.  This method should
 // *only* return true when the other value is of the same type.
+//
+// An extern Go type reached by Dafny's == or by a built-in collection must
+// implement this interface. Dafny cannot supply it: Go does not allow methods to
+// be declared on a type from another package. A reference type (an extern class
+// or trait) must implement it as identity, since that is the equality the
+// verifier assumes; see MutableMap, AtomicBox and Lock in the Std_Concurrent
+// externs for the conventional implementation. Without it, AreEqual falls back
+// to refl.DeepEqual, which follows the pointer and compares structurally.
 type EqualsGeneric interface {
 	EqualsGeneric(other interface{}) bool
 }
