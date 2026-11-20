@@ -133,9 +133,10 @@ namespace Microsoft.Dafny {
           // function QQ():int { 3 }
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
+            
             var etran = new ExpressionTranslator(this, Predef, NewOneHeapExpr(f.Origin), null);
             if (!IsOpaque(cf, options)) {
-              var definitionAxiom = ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs));
+              var definitionAxiom = ff.CreateDefinitionAxiom(CondApplyBox(ff.tok, etran.TrExpr(cf.Rhs), cf.Rhs.Type, cf.Type));
               definitionAxiom.CanHide = true;
               sink.AddTopLevelDeclaration(definitionAxiom);
             }

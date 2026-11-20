@@ -120,7 +120,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     latestIdeState = initialIdeState;
 
     observer = createIdeStateObserver(initialIdeState);
-    Compilation = this.createCompilation(GetBoogie(), compilationInput);
+    Compilation = this.createCompilation(GetBoogie(), new VoidPerformanceLogger(), compilationInput);
 
     observerSubscription = Disposable.Empty;
   }
@@ -142,7 +142,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     latestIdeState = latestIdeState.Migrate(options, migrator, version, false);
 
     Compilation.Dispose();
-    Compilation = createCompilation(GetBoogie(), input);
+    Compilation = createCompilation(GetBoogie(), new VoidPerformanceLogger(), input);
     var migratedUpdates = GetStates(Compilation);
     states = new ReplaySubject<IdeState>(1);
     var statesSubscription = observerSubscription =
