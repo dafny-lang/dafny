@@ -21,8 +21,10 @@ public class LibraryBackend : ExecutableBackend {
   /// such as empty constructors with ensures clauses, generated from iterators
   public override bool IsStable => false;
 
+  public const string Id = "lib";
+
   public override string TargetExtension => "doo";
-  public override string TargetId => "lib";
+  public override string TargetId => Id;
 
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-lib";
