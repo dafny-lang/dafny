@@ -22,6 +22,11 @@ let _dafny = (function() {
       return a.isEqualTo(b);
     } else if (a._tname !== undefined || (Array.isArray(a) && a.constructor.name == "Array")) {
       return a === b;  // pointer equality
+    } else if (typeof a.equals !== "function") {
+      // An extern reference without an equality method: Dafny gives reference
+      // types identity equality. Defining an equals method is the opt-in for
+      // extern value types.
+      return a === b;
     } else {
       return a.equals(b);  // value-type equality
     }

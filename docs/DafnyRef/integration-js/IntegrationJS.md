@@ -34,3 +34,16 @@ The combined build-and-run command is `dafny run --target:js A.dfy`.
 ## Combining Dafny and Javascript source files
 
 The dafny tool  is not yet able to automatically combine Dafny and Javascript source files.
+
+## Equality of extern types
+
+A Dafny `class` or `trait` has object identity, and the verifier assumes that
+`==` and the built-in collections compare such values by identity. An extern
+JavaScript object is compared by identity unless it defines an `equals` method,
+which is how an extern value type opts in to structural equality; overriding it
+to give a structural equality lets a compiled program contradict what the
+verifier proved. A type whose equality should be structural is better modelled
+as a Dafny `datatype`, or, when it must be backed by JavaScript code, as an
+opaque value type `type {:extern} T(==)`, whose equality the verifier leaves
+uninterpreted and whose JavaScript `equals` is then used at run time without
+contradicting any verified fact.
