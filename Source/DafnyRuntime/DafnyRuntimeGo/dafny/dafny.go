@@ -3371,11 +3371,11 @@ func ModInt(x int, y int) int {
 	if x >= 0 {
 		return x % y
 	} else {
-		z := (-x) % y
+		z := x % y
 		if z == 0 {
 			return 0
 		} else {
-			return y - z
+			return y + z
 		}
 	}
 }
@@ -3388,11 +3388,11 @@ func ModInt8(x int8, y int8) int8 {
 	if x >= 0 {
 		return x % y
 	} else {
-		z := (-x) % y
+		z := x % y
 		if z == 0 {
 			return 0
 		} else {
-			return y - z
+			return y + z
 		}
 	}
 }
@@ -3405,11 +3405,11 @@ func ModInt16(x int16, y int16) int16 {
 	if x >= 0 {
 		return x % y
 	} else {
-		z := (-x) % y
+		z := x % y
 		if z == 0 {
 			return 0
 		} else {
-			return y - z
+			return y + z
 		}
 	}
 }
@@ -3422,11 +3422,11 @@ func ModInt32(x int32, y int32) int32 {
 	if x >= 0 {
 		return x % y
 	} else {
-		z := (-x) % y
+		z := x % y
 		if z == 0 {
 			return 0
 		} else {
-			return y - z
+			return y + z
 		}
 	}
 }
@@ -3439,11 +3439,11 @@ func ModInt64(x int64, y int64) int64 {
 	if x >= 0 {
 		return x % y
 	} else {
-		z := (-x) % y
+		z := x % y
 		if z == 0 {
 			return 0
 		} else {
-			return y - z
+			return y + z
 		}
 	}
 }
