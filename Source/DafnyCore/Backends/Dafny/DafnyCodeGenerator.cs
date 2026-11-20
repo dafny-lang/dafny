@@ -839,7 +839,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    internal override string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member = null) {
+    public override string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member = null) {
       return "PLACEBO_TYPE";
     }
 
@@ -890,7 +890,7 @@ namespace Microsoft.Dafny.Compilers {
       return fullCompileName;
     }
 
-    internal override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl member) {
+    public override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl member) {
       ExprContainer actualBuilder;
       if (wr is BuilderSyntaxTree<ExprContainer> st) {
         actualBuilder = st.Builder;
