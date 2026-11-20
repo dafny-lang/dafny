@@ -14,6 +14,10 @@ namespace Microsoft.Dafny.Triggers {
   internal class QuantifierCollector : TopDownVisitor<OldExpr/*?*/> {
     readonly ErrorReporter reporter;
     private readonly HashSet<Expression> quantifiers = [];
+    // The trigger generator selects the triggers of a quantifier whose attributes allow splitting part by part, except
+    // for a binding guard of an if statement or expression, an existential made for a :|, and one in a prefix declaration
+    private readonly HashSet<Expression> unsplit = [];
+    internal bool InPrefixDeclaration { get; set; }
     internal readonly Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext = new Dictionary<Expression, HashSet<OldExpr>>();
     internal readonly List<ComprehensionTriggerGenerator> quantifierCollections = [];
 
@@ -30,18 +34,16 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    public void AddComprehension(ComprehensionExpr comprehensionExpr, [CanBeNull] List<Expression> splitQuantifier) {
+    public void AddComprehension(ComprehensionExpr comprehensionExpr, [CanBeNull] List<QuantifierExpr> parts) {
       quantifiers.Add(comprehensionExpr);
-      if (splitQuantifier != null) {
-        var collection = splitQuantifier.OfType<ComprehensionExpr>();
-        quantifierCollections.Add(new ComprehensionTriggerGenerator(comprehensionExpr, collection, reporter));
-        quantifiers.UnionWith(splitQuantifier);
-      } else {
-        quantifierCollections.Add(new ComprehensionTriggerGenerator(comprehensionExpr, Enumerable.Repeat(comprehensionExpr, 1), reporter));
-      }
+      quantifierCollections.Add(new ComprehensionTriggerGenerator(comprehensionExpr,
+        parts ?? Enumerable.Repeat(comprehensionExpr, 1), reporter));
     }
 
     protected override bool VisitOneExpr(Expression expr, ref OldExpr/*?*/ enclosingOldContext) {
+      if (expr is ITEExpr { IsBindingGuard: true } iteExpr) {
+        unsplit.Add(iteExpr.Test);
+      }
       if (expr is LetExpr { Exact: false } letExpr) {
         // create a corresponding exists quantifier
         Contract.Assert(letExpr.RHSs.Count == 1); // let-such-that expressions have exactly 1 RHS
@@ -55,15 +57,19 @@ namespace Microsoft.Dafny.Triggers {
         ActionsOnSelectedTriggers.Add(() => {
           letExpr.Attributes = existsExpr.Attributes;
         });
+        unsplit.Add(existsExpr);
         expr = existsExpr;
       }
 
-      // only consider quantifiers that are not empty (Bound.Vars.Count > 0)
-      if (expr is ComprehensionExpr e && e.BoundVars.Count > 0 && !quantifiers.Contains(e)) {
+      // only consider quantifiers that are not empty (Bound.Vars.Count > 0), and none whose parts another module
+      // selected triggers for, as in a copy that {:autoReq} or a forall statement makes
+      if (expr is ComprehensionExpr e && e.BoundVars.Count > 0 && !quantifiers.Contains(e) &&
+          !(e is QuantifierExpr selected && QuantifierSplitter.HasParts(selected))) {
         if (e is SetComprehension or MapComprehension) {
           AddComprehension(e, null);
         } else if (e is QuantifierExpr quantifier) {
-          AddComprehension(quantifier, quantifier.SplitQuantifier);
+          var split = !InPrefixDeclaration && !unsplit.Contains(quantifier) && QuantifierSplitter.AllowsSplitting(quantifier);
+          AddComprehension(quantifier, split ? QuantifierSplitter.Conjuncts(quantifier) : null);
         }
       }
 
@@ -84,6 +90,9 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     protected override bool VisitOneStmt(Statement stmt, ref OldExpr/*?*/ st) {
+      if (stmt is IfStmt { IsBindingGuard: true } ifStmt) {
+        unsplit.Add(ifStmt.Guard);
+      }
       if (stmt is ForallStmt { EffectiveEnsuresClauses: { } effectiveEnsuresClauses }) {
         foreach (var expr in effectiveEnsuresClauses) {
           VisitOneExpr(expr, ref st);
@@ -116,6 +125,7 @@ namespace Microsoft.Dafny.Triggers {
           assignSuchThatStmt.Attributes = updatedAttributes;
         });
 
+        unsplit.Add(existsExpr);
         VisitOneExpr(existsExpr, ref st);
       }
 
