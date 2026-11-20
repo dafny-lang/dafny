@@ -97,7 +97,7 @@ public static class BoogieOptionBag {
 
 
   static BoogieOptionBag() {
-    Cores.SetDefaultValue((uint)((Environment.ProcessorCount + 1) / 2));
+    Cores.SetDefaultValue("50%");
 
     DafnyOptions.RegisterLegacyBinding(BoogieArguments, (o, boogieOptions) => {
       var splitOptions = boogieOptions.SelectMany(SplitArguments).ToArray();
