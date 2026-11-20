@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
     public static void RaiseTestLoggerEvents(DafnyOptions options, ProofDependencyManager depManager) {
       var loggerConfigs = options.Get(CommonOptionBag.VerificationLogFormat);
 
-      var events = new LocalTestLoggerEvents();
+      using var events = new LocalTestLoggerEvents();
       var verificationResults = ((DafnyConsolePrinter)options.Printer).VerificationResults.ToList();
       List<IDisposable> disposables = new();
       foreach (var loggerConfig in loggerConfigs) {
