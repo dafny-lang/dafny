@@ -1,0 +1,1 @@
+No longer leave the coverage tallies file behind in the temp directory on every `dafny run --coverage-report`
