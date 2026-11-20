@@ -40,7 +40,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.NewObject,
       Feature.BitvectorRotateFunctions,
       Feature.NonSequentializableForallStatements,
-      Feature.FunctionValues,
       Feature.ArrayLength,
       Feature.Ordinals,
       Feature.MapItems,
@@ -64,6 +63,10 @@ namespace Microsoft.Dafny.Compilers {
 
     private List<DatatypeDecl> datatypeDecls = [];
     private List<string> classDefaults = [];
+
+    // An instance const with an initializer is a getter, computed on each use as in the other backends, so it
+    // runs on an object that a shared_ptr owns and whose constructor has assigned the consts it reads.
+    private static bool IsGetter(MemberDecl member) => member is ConstantField { Rhs: not null, IsStatic: false };
 
     /*
      * Unlike other Dafny and Dafny's other backends, C++ cares about
@@ -253,7 +256,7 @@ namespace Microsoft.Dafny.Compilers {
         classDefWriter.WriteLine(DeclareTemplate(typeParameters));
       }
 
-      var methodDeclWriter = classDefWriter.NewBlock(string.Format("class {0}", className), ";");
+      var methodDeclWriter = classDefWriter.NewBlock(string.Format("class {0} : public std::enable_shared_from_this<{0}{1}>", className, InstantiateTemplate(typeParameters)), ";");
       var methodDefWriter = wr;
 
       classDeclWriter.WriteLine("class {0};", className);
@@ -281,6 +284,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override bool SupportsProperties { get => false; }
+
+    // The base declares a backing field for a const that the constructor assigns; without a prefix, that field is
+    // the const itself.
+    protected override string InternalFieldPrefix => "";
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
       TraitDecl trait, List<Type> superClasses /*?*/, IOrigin tok, ConcreteSyntaxTree wr) {
@@ -388,7 +395,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         // Overload the comparison operator
-        var wrCompOp = ws.NewNamedBlock("friend bool operator==(const {0} &left, const {0} &right)", DtT_protected);
+        var wrCompOp = ws.NewNamedBlock("friend bool operator==([[maybe_unused]] const {0} &left, [[maybe_unused]] const {0} &right)", DtT_protected);
         wrCompOp.Write("\treturn true");
         foreach (var arg in argNames) {
           wrCompOp.WriteLine("\t\t&& left.{0} == right.{0}", arg);
@@ -404,7 +411,7 @@ namespace Microsoft.Dafny.Compilers {
         hashWr.WriteLine("template <{0}>", TypeParameters(dt.TypeArgs));
         var fullName = dt.EnclosingModuleDefinition.GetCompileName(Options) + "::" + DtT_protected + InstantiateTemplate(dt.TypeArgs);
         var hwr = hashWr.NewBlock(string.Format("struct std::hash<{0}>", fullName), ";");
-        var owr = hwr.NewBlock(string.Format("std::size_t operator()(const {0}& x) const", fullName));
+        var owr = hwr.NewBlock(string.Format("std::size_t operator()([[maybe_unused]] const {0}& x) const", fullName));
         owr.WriteLine("size_t seed = 0;");
         foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
@@ -432,9 +439,8 @@ namespace Microsoft.Dafny.Compilers {
           }
 
           // Overload the comparison operator
-          wstruct.WriteLine("friend bool operator==(const {0} &left, const {0} &right) {{ ", structName);
+          wstruct.WriteLine("friend bool operator==([[maybe_unused]] const {0} &left, [[maybe_unused]] const {0} &right) {{ ", structName);
 
-          var preReturn = wstruct.Fork();
           wstruct.Write("\treturn true ");
           i = 0;
           foreach (Formal arg in ctor.Formals) {
@@ -448,10 +454,6 @@ namespace Microsoft.Dafny.Compilers {
             }
           }
 
-          if (i == 0) { // Avoid a warning from the C++ compiler
-            preReturn.WriteLine("(void)left; (void) right;");
-          }
-
           wstruct.WriteLine(";\n}");
 
           // Overload the not-comparison operator
@@ -461,9 +463,8 @@ namespace Microsoft.Dafny.Compilers {
           hashWr.WriteLine("template <{0}>", TypeParameters(dt.TypeArgs));
           var fullName = dt.EnclosingModuleDefinition.GetCompileName(Options) + "::" + structName + InstantiateTemplate(dt.TypeArgs);
           var hwr = hashWr.NewBlock(string.Format("struct std::hash<{0}>", fullName), ";");
-          var owr = hwr.NewBlock(string.Format("std::size_t operator()(const {0}& x) const", fullName));
+          var owr = hwr.NewBlock(string.Format("std::size_t operator()([[maybe_unused]] const {0}& x) const", fullName));
           owr.WriteLine("size_t seed = 0;");
-          int argCount = 0;
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
@@ -472,11 +473,7 @@ namespace Microsoft.Dafny.Compilers {
               } else {
                 owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.Origin), arg.CompileName);
               }
-              argCount++;
             }
-          }
-          if (argCount == 0) {
-            owr.WriteLine("(void)x;");
           }
           owr.WriteLine("return seed;");
         }
@@ -564,7 +561,7 @@ namespace Microsoft.Dafny.Compilers {
                   returnType = String.Format("std::shared_ptr<{0}>", returnType);
                 }
 
-                var wDtor = ws.NewNamedBlock("{0} dtor_{1}()", returnType,
+                var wDtor = ws.NewNamedBlock("{0} dtor_{1}() const", returnType,
                   arg.CompileName);
                 if (dt.IsRecordType) {
                   wDtor.WriteLine("return this.{0};", IdName(arg));
@@ -788,13 +785,13 @@ namespace Microsoft.Dafny.Compilers {
           MethodDeclWriter, MethodWriter, lookasideBody);
       }
       public ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IOrigin tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
-        return CodeGenerator.CreateGetter(name, enclosingDecl, resultType, tok, isStatic, isConst, createBody, MethodDeclWriter, MethodWriter);
+        return CodeGenerator.CreateGetter(name, enclosingDecl, resultType, tok, isStatic, isConst, createBody, member, MethodDeclWriter, MethodWriter);
       }
       public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, IOrigin tok, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
         return CodeGenerator.CreateGetterSetter(name, resultType, tok, createBody, out setterWriter, MethodWriter);
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IOrigin tok, string rhs, Field field) {
-        CodeGenerator.DeclareField(ClassName, enclosingDecl.TypeArgs, name, isStatic, isConst, type, tok, rhs, FieldWriter, Finisher);
+        CodeGenerator.DeclareField(ClassName, enclosingDecl.TypeArgs, CodeGenerator.IdProtect(name), isStatic, isConst, type, tok, rhs, FieldWriter, Finisher);
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         throw new Cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
@@ -912,7 +909,16 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(tok, Feature.RuntimeTypeDescriptors, string.Format("RuntimeTypeDescriptor {0} not yet supported", type));
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl cls, Type resultType, IOrigin tok, bool isStatic, bool isConst, bool createBody, ConcreteSyntaxTree wdr, ConcreteSyntaxTree wr) {
+    protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl cls, Type resultType, IOrigin tok, bool isStatic, bool isConst, bool createBody, MemberDecl member, ConcreteSyntaxTree wdr, ConcreteSyntaxTree wr) {
+      if (IsGetter(member)) {
+        return createBody ? wdr.NewNamedBlock("{0} {1}()", TypeName(resultType, wr, tok), name) : null;
+      }
+      if (member is ConstantField { IsStatic: false }) {
+        // A const that the constructor assigns is its own backing field (see InternalFieldPrefix), so the getter,
+        // which would read that field, is dropped.
+        return createBody ? new ConcreteSyntaxTree() : null;
+      }
+
       // Compiler insists on using Getter for constants, but we just use the raw variable name to hold the value,
       // because o/w Compiler tries to use the Getter function as an Lvalue in assignments
       // Unfortunately, Compiler doesn't tell us what the initial value is, so we hack around it
@@ -997,6 +1003,8 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           throw new UnsupportedFeatureException(tok, Feature.MultiDimensionalArrays);
         }
+      } else if (xType is ArrowType at) {
+        return ArrowTypeName(at, wr, tok);
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
         var s = FullTypeName(udt, member);
@@ -1106,9 +1114,11 @@ namespace Microsoft.Dafny.Compilers {
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
             return "nullptr";
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-            // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
-            return string.Format("function () {{ return {0}; }}", rangeDefaultValue);
+            var rangeType = udt.TypeArgs.Last();
+            var rangeDefaultValue = TypeInitializationValue(rangeType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+            // Unnamed parameters, to avoid -Wunused-parameter.
+            var parameters = udt.TypeArgs.SkipLast(1).Comma(ta => TypeName(ta, wr, tok));
+            return $"{TypeName(udt, wr, tok)}([]({parameters}) -> {TypeName(rangeType, wr, tok)} {{ return {rangeDefaultValue}; }})";
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
             // non-null array type; we know how to initialize them
             var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
@@ -1477,10 +1487,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitNewArray(Type elementType, IOrigin tok, List<string> dimensions,
         bool mustInitialize, [CanBeNull] string exampleElement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var initValue = mustInitialize ? DefaultValue(elementType, wr, tok) : null;
-      // TODO: Handle initValue
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
-        wr.Write($"DafnyArray<{TypeName(elementType, wr, tok)}>::New({dimensions[0]})");
+        var init = initValue == null ? "" : $", {initValue}";
+        wr.Write($"DafnyArray<{TypeName(elementType, wr, tok)}>::New({dimensions[0]}{init})");
       } else {
         throw new UnsupportedFeatureException(tok, Feature.MultiDimensionalArrays);
       }
@@ -1689,11 +1699,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private string ArrowTypeName(ArrowType at, ConcreteSyntaxTree wr, IOrigin tok) {
+      return $"DafnyFunction<{TypeName(at.Result, wr, tok)}({at.Args.Comma(a => TypeName(a, wr, tok))})>";
+    }
+
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
       Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
-      if (udt is ArrowType) {
-        throw new UnsupportedFeatureException(udt.Origin, Feature.FunctionValues, string.Format("UserDefinedTypeName {0}", udt.Name));
-        //return ArrowType.Arrow_FullCompileName;
+      if (udt is ArrowType at) {
+        return ArrowTypeName(at, null, udt.Origin);
       }
       var cl = udt.ResolvedClass;
       if (cl is TypeParameter) {
@@ -1859,12 +1872,22 @@ namespace Microsoft.Dafny.Compilers {
           // this member selection is handled by some kind of enclosing function call, so nothing to do here
           return SimpleLvalue(obj);
         }
-      } else if (member is Function) {
-        return StringLvalue(String.Format("{0}::{1}::{2}",
-          IdProtect(member.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options)),
-          IdName(member.EnclosingClass),
-          IdName(member)
-        ));
+      } else if (member is Function fn) {
+        string TypeArgsOf(object parent) => ActualTypeArgs(typeArgs.Where(ta => ta.Formal.Parent == parent).Select(ta => ta.Actual).ToList());
+        var fnTypeArgs = TypeArgsOf(fn);
+        if (fn.IsStatic) {
+          return StringLvalue($"{IdProtect(fn.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options))}::{IdName(fn.EnclosingClass)}{TypeArgsOf(fn.EnclosingClass)}::{IdName(fn)}{fnTypeArgs}");
+        }
+        // An instance function as a value: a lambda that keeps its object alive.
+        return SimpleLvalue(wr => {
+          var ins = fn.Ins.Where(f => !f.IsGhost).Select(f => (Type: f.Type.Subst(typeMap), Name: idGenerator.FreshId("_eta"))).ToList();
+          wr.Write("[_this = dafny_shared(");
+          obj(wr);
+          wr.Write($")]({ins.Comma(p => $"{TypeName(p.Type, wr, fn.Origin)} {p.Name}")}) -> {TypeName(fn.ResultType.Subst(typeMap), wr, fn.Origin)} ");
+          wr.Write($"{{ return _this->{IdName(fn)}{fnTypeArgs}({ins.Comma(p => p.Name)}); }}");
+        });
+      } else if (IsGetter(member)) {
+        return SuffixLvalue(obj, "->{0}()", IdName(member));
       } else {
         return SuffixLvalue(obj, "->{0}", IdName(member));
       }
@@ -1997,12 +2020,25 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
       List<Type> boundTypes, Type resultType, IOrigin tok, bool inLetExprBody, ConcreteSyntaxTree wr,
       ref ConcreteSyntaxTree wStmts) {
-      wr.Write("(({0}) => ", Util.Comma(boundVars));
+      var parameters = boundVars.Comma((name, i) => $"{TypeName(boundTypes[i], wr, tok)} {name}");
+      wr.Write($"[=]({parameters}) -> {TypeName(resultType, wr, tok)} {{ return ");
       var w = wr.Fork();
-      wr.Write(")");
-      TrExprList(arguments, wr, inLetExprBody, wStmts);
+      wr.Write("; }");
+      var wArgs = wr.ForkInParens();
+      var wArgStmts = wStmts;
+      wArgs.Comma(arguments, (arg, _) => {
+        if (arg is ThisExpr) {
+          wArgs.Write("this->shared_from_this()");
+        } else {
+          EmitExpr(arg, inLetExprBody, wArgs, wArgStmts);
+        }
+      });
       return w;
     }
+
+    // `this` is a raw pointer, so a lambda that mentions it gets a shared_ptr instead (see EmitBetaRedex): the
+    // lambda can outlive every other shared_ptr to the object.
+    protected override bool TargetLambdaBindsReceiver => true;
 
     protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, ConcreteSyntaxTree wr) {
       wr.Write("is_{1}({0})", source, DatatypeSubStructName(ctor));
@@ -2035,13 +2071,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IOrigin tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
-      wr.Write("function (");
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
-      for (var i = 0; i < inNames.Count; i++) {
-        wr.Write("{0}{1}", i == 0 ? "" : ", ", inNames[i]);
-      }
-      var w = wr.NewExprBlock(")");
-      return w;
+      var parameters = inNames.Comma((name, i) => $"[[maybe_unused]] {TypeName(inTypes[i], wr, tok)} {name}");
+      return wr.NewBigExprBlock($"[=]({parameters}) -> {TypeName(resultType, wr, tok)} ");
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IOrigin bvTok, Type bodyType, IOrigin bodyTok,
@@ -2051,9 +2083,10 @@ namespace Microsoft.Dafny.Compilers {
       w.Write("return ");
       wrBody = w.Fork();
       w.WriteLine(";");
-      wr.Write("(");
+      // The bound value may be the raw `this` where an object reference is expected.
+      wr.Write(bvType.IsRefType ? "(dafny_shared(" : "(");
       wrRhs = wr.Fork();
-      wr.Write(")");
+      wr.Write(bvType.IsRefType ? "))" : ")");
     }
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, IOrigin resultTok, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
