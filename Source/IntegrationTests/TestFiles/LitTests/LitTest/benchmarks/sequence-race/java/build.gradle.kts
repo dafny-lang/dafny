@@ -19,12 +19,13 @@ plugins {
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
 }
 
 dependencies {
-    implementation("org.dafny:DafnyRuntime:4.2.0")
+    // The runtime under test, passed by SequenceRace.dfy so that no version is pinned here.
+    implementation(files(project.findProperty("dafnyRuntimeJar")
+        ?: error("pass -PdafnyRuntimeJar=<path to the DafnyRuntime.jar to benchmark>")))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
