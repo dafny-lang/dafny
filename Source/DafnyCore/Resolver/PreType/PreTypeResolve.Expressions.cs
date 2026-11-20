@@ -2538,6 +2538,8 @@ namespace Microsoft.Dafny {
             ReportError(pat.Origin, "pattern for constructor {0} has wrong number of formals (found {1}, expected {2})", pat.Id, pat.Arguments.Count, ctor.Formals.Count);
           }
         }
+        // ctor.Formals is read below; see ResolveDeclarationSignature.
+        ResolveDeclarationSignature(dtd);
         // build the type-parameter substitution map for this use of the datatype
         Contract.Assert(dtd.TypeArgs.Count == sourceTypeArguments.Count);  // follows from the type previously having been successfully resolved
         var subst = PreType.PreTypeSubstMap(dtd.TypeArgs, sourceTypeArguments);
@@ -2570,6 +2572,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(datatypeDecl != null);
       Contract.Requires(ty == null || (ty.Decl == datatypeDecl && ty.Arguments.Count == datatypeDecl.TypeArgs.Count));
 
+      // ctor.Formals is read below (via ResolveActualParameters); see ResolveDeclarationSignature.
+      ResolveDeclarationSignature(datatypeDecl);
       var ok = true;
       List<PreType> gt;
       if (ty == null) {

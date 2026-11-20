@@ -152,6 +152,8 @@ namespace Microsoft.Dafny {
         return;
       }
 
+      // ctor.Formals is read below; see ResolveDeclarationSignature.
+      ResolveDeclarationSignature(dtd);
       var subst = PreType.PreTypeSubstMap(dtd.TypeArgs, dpreType.Arguments);
       for (var i = 0; i < idPattern.Arguments.Count; i++) {
         var argumentPreType = ctor.Formals[i].PreType.Substitute(subst);
