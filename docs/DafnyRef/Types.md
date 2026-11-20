@@ -394,7 +394,10 @@ Both `fp32` and `fp64` types include IEEE 754 special values as static members:
 Additional constants include:
 - `MaxValue` - Largest finite positive value
 - `MinValue` - Most negative finite value
-- `Epsilon` - Smallest positive value such that `1.0 + Epsilon != 1.0`
+- `Epsilon` - The difference between `1.0` and the next larger representable value
+  (`2^-23` for `fp32`, `2^-52` for `fp64`). Note that this is *not* the smallest positive
+  value `e` with `1.0 + e != 1.0`: under round-to-nearest the smallest such value is just
+  above `Epsilon / 2`.
 - `MinNormal` - Smallest positive normal number
 - `MinSubnormal` - Smallest positive subnormal number
 - `Pi` - The mathematical constant π (pi)
@@ -436,14 +439,49 @@ Both `fp32` and `fp64` types support standard arithmetic operations following IE
 - Unary negation (`-`)
 - Comparisons (`<`, `<=`, `>`, `>=`)
 
-**Well-formedness checks**: All these arithmetic operations and comparisons require that operands are not NaN. Additionally, certain combinations of infinity values produce invalid operations:
+**Well-formedness checks**: the arithmetic operations — `+`, `-`, `*`, `/` and unary `-` —
+require that operands are not NaN. Additionally, certain combinations of infinity values
+produce invalid operations:
 
 - Addition: `∞ + (-∞)` is invalid
 - Subtraction: `∞ - ∞` is invalid
 - Multiplication: `∞ * 0` is invalid
 - Division: `0 / 0` and `∞ / ∞` are invalid
 
-These well-formedness checks are performed by Dafny. To help it, use the classification predicates (`.IsNaN`, `.IsInfinite`, `.IsZero`).
+These well-formedness checks are performed by Dafny. To help it, use the classification predicates
+(`.IsNaN`, `.IsInfinite`, `.IsZero`). They apply to the *operators* only; the `fp32.`/`fp64.` static
+methods are the IEEE operations and carry no obligations at all — see Section 5.2.3.6, which states
+the rule.
+
+The comparisons `<`, `<=`, `>` and `>=` carry **no** such check, and may be applied to any
+operands, NaN included. The reason for the difference is that arithmetic would produce a NaN
+the program did not ask for, whereas a comparison produces a `bool`.
+
+**Ordering**: `<` is a strict total order on the whole of `fp32`/`fp64`, and it agrees with
+`==`. Two things distinguish it from IEEE comparison.
+
+`-0.0 < 0.0`, which IEEE leaves unordered but `==` distinguishes. Ordering the two zeros is
+what makes trichotomy (`x < y || x == y || y < x`) and antisymmetry
+(`a <= b && b <= a ==> a == b`) hold; the direction is the one IEEE 754-2019 `totalOrder`
+specifies.
+
+NaN is above every number, including the infinities. This is what makes the order *total*
+rather than partial: every pair of values is ordered, `x <= y || y <= x` holds for all `x`
+and `y`, and `<` is well founded, so a floating-point value may be used as a `decreases`
+measure. Since the domain has exactly one NaN, `NaN < NaN` is false while `NaN <= NaN` is
+true, just as for any other value. `totalOrder` does not settle where NaN belongs, as it
+separates NaNs by sign and payload and Dafny does not; putting it at the top agrees with
+`java.lang.Double.compare`.
+
+Raw IEEE comparison — where `-0.0` and `0.0` are tied and every comparison involving NaN is
+false — remains available through the static methods described in Section 5.2.3.6, just as
+`fp32.Equal`/`fp64.Equal` provide IEEE equality while `==` is value identity.
+
+These properties are all true, but the solver does not discharge the general, quantified forms
+of totality, trichotomy and transitivity within the default resource limit — only the concrete
+and semi-concrete cases, along with antisymmetry and the closure properties. If you need one of
+the three as a lemma, verify with `--boogie /proverOpt:O:smt.case_split=0`, under which all of
+them go through in well under a second.
 
 <!-- %check-verify -->
 ```dafny
@@ -461,63 +499,94 @@ method SafeArithmetic(x: fp64, y: fp64) returns (result: fp64)
 {
   result := x + y;  // OK: preconditions established
 }
+
+method Comparison(x: fp64) returns (b: bool) {
+  b := x < 1.0;      // OK on any x: comparison has no precondition
+}
+
+method NaNIsTheTop(x: fp64)
+  requires !x.IsNaN
+{
+  assert x < fp64.NaN;
+  assert fp64.PositiveInfinity < fp64.NaN;
+  assert !(fp64.NaN < x);
+  assert !(fp64.NaN < fp64.NaN) && fp64.NaN <= fp64.NaN;
+}
 ```
 
 #### 5.2.3.5. Equality
 
-Both `fp32` and `fp64` types have equality semantics that differ from IEEE 754. Equality is defined based on the bit representation:
+Both `fp32` and `fp64` types have equality semantics that differ from IEEE 754. `==` is
+*value identity* on the floating-point domain: `NaN == NaN` is true, and `-0.0 == 0.0` is
+false.
 
-- In **compiled contexts** the `==` operator has **well-formedness conditions** that
-  require operands to not be NaN and, if they are zeros, to have the same sign.
-  Under these conditions, `==` behaves like IEEE 754 equality.
+Note that this is value identity, not comparison of bit patterns. The domain has exactly
+one NaN, so all NaN payloads and both NaN signs are the same value — `x.IsNaN && y.IsNaN`
+implies `x == y`. Only the two zeros are distinguished. Correspondingly, `x.IsNegative` and
+`x.IsPositive` are both false for a NaN, since a NaN has no sign.
 
-- In **ghost contexts** (specifications, assertions): The well-formedness conditions are
-  relaxed, and `==` performs bitwise comparison where NaN equals itself and positive/negative
-  zero are distinct.
+`==` means the same thing in compiled code as in specifications and has no side conditions
+in either, so a comparison can be moved freely between a specification and the code it
+specifies. Collections and datatypes with floating-point components inherit this notion of
+equality: `{0.0, -0.0}` has two elements and `{fp64.NaN} == {fp64.NaN}` holds, when
+executed as well as when reasoned about.
 
-- The static methods `fp32.Equal(a, b)` and `fp64.Equal(a, b)` provide IEEE 754 equality
-  semantics without well-formedness restrictions (NaN is not equal to anything including itself,
-  and ±0 are equal).
+For IEEE 754 equality, use the static methods `fp32.Equal(a, b)` and `fp64.Equal(a, b)`:
+there, NaN is equal to nothing, not even itself, and the two zeros are equal.
 
 <!-- %check-verify -->
 ```dafny
-method EqualityExample(x: fp64, y: fp64) {
+method EqualityExample(x: fp64) {
   var nan := fp64.NaN;
   var posZero: fp64 := 0.0;
   var negZero: fp64 := -0.0;
 
-  // In ghost context - no well-formedness restrictions
-  assert nan == nan;           // true (bitwise comparison)
-  assert posZero != negZero;   // true (different bit patterns)
+  assert nan == nan;           // true: there is exactly one NaN value
+  assert posZero != negZero;   // true: the two zeros are different values
 
-  // In compiled context - well-formedness restrictions verified statically
-  // var b1 := x == y;              // ERROR: verifier cannot prove x and y are not NaN
-  // var b2 := posZero == negZero;  // ERROR: verifier knows they have different signs
+  // The same comparisons are available in compiled code, on arbitrary values.
+  var isNaN := x == nan;       // true exactly when x is a NaN
+  assert isNaN == x.IsNaN;
+  var b := posZero == negZero;
+  assert !b;
 
-  // Valid use of == when preconditions can be verified
-  if !x.IsNaN {
-    // Can compare posZero with x since we know posZero is not NaN,
-    // and if x is also zero, we'd need to check signs match
-    if !x.IsZero || !x.IsNegative {
-      var equal := posZero == x;  // OK: not NaN, and no sign mismatch
-      print "0.0 == ", x, ": ", equal, "\n";
-    }
-  }
+  // Collections agree.
+  var zeros: set<fp64> := {posZero, negZero};
+  assert |zeros| == 2;
+  var nans: set<fp64> := {nan, nan};
+  assert |nans| == 1;
 
-  // Simpler: just use fp64.Equal when unsure about values
-  var maybeNaN := if !x.IsNaN && x.IsNegative then fp64.NaN else x;
-  // var bad := maybeNaN == x;  // ERROR: cannot prove maybeNaN is not NaN
-  var safe := fp64.Equal(maybeNaN, x);  // Always works, no preconditions
-
-  // fp64.Equal always uses IEEE 754 semantics
-  assert !fp64.Equal(nan, nan);        // NaN != NaN
-  assert fp64.Equal(posZero, negZero); // ±0 are equal
+  // fp64.Equal is IEEE 754 equality, which differs on exactly these values.
+  assert !fp64.Equal(nan, nan);        // NaN equals nothing
+  assert fp64.Equal(posZero, negZero); // the zeros are equal
 }
 ```
 
-#### 5.2.3.6. Unchecked Arithmetic and Comparison Methods
+#### 5.2.3.6. IEEE Arithmetic and Comparison Methods
 
-For operations that may involve NaN or invalid infinity combinations, both `fp32` and `fp64` provide unchecked static methods:
+There is one rule covering the whole of `fp32` and `fp64`, and it is worth stating before the lists
+below:
+
+> **The operators are Dafny's and carry well-formedness obligations; the `fp32.`/`fp64.` static
+> methods are the IEEE operations and carry none.** The sole exception is `ToInt`.
+
+So `x + y` requires you to prove that neither operand is NaN and that the combination of infinities
+is valid, while `fp64.Add(x, y)` requires nothing and may answer NaN. Likewise `<` is the total
+ordering of Section 5.2.3.4 and `fp64.Less` is IEEE comparison; `==` is value identity and
+`fp64.Equal` is IEEE equality; `r as fp64` checks that the real `r` is exactly representable while
+`fp64.FromReal(r)` rounds without complaint.
+
+`ToInt` is the exception because it is the only member with no IEEE result to fall back on:
+converting a NaN or an infinity to an integer is *unspecified* rather than NaN-valued, so it keeps a
+`IsFinite` precondition and has no unchecked counterpart.
+
+Dropping an obligation from a method costs less than it may appear, because the arithmetic operators
+check their own operands wherever a NaN came from. Given `var q := fp64.Div(0.0, 0.0);`, it is
+`q + 1.0` that fails to verify — the diagnostic moves to the point of use rather than disappearing —
+and a NaN that is only compared or printed needs no diagnostic, comparison being total.
+
+Both `fp32` and `fp64` provide static methods that follow IEEE 754 semantics exactly, including
+producing NaN for invalid operations and returning false for every comparison involving NaN:
 
 **Arithmetic methods:**
 - `fp32.Add(x, y)` / `fp64.Add(x, y)` - Addition without well-formedness checks
@@ -527,12 +596,18 @@ For operations that may involve NaN or invalid infinity combinations, both `fp32
 - `fp32.Neg(x)` / `fp64.Neg(x)` - Negation without well-formedness checks
 
 **Comparison methods:**
-- `fp32.Less(x, y)` / `fp64.Less(x, y)` - Less than without well-formedness checks
-- `fp32.LessOrEqual(x, y)` / `fp64.LessOrEqual(x, y)` - Less than or equal without well-formedness checks
-- `fp32.Greater(x, y)` / `fp64.Greater(x, y)` - Greater than without well-formedness checks
-- `fp32.GreaterOrEqual(x, y)` / `fp64.GreaterOrEqual(x, y)` - Greater than or equal without well-formedness checks
+- `fp32.Less(x, y)` / `fp64.Less(x, y)` - IEEE less than
+- `fp32.LessOrEqual(x, y)` / `fp64.LessOrEqual(x, y)` - IEEE less than or equal
+- `fp32.Greater(x, y)` / `fp64.Greater(x, y)` - IEEE greater than
+- `fp32.GreaterOrEqual(x, y)` / `fp64.GreaterOrEqual(x, y)` - IEEE greater than or equal
 
-These methods follow IEEE 754 semantics exactly, including producing NaN for invalid operations and returning false for all comparisons involving NaN.
+The two families differ from their operators in different ways, and it is worth keeping them
+apart. For **arithmetic**, the method computes what the operator computes; what it drops is the
+precondition, so it is the way to write an expression that may produce a NaN or take an invalid
+combination of infinities. For **comparison**, the operators have no precondition to drop, so
+what the method offers instead is a different *answer*: `fp64.Less` and its siblings leave
+`-0.0` and `0.0` tied and report false whenever either operand is NaN, whereas `<` orders the
+zeros and places NaN above every number.
 
 <!-- %check-verify -->
 ```dafny
@@ -543,7 +618,6 @@ method EdgeCaseTesting() {
   // These would fail with operators due to wellformedness checks:
   // var bad1 := nan + 1.0;      // ERROR: fp64 arithmetic requires that operands are not NaN
   // var bad2 := inf - inf;      // ERROR: fp64 subtraction has invalid operand combination
-  // var bad3 := nan < 1.0;      // ERROR: fp64 comparison requires that operands are not NaN
 
   // But work with unchecked static methods:
   var result1 := fp64.Add(nan, 1.0);
@@ -552,25 +626,53 @@ method EdgeCaseTesting() {
 
   assert result1.IsNaN;  // NaN propagates
   assert result2.IsNaN;  // ∞ - ∞ = NaN
-  assert !result3;       // NaN < anything = false
+  assert !result3;       // IEEE: NaN < anything = false
+
+  // Comparison needs no unchecked variant to accept a NaN -- the operator already does. What
+  // the methods offer is the IEEE ANSWER, which differs from the operator's.
+  assert !(nan < 1.0);       // operator: NaN is the maximum, so it is not below 1.0
+  assert 1.0 < nan;          // ... and 1.0 is below it
+  assert !fp64.Less(1.0, nan);  // IEEE: false in both directions
 }
 ```
 
-**Recommendation**: Use operators (`+`, `-`, `*`, `/`, `<`, etc.) by default for their safety guarantees. Only use these unchecked static methods when you specifically need to handle edge cases or rely on IEEE 754 behavior.
+**Recommendation**: Use the operators (`+`, `-`, `*`, `/`, `<`, etc.) by default. Reach for these
+static methods when you specifically need IEEE 754 behaviour — for arithmetic, to allow a NaN or
+an invalid combination of infinities; for comparison, to get IEEE's answer rather than Dafny's.
 
 #### 5.2.3.7. Mathematical Functions
 
-Both `fp32` and `fp64` types provide static methods for common mathematical operations. All functions
-require that operands are not NaN, and some have additional preconditions:
+Both `fp32` and `fp64` types provide static methods for common mathematical operations. Like the
+methods of the previous section these are the IEEE operations, so each is total and none has a
+precondition: where the operation has no numeric result it answers NaN.
 
-- `fp32.Abs(x)` / `fp64.Abs(x)` - Absolute value. **Requires**: `!x.IsNaN`.
-- `fp32.Sqrt(x)` / `fp64.Sqrt(x)` - Square root. **Requires**: `!x.IsNaN` and `x ≥ 0.0` (non-negative). Returns √x for finite x ≥ 0, returns +∞ for x = +∞.
-- `fp32.Min(x, y)` / `fp64.Min(x, y)` - Minimum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
-- `fp32.Max(x, y)` / `fp64.Max(x, y)` - Maximum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
-- `fp32.Floor(x)` / `fp64.Floor(x)` - Round down to nearest integer. **Requires**: `!x.IsNaN`.
-- `fp32.Ceiling(x)` / `fp64.Ceiling(x)` - Round up to nearest integer. **Requires**: `!x.IsNaN`.
-- `fp32.Round(x)` / `fp64.Round(x)` - Round to nearest integer, ties to even. **Requires**: `!x.IsNaN`.
-- `fp32.ToInt(x)` / `fp64.ToInt(x)` - Convert to integer. **Requires**: `x.IsFinite`.
+- `fp32.Abs(x)` / `fp64.Abs(x)` - Absolute value.
+- `fp32.Sqrt(x)` / `fp64.Sqrt(x)` - Square root. Returns √x for finite x ≥ 0, `+∞` for `+∞`, `-0.0`
+  for `-0.0`, and NaN for a negative argument.
+- `fp32.Min(x, y)` / `fp64.Min(x, y)` - Minimum of two values.
+- `fp32.Max(x, y)` / `fp64.Max(x, y)` - Maximum of two values.
+
+  These two are IEEE `fp.min`/`fp.max`, and are *not* the minimum and maximum of the ordering
+  described in Section 5.2.3.4. They differ at both of the places where that ordering departs
+  from IEEE. A NaN operand is *discarded* rather than propagated, so `fp64.Max(fp64.NaN, x)` is
+  `x` even though `x < fp64.NaN`. And given two zeros of opposite sign, the result is left
+  unspecified, so nothing is provable about `fp64.Min(-0.0, 0.0)` at all. Away from NaN and the
+  zeros the two notions coincide.
+
+  If you want the ordering's minimum, write it: `if x < y then x else y`. That is total too,
+  since `<` is, and it gives the expected answers at the signed zeros and at NaN.
+
+  On the zeros, note that the freedom comes from SMT-LIB rather than from the current standard:
+  IEEE 754-2019 `minimum` does specify `minimum(-0.0, 0.0) == -0.0`, having replaced 2008's
+  underspecified `minNum` for this reason, and target-language implementations follow it. So a
+  compiled program will give a definite answer here even though Dafny promises none.
+- `fp32.Floor(x)` / `fp64.Floor(x)` - Round down to nearest integer.
+- `fp32.Ceiling(x)` / `fp64.Ceiling(x)` - Round up to nearest integer.
+- `fp32.Round(x)` / `fp64.Round(x)` - Round to nearest integer, ties to even.
+- `fp32.ToInt(x)` / `fp64.ToInt(x)` - Convert to integer. **Requires**: `x.IsFinite`. This is the
+  one method with a precondition, and the reason is that it is the only one with no IEEE result to
+  fall back on: converting a NaN or an infinity to an integer yields an *unspecified* integer rather
+  than a NaN, so without the check a program could conclude anything about the result.
 
 <!-- %check-verify -->
 ```dafny
@@ -673,6 +775,29 @@ method ConversionExamples() {
 
 To avoid this limitation, use direct literal conversions where possible.
 
+**Note**: The reverse direction, `fp32`/`fp64` `as int`, has the same limitation and it is
+more restrictive in practice. The conversion requires the value to be finite and to be
+exactly an integer, and the verifier can currently discharge that only for literals — it
+fails even when integrality is supplied as an explicit hypothesis:
+
+<!-- %check-verify -->
+```dafny
+method LiteralWorks() {
+  var x: fp64 := 42.0;
+  var i := x as int;              // OK
+}
+method HypothesisDoesNotHelp(x: fp64)
+  requires x.IsFinite
+  requires fp64.Floor(x) == x     // x is an integer, stated explicitly
+{
+  // var i := x as int;           // ERROR: cannot be proved, despite the hypothesis
+  var i := fp64.ToInt(x);         // OK: requires only finiteness
+}
+```
+
+For a value that is not a literal, use `fp32.ToInt`/`fp64.ToInt` instead: those require only
+finiteness, truncate toward zero, and do discharge for symbolic values. See Section 5.2.3.9.
+
 #### 5.2.3.9. Inexact Conversion Methods
 
 In addition to the exact conversions using the `as` operator, both `fp32` and `fp64` provide static methods
@@ -731,6 +856,39 @@ method ToIntWellformednessExamples() {
 | Special values | None | None | NaN, ±∞ |
 | Modulus operator | Yes | No | No |
 | Hardware mapping | BigInteger | BigRational | IEEE 754 binary64 |
+
+#### 5.2.3.11. Compilation
+
+C# is currently the only target that compiles `fp32` and `fp64`; the other backends refuse a
+program that mentions either type at all, including one that mentions it only in
+specifications. See the [supported features table](#sec-supported-features-by-target-language) for the
+current state.
+
+In C# the two types compile to the structs `Dafny.Fp32` and `Dafny.Fp64` rather than to
+`float` and `double`. The wrapper is what makes compiled behaviour match what was verified:
+C#'s `==` on `float` and `double` is IEEE `fp.eq`, which says `+0.0 == -0.0` and says
+`NaN != NaN`, and Dafny's `==` says the opposite of both. The struct's `Equals` and
+`GetHashCode` implement value identity, so hash-based and comparison-based collections keyed
+on a floating-point value behave the way the specification says they do.
+
+Consequences worth knowing when reading or writing the generated code:
+
+* `Dafny.Fp64` implements `IComparable<Dafny.Fp64>`, and `CompareTo` is Dafny's order rather
+  than an approximation of it: it is negative exactly where `<` holds and zero exactly where
+  `Equals` holds. `SortedSet` and `SortedDictionary` therefore work with the default comparer,
+  and agree with the hash-based collections. Note that this is not where .NET puts NaN:
+  `System.Double.CompareTo` places it *below* negative infinity and returns 0 for the two zeros,
+  so it is not consistent with an equality that tells the zeros apart.
+  `java.lang.Double.compare` has the same shape as Dafny's, NaN at the top included.
+* The underlying `double` is reachable as the `Value` property and through an explicit
+  conversion, so interoperating with an external library that takes a `double` is a cast
+  away. Going the other direction, wrap with `new Dafny.Fp64(d)`.
+* An `{:extern}` declaration whose Dafny signature mentions `fp64` must use `Dafny.Fp64` on
+  the C# side. This matters for more than the type check: an external function is trusted to
+  behave like its Dafny signature, and a Dafny function has one result per argument. A C#
+  implementation that returns a NaN whose payload varies between calls still satisfies that,
+  because all NaNs are one Dafny value, but one that returns `-0.0` where the specification
+  says it returns `0.0` does not.
 
 ### 5.2.4. Bit-vector Types ([grammar](#g-basic-type)) {#sec-bit-vector-types}
 

@@ -34,6 +34,7 @@ namespace Microsoft.Dafny.Compilers {
     private readonly Dictionary<string, string> Imports = new Dictionary<string, string>();
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.FloatingPointTypes,
       Feature.SubsetTypeTests,
       Feature.MethodSynthesis,
       Feature.RuntimeCoverageReport,

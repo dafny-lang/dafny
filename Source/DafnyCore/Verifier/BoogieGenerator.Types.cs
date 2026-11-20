@@ -942,8 +942,13 @@ public partial class BoogieGenerator {
       return Expression.CreateIntLiteral(tok, 0);
     } else if (typ.IsNumericBased(Type.NumericPersuasion.Real)) {
       return Expression.CreateRealLiteral(tok, BaseTypes.BigDec.ZERO);
-    } else if (typ.IsNumericBased(Type.NumericPersuasion.Float)) {
-      return new DecimalLiteralExpr(tok, BaseTypes.BigDec.ZERO) { Type = typ };
+    } else if (typ.FloatRepresentation is { } facts) {
+      // A synthesized fp literal must carry ResolvedFloatValue; the translator asserts on one that
+      // does not. Reached by witness-less subset types over fp and by assign-such-that.
+      return new DecimalLiteralExpr(tok, BaseTypes.BigDec.ZERO) {
+        Type = typ,
+        ResolvedFloatValue = BaseTypes.BigFloat.CreateZero(false, facts.SignificandBits, facts.ExponentBits)
+      };
     } else if (typ.IsBigOrdinalType) {
       return Expression.CreateNatLiteral(tok, 0, Type.BigOrdinal);
     } else if (typ.IsBitVectorType) {
@@ -1213,9 +1218,13 @@ public partial class BoogieGenerator {
         // fp32 to fp64: use SMT-LIB fp.to_fp operation
         r = FunctionCall(tok, "fp32_to_fp64", BplFp64Type, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
-        // fp32 to int: use SMT-LIB fp.to_sbv then convert to int
-        r = FunctionCall(tok, "fp32_to_sbv32_RTZ", BplBvType(32), r);
-        r = FunctionCall(tok, "int_from_bv32", Bpl.Type.Int, r);
+        // fp32 to int: read off the exact real value. This conversion asserts the source is finite
+        // and already integral, so no rounding belongs here -- unlike fp32.ToInt, which requires only
+        // finiteness and truncates toward zero. Not fp.to_sbv, which is unspecified for finite inputs
+        // outside the bitvector's range; a total int_from_bv wrapper around it would make
+        // out-of-range conversions provably fall inside [-2^31, 2^31).
+        r = FunctionCall(tok, "fp32_to_real", Bpl.Type.Real, r);
+        r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // fp32 to real: use SMT-LIB fp.to_real (only defined for finite values)
         var isFinite = FunctionCall(tok, "fp32_is_finite", Bpl.Type.Bool, r);
@@ -1234,9 +1243,9 @@ public partial class BoogieGenerator {
         // fp64 to fp32: use SMT-LIB fp.to_fp operation
         r = FunctionCall(tok, "fp64_to_fp32_RNE", BplFp32Type, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
-        // fp64 to int: use SMT-LIB fp.to_sbv then convert to int
-        r = FunctionCall(tok, "fp64_to_sbv64_RTZ", BplBvType(64), r);
-        r = FunctionCall(tok, "int_from_bv64", Bpl.Type.Int, r);
+        // As the fp32 case above: the exact real value, not fp.to_sbv.
+        r = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, r);
+        r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // fp64 to real: use SMT-LIB fp.to_real (only defined for finite values)
         var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, r);
@@ -1346,23 +1355,6 @@ public partial class BoogieGenerator {
         Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
       }
       return r;
-    } else if (fromType.IsFp64Type) {
-      if (toType.IsFp64Type) {
-        // do nothing
-      } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
-        // fp64 to int: use SMT-LIB fp.to_sbv then convert to int
-        r = FunctionCall(tok, "fp64_to_sbv64_RTZ", BplBvType(64), r);
-        r = FunctionCall(tok, "int_from_bv64", Bpl.Type.Int, r);
-      } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
-        // fp64 to real: use SMT-LIB fp.to_real (only defined for finite values)
-        var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, r);
-        var finiteConversion = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, r);
-        var zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
-        r = new NAryExpr(tok, new IfThenElse(tok), new List<Bpl.Expr> { isFinite, finiteConversion, zero });
-      } else {
-        Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
-      }
-      return r;
     } else if (fromType.IsRefType && toType.IsRefType) {
       return r;
     } else if (fromType.IsRefType) {
@@ -1433,7 +1425,7 @@ public partial class BoogieGenerator {
           rhs = FunctionCall(expr.Origin, "char#ToInt", Bpl.Type.Int, rhs);
         }
         // Remove Lit wrappers for fp32/fp64-related conversions to avoid Z3 issues
-        if (toType.IsFloatingPointType || fromType.IsFloatingPointType) {
+        if (toTypeFamily.IsFloatingPointType || fromTypeFamily.IsFloatingPointType) {
           rhs = RemoveLit(rhs);
         }
         builder.Add(Bpl.Cmd.SimpleAssign(tok, o, rhs));
@@ -1449,7 +1441,7 @@ public partial class BoogieGenerator {
       return;
     }
 
-    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsFp32Type && !toType.IsFp64Type) {
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real) && !toTypeFamily.IsFp32Type && !toTypeFamily.IsFp64Type) {
       // this operation is well-formed only if the real-based number represents an integer
       //   assert Real(Int(o)) == o;
       PutSourceIntoLocal();
@@ -1459,7 +1451,7 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, e, new IsInteger(expr, errorMsgPrefix), builder.Context));
     }
 
-    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsFp64Type) {
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toTypeFamily.IsFp64Type) {
       // real to fp64: check exact representability
       // TODO: This well-formedness check can cause verification timeouts due to a Z3 issue.
       // The problem occurs when Z3's auto_config is disabled and case_split=3 is set (Dafny's default options).
@@ -1474,7 +1466,7 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, isExact, new IsExactlyRepresentableAsFloat(expr, new Fp64Type(), errorMsgPrefix), builder.Context));
     }
 
-    if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toType.IsFp32Type) {
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toTypeFamily.IsFp32Type) {
       // int to fp32: check exact representability
       PutSourceIntoLocal();
       Bpl.Expr asReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, o);
@@ -1485,7 +1477,7 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, isExact, new IntToFloatExactnessCheck(expr, new Fp32Type(), errorMsgPrefix), builder.Context));
     }
 
-    if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toType.IsFp64Type) {
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toTypeFamily.IsFp64Type) {
       // int to fp64: check exact representability
       // TODO: This well-formedness check causes verification timeouts due to the same Z3 issue
       // as real-to-fp64 conversion. The interaction between integer-to-real conversion and
@@ -1502,14 +1494,14 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, isExact, new IntToFloatExactnessCheck(expr, new Fp64Type(), errorMsgPrefix), builder.Context));
     }
 
-    if (fromType.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+    if (fromTypeFamily.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
       // fp64 to real: require finite value
       PutSourceIntoLocal();
       var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, o);
       builder.Add(Assert(tok, isFinite, new ConversionFit("fp64 value", toType, expr, errorMsgPrefix), builder.Context));
     }
 
-    if (fromType.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+    if (fromTypeFamily.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
       // fp64 to int: require exact integer value
       PutSourceIntoLocal();
       // First convert to real, then check if it's an integer
@@ -1523,7 +1515,7 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, condition, new IsInteger(expr, errorMsgPrefix), builder.Context));
     }
 
-    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsFp32Type) {
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toTypeFamily.IsFp32Type) {
       // real to fp32: check exact representability
       PutSourceIntoLocal();
       Bpl.Expr asFp32 = FunctionCall(tok, "real_to_fp32_RNE", BplFp32Type, o);
@@ -1532,14 +1524,14 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, isExact, new IsExactlyRepresentableAsFloat(expr, new Fp32Type(), errorMsgPrefix), builder.Context));
     }
 
-    if (fromType.IsFp32Type && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+    if (fromTypeFamily.IsFp32Type && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
       // fp32 to real: require finite value
       PutSourceIntoLocal();
       var isFinite = FunctionCall(tok, "fp32_is_finite", Bpl.Type.Bool, o);
       builder.Add(Assert(tok, isFinite, new ConversionFit("fp32 value", toType, expr, errorMsgPrefix), builder.Context));
     }
 
-    if (fromType.IsFp32Type && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+    if (fromTypeFamily.IsFp32Type && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
       // fp32 to int: require exact integer value
       PutSourceIntoLocal();
       var asReal = FunctionCall(tok, "fp32_to_real", Bpl.Type.Real, o);
@@ -1551,7 +1543,7 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, condition, new IsInteger(expr, errorMsgPrefix), builder.Context));
     }
 
-    if (fromType.IsFp64Type && toType.IsFp32Type) {
+    if (fromTypeFamily.IsFp64Type && toTypeFamily.IsFp32Type) {
       // fp64 to fp32: check exact representability
       PutSourceIntoLocal();
       Bpl.Expr asFp32 = FunctionCall(tok, "fp64_to_fp32_RNE", BplFp32Type, o);
