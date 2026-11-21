@@ -199,10 +199,20 @@ jobs:
       run: |
         ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests
-    - uses: actions/upload-artifact@v7
-      if: always()
+    # Only test-coverage-analysis reads coverage, and only from ubuntu, so the other platforms
+    # do not upload it at all. This one stays strict: that job runs with fail_below_min, so a
+    # missing shard would resurface there as an unexplained coverage drop.
+    - name: Upload coverage
+      uses: actions/upload-artifact@v7
+      if: always() && matrix.os == 'ubuntu-24.04'
       with:
-        name: integration-test-results-${{ matrix.os }}-${{ matrix.shard }}
-        path: |
-          dafny/Source/*/TestResults/*.trx
-          dafny/Source/*/TestResults/*/coverage.cobertura.xml
+        name: integration-test-coverage-${{ matrix.os }}-${{ matrix.shard }}
+        path: dafny/Source/*/TestResults/*/coverage.cobertura.xml
+    # Nothing consumes these, so a flaked upload must not fail a job whose tests passed.
+    - name: Upload test diagnostics
+      uses: actions/upload-artifact@v7
+      if: always()
+      continue-on-error: true
+      with:
+        name: integration-test-diagnostics-${{ matrix.os }}-${{ matrix.shard }}
+        path: dafny/Source/*/TestResults/*.trx
