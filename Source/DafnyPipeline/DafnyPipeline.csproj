@@ -25,6 +25,12 @@
     <ProjectReference Include="..\DafnyCore\DafnyCore.csproj" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <DafnyRuntimeJar>$(BaseIntermediateOutputPath)DafnyRuntime.jar</DafnyRuntimeJar>
+    <DafnyRuntimeJavaArgFile>$(BaseIntermediateOutputPath)java-sources.txt</DafnyRuntimeJavaArgFile>
+    <DafnyRuntimeJavaClasses>$(BaseIntermediateOutputPath)java-classes</DafnyRuntimeJavaClasses>
+  </PropertyGroup>
+
   <!-- 
   Note that the CopyToOutputDirectory elements are important to ensure the runtime files
   appear in the zip file distribution created by package.py.
@@ -81,15 +87,12 @@
       <LogicalName>DafnyStandardLibraries.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\java\**\*.java">
+    <DafnyRuntimeJavaSource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\java\**\*.java;..\DafnyRuntime\DafnyRuntimeJava\src\main\dafny-generated\**\*.java" />
+    <EmbeddedResource Include="@(DafnyRuntimeJavaSource)">
       <LinkBase>DafnyRuntimeJava</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\dafny-generated\**\*.java">
-      <LinkBase>DafnyRuntimeJava</LinkBase>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime-4.11.1.jar">
+    <EmbeddedResource Include="$(DafnyRuntimeJar)">
       <LogicalName>DafnyRuntime.jar</LogicalName>
       <Link>DafnyRuntime.jar</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -127,5 +130,39 @@
     </EmbeddedResource>
     <EmbeddedResource Remove="..\DafnyRuntime\DafnyRuntimeRust\target\**"/>
   </ItemGroup>
+
+  <Target Name="WriteDafnyRuntimeJavaSourceList">
+    <!-- Rewritten only when the list changes, so deleting a source rebuilds the jar, which the Inputs timestamps alone cannot catch.
+         A javac argument file reads '\' as an escape, so spell the paths with '/'. -->
+    <WriteLinesToFile File="$(DafnyRuntimeJavaArgFile)" Lines="@(DafnyRuntimeJavaSource->'&quot;%(Identity)&quot;'->Replace('\', '/'))" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <Target Name="BuildDafnyRuntimeJar" BeforeTargets="PrepareResources" DependsOnTargets="WriteDafnyRuntimeJavaSourceList" Inputs="$(MSBuildProjectFile);$(DafnyRuntimeJavaArgFile);@(DafnyRuntimeJavaSource)" Outputs="$(DafnyRuntimeJar)">
+    <PropertyGroup>
+      <JavaBin Condition="'$(JAVA_HOME)' != ''">$(JAVA_HOME)/bin/</JavaBin>
+    </PropertyGroup>
+    <Exec Command="&quot;$(JavaBin)javac&quot; -version" ConsoleToMSBuild="true" IgnoreExitCode="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ExitCode" PropertyName="JavacExitCode" />
+      <Output TaskParameter="ConsoleOutput" PropertyName="JavacVersion" />
+    </Exec>
+    <Error Condition="'$(JavacExitCode)' != '0'" Text="Building Dafny's Java runtime needs a JDK 8 or later, but running $(JavaBin)javac failed. Set JAVA_HOME to a JDK, or put its bin directory on the PATH." />
+    <PropertyGroup>
+      <!-- javac 8 has no release flag; -source/-target is exact there, since it compiles against its own Java 8 library.
+           javac 21 and later warn that targeting 8 is obsolete, which -Xlint:-options below silences. -->
+      <JavaTarget Condition="$(JavacVersion.Contains('javac 1.'))">-source 8 -target 8</JavaTarget>
+      <JavaTarget Condition="!$(JavacVersion.Contains('javac 1.'))">--release 8</JavaTarget>
+    </PropertyGroup>
+    <Message Text="Compiling the Java runtime to $(DafnyRuntimeJar) ($(JavacVersion), $(JavaTarget))" Importance="high" />
+    <RemoveDir Directories="$(DafnyRuntimeJavaClasses)" />
+    <!-- javac 8 fails on a missing output directory, where javac 9 and later create it. -->
+    <MakeDir Directories="$(DafnyRuntimeJavaClasses)" />
+    <Exec Command="&quot;$(JavaBin)javac&quot; $(JavaTarget) -encoding UTF-8 -g -proc:none -Xlint:unchecked,-options -d &quot;$(DafnyRuntimeJavaClasses)&quot; @&quot;$(DafnyRuntimeJavaArgFile)&quot;" />
+    <Exec Command="&quot;$(JavaBin)jar&quot; cf &quot;$(DafnyRuntimeJar)&quot; -C &quot;$(DafnyRuntimeJavaClasses)&quot; ." />
+  </Target>
+
+  <Target Name="CleanDafnyRuntimeJar" AfterTargets="Clean">
+    <Delete Files="$(DafnyRuntimeJar);$(DafnyRuntimeJavaArgFile)" />
+    <RemoveDir Directories="$(DafnyRuntimeJavaClasses)" />
+  </Target>
 
 </Project>

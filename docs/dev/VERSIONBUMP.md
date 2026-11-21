@@ -36,4 +36,3 @@ perform the following:
   * Update `comp/separate-compilation/translation-records/InvalidFormat.dfy.expect` by updating the version number after `by Dafny ` 
 * In `Source/DafnyRuntime/DafnyRuntimeJava/build.gradle`, search for `version = ` and update the version number
 * In `Source/DafnyRuntime/DafnyRuntimePython/pyproject.toml`, search for `version = ` and update the version number
-* Update the Dafny runtime version number by searching for `DafnyRuntime-` and updating the version right afterwards, in the files `DafnyPipeline.csproj` and `DafnyRuntime.csproj`
