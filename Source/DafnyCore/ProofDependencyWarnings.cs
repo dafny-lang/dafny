@@ -29,12 +29,7 @@ public class ProofDependencyWarnings {
     manager = depManager;
     ProofDependencyWarnings.reporter = reporter;
     options = dafnyOptions;
-    var verificationResults = (dafnyOptions.Printer as DafnyConsolePrinter).VerificationResults.ToList();
-    var orderedResults =
-      verificationResults.OrderBy(vr =>
-        (vr.Implementation.Tok.filename, vr.Implementation.Tok.line, vr.Implementation.Tok.col));
-
-    foreach (var (implementation, result) in orderedResults) {
+    foreach (var (implementation, result) in (dafnyOptions.Printer as DafnyConsolePrinter).OrderedVerificationResults) {
       if (result.Outcome != VcOutcome.Correct) {
         continue;
       }
