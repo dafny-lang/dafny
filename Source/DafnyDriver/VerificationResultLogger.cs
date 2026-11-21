@@ -99,9 +99,12 @@ namespace Microsoft.Dafny {
     }
 
     public void Report(CanVerifyResult canVerifyResult) {
+      // Results arrive in completion order, so the grouping is ordered by name to keep a
+      // method's well-formedness and body scopes from swapping between runs.
       var scopeResults =
         canVerifyResult.Results
           .GroupBy(v => new VerificationScope(v.Task.ScopeId, v.Task.ScopeToken))
+          .OrderBy(g => g.Key.Name)
           .Select(g => new VerificationScopeResult(g.Key, g.ToList())).ToList();
       foreach (var scopeResult in scopeResults) {
         foreach (var formatLogger in formatLoggers) {
