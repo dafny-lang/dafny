@@ -1,7 +1,5 @@
-To build and copy the Dafny Java runtime JAR to Binaries
+Building Dafny compiles this runtime (see Source/DafnyPipeline/DafnyPipeline.csproj).
 
-$ gradle copyJarToBinaries
+To run its tests
 
-To run tests
-
-$ gradle test
+$ ./gradlew test
