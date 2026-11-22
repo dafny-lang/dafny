@@ -114,12 +114,16 @@ namespace Microsoft.Dafny {
     }
 
     public async Task Finish() {
-      events.RaiseTestRunComplete(new TestRunCompleteEventArgs(
-        new TestRunStatistics(),
-        false, false, null, null, new TimeSpan()
-      ));
-      foreach (var formatLogger in formatLoggers) {
-        await formatLogger.Flush();
+      try {
+        events.RaiseTestRunComplete(new TestRunCompleteEventArgs(
+          new TestRunStatistics(),
+          false, false, null, null, new TimeSpan()
+        ));
+        foreach (var formatLogger in formatLoggers) {
+          await formatLogger.Flush();
+        }
+      } finally {
+        events.Dispose();
       }
     }
 
