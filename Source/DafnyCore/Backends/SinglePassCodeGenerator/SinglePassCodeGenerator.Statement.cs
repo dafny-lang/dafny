@@ -34,6 +34,16 @@ namespace Microsoft.Dafny.Compilers {
       return stmts.FindIndex((stmt) => IsExtractStatement(stmt, expectedLeftName));
     }
 
+    /// <summary>
+    /// Inside the body of a let or match expression, EmitExpr copies the method's local variables
+    /// to temporaries (see the IdentifierExpr case), and the copies are emitted as statements before the
+    /// enclosing statement. For a loop guard, such statements must run before every evaluation of the guard,
+    /// not just once before the loop.
+    /// </summary>
+    private static bool GuardNeedsPreludeInsideLoop(Expression guard) {
+      return guard.DescendantsAndSelf.Any(e => e is LetExpr or MatchExpr or NestedMatchExpr);
+    }
+
     protected void TrStmt(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
@@ -337,6 +347,25 @@ namespace Microsoft.Dafny.Compilers {
               EmitExpr(Expression.CreateBoolLiteral(s.Body.Origin, true), false, guardWriter, wStmts);
               EmitBreak(null, wBody);
               Coverage.UnusedInstrumentationPoint(s.Body.Origin, "while body");
+            } else if (GuardNeedsPreludeInsideLoop(s.Guard)) {
+              // The statements needed to evaluate the guard must run before every evaluation of the guard,
+              // so they cannot go in front of the loop. Instead, emit:
+              //   while (true) {
+              //     <statements needed by the guard>
+              //     if (guard) { body } else { break; }
+              //   }
+              var w = CreateWhileLoop(out var whileGuardWriter, wr);
+              EmitExpr(Expression.CreateBoolLiteral(s.Body.Origin, true), false, whileGuardWriter, wStmts);
+              w = EmitContinueLabel(s.Labels, w);
+              copyInstrWriters.Push(w.Fork());
+              var guardStmts = w.Fork();
+              var thn = EmitIf(out var guardWriter, true, w);
+              EmitExpr(s.Guard, false, guardWriter, guardStmts);
+              copyInstrWriters.Pop();
+              Coverage.Instrument(s.Body.Origin, "while body", thn);
+              TrStmtList(s.Body.Body, thn);
+              var wElse = EmitBlock(w);
+              EmitBreak(null, wElse);
             } else {
               var guardWriter = EmitWhile(s.Body.Origin, s.Body.Body, s.Labels, wr);
               EmitExpr(s.Guard, false, guardWriter, wStmts);
@@ -349,12 +378,16 @@ namespace Microsoft.Dafny.Compilers {
               var w = CreateWhileLoop(out var whileGuardWriter, wr);
               EmitExpr(Expression.CreateBoolLiteral(loopStmt.Origin, true), false, whileGuardWriter, wStmts);
               w = EmitContinueLabel(loopStmt.Labels, w);
+              // The guards are evaluated on every iteration, so the statements they need go inside the loop.
+              copyInstrWriters.Push(w.Fork());
+              var guardStmts = w.Fork();
               foreach (var alternative in loopStmt.Alternatives) {
                 var thn = EmitIf(out var guardWriter, true, w);
-                EmitExpr(alternative.Guard, false, guardWriter, wStmts);
+                EmitExpr(alternative.Guard, false, guardWriter, guardStmts);
                 Coverage.Instrument(alternative.Origin, "while-case branch", thn);
                 TrStmtList(alternative.Body, thn);
               }
+              copyInstrWriters.Pop();
               var wElse = EmitBlock(w);
               {
                 EmitBreak(null, wElse);
