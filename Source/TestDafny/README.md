@@ -2,7 +2,7 @@
 
 This internal, testing-only utility is used to execute a single Dafny source file against each compile target option and assert that the output
 is the same as the corresponding `<test file>.expect` file. This is a very common testing approach implemented manually across the integration test suite with multiple
-lit commands. See [this test file](../../Test/metatests/ConsistentWhenSupported.dfy) for a comparison of the manual approach
+lit commands. See [this test file](../IntegrationTests/TestFiles/LitTests/LitTest/metatests/ConsistentWhenSupported.dfy) for a comparison of the manual approach
 compared to using this utility.
 
 Note the manual approach currently used in most test files has several downsides:
@@ -17,7 +17,7 @@ more easily optimize the implementation in the future.
 
 Since some Dafny features are not supported by all compile targets,
 the utility allows a compile target to report errors if and only if every error reports a known unsupported feature.
-See [the Feature enumeration here](../Dafny/Feature.cs) for more details.
+See [the Feature enumeration here](../DafnyCore/Feature.cs) for more details.
 
 This utility is also used to generate the [compiler feature support matrix](https://dafny.org/latest/DafnyRef/DafnyRef#sec-supported-features-by-target-language) in the reference manual. This may be moved in the future into
 a `dafny` CLI option.

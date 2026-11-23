@@ -4,7 +4,7 @@ This directory demonstrates `AutoExtern`, a Dafny tool that implements limited
 support for automatically generating trait hierarchies from C# classes.
 
 For a primer on C#/Dafny interop, see the [`Simple_compiler`
-tutorial](../Simple_compiler/) instead, which shows how to model C# types and
+tutorial](../../IntegrationTests/TestFiles/LitTests/LitTest/examples/Simple_compiler/) instead, which shows how to model C# types and
 functions and access them from Dafny.  This tutorial uses the automated bindings
 generator to save some modeling effort.
 

@@ -1,7 +1,7 @@
 # Dafny Integration Tests
 
-The tests in this directory are run using the [IntegrationTests](../Source/IntegrationTests) project,
-which uses the xUnit-based LIT test runner from the [XUnitExtensions](../Source/XUnitExtensions) package 
+The tests in this directory are run using the [IntegrationTests](../../../../IntegrationTests) project,
+which uses the xUnit-based LIT test runner from the [XUnitExtensions](../../../../XUnitExtensions) package 
 rather than the LLVM `lit` CLI.
 
 ## Executing Tests from the Command Line
@@ -98,7 +98,7 @@ immediately cancel it just to populate the tree for this purpose.
 ## Debugging Tests
 
 The xUnit test runner supports executing commands such as `%dafny` by directly invoking the main entry point
-of the corresponding C# package (i.e. [`DafnyDriver`](../Source/DafnyDriver)), which makes running the debugger against
+of the corresponding C# package (i.e. [`DafnyDriver`](../../../../DafnyDriver)), which makes running the debugger against
 a particular test much more convenient. By default this is disabled and the runner creates a separate dafny process
 just as LIT does, however. This is because the main CLI implementation currently has shared static state, which
 causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.

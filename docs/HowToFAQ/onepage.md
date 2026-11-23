@@ -1421,7 +1421,7 @@ is a final assertion batch. This attribute is usually used to break out if-alter
 `{:split_here}` creates an assertion batch of all assertions strictly before the attributed statement and another of the assertions at or after
 the attributed statement. This attribute is usually used to break up long stretches of straight-line code.
 
-Some examples that show how this works for multiple nested blocks are given in the reference manual, [here](../../DafnyRef/DafnyRef#sec-focus) and [here](../../DafnyRef/DafnyRef#sec-split_here).
+Some examples that show how this works for multiple nested blocks are given in the reference manual, [here](../DafnyRef/DafnyRef#sec-focus) and [here](../DafnyRef/DafnyRef#sec-split_here).
 
 # How does one declare a type to have a "default" initial value, say a type tagged with {:extern}?
 
@@ -2467,7 +2467,7 @@ Dafny also sets these non-default Boogie options:
 These all however are subject to change, especially as the version of Boogie used changes
 
 In addition, Dafny sends a variety of other command-line options to Boogie, depending on selections by the user and heuristics built-in to Dafny.
-Some guide to the available (Dafny) options that are passed through to Boogie are [in the reference manual](../../DafnyRef/DafnyRef#sec-controlling-boogie).
+Some guide to the available (Dafny) options that are passed through to Boogie are [in the reference manual](../DafnyRef/DafnyRef#sec-controlling-boogie).
 
 # Does Dafny verify methods in parallel?
 
@@ -2709,7 +2709,7 @@ If you’re getting the “no reference” error, then you’re either trying to
 Type characteristics that a type parameter must satisfy are written in parentheses after the type name and are separated by commas. For example, to say that a type parameter `X` must not contain any references, you would declare it as `X(!new)`. To further ensure it supports compile-time equality, you would declare it as `X(!new,==)`.
 Presumably, you’re trying to instantiate a type parameter like `X(!new)` with a type that may contain references.
 
-There is more discussion of type parameter characteristics in the [reference manual](../../DafnyRef/DafnyRef#sec-type-parameters).
+There is more discussion of type parameter characteristics in the [reference manual](../DafnyRef/DafnyRef#sec-type-parameters).
 
 # "Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, A>)"
 
@@ -2774,7 +2774,7 @@ function Dummy(str: string): bool
   requires str == []
 ```
 
-The problem has to do with [arrow types](../../DafnyRef/DafnyRef#sec-arrow-types).
+The problem has to do with [arrow types](../DafnyRef/DafnyRef#sec-arrow-types).
 In particular here, the argument of `EvalOperator` takes a `->` function, which is a total, heap-independent function.
 However, its argument, `Dummy`, is a partial, heap-independent function, because it has a precondition.
 If you want `EvalOperator` to be flexible enough to take partial functions, then declare `op` to have the type
@@ -2785,7 +2785,7 @@ There is more on arrow types in the [reference manual](../DafnyRef/DafnyRef.html
 # "Error: type ? does not have a member IsFailure"
 
 
-The `IsFailure` member is a necessary part of [_failure-compatible_ types](../..//DafnyRef/DafnyRef#sec-failure-compatible-types), which are used with the `:-` operator.
+The `IsFailure` member is a necessary part of [_failure-compatible_ types](../DafnyRef/DafnyRef#sec-failure-compatible-types), which are used with the `:-` operator.
 See the discussion in the reference manual for more detail.
 
 # "Error: value does not satisfy subset constraints of T"
