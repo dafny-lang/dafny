@@ -225,7 +225,6 @@ To set up Dafny to compile to Java:
   or install Amazon Corretto from https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/what-is-corretto-11.html
   (see the platform-specific links on the left of that page)
   or, on a Mac, `brew install java`
-* Install [gradle](https://gradle.org/) or, on a Mac, `brew install gradle`
 
 To separately compile and run your program for Java:
 - `dafny build -t:java MyProgram.dfy`
