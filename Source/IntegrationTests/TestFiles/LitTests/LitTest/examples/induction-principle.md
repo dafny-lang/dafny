@@ -8,7 +8,7 @@ single function, by means of an *induction principle*. This proof technique turn
 to be particularly useful when working on
 [Dafny-in-Dafny](https://github.com/dafny-lang/compiler-bootstrap),
 which we will use as a motivating example. The full code development can be found in the
-[`induction-principle`](induction-principle-code/) folder. The development with the preserved git
+[`induction-principle-code`](induction-principle-code/) folder. The development with the preserved git
 history can be found in the [Dafny github project](https://github.com/dafny-lang//dafny) 
 and the source code itself is [here](./induction-principle-code).
 

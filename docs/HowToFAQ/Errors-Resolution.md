@@ -600,7 +600,7 @@ method m() {
 ```
 
 Variables marked with `{:assumption}` must have bool type.
-See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
+See [the reference manual](../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
 
 
 ## **Error: assumption variable must be ghost** {#r_assumption_var_must_be_ghost}
@@ -612,7 +612,7 @@ method m() {
 ```
 
 Variables marked with `{:assumption}` must be ghost.
-See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
+See [the reference manual](../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
 
 
 ## **Error: assumption variables can only be declared in a method** {#r_assumption_var_must_be_in_method}
@@ -620,7 +620,7 @@ See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail
 <!-- TODO - not sure this is reachable -->
 
 Variables marked with `{:assumption}` must be declared within methods.
-See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
+See [the reference manual](../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
 
 
 ## **Error: in _proof_, calls are allowed only to lemmas** {#r_no_calls_in_proof}
