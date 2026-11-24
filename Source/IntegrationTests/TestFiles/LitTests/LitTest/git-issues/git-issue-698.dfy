@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment --enforce-determinism
 
 type Small = x: int | 0 <= x < 100 && x != 3
 
