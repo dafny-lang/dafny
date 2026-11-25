@@ -71,7 +71,7 @@ public class LegacyJsonVerificationLogger : IDisposable, IAsyncDisposable {
       ["outcome"] = SerializeOutcome(verificationResult.Outcome),
       ["runTime"] = SerializeTimeSpan(verificationResult.RunTime),
       ["resourceCount"] = verificationResult.ResourceCount,
-      ["vcResults"] = new JsonArray(verificationResult.VCResults.Select(r => SerializeVcResult(potentialDependencies, r)).ToArray())
+      ["vcResults"] = new JsonArray(verificationResult.VCResults.OrderBy(r => r.VCNum).Select(r => SerializeVcResult(potentialDependencies, r)).ToArray())
     };
     if (potentialDependencies is not null) {
       result["programElements"] = new JsonArray(potentialDependencies.Select(JsonVerificationLogger.SerializeProofDependency).ToArray());
