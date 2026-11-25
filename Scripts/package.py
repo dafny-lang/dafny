@@ -12,7 +12,6 @@ import sys
 import time
 from urllib import request
 from http.client import IncompleteRead
-from urllib.error import HTTPError
 import zipfile
 import shutil
 import ntpath
@@ -24,6 +23,8 @@ Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/sna
 
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
+## Delay before the first retry, doubling thereafter
+Z3_DOWNLOAD_RETRY_BASE_SECONDS = 2
 
 ## Allowed Dafny release names
 DAFNY_RELEASE_REGEX = re.compile("\\d+\\.\\d+\\.\\d+(-[\w\d_-]+)?$")
@@ -126,9 +127,15 @@ class Release:
                                 writer.write(reader.read())
                         flush("done!")
                         break
-                    except (IncompleteRead, HTTPError):
+                    # OSError covers URLError and the ConnectionResetError/TimeoutError that
+                    # reader.read() can raise on its own.
+                    except (IncompleteRead, OSError) as e:
                         if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
                             raise
+                        # Retrying immediately spends every attempt on the same server-side error.
+                        delay = Z3_DOWNLOAD_RETRY_BASE_SECONDS * (2 ** currentAttempt)
+                        flush("failed ({}), retrying in {}s".format(e, delay))
+                        time.sleep(delay)
 
 
     @staticmethod
