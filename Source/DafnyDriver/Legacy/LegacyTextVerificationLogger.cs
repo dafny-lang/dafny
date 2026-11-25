@@ -22,7 +22,7 @@ public class LegacyTextVerificationLogger : IDisposable, IAsyncDisposable {
   }
 
   public void LogResults(IEnumerable<DafnyConsolePrinter.ConsoleLogEntry> verificationResults) {
-    foreach (var (implementation, result) in verificationResults.OrderBy(vr => (vr.Implementation.Tok.filename, vr.Implementation.Tok.line, vr.Implementation.Tok.col))) {
+    foreach (var (implementation, result) in verificationResults) {
       var taskResults = result.VCResults.Select(LegacyJsonVerificationLogger.VCResultLogEntryToPartialVerificationRunResult).ToList();
       var scopeResult = new VerificationScopeResult(new VerificationScope(implementation.Name, implementation.Tok), taskResults);
       TextVerificationLogger.LogResults(depManager, tw, scopeResult);

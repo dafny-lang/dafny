@@ -138,7 +138,8 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
   }
 
   public void LogScopeResults(VerificationScopeResult scopeResult) {
-    verificationResultNode.Add(SerializeVerificationResult(scopeResult.Scope, scopeResult.Results.ToList()));
+    verificationResultNode.Add(SerializeVerificationResult(scopeResult.Scope,
+      scopeResult.Results.OrderBy(r => r.Result.VcNum).ToList()));
   }
 
   private readonly IList<JsonNode> verificationResultNode = new List<JsonNode>();

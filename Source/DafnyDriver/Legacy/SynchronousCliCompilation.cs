@@ -372,7 +372,7 @@ namespace Microsoft.Dafny {
     /// assertion and print it to the console
     /// </summary>
     private static async Task PrintCounterexample(DafnyOptions options) {
-      var firstCounterexample = ((DafnyConsolePrinter)options.Printer).VerificationResults
+      var firstCounterexample = ((DafnyConsolePrinter)options.Printer).OrderedVerificationResults
         .Select(result => result.Result)
         .Where(result => result.Outcome == VcOutcome.Errors)
         .Select(result => result.Counterexamples)
