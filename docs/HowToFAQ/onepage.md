@@ -66,7 +66,7 @@ method Test(a: A)
 }
 ```
 
-The [`{:autocontracts}`]({../DafnyRef/DafnyRef#sec-attributes-autocontracts}) attribute can be helpful here.
+The [`{:autocontracts}`](../DafnyRef/DafnyRef#sec-attributes-autocontracts) attribute can be helpful here.
 
 Note that the idiom using `Valid()` above is similar to the use of class invariants in other 
 specification languages.
@@ -236,7 +236,7 @@ And, it is permitted to have possibly empty types by using a witness clause `wit
 For instance, a declaration of a variable with a possibly-empty type will need an initializer,
 if that variable is ever used, because Dafny requires variables to be 'definitely assigned' before being used.
 
-The Reference Manual contains a [discussion about witness clauses](../DafnyRef/DafnyRef#sec-witness-clauses).
+The Reference Manual contains a [discussion about witness clauses](../DafnyRef/DafnyRef#sec-witness).
 
 # Can I access the members of an outer module from its inner module?
 
@@ -1034,7 +1034,7 @@ Does Dafny have monadic error handling?
 
 Yes.
 
-In particular, see the section of the reference manual on [Update with Failure statements](../DafnyRef/DafnyRef#sec-update-failure).
+In particular, see the section of the reference manual on [Update with Failure statements](../DafnyRef/DafnyRef#sec-update-with-failure-statement).
 The (draft) standard library includes [some types needed for error handling](https://github.com/dafny-lang/libraries/blob/master/src/Wrappers.dfy).
 
 You can define your own monadic error type by following examples in the RM and the draft library. A simple case is
@@ -1071,7 +1071,7 @@ What is the `:-` operator? How does it work?
 This operator is called the _elephant operator_ (because it has a trunk).
 It is used to write code that exits on failure (much like exceptions in other programming languages or the ? operator in Rust).
 The topic is discussed at length in
-the section of the reference manual on [Update with Failure statements](../DafnyRef/DafnyRef#sec-update-failure).
+the section of the reference manual on [Update with Failure statements](../DafnyRef/DafnyRef#sec-update-with-failure-statement).
 
 In brief, Dafny permits methods to return values of _failure-compatible_ types. If the result of a method is being assigned to a variable with the `:-` operator and the result is a failure, then the method exits immediately, with the failure being propagated to the calling method.
 
@@ -1087,7 +1087,7 @@ What is the `:-` operator? How does it work?
 This operator is called the _elephant operator_ (because it has a trunk).
 It is used to write code that exits on failure (much like exceptions in other programming languages or the ? operator in Rust).
 The topic is discussed at length in
-the section of the reference manual on [Update with Failure statements](../DafnyRef/DafnyRef#sec-update-failure).
+the section of the reference manual on [Update with Failure statements](../DafnyRef/DafnyRef#sec-update-with-failure-statement).
 
 In brief, Dafny permits methods to return values of _failure-compatible_ types. If the result of a method is being assigned to a variable with the `:-` operator and the result is a failure, then the method exits immediately, with the failure being propagated to the calling method.
 
@@ -1126,7 +1126,7 @@ The names of these alternatives will be changing between Dafny 3 and Dafny 4:
 
 - `function` (`function method` in Dafny 3) -- is a non-ghost function
 - `ghost function` (`function` in Dafny 3) -- is a ghost function
-- _function by method_ is a ghost function with an alternate compilable (non-ghost) method body (cf. [the reference manual section on function declarations](../DafnyRef/DafnyRef#sec-function-declarations))
+- _function by method_ is a ghost function with an alternate compilable (non-ghost) method body (cf. [the reference manual section on function declarations](../DafnyRef/DafnyRef#sec-function-declaration))
 - `method` declares a non-ghost method
 - `ghost method` declares a ghost method, though this is almost always done using a `lemma` instead
 
@@ -1227,7 +1227,7 @@ The `export` directive in module `A` just exports the name `j` in the export set
 So then you can import just `j` in `B` by importing ``A`JustJ``.
 
 You can create as many export sets as you like, for different contexts.
-See the details [here](../DafnyRef/DafnyRef#sec-export-sets-and-access-control).
+See the details [here](../DafnyRef/DafnyRef#sec-export-sets).
 
 This feature does put the onus of defining the groups of exportable names on the supplying module.
 Your question asks for such control by the receiving module. The best course for the receiving
@@ -1286,7 +1286,7 @@ const d: ABCD := D
 You can determine which alternative a record value is with the built-in test functions: with the definitions above, `a.A?` is true and `b.C?` is false. And you can extract the record alternative's
 data: in the above `a.i` is well-defined if `a.A?` is true, in which case it has the value `7`.
 
-There is more description of datatypes [here](../DafnyRef/DafnyRef#sec-algebraic-datatype).
+There is more description of datatypes [here](../DafnyRef/DafnyRef#sec-datatype).
 
 # What does `forall v :: v in vals ==> false` evaluate to if `vals` is nonempty?
 
@@ -1421,7 +1421,7 @@ is a final assertion batch. This attribute is usually used to break out if-alter
 `{:split_here}` creates an assertion batch of all assertions strictly before the attributed statement and another of the assertions at or after
 the attributed statement. This attribute is usually used to break up long stretches of straight-line code.
 
-Some examples that show how this works for multiple nested blocks are given in the reference manual, [here](../../DafnyRef/DafnyRef#sec-focus) and [here](../../DafnyRef/DafnyRef#sec-split_here).
+Some examples that show how this works for multiple nested blocks are given in the reference manual, [here](../DafnyRef/DafnyRef#sec-focus) and [here](../DafnyRef/DafnyRef#sec-split_here).
 
 # How does one declare a type to have a "default" initial value, say a type tagged with {:extern}?
 
@@ -1432,7 +1432,7 @@ How does one declare a type to have a "default" initial value, say a type tagged
 
 ## Answer
 
-There is no general way to do this. Subset types and newtypes have [witness](../DafnyRef/DafnyRef/#sec-witness-clauses) clauses and types that are [auto-initializable](../DafnyRef/DafnyRef#sec-auto-init)
+There is no general way to do this. Subset types and newtypes have [witness](../DafnyRef/DafnyRef#sec-witness) clauses and types that are [auto-initializable](../DafnyRef/DafnyRef#sec-auto-init)
 have a default, but those rules do not apply to anonymous extern types.
 Particularly for abstract types, there is not even a way to infer such a value.
 
@@ -2467,7 +2467,7 @@ Dafny also sets these non-default Boogie options:
 These all however are subject to change, especially as the version of Boogie used changes
 
 In addition, Dafny sends a variety of other command-line options to Boogie, depending on selections by the user and heuristics built-in to Dafny.
-Some guide to the available (Dafny) options that are passed through to Boogie are [in the reference manual](../../DafnyRef/DafnyRef#sec-controlling-boogie).
+Some guide to the available (Dafny) options that are passed through to Boogie are [in the reference manual](../DafnyRef/DafnyRef#sec-controlling-boogie).
 
 # Does Dafny verify methods in parallel?
 
@@ -2709,7 +2709,7 @@ If you’re getting the “no reference” error, then you’re either trying to
 Type characteristics that a type parameter must satisfy are written in parentheses after the type name and are separated by commas. For example, to say that a type parameter `X` must not contain any references, you would declare it as `X(!new)`. To further ensure it supports compile-time equality, you would declare it as `X(!new,==)`.
 Presumably, you’re trying to instantiate a type parameter like `X(!new)` with a type that may contain references.
 
-There is more discussion of type parameter characteristics in the [reference manual](../../DafnyRef/DafnyRef#sec-type-parameters).
+There is more discussion of type parameter characteristics in the [reference manual](../DafnyRef/DafnyRef#sec-type-parameters).
 
 # "Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got map<int, A>)"
 
@@ -2774,7 +2774,7 @@ function Dummy(str: string): bool
   requires str == []
 ```
 
-The problem has to do with [arrow types](../../DafnyRef/DafnyRef#sec-arrow-types).
+The problem has to do with [arrow types](../DafnyRef/DafnyRef#sec-arrow-types).
 In particular here, the argument of `EvalOperator` takes a `->` function, which is a total, heap-independent function.
 However, its argument, `Dummy`, is a partial, heap-independent function, because it has a precondition.
 If you want `EvalOperator` to be flexible enough to take partial functions, then declare `op` to have the type
@@ -2785,7 +2785,7 @@ There is more on arrow types in the [reference manual](../DafnyRef/DafnyRef.html
 # "Error: type ? does not have a member IsFailure"
 
 
-The `IsFailure` member is a necessary part of [_failure-compatible_ types](../..//DafnyRef/DafnyRef#sec-failure-compatible-types), which are used with the `:-` operator.
+The `IsFailure` member is a necessary part of [_failure-compatible_ types](../DafnyRef/DafnyRef#sec-failure-compatible-types), which are used with the `:-` operator.
 See the discussion in the reference manual for more detail.
 
 # "Error: value does not satisfy subset constraints of T"

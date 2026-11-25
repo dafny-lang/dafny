@@ -49,7 +49,7 @@ method Test(a: A)
 }
 ```
 
-The [`{:autocontracts}`]({../DafnyRef/DafnyRef#sec-attributes-autocontracts}) attribute can be helpful here.
+The [`{:autocontracts}`](../DafnyRef/DafnyRef#sec-attributes-autocontracts) attribute can be helpful here.
 
 Note that the idiom using `Valid()` above is similar to the use of class invariants in other 
 specification languages.

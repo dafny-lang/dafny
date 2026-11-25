@@ -17,7 +17,7 @@ function Dummy(str: string): bool
   requires str == []
 ```
 
-The problem has to do with [arrow types](../../DafnyRef/DafnyRef#sec-arrow-types).
+The problem has to do with [arrow types](../DafnyRef/DafnyRef#sec-arrow-types).
 In particular here, the argument of `EvalOperator` takes a `->` function, which is a total, heap-independent function.
 However, its argument, `Dummy`, is a partial, heap-independent function, because it has a precondition.
 If you want `EvalOperator` to be flexible enough to take partial functions, then declare `op` to have the type

@@ -6,7 +6,7 @@ to and from their string representations.
 
 Note that since in Dafny `string` is just an alias for `seq<char>`,
 many common string operations are available in the
-[`Collections.Seqs` module](../Collections.md) instead.
+[`Collections.Seq` module](Collections/Collections.md) instead.
 The `Strings` module only provides utilities more specific to sequences of characters.
 
 ## Number round trips

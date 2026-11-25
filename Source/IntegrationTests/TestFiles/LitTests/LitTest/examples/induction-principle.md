@@ -8,7 +8,7 @@ single function, by means of an *induction principle*. This proof technique turn
 to be particularly useful when working on
 [Dafny-in-Dafny](https://github.com/dafny-lang/compiler-bootstrap),
 which we will use as a motivating example. The full code development can be found in the
-[`induction-principle`](induction-principle/) folder. The development with the preserved git
+[`induction-principle-code`](induction-principle-code/) folder. The development with the preserved git
 history can be found in the [Dafny github project](https://github.com/dafny-lang//dafny) 
 and the source code itself is [here](./induction-principle-code).
 
@@ -176,7 +176,7 @@ As a result, the proof above basically duplicates the code of the interpreter. T
 true for all the cases of `Expr`, and has to be done for all the lemmas we prove about the
 interpreter, leading to obvious scalability issues.
 
-**Note:** The full proof without the induction principle is defined in the [`PureNoInductionPrinciple`](induction-principle/PureNoInductionPrinciple.dfy)
+**Note:** The full proof without the induction principle is defined in the [`PureNoInductionPrinciple`](induction-principle-code/PureNoInductionPrinciple.dfy)
 module. It is particularly interesting in the context of incrementally expanding the language,
 to compare the effort needed to update the proofs, depending on whether those proofs use
 the induction principle or not (see the [corresponding section](#section-increments)).
@@ -328,7 +328,7 @@ context `ctx1` for instance). Moreover, it uses forall quantifiers: the instanti
 those quantifiers can be unpredictable, and worse, can lead to context explosions when
 the proofs become more complex. For those reasons, we might want to be a bit more precise.
 
-The refinement we suggest (shown in the [code development](induction-principle/Pure.dfy)) works as follows. In order to
+The refinement we suggest (shown in the [code development](induction-principle-code/Pure.dfy)) works as follows. In order to
 manipulate the intermediate states, we need to talk about execution success and
 failures. Going back to the specific proof of
 [`InterpExpr_Pure`](#interpexpr-pure), we split the
@@ -410,9 +410,9 @@ the lemma.
 Finally, the inductive proof of `InterpExpr_Pure` requires making a case
 disjunction on whether we have `P_Fail(locals, ctx, e1)` or `P_Succ(locals, ctx, e1, ctx1,
 v)` for some `ctx1` and `v` (the generic proof, performed for all `P`, is available
-in [`Induction`](induction-principle/Induction.dfy)).
+in [`Induction`](induction-principle-code/Induction.dfy)).
 
-We invite the reader to have a look at the [code development](induction-principle/Pure.dfy). In practice, proving the
+We invite the reader to have a look at the [code development](induction-principle-code/Pure.dfy). In practice, proving the
 correctness of `IsPure` simply required correctly instantiating the various definitions
 requested by the induction principle (i.e., `P`): all the proofs go through automatically.
 Writing those definitions takes some lines of code, but is very straightforward. Moreover,
@@ -489,7 +489,7 @@ The transformation is written by doing a recursive traversal of the AST, and app
 rewritings in a bottom-up manner. The interesting case is for
 `Op(op: BinOp, oe1: Expr, oe2: Expr)` where `BinOp = | Add | Sub | Mul`. We first apply the
 rewritings in the subexpressions `oe1` and `oe2` (we do a bottom-up transformation), then check if
-the resulting expression can be simplified (the full function can be found in the [code development](induction-principle/EliminateMulZero.dfy)):
+the resulting expression can be simplified (the full function can be found in the [code development](induction-principle-code/EliminateMulZero.dfy)):
 
 ```dafny
 function method Eliminate(e: Expr): Expr
@@ -572,7 +572,7 @@ forall x, ctx, e ::
 
 Because of the potential shadowing appearing in the `Bind` case, we actually can't use this
 property directly in the inductive proof. We actually have to make the `x` string optional
-(see the [code development](induction-principle/VarUnchanged.dfy) for the full details). Once this detail is properly handled, all the
+(see the [code development](induction-principle-code/VarUnchanged.dfy) for the full details). Once this detail is properly handled, all the
 proofs go through automatically.
 
 
@@ -686,7 +686,7 @@ Bind(bvar: string, bval: Expr, body: Expr)   -->   Bind(bvars: seq<string>, bval
 Assign(avar: string, aval: Expr)             -->   Assign(avars: seq<string>, avals: seq<Expr>)
 ```
 
-**Note:** In the [code development](induction-principle/AST.dfy), we actually rename `Expr` to `Expr_Raw` and define
+**Note:** In the [code development](induction-principle-code/AST.dfy), we actually rename `Expr` to `Expr_Raw` and define
 `Expr` as a subset type of `Expr_Raw` to enforce the fact that in the `Assign` and `Bind`
 cases, we have the same number of variables in the left-hand side as of expressions in
 the right-hand side.
@@ -757,7 +757,7 @@ forall ctx, ctx' | EqCtx(ctx, cxt') :: EqResult(InterpExpr(e, ctx), InterpExpr(T
 
 Because of this, we often need to manipulate pairs of contexts, but also pairs of values
 and pairs of sequences of values. You can find a (toy) proof manipulating pairs of states
-in the [`Equiv`](induction-principle/Equiv.dfy) module. Here is an excerpt of the interesting definitions, which shows how
+in the [`Equiv`](induction-principle-code/Equiv.dfy) module. Here is an excerpt of the interesting definitions, which shows how
 to properly instantiate the induction principle to manipulate those pairs of
 states/values:
 

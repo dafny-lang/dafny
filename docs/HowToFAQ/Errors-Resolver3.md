@@ -304,7 +304,7 @@ not match the number of formal parameters (as given in the function definition).
 Usually the actuals and formals must match exactly, but Dafny does allow
 for optional and named arguments with default values. In those cases, the number of actual
 arguments may be less than the number of formal parameters. 
-(cf. [Parameter Bindings in Reference Manual](../Dafny/Dafny#sec-parameter-bindings))
+(cf. [Parameter Bindings in Reference Manual](../DafnyRef/DafnyRef#sec-parameter-bindings))
 
 ## **Error: type mismatch for argument _i_ (function expects _type_, got _type_)**
 
