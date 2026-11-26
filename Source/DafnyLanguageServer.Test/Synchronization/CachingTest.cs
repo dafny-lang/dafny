@@ -381,6 +381,37 @@ method Foo() {
   }
 
   [Fact]
+  public async Task ArrayAllocationInMatchCaseDoesNotCrash() {
+    // Resolution runs on the parse cache's clone, and the match flattener clones each case again.
+    var source = @"
+datatype D = X | Y
+method M(d: D) {
+  match d
+  case X => var a := new D[10];
+  case Y =>
+}";
+    var documentItem = CreateAndOpenTestDocument(source);
+    await AssertNoResolutionErrors(documentItem);
+  }
+
+  [Fact]
+  public async Task TypedPatternInCachedIncludeResolvesAfterAnEdit() {
+    // The edit resolves a clone of the cached parse of lib.dfy, whose pattern type was resolved before.
+    var directory = GetFreshTempPath();
+    Directory.CreateDirectory(directory);
+    await File.WriteAllTextAsync(Path.Combine(directory, "lib.dfy"), @"
+datatype D = X | Y
+method M(d: D) {
+  match d
+  case e: D =>
+}");
+    var documentItem = CreateAndOpenTestDocument("include \"lib.dfy\"\n", Path.Combine(directory, "main.dfy"));
+    await AssertNoResolutionErrors(documentItem);
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "// edit\n");
+    await AssertNoResolutionErrors(documentItem);
+  }
+
+  [Fact]
   public async Task CachingWorksWhenManyChangesAreMadeWithoutWaits() {
     var largeImport1 = GetLargeFile("Imported1", 100);
     var largeImport2 = GetLargeFile("Imported2", 100);

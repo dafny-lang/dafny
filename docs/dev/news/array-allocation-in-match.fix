@@ -1,0 +1,1 @@
+No longer crash on an array allocation such as `new D[10]` in a `match` case, either in the IDE or when a refining module inherits the enclosing method
