@@ -2,7 +2,9 @@
 We only allow squash merging and GH suggests the PR details as a default commit message. -->
 
 ### What was changed?
-<!-- Is this a user-visible change?  Remember to update RELEASE_NOTES.md -->
+<!-- Is this a user-visible change?  Add a release note: a file `docs/dev/news/<PR number>.fix`
+(or `.feat`, or `.break`) containing a sentence or two.  See docs/dev/README.md.  Don't edit
+RELEASE_NOTES.md directly -- the release script writes it from those files. -->
 
 ### How has this been tested?
 <!-- Tests can be added to `Source/IntegrationTests/TestFiles/LitTests/LitTest/` or to `Source/*.Test/…` and run with `dotnet test` -->

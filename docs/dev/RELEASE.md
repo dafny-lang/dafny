@@ -26,6 +26,17 @@
    is already set for the next release. However, if you wish to change the
    minor or major version, see [VERSIONBUMP.md](VERSIONBUMP.md)
 
+1. Pushing the release branch automatically starts the "Release branch deep
+   tests" workflow, which runs the same integration tests that gate the release
+   itself. Wait for it to pass before tagging; the `prepare` step prints a link
+   to the run. A pass here means the tag will not be rejected for test failures,
+   which saves having to delete a pushed tag. Do this last, after any version
+   number change above, so that what was tested is what gets tagged.
+   (If you are releasing from a mainline branch that predates this workflow,
+   there will be no run; trigger the tests by hand from
+   <https://github.com/dafny-lang/dafny/actions/workflows/nightly-build-manual.yml>
+   with `ref` set to the release branch.)
+
 1. Run `./Scripts/prepare_release.py $VER
    release` from the root of the repository. The script will tag the
    current commit and push it. A
@@ -49,7 +60,7 @@
 1. We are going to merge the release branch into master to take into account
    any fix that was implemented there, and also update the version number.
    With the release branch checked out, run `./Scripts/prepare_release.py
-   $NEXT_VER set-next version` to set the version number for the next
+   $NEXT_VER set-next-version` to set the version number for the next
    release, where `$NEXT_VER` is `$VER` with the patch incremented.
    Then follow the instructions [VERSIONBUMP.md](VERSIONBUMP.md) to keep Dafny
    up-to-date with the new version number.
@@ -81,18 +92,25 @@
    code. It will just install Dafny from Homebrew and run it on some
    examples.
 
-If something goes wrong with the `prepare` step:
+1. Announce the new release to the world.
 
-- Remove the release commit (`git reset --hard HEAD~1`)
-- Commit fixes
+### If something goes wrong
+
+With the `prepare` step:
+
+- Check `git log -1` first, and only reset if it shows the `Release Dafny $VER`
+  commit. `prepare` creates that commit near the end, so an earlier failure
+  leaves the release branch pointing at the mainline commit it branched from,
+  and `git reset --hard HEAD~1` would drop that mainline commit from the branch.
+- If the release commit is there, remove it (`git reset --hard HEAD~1`).
+- Commit fixes.
 - Re-run the `prepare` step; the script will recognize the `release-` branch and will not recreate it.
 
-If something goes wrong with the `release` step:
+With the `release` step:
+
 - Delete the local tag: `git tag -d vA.B.C`
 - Delete the remote tag: `git push --delete origin vA.B.C`
 - Return to the `prepare` step.
-
-1. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 
@@ -130,8 +148,8 @@ with git commands and concepts is helpful.
     --sha256 <sha256 of the source .tar.gz for the release>
 ```
 
-3. Expect comments from the reviewers. If changes are needed, do 4-6
-   again. Eventually the reviewers will accept and merge the PR.
+3. Expect comments from the reviewers. If changes are needed, repeat step 2.
+   Eventually the reviewers will accept and merge the PR.
 
 4. Test the installation by running
 

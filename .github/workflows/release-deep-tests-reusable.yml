@@ -1,0 +1,28 @@
+
+# The deep integration tests that gate a Dafny release, called both by the pre-tag
+# run on the release branch and by the tag-triggered gate in publish-release.yml.
+#
+# `ref` is deliberately the only input: platform coverage, shard count and backend
+# selection are fixed here, so the two callers cannot drift apart. `compilers` is
+# omitted rather than set -- the default ("") means no restriction, so every backend
+# including Rust runs. The nightly path excludes Rust; a release must not.
+
+name: Release Deep Tests (Reusable Workflow)
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'The release branch commit, or the release tag'
+        required: true
+        type: string
+
+jobs:
+  deep-integration-tests:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/integration-tests-reusable.yml
+    with:
+      ref: ${{ inputs.ref }}
+      all_platforms: true
+      num_shards: 5
