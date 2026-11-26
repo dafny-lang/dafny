@@ -143,8 +143,14 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
   public override IEnumerable<Expression> SubExpressions {
     get {
       yield return Receiver;
-      foreach (var e in Args) {
-        yield return e;
+      if (Bindings.WasResolved) {
+        foreach (var e in Args) {
+          yield return e;
+        }
+      } else {
+        foreach (var binding in Bindings.ArgumentBindings) {
+          yield return binding.Actual;
+        }
       }
     }
   }
