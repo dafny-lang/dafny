@@ -2119,7 +2119,11 @@ namespace Dafny {
       }
     }
     public override int GetHashCode() {
-      return num.GetHashCode() + 29 * den.GetHashCode();
+      if (num.IsZero) {
+        return 0;
+      }
+      var gcd = BigInteger.GreatestCommonDivisor(num, den);
+      return (num / gcd).GetHashCode() + 29 * (den / gcd).GetHashCode();
     }
     public override bool Equals(object obj) {
       if (obj is BigRational) {

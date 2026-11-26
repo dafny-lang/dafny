@@ -1,0 +1,1 @@
+Fixed `set`, `map` and `multiset` of `real` keeping equal values twice on C# and Java (e.g. `0.0` and `0.5 - 0.5`).

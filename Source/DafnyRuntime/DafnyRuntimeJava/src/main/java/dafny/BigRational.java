@@ -196,7 +196,8 @@ public class BigRational {
 
     @Override
     public int hashCode() {
-        return num.hashCode() + 29 * den.hashCode();
+        BigRational r = reduce();
+        return r.num.hashCode() + 29 * r.den.hashCode();
     }
 
     @Override
