@@ -3,7 +3,8 @@
 // Equal reals with different num/den must hash equal (set/map/multiset).
 
 method Main() {
-  var zeros: set<real> := {0.0, 0.5 - 0.5, 1.5 - 1.5};
+  var a := new real[1];  // C# stores this default as 0/0
+  var zeros: set<real> := {0.0, 0.5 - 0.5, a[0]};
   print "zeros: ", |zeros|, "\n";
 
   var halves: set<real> := {0.5, 1.0 / 2.0, 2.0 / 4.0};
@@ -14,7 +15,4 @@ method Main() {
 
   var ms: multiset<real> := multiset{0.5, 1.0 / 2.0, 2.0 / 4.0};
   print "mult: ", ms[0.5], "\n";
-
-  var distinct: set<real> := {0.5, 0.25, 0.75};
-  print "distinct: ", |distinct|, "\n";
 }

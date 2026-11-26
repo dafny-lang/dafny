@@ -196,10 +196,6 @@ public class BigRational {
 
     @Override
     public int hashCode() {
-        // Hash the reduced form so equal values hash equal. Zero first: den may be 0.
-        if (num.signum() == 0) {
-            return BigInteger.ZERO.hashCode() + 29 * BigInteger.ONE.hashCode();
-        }
         BigRational r = reduce();
         return r.num.hashCode() + 29 * r.den.hashCode();
     }
