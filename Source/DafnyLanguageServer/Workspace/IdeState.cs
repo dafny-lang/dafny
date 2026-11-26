@@ -525,7 +525,7 @@ public record IdeState(
           new AssertionBatchResult(boogieUpdate.VerificationTask.Split.Implementation, result));
       }
 
-      var resourceCount = results.Sum(e => e.ResourceCount);
+      var resourceCount = results.Sum(e => (long)e.ResourceCount);
       var outcome = results.Select(e => Compilation.GetOutcome(e.Outcome)).Max();
       gutterIconManager.ReportEndVerifyImplementation(this, boogieUpdate.VerificationTask.Split.Implementation, resourceCount, outcome);
     }
