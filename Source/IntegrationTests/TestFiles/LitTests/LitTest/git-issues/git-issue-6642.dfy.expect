@@ -1,0 +1,6 @@
+0 1 2 | let
+0 1 2 | match
+0 1 2 | while-case
+2 4 | continue
+3 | labeled continue
+3 | out-param
