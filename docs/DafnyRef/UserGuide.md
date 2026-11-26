@@ -1769,6 +1769,16 @@ the only options that result in valid target code. Traits with
 `{:extern}` can refer to existing traits or interfaces in the target
 language, or can refer to the interfaces of existing classes.
 
+Unlike a class, the value-type declarations — `datatype`, `codatatype` and
+`newtype` — do not support `{:extern}` members. Such a declaration resolves and
+verifies, but the compiler generates no way for external code to supply the
+member's implementation, so a call to it either fails to compile or, on targets
+whose generated code still builds, fails when the call is reached. To combine one
+of these with external code, keep its members in Dafny and put the external
+operations in module-level `{:extern}` functions or methods that take the value as
+a parameter; use an `{:extern}` class when you need external members on a
+reference type.
+
 Member variables marked with `{:extern}` refer to fields or properties
 in existing target-language code. Constructors, methods, and functions
 refer to the equivalent concepts in the target language. They
@@ -1781,6 +1791,43 @@ especially for function methods.
 Types marked with `{:extern}` must be opaque. The name argument, if any,
 usually refers to the type name in the target language, but some
 compilers treat it differently.
+
+Because Dafny models objects by reference, the reference types (`class` and
+`trait` types) have object identity: `x == y` holds exactly when `x` and `y`
+denote the same object. The verifier reasons about equality on these types, and
+about every construct built over them — the `set`, `multiset`, `map` and `seq`
+collections, and `==` at a type parameter instantiated with them — on the
+assumption that object identity is their only equality, and this assumption is
+not checked against external code. An `{:extern}` `class` is therefore expected
+to preserve object identity in the target language. If the external
+implementation instead gives the type some other equality — for example a
+structural equality obtained by overriding `equals` and `hashCode` in Java,
+`Equals` and `GetHashCode` in C#, or `__eq__` and `__hash__` in Python — then a
+compiled program can behave in ways the verifier proved impossible: two objects
+that were proved unequal may compare equal at run time, a `set` containing them
+may turn out to have fewer elements than was verified, and, where the collections
+of the target language are organized by hash value, an object whose hash depends
+on mutable state may no longer be found once it is mutated, so that a verified
+`x in s` is false at run time. The last of these needs only the hash to be
+overridden, with equality left as object identity. Dafny does not currently
+detect this situation, so it is the user's responsibility to avoid it;
+the target-specific behavior is described in the integration guide for each
+language. Some backends let an extern override the equality used by the runtime
+collections, but doing so on a reference type reintroduces exactly this
+unsoundness; it is sound only for value types (see below).
+
+A type whose equality should be structural rather than by object identity is
+better not written as an `{:extern}` `class` at all. When the value need not be
+backed by an external object, a Dafny `datatype` has structural equality that
+the verifier understands. When it must be backed by external code, an opaque
+value type declared as `type {:extern} T(==)` can be used instead: the verifier
+makes no assumption about which values of such a type are equal — it can prove
+neither that two values are equal nor that they are unequal — so the target
+language's own equality is used at run time, including within the built-in
+collections, without contradicting anything the verifier established. An
+`{:extern}` `class` may still define its state and some of its members in Dafny
+while implementing others externally; equality of such a class remains by object
+identity.
 
 Detailed description of the `dafny build` and `dafny run` commands and 
 the `--input` option (needed when `dafny run` has more than one input file)
