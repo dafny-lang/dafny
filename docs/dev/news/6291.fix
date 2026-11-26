@@ -1,0 +1,1 @@
+Reveal statements now work correctly inside match case bodies. Previously, using reveal statements within match cases would cause verification failures.
