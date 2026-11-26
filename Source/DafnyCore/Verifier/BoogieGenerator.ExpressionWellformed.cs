@@ -279,6 +279,15 @@ namespace Microsoft.Dafny {
     /// Adds to "builder" code that checks the well-formedness of "expr".  Any local variables introduced
     /// in this code are added to "locals".
     /// See class WFOptions for descriptions of the specified options.
+    ///
+    /// A case that produces a value whose type may carry a constraint must call CheckResultToBeInType for it.
+    /// Forgetting to has been a recurring source of unsoundness (seq(), collection updates, "decreases to",
+    /// "unchanged"), so it is tempting to hoist one call to the end of this method and drop the per-case ones.
+    /// That does not work. This method recurses, so a call placed after the switch runs at every level of the
+    /// expression tree rather than only where a value is constructed: for "b := true;" it reports the constraint
+    /// once against the assignment and again against the literal. Hoisting was tried on
+    /// dafny0/ResultInTypeNewtype.dfy and left most of the file's error lines duplicated that way. Keeping the
+    /// calls in the cases is what limits each check to the token whose value is actually being built.
     /// </summary>
     public void CheckWellformedWithResult(Expression expr, WFOptions wfOptions,
       Variables locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
@@ -535,6 +544,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(false);
             }
 
+            CheckResultToBeInType(e.Origin, e, e.Type, locals, builder, etran);
             break;
           }
         case ApplyExpr applyExpr: {
@@ -941,6 +951,7 @@ namespace Microsoft.Dafny {
             CheckWellformed(e.Initializer, wfOptions, locals, builder, etran);
             var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg;
             CheckElementInit(e.Origin, false, [e.N], eType, e.Initializer, null, builder, etran, wfOptions);
+            CheckResultToBeInType(e.Origin, e, e.Type, locals, builder, etran);
             break;
           }
         case MultiSetFormingExpr formingExpr: {
@@ -991,6 +1002,7 @@ namespace Microsoft.Dafny {
               }
             }
 
+            CheckResultToBeInType(e.Origin, e, e.Type, locals, builder, etran);
             break;
           }
         case UnaryExpr unaryExpr: {
@@ -1580,6 +1592,7 @@ namespace Microsoft.Dafny {
             foreach (var subexpr in decreasesToExpr.SubExpressions) {
               CheckWellformed(subexpr, wfOptions, locals, builder, etran);
             }
+            CheckResultToBeInType(expr.Origin, expr, expr.Type, locals, builder, etran);
             break;
           }
         case FieldLocation: {

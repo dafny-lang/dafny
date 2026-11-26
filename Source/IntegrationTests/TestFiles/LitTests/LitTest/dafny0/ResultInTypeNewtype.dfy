@@ -49,6 +49,26 @@ module Bool {
     assert 0 <= 2 * y < 10;
     q := exists x :: 0 <= 2 * x < 10; // error: the RHS is true, which is not a False
   }
+
+  ghost method DecreasesTo() returns (q: False) {
+    q := 2 decreases to 1; // error: the RHS is true, which is not a False
+  }
+
+  ghost function DecreasesToResult(): False {
+    2 decreases to 1 // error: the result is true, which is not a False
+  }
+
+  class Cell { var data: int }
+
+  twostate function UnchangedResult(c: Cell): False reads c {
+    unchanged(c) // error: c may be unchanged, and then the result is not a False
+  }
+
+  codatatype Stream = Cons(head: int, tail: Stream)
+
+  ghost function PrefixEquality(s: Stream, t: Stream): False {
+    s ==#[1] t // error: the streams may agree, and then the result is not a False
+  }
 }
 
 module Int {
@@ -265,6 +285,34 @@ module Multiset {
   }
 }
 
+module Map {
+  newtype Map = m: map<int, int> | |m| == 2 // error: cannot find witness
+
+  method Construct() returns (m: Map) {
+    if
+    case true =>
+      m := map[]; // error: too small, so not a Map
+    case true =>
+      m := map[1 := 1, 2 := 2];
+    case true =>
+      m := map[1 := 1, 2 := 2, 3 := 3]; // error: too big, so not a Map
+    case true =>
+      m := map x: int | 0 <= x < 1 :: 2 * x; // error: too small, so not a Map
+  }
+
+  method Update(a: Map, k: int, v: int) returns (m: Map) {
+    m := a[k := v]; // error: k may be a new key, so the result may not be a Map
+  }
+
+  method Operators(a: Map, b: Map, n: map<int, int>) returns (m: Map) {
+    if
+    case true =>
+      m := a + b; // error: not a Map
+    case true =>
+      m := n as Map; // error: not a Map
+  }
+}
+
 module Seq {
   newtype Seq = s: seq<int> | |s| == 3 // error: cannot find witness
   newtype String = s: string | |s| == 3 witness "abc"
@@ -288,6 +336,18 @@ module Seq {
       s := a + b; // error: not a Seq
     case true =>
       s := m as Seq; // error: not a Seq
+  }
+
+  method SeqConstruction(n: nat) returns (s: Seq) {
+    s := seq(n, i => i); // error: the length is n, which may not be 3
+  }
+
+  newtype Sorted = s: seq<int> | forall i, j :: 0 <= i < j < |s| ==> s[i] <= s[j] witness []
+
+  method Update(a: Sorted) returns (s: Sorted)
+    requires 2 <= |a|
+  {
+    s := a[0 := 999]; // error: may break the sorted order, so not a Sorted
   }
 
   method SubSequenceFromSeq(a: Seq) returns (s: Seq) {
