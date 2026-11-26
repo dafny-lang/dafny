@@ -1304,7 +1304,7 @@ RequiresClause<.List<AttributedExpression> req, bool allowLabel.>
   [ IF(IsLabel(allowLabel))
     LabelName<out lbl> ":"
   ]
-  Expression<out e, false, false>
+  Expression<out e, false, false, allowDecreasesTo: false>
   OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
   .
 
@@ -1314,7 +1314,7 @@ EnsuresClause<.List<AttributedExpression> ens, bool allowLambda.>
                    Attributes attrs = null;
                  .)
   { Attribute<ref attrs> }
-  Expression<out e, false, allowLambda>
+  Expression<out e, false, allowLambda, allowDecreasesTo: false>
     OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
   .
 
@@ -1365,7 +1365,7 @@ InvariantClause<. List<AttributedExpression> invariants.> =
                                                    Expression e;
                                                 .)
   { Attribute<ref attrs> }
-  Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
+  Expression<out e, false, true, allowDecreasesTo: false>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
   OldSemi
   .
 
@@ -2427,7 +2427,12 @@ AssignStatement<out Statement/*!*/ s>
     )                              (. endTok = t; var rhs = new ExprRhs(e, attrs); rhs.SetOrigin(new SourceOrigin(e.StartToken, endToken)); rhss.Add(rhs); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
                                    (. endTok = t; var rhs2 = new ExprRhs(e, attrs); rhs2.SetOrigin(new SourceOrigin(e.StartToken, endToken)); rhss.Add(rhs2);
-                                      SemErr(ErrorId.p_missing_semicolon, new SourceOrigin(startToken, t), "missing semicolon at end of statement");
+                                      if (e is NameSegment ns && (ns.Name == "val" || ns.Name == "let")) {
+                                        SemErr(ErrorId.p_mistaken_statement_keyword, new SourceOrigin(startToken, t),
+                                          $"'{ns.Name}' is not a keyword in Dafny; to declare a local variable, use 'var'");
+                                      } else {
+                                        SemErr(ErrorId.p_missing_semicolon, new SourceOrigin(startToken, t), "missing semicolon at end of statement");
+                                      }
                                    .)   
   )
 | ":-"                             (. operatorToken = t; startToken = t; .)
@@ -3858,7 +3863,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
 LambdaSpec<.ref List<FrameExpression> reads, ref Attributes readsAttrs, ref Expression req.>
 = { ReadsClause<reads, ref readsAttrs, true, false, true, false>
   | "requires"                             (. Expression ee; .)
-    Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(new SourceOrigin(req.StartToken, ee.EndToken, req.Center), BinaryExpr.Opcode.And, req, ee); .)
+    Expression<out ee, true, false, allowDecreasesTo: false>        (. req = req == null ? ee : new BinaryExpr(new SourceOrigin(req.StartToken, ee.EndToken, req.Center), BinaryExpr.Opcode.And, req, ee); .)
   }
   .
 

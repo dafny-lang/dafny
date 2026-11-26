@@ -1,0 +1,6 @@
+﻿git-issue-6635.dfy(8,0): Error: a postcondition could not be proved on this return path
+git-issue-6635.dfy(7,10): Related location: this is the postcondition that could not be proved
+git-issue-6635.dfy(14,0): Error: a postcondition could not be proved on this return path
+git-issue-6635.dfy(12,10): Related location: this is the postcondition that could not be proved
+
+Dafny program verifier finished with 0 verified, 2 errors
