@@ -40,8 +40,8 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         wget https://github.com/jgm/pandoc/releases/download/3.1.7/pandoc-3.1.7-1-amd64.deb
-        sudo dpkg -i *.deb
-        rm -rf *.deb
+        sudo dpkg -i ./*.deb
+        rm -rf ./*.deb
         pandoc -v
         sudo gem install rouge
     - name: Install pandoc - MacOS

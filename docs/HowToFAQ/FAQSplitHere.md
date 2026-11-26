@@ -32,4 +32,4 @@ is a final assertion batch. This attribute is usually used to break out if-alter
 `{:split_here}` creates an assertion batch of all assertions strictly before the attributed statement and another of the assertions at or after
 the attributed statement. This attribute is usually used to break up long stretches of straight-line code.
 
-Some examples that show how this works for multiple nested blocks are given in the reference manual, [here](../../DafnyRef/DafnyRef#sec-focus) and [here](../../DafnyRef/DafnyRef#sec-split_here).
+Some examples that show how this works for multiple nested blocks are given in the reference manual, [here](../DafnyRef/DafnyRef#sec-focus) and [here](../DafnyRef/DafnyRef#sec-split_here).

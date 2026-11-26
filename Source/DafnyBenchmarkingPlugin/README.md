@@ -10,5 +10,5 @@ but support for the other languages will be added in the future.
 
 ## Example
 
-See [this regression test](../../Test/benchmarks/sequence-race/SequenceRace.dfy) 
+See [this regression test](../IntegrationTests/TestFiles/LitTests/LitTest/benchmarks/sequence-race/SequenceRace.dfy) 
 for a race condition in the Dafny runtime.

@@ -35,4 +35,4 @@ Dafny also sets these non-default Boogie options:
 These all however are subject to change, especially as the version of Boogie used changes
 
 In addition, Dafny sends a variety of other command-line options to Boogie, depending on selections by the user and heuristics built-in to Dafny.
-Some guide to the available (Dafny) options that are passed through to Boogie are [in the reference manual](../../DafnyRef/DafnyRef#sec-controlling-boogie).
+Some guide to the available (Dafny) options that are passed through to Boogie are [in the reference manual](../DafnyRef/DafnyRef#sec-controlling-boogie).
