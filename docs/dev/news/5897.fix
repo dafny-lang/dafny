@@ -1,0 +1,1 @@
+Comprehensions over a native newtype, such as `set i: u64 | 0 <= i < n`, now iterate between their bounds instead of over the whole type, which never finished for 64-bit types

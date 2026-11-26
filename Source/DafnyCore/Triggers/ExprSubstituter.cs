@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny {
   public class ExprSubstituter : Substituter {
@@ -60,12 +61,19 @@ namespace Microsoft.Dafny {
           newBounds.Add(new ExactBoundedPool(entry.Item1));
         }
 
+        // The others' bounds can mention an added variable, so each comes right after the variables its term mentions.
+        var newOrder = (e.EnumerationOrder ?? Enumerable.Range(0, e.BoundVars.Count)).ToList();
+        for (var k = e.BoundVars.Count; k < newBoundVars.Count; k++) {
+          var term = usedSubstMap[k - e.BoundVars.Count].Item1;
+          var last = newOrder.FindLastIndex(i => FreeVariablesUtil.ContainsFreeVariable(term, false, newBoundVars[i]));
+          newOrder.Insert(last + 1, k);
+        }
         QuantifierExpr newExpr;
         if (expr is ForallExpr) {
-          newExpr = new ForallExpr(e.Origin, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          newExpr = new ForallExpr(e.Origin, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds, EnumerationOrder = newOrder };
         } else {
           Contract.Assert(expr is ExistsExpr);
-          newExpr = new ExistsExpr(e.Origin, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          newExpr = new ExistsExpr(e.Origin, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds, EnumerationOrder = newOrder };
         }
         usedSubstMap.Clear();
 
