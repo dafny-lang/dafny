@@ -1,0 +1,1 @@
+Fix an overflow when text or JSON verification logs sum resource counts above Int32.MaxValue.
