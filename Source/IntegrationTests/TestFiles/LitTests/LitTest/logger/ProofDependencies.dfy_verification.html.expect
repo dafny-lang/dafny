@@ -317,7 +317,7 @@ method {:testEntry} MultiPartRedundantRequiresMethod(x: int) returns (r: int)
 </span><span class="na" id="300:1">  requires </span><span class="pc" id="300:12">x == 11</span><span class="na" id="300:19"> // implied by the previous two, but neither individually
   ensures </span><span class="pc" id="301:11">r == 11
 </span><span class="na" id="302:1">{
-  </span><span class="pc" id="303:3">return x;
+  </span><span class="fc" id="303:3">return x;
 </span><span class="nc" id="304:1">}
 
 </span><span class="na" id="306:1">// Contradiction between three different requires clauses, with at least one of
@@ -338,7 +338,7 @@ method {:testEntry} MultiPartContradictoryRequiresMethod(x: int, y: int) returns
 </span><span class="na" id="321:1">  requires </span><span class="nc" id="321:12">y != 11</span><span class="na" id="321:19"> // contradicts the previous two
   ensures </span><span class="pc" id="322:11">r == 11</span><span class="na" id="322:18"> // provable from first two preconditions, but shouldn't be covered
 {
-  </span><span class="pc" id="324:3">return x;
+  </span><span class="fc" id="324:3">return x;
 </span><span class="nc" id="325:1">}
 
 </span><span class="na" id="327:1">function {:testEntry} ContradictoryEnsuresClauseFunc(x: int): (r: int)
