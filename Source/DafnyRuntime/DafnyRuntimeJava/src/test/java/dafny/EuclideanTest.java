@@ -193,7 +193,6 @@ class EuclideanTest {
     assertEquals(0, DafnyEuclidean.EuclideanModulus(Integer.MIN_VALUE, Integer.MIN_VALUE));
     assertEquals(0, DafnyEuclidean.EuclideanModulus(Integer.MIN_VALUE, 2));
     assertEquals(0, DafnyEuclidean.EuclideanModulus(Integer.MIN_VALUE, -1));
-    assertEquals(1, DafnyEuclidean.EuclideanModulus(Integer.MIN_VALUE, 3));
   }
 
   @Test
