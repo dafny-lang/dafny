@@ -53,6 +53,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     MethodSelect = (MemberSelectExpr)cloner.CloneExpr(original.MethodSelect);
     Lhs = original.Lhs.Select(cloner.CloneExpr).ToList();
     Bindings = new ActualBindings(cloner, original.Bindings);
+    OriginalInitialLhs = cloner.CloneExpr(original.OriginalInitialLhs);
   }
 
   /// <summary>

@@ -1,0 +1,4 @@
+﻿git-issue-6567.dfy(5,2): Error: 'val' is not a keyword in Dafny; to declare a local variable, use 'var'
+git-issue-6567.dfy(5,6): Error: invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)
+git-issue-6567.dfy(5,9): Error: rbrace expected
+3 parse errors detected in git-issue-6567.dfy

@@ -41,6 +41,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public AssignStatement(Cloner cloner, AssignStatement original) : base(cloner, original) {
     Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
     CanMutateKnownState = original.CanMutateKnownState;
+    OriginalInitialLhs = cloner.CloneExpr(original.OriginalInitialLhs);
     if (cloner.CloneResolvedFields) {
       ResolvedStatements = original.ResolvedStatements?.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }

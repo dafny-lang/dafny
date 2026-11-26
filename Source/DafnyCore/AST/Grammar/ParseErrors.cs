@@ -90,6 +90,7 @@ public class ParseErrors {
     p_no_double_wild_frame_expression,
     p_missing_semicolon,
     p_invalid_colon,
+    p_mistaken_statement_keyword,
     p_initializing_display_only_for_1D_arrays,
     p_no_equal_for_initializing,
     p_no_patterns_and_such_that,
