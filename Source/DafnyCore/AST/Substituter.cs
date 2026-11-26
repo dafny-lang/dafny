@@ -809,7 +809,11 @@ namespace Microsoft.Dafny {
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
         var guard = s.IsBindingGuard ? SubstituteComprehensionExpr((ExistsExpr)s.Guard, false) : Substitute(s.Guard);
-        r = new IfStmt(s.Origin, s.IsBindingGuard, guard, SubstBlockStmt(s.Thn), SubstStmt(s.Els));
+        var thn = SubstBlockStmt(s.Thn);
+        if (s.IsBindingGuard) {
+          ((ExistsExpr)s.Guard).BoundVars.ForEach(bv => substMap.Remove(bv));
+        }
+        r = new IfStmt(s.Origin, s.IsBindingGuard, guard, thn, SubstStmt(s.Els));
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         r = new AlternativeStmt(s.Origin, s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);
@@ -942,7 +946,11 @@ namespace Microsoft.Dafny {
     protected GuardedAlternative SubstGuardedAlternative(GuardedAlternative alt) {
       Contract.Requires(alt != null);
       var guard = alt.IsBindingGuard ? SubstituteComprehensionExpr((ExistsExpr)alt.Guard, false) : Substitute(alt.Guard);
-      return new GuardedAlternative(alt.Origin, alt.IsBindingGuard, guard, alt.Body.ConvertAll(SubstStmt));
+      var body = alt.Body.ConvertAll(SubstStmt);
+      if (alt.IsBindingGuard) {
+        ((ExistsExpr)alt.Guard).BoundVars.ForEach(bv => substMap.Remove(bv));
+      }
+      return new GuardedAlternative(alt.Origin, alt.IsBindingGuard, guard, body);
     }
 
     protected AttributedExpression SubstMayBeFreeExpr(AttributedExpression expr) {
@@ -1044,7 +1052,8 @@ namespace Microsoft.Dafny {
     /// Substitution in a comprehension expression. 
     /// Parameter 'forceSubstituteOfBoundVars' should be set to false if and only if
     /// the expression is a binding guard, in which case a bound variable is introduced.
-    /// Such a variable must not be substituted. 
+    /// Such a variable must not be substituted. If the substitution renames it, the statements
+    /// that the guard guards use the new one too, so the caller undoes the change to substMap.
     /// </summary>
     protected Expression SubstituteComprehensionExpr(ComprehensionExpr expr, bool forceSubstituteOfBoundVars) {
 
@@ -1088,12 +1097,17 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); // unexpected ComprehensionExpr
         }
 
-        ((ComprehensionExpr)newExpr).Bounds = newBounds;
+        var copy = (ComprehensionExpr)newExpr;
+        // Substitute sets the type of what it returns, but a statement's binding guard comes here directly
+        copy.Type = e.Type.Subst(typeMap);
+        copy.Bounds = newBounds;
       }
 
       // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.BoundVars)
-      foreach (var bv in e.BoundVars) {
-        substMap.Remove(bv);
+      if (forceSubstituteOfBoundVars) {
+        foreach (var bv in e.BoundVars) {
+          substMap.Remove(bv);
+        }
       }
 
       return newExpr;
