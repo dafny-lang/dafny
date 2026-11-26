@@ -1,0 +1,1 @@
+Fix crash in `:-` statements whose first left-hand side is an array element

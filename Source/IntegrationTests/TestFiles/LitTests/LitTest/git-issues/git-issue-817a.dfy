@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=false --general-newtypes=false
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
 
 datatype Result<T> = Failure(msg: string) | Success(value: T) {
   predicate IsFailure() { Failure? }
