@@ -14,7 +14,10 @@ else
 	VIRTUALENV_PYTHON = $(VIRTUALENV)/bin/python
 endif
 
-all: check-system-module
+all: check-system-module test
+
+test:
+	python3 -m unittest discover -s . -p "test_*.py"
 
 build-system-module:
 	$(DAFNY) translate py --no-verify --use-basename-for-filename --system-module:OmitAllOtherModules ../systemModulePopulator.dfy --output:../obj/systemModulePopulator
