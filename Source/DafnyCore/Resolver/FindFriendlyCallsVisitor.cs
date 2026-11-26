@@ -31,6 +31,11 @@ class FindFriendlyCallsVisitor : ResolverTopDownVisitor<CallingPosition> {
     }
   }
 
+  protected bool IsNonFriendlyQuantifier(QuantifierExpr e, CallingPosition cp) {
+    var cpos = IsCoContext ? cp : Invert(cp);
+    return (cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr);
+  }
+
   protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
     if (expr is UnaryOpExpr) {
       var e = (UnaryOpExpr)expr;
@@ -89,14 +94,11 @@ class FindFriendlyCallsVisitor : ResolverTopDownVisitor<CallingPosition> {
     } else if (expr is QuantifierExpr) {
       var e = (QuantifierExpr)expr;
       Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
-      var cpos = IsCoContext ? cp : Invert(cp);
-      if (ContinuityIsImportant) {
-        if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
-          if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & BoundedPool.PoolVirtues.Finite) == 0)) {
-            // To ensure continuity of extreme predicates, don't allow calls under an existential (resp. universal) quantifier
-            // for greatest (resp. least) predicates).
-            cp = CallingPosition.Neither;
-          }
+      if (ContinuityIsImportant && IsNonFriendlyQuantifier(e, cp)) {
+        if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & BoundedPool.PoolVirtues.Finite) == 0)) {
+          // To ensure continuity of extreme predicates, don't allow calls under an existential (resp. universal) quantifier
+          // for greatest (resp. least) predicates).
+          cp = CallingPosition.Neither;
         }
       }
       Visit(e.LogicalBody(), cp);

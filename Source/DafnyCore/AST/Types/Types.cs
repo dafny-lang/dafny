@@ -896,6 +896,43 @@ public abstract class Type : NodeWithOrigin {
   public bool MayInvolveReferences => ComputeMayInvolveReferences(null);
 
   /// <summary>
+  /// True if values of this type may contain an ORDINAL, so that there may be as many of them as there
+  /// are ordinals. That includes any type that may stand for such a type.
+  /// </summary>
+  public bool MayInvolveOrdinal => ComputeMayInvolveOrdinal(null);
+
+  /// <summary>
+  /// Auxiliary method for MayInvolveOrdinal, the ORDINAL analogue of ComputeMayInvolveReferences.
+  /// "visitedDatatypes" plays the same role as it does there, and is documented on it.
+  /// </summary>
+  private bool ComputeMayInvolveOrdinal(ISet<DatatypeDecl> /*?*/ visitedDatatypes) {
+    var t = NormalizeToAncestorType();
+    if (t.IsBigOrdinalType) {
+      return true;
+    }
+    if (t is UserDefinedType { ResolvedClass: DatatypeDecl dt } udt) {
+      if (udt.TypeArgs.Any(ta => ta.ComputeMayInvolveOrdinal(visitedDatatypes))) {
+        return true;
+      }
+      if (visitedDatatypes != null && visitedDatatypes.Contains(dt)) {
+        return false;
+      }
+      visitedDatatypes ??= new HashSet<DatatypeDecl>();
+      visitedDatatypes.Add(dt);
+      return dt.Ctors.Any(ctor => ctor.Formals.Any(f => f.Type.ComputeMayInvolveOrdinal(visitedDatatypes)));
+    }
+    if (t is UserDefinedType { ResolvedClass: TypeParameter }) {
+      // In the second phase this is a datatype's own formal parameter, whose actuals were checked above
+      return visitedDatatypes == null;
+    }
+    if (t is UserDefinedType { ResolvedClass: AbstractTypeDecl or TypeSynonymDeclBase or TraitDecl { IsReferenceTypeDecl: false } }) {
+      // hidden from this scope, abstract, or a trait that any datatype may extend
+      return true;
+    }
+    return t.TypeArgs.Any(ta => ta.ComputeMayInvolveOrdinal(visitedDatatypes));
+  }
+
+  /// <summary>
   /// This is an auxiliary method used to compute the value of MayInvolveReferences (above). It is
   /// needed to handle datatypes, because determining whether or not a datatype contains references
   /// involves recursing over the types in the datatype's constructor parameters. Since those types
