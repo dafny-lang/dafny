@@ -296,7 +296,6 @@ internal class TriggersCollector {
   /// Collect terms in the body of the subexpressions of the argument that look like quantifiers. The results of this function can contain duplicate terms.
   /// </summary>
   internal List<TriggerTerm> CollectTriggers(ComprehensionExpr quantifier) {
-    Contract.Requires(!(quantifier is QuantifierExpr) || ((QuantifierExpr)quantifier).SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
     // NOTE: We could check for existing trigger attributes and return that instead
     return Annotate(quantifier).PrivateTerms;
   }

@@ -280,7 +280,6 @@ public class ExpressionTester {
           what = mapComprehension.Finite ? "map comprehensions" : "imap comprehensions";
         } else {
           Contract.Assume(comprehensionExpr is QuantifierExpr);  // otherwise, unexpected ComprehensionExpr (since LambdaExpr is handled separately above)
-          Contract.Assert(((QuantifierExpr)comprehensionExpr).SplitQuantifier == null); // No split quantifiers during resolution
           what = "quantifiers";
         }
         foreach (var bv in uncompilableBoundVars) {
@@ -609,9 +608,6 @@ public class ExpressionTester {
       }
     } else if (expr is QuantifierExpr) {
       var e = (QuantifierExpr)expr;
-      if (e.SplitQuantifier != null) {
-        return UsesSpecFeatures(e.SplitQuantifierExpression);
-      }
       return e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.LogicalBody());
     } else if (expr is SetComprehension) {
       var e = (SetComprehension)expr;
