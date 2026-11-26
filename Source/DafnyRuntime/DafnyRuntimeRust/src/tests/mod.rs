@@ -1321,4 +1321,237 @@ mod tests {
         assert_eq!(handle.join().unwrap(), result as i32);
         assert_eq!(result as i32, obj.as_ref() as *const ClassWrapper<i32> as i32);
     }
+
+    // Regression tests for issue #6620: deeply concatenated sequences must be
+    // safe to materialize, traverse, and destroy in any concatenation shape.
+
+    /// Builds `((s0 + [1]) + [2]) + ...`, the shape produced by `s := s + [i]`.
+    fn build_deep_left(n: i32) -> Sequence<i32> {
+        let mut s = seq![0i32];
+        for i in 1..n {
+            let t = seq![i];
+            s = s.concat(&t);
+        }
+        s
+    }
+
+    /// Builds `[0] + ([1] + (... + [n-1]))`, the shape produced by prepending
+    /// with `s := [i] + s`, with values kept in ascending order.
+    fn build_deep_right(n: i32) -> Sequence<i32> {
+        let mut s = seq![n - 1];
+        for i in (0..n - 1).rev() {
+            let t = seq![i];
+            s = t.concat(&s);
+        }
+        s
+    }
+
+    fn build_deep_balanced(lo: i32, hi: i32) -> Sequence<i32> {
+        if hi - lo <= 1 {
+            seq![lo]
+        } else {
+            let mid = lo + (hi - lo) / 2;
+            build_deep_balanced(lo, mid).concat(&build_deep_balanced(mid, hi))
+        }
+    }
+
+    /// Concatenates `groups` left-deep chains of `per_chain` elements in a
+    /// balanced tree, exercising a shape that mixes both directions.
+    fn build_deep_mixed(groups: i32, per_chain: i32) -> Sequence<i32> {
+        let chains: Vec<Sequence<i32>> = (0..groups)
+            .map(|g| {
+                let mut s = seq![g * per_chain];
+                for i in 1..per_chain {
+                    let t = seq![g * per_chain + i];
+                    s = s.concat(&t);
+                }
+                s
+            })
+            .collect();
+        fn concat_balanced(chains: &[Sequence<i32>]) -> Sequence<i32> {
+            if chains.len() == 1 {
+                chains[0].clone()
+            } else {
+                let mid = chains.len() / 2;
+                concat_balanced(&chains[..mid]).concat(&concat_balanced(&chains[mid..]))
+            }
+        }
+        concat_balanced(&chains)
+    }
+
+    /// Verifies cardinality, first/middle/last indexing (before and after the
+    /// cache is populated), full iteration, equality, and content order.
+    fn check_deep_sequence(s: &Sequence<i32>, n: i32) {
+        assert_eq!(s.cardinality_usize() as i32, n);
+        // These accesses materialize the sequence.
+        assert_eq!(s.get_usize(0), 0);
+        assert_eq!(s.get_usize((n / 2) as usize), n / 2);
+        assert_eq!(s.get_usize((n - 1) as usize), n - 1);
+        // These ones read the cached materialization.
+        assert_eq!(s.get_usize(0), 0);
+        assert_eq!(s.get_usize((n - 1) as usize), n - 1);
+        let expected: Vec<i32> = (0..n).collect();
+        assert_eq!(s.to_array().as_ref(), &expected);
+        for (i, value) in s.iter().enumerate() {
+            assert_eq!(value, i as i32);
+        }
+        let other = Sequence::<i32>::from_array_owned((0..n).collect());
+        assert!(*s == other);
+    }
+
+    #[test]
+    fn test_sequence_deep_left() {
+        let n = 10_000;
+        let s = build_deep_left(n);
+        check_deep_sequence(&s, n);
+        // Releasing a materialized deep sequence must stay safe as well.
+        drop(s);
+    }
+
+    #[test]
+    fn test_sequence_deep_right() {
+        let n = 10_000;
+        let s = build_deep_right(n);
+        check_deep_sequence(&s, n);
+        drop(s);
+    }
+
+    #[test]
+    fn test_sequence_deep_balanced() {
+        let n = 4_096;
+        let s = build_deep_balanced(0, n);
+        check_deep_sequence(&s, n);
+        drop(s);
+    }
+
+    #[test]
+    fn test_sequence_deep_mixed() {
+        let n = 8_000;
+        let s = build_deep_mixed(16, 500);
+        check_deep_sequence(&s, n);
+        drop(s);
+    }
+
+    #[test]
+    fn test_sequence_deep_unmaterialized_drop() {
+        // Reading only the cardinality never materializes the tree; releasing
+        // it afterwards must dismantle the nodes iteratively.
+        for n in [1_000, 10_000] {
+            let s = build_deep_left(n);
+            assert_eq!(s.cardinality_usize() as i32, n);
+            drop(s);
+            let s = build_deep_right(n);
+            assert_eq!(s.cardinality_usize() as i32, n);
+            drop(s);
+        }
+    }
+
+    #[test]
+    fn test_sequence_shared_subtrees_survive_partial_release() {
+        let n = 500;
+        let shared = build_deep_left(n);
+        let s1 = shared.clone(); // second owner of every node
+        let s2 = shared.concat(&seq![1_000i32]); // separate root above a clone
+        assert_eq!(s2.cardinality_usize() as i32, n + 1);
+        // Release the other owners without materializing anything.
+        drop(s2);
+        drop(shared);
+        // The last owner must still hold the full deep tree.
+        check_deep_sequence(&s1, n);
+        drop(s1);
+    }
+
+    #[test]
+    fn test_sequence_shared_subtrees_after_materialization() {
+        let n = 500;
+        let shared = build_deep_right(n);
+        let s1 = shared.clone();
+        let array = shared.to_array(); // materializes one owner
+        assert_eq!(array.len() as i32, n);
+        // The other owner reads the same elements through the shared cache.
+        check_deep_sequence(&s1, n);
+        drop(shared);
+        drop(s1);
+    }
+
+    #[cfg(feature = "sync")]
+    #[test]
+    fn test_sequence_deep_sync_concurrent_materialization() {
+        let n = 5_000;
+        let s = build_deep_left(n);
+        let s1 = s.clone();
+        let s2 = s.clone();
+        let handle1 = thread::spawn(move || {
+            let array = s1.to_array();
+            array[4_999]
+        });
+        let handle2 = thread::spawn(move || {
+            let array = s2.to_array();
+            array[0]
+        });
+        assert_eq!(handle1.join().unwrap(), 4_999);
+        assert_eq!(handle2.join().unwrap(), 0);
+        check_deep_sequence(&s, n);
+        drop(s);
+    }
+
+    // The depth reported by issue #6620; the unfixed runtime aborts at half
+    // this depth in debug builds, so these helpers detect a regression.
+    const ISSUE_6620_STRESS_DEPTH: i32 = 100_000;
+
+    #[test]
+    #[ignore] // run only in isolation, through test_sequence_deep_stress_subprocess
+    fn stress_deep_left_materialize() {
+        let s = build_deep_left(ISSUE_6620_STRESS_DEPTH);
+        assert_eq!(
+            s.get_usize(ISSUE_6620_STRESS_DEPTH as usize - 1),
+            ISSUE_6620_STRESS_DEPTH - 1
+        );
+    }
+
+    #[test]
+    #[ignore] // run only in isolation, through test_sequence_deep_stress_subprocess
+    fn stress_deep_right_materialize() {
+        let s = build_deep_right(ISSUE_6620_STRESS_DEPTH);
+        assert_eq!(s.get_usize(0), 0);
+    }
+
+    #[test]
+    #[ignore] // run only in isolation, through test_sequence_deep_stress_subprocess
+    fn stress_deep_left_drop() {
+        let s = build_deep_left(ISSUE_6620_STRESS_DEPTH);
+        assert_eq!(s.cardinality_usize() as i32, ISSUE_6620_STRESS_DEPTH);
+        drop(s);
+    }
+
+    #[test]
+    #[ignore] // run only in isolation, through test_sequence_deep_stress_subprocess
+    fn stress_deep_right_drop() {
+        let s = build_deep_right(ISSUE_6620_STRESS_DEPTH);
+        assert_eq!(s.cardinality_usize() as i32, ISSUE_6620_STRESS_DEPTH);
+        drop(s);
+    }
+
+    /// Stress checks that abort the process if a stack-unsafe concatenation
+    /// path is reintroduced run in child processes, so that a regression
+    /// cannot take down the whole test runner.
+    #[test]
+    fn test_sequence_deep_stress_subprocess() {
+        let exe = std::env::current_exe().expect("test executable");
+        for name in [
+            "tests::stress_deep_left_materialize",
+            "tests::stress_deep_right_materialize",
+            "tests::stress_deep_left_drop",
+            "tests::stress_deep_right_drop",
+        ] {
+            let status = std::process::Command::new(&exe)
+                .args(["--exact", name, "--ignored", "--test-threads", "1"])
+                .status()
+                .expect("spawn stress helper");
+            assert!(
+                status.success(),
+                "stress helper {name} did not complete successfully: {status}"
+            );
+        }
+    }
 }
