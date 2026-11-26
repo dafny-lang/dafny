@@ -37,7 +37,7 @@ jobs:
     - name: Perform smoke tests on each platform
       run: |
         npm install bignumber.js
-        ver=`dafny -version`
+        ver=$(dafny -version)
         ver=${ver[1]}
         if [[ "$ver" < "4.0.0.99999" ]] ; then \
           echo "4.0 or prior" ;\
@@ -47,4 +47,4 @@ jobs:
           cp /usr/local/Cellar/dafny/*/libexec/quicktest.sh . ;\
         fi
         chmod +x quicktest.sh
-        ./quicktest.sh `which dafny`
+        ./quicktest.sh "$(which dafny)"
