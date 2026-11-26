@@ -15,6 +15,7 @@ public class CompilationManagerTest {
   public async Task CancelUnstartedCompilationLeadsToCancelledTasks() {
     var dafnyOptions = DafnyOptions.CreateUsingOldParser(TextWriter.Null, TextReader.Null);
     var compilationManager = new Compilation(new Mock<ILogger<Compilation>>().Object,
+      new Mock<IPerformanceLogger>().Object,
       new Mock<IFileSystem>().Object,
       new Mock<ITextDocumentLoader>().Object,
       new Mock<IProgramVerifier>().Object,
