@@ -1,0 +1,1 @@
+The verifier now checks that the left-hand side receiving `Extract()` in a `:-` statement differs from the other left-hand sides also when the right-hand side is a list of expressions.
