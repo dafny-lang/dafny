@@ -1771,7 +1771,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
               r = BplAnd(r, correctConstructor);
             }
           } else if (e.Member is ConstantField { Rhs: { } rhs } && BoogieGenerator.RevealedInScope(e.Member)) {
-            r = CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), null));
+            // The type arguments are substituted too: the right-hand side is stated in terms of the enclosing
+            // type's type parameters, which are not in scope here (and BplForallTrim may keep a bound
+            // variable's type antecedent, which mentions them).
+            r = CanCallAssumption(Substitute(rhs, e.Obj, new Dictionary<IVariable, Expression>(), e.TypeArgumentSubstitutionsWithParents()));
           }
           return r;
         } else if (expr is SeqSelectExpr) {
@@ -1911,10 +1914,14 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             : new ExpressionTranslator(this, heap);
 
           Dictionary<IVariable, Expression> subst = new Dictionary<IVariable, Expression>();
+          var possiblyEmpty = new HashSet<Boogie.Variable>();
           foreach (var bv in e.BoundVars) {
             Boogie.Expr ve; var yVar = BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), BoogieGenerator.TrType(bv.Type), out ve);
             var wh = BoogieGenerator.GetWhereClause(bv.Origin, new Boogie.IdentifierExpr(bv.Origin, yVar), bv.Type, et, NOALLOC);
             bvarsAndAntecedents.Add(Tuple.Create<Boogie.Variable, Boogie.Expr>(yVar, wh));
+            if (!bv.Type.IsNonempty) {
+              possiblyEmpty.Add(yVar);
+            }
             subst[bv] = new BoogieWrapper(ve, bv.Type);
           }
 
@@ -1932,7 +1939,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           //TRIG (forall $l#0#heap#0: Heap, $l#0#x#0: int :: true)
           //TRIG (forall $l#0#heap#0: Heap, $l#0#t#0: DatatypeType :: _module.__default.TMap#canCall(_module._default.TMap$A, _module._default.TMap$B, $l#0#heap#0, $l#0#t#0, f#0))
           //TRIG (forall $l#4#heap#0: Heap, $l#4#x#0: Box :: _0_Monad.__default.Bind#canCall(Monad._default.Associativity$B, Monad._default.Associativity$C, $l#4#heap#0, Apply1(Monad._default.Associativity$A, #$M$B, f#0, $l#4#heap#0, $l#4#x#0), g#0))
-          return BplForallTrim(bvarsAndAntecedents, null, canCall); // L_TRIGGER
+          return BplForallTrim(bvarsAndAntecedents, null, canCall, possiblyEmpty); // L_TRIGGER
 
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
@@ -1980,9 +1987,11 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           }
           // Create a list of all possible bound variables
           var bvarsAndAntecedents = TrBoundVariables_SeparateWhereClauses(e.BoundVars);
+          var possiblyEmpty = new HashSet<Boogie.Variable>(e.BoundVars.Zip(bvarsAndAntecedents)
+            .Where(pair => !pair.First.Type.IsNonempty).Select(pair => pair.Second.Item1));
           // Produce the quantified CanCall expression, with a suitably reduced set of bound variables
           var tr = BoogieGenerator.TrTrigger(this, e.Attributes, expr.Origin);
-          return BplForallTrim(bvarsAndAntecedents, tr, canCall);
+          return BplForallTrim(bvarsAndAntecedents, tr, canCall, possiblyEmpty);
 
         } else if (expr is StmtExpr) {
           var e = (StmtExpr)expr;
