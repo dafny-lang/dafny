@@ -1,6 +1,16 @@
 module StringsExamples {
   import opened Std.Strings
   import opened Std.Wrappers
+  import H = Std.Strings.HexConversion
+
+  lemma RoundTrips(n: nat, i: int) {
+    H.LemmaIntRoundTrip(i, '-');
+    assert H.ToInt(H.OfInt(i, '-'), '-') == i;
+    LemmaNatRoundTrip(n);
+    assert ToNat(OfNat(n)) == n;
+    LemmaIntRoundTrip(i);
+    assert ToInt(OfInt(i)) == i;
+  }
 
   @Test
   method TestOfInt() {
@@ -61,5 +71,21 @@ module StringsExamples {
   method TestOfChar() {
     expect OfChar('c') == "c";
     expect OfChar('f') == "f";
+  }
+}
+
+module BinaryConversionExample refines Std.Strings.ParametricConversion {
+  type Char = char
+  const chars := "01"
+  const charToDigit := map['0' := 0, '1' := 1]
+
+  lemma CharsConsistent()
+    ensures forall c <- chars :: c in charToDigit && chars[charToDigit[c]] == c
+  {}
+
+  lemma RoundTrip(n: nat) {
+    assert DigitCharsConsistent();
+    LemmaOfNatToNat(n);
+    assert ToNat(OfNat(n)) == n;
   }
 }

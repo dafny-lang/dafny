@@ -1696,7 +1696,8 @@ namespace Microsoft.Dafny.Compilers {
         return "_dafny.ZeroReal";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? "0" : "_dafny.Zero";
+        // A bare zero becomes an int when boxed into interface{} for arrays or tuples.
+        return t.NativeType != null ? GetNativeTypeName(t.NativeType) + "(0)" : "_dafny.Zero";
       } else if (xType is SetType) {
         return "_dafny.EmptySet";
       } else if (xType is MultiSetType) {

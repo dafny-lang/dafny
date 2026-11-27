@@ -166,7 +166,7 @@ After the compiler dependencies are installed, you can run a quick test of the i
 The .NET [NuGet](https://www.nuget.org/) repository collects .NET libraries and tools for easy installation. Dafny is available on NuGet, and can be installed as follows:
 
 * Install .NET 8.0 as described for your platform in one of the subsections above.
-* Install a binary version of Z3 4.12.1 for your platform from its [GitHub releases page](https://github.com/Z3Prover/z3/releases/tag/Z3-4.12.1) and put the `z3` executable in your `PATH`.
+* Install a binary version of Z3 4.12.1 for your platform from its [GitHub releases page](https://github.com/Z3Prover/z3/releases/tag/z3-4.12.1) and put the `z3` executable in your `PATH`.
 * Install Dafny using `dotnet tool install --global dafny` (or leave out the `--global` to use with `dotnet tool run` from the source directory of a .NET project).
 
 
@@ -225,7 +225,6 @@ To set up Dafny to compile to Java:
   or install Amazon Corretto from https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/what-is-corretto-11.html
   (see the platform-specific links on the left of that page)
   or, on a Mac, `brew install java`
-* Install [gradle](https://gradle.org/) or, on a Mac, `brew install gradle`
 
 To separately compile and run your program for Java:
 - `dafny build -t:java MyProgram.dfy`

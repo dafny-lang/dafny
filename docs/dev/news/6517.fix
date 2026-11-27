@@ -1,0 +1,1 @@
+Verification logs and the printed counterexample no longer depend on verification timing: a method's assertion batches are ordered by `vcNum` and its scopes by name, and methods by source position

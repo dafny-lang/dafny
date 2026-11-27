@@ -87,6 +87,31 @@ void dafny_print<bool>(bool x) {
   }
 }
 
+template<>
+inline void dafny_print<uint8_t>(uint8_t x) { std::cout << (unsigned)x; }
+template<>
+inline void dafny_print<int8_t>(int8_t x) { std::cout << (int)x; }
+
+// Print a single value to an arbitrary ostream, used by the collection/tuple
+// printers below. Mirrors dafny_print's bool special-casing (a raw `os << bool`
+// would emit 1/0 instead of true/false, diverging from the other backends).
+template<typename T>
+inline void dafny_print_to(std::ostream& os, const T& x) {
+  os << x;
+}
+template<>
+inline void dafny_print_to<bool>(std::ostream& os, const bool& x) {
+  os << (x ? "true" : "false");
+}
+template<>
+inline void dafny_print_to<uint8_t>(std::ostream& os, const uint8_t& x) {
+  os << (unsigned)x;
+}
+template<>
+inline void dafny_print_to<int8_t>(std::ostream& os, const int8_t& x) {
+  os << (int)x;
+}
+
 template<typename T>
 void dafny_print(T* x) {
   std::cout << (x ? "true" : "false");
@@ -135,6 +160,14 @@ struct get_default<unsigned long long> {
   static unsigned long long call() { return 0; }
 };
 
+template<> struct get_default<char> { static char call() { return 0; } };
+template<> struct get_default<signed char> { static signed char call() { return 0; } };
+template<> struct get_default<unsigned char> { static unsigned char call() { return 0; } };
+template<> struct get_default<short> { static short call() { return 0; } };
+template<> struct get_default<unsigned short> { static unsigned short call() { return 0; } };
+template<> struct get_default<long> { static long call() { return 0; } };
+template<> struct get_default<long long> { static long long call() { return 0; } };
+
 template<typename U>
 struct get_default<std::shared_ptr<U>> {
   static std::shared_ptr<U> call() {
@@ -164,20 +197,23 @@ struct Tuple{
   StdTuple values_;
 };
 
-template <typename TupleType, int Index = TupleType::size() - 1 >
-std::ostream& PrintElements(const TupleType& tuple, std::ostream& out) {
-  if (Index != 0) {
-    PrintElements<TupleType, Index - 1>(tuple, out);
-  }
-  return out << std::get<Index>(tuple);
+template <typename... Types>
+struct get_default<Tuple<Types...>> {
+  static Tuple<Types...> call() { return Tuple<Types...>(); }
+};
+
+template <typename StdTuple, std::size_t... Is>
+inline void dafny_print_tuple_elems(std::ostream& out, const StdTuple& t, std::index_sequence<Is...>) {
+  std::size_t i = 0;
+  ((out << (i++ ? ", " : ""), dafny_print_to(out, std::get<Is>(t))), ...);
 }
 
-// Use a separate head template parameter to force Tuple to have at least one
-// element. This prevents the compiler from eagerly expanding Tail as an empty
-// list and causing compilation errors.
 template <typename Head, typename... Tail>
 inline std::ostream& operator<<(std::ostream& out, const Tuple<Head, Tail...>& val){
-  return PrintElements(val.values_, out);
+  out << "(";
+  dafny_print_tuple_elems(out, val.values_,
+                          std::make_index_sequence<1 + sizeof...(Tail)>{});
+  return out << ")";
 }
 
 /*********************************************************
@@ -268,6 +304,13 @@ struct get_default<DafnyArray<U>> {
     return ret;
   }
 };
+
+// Datatype printers print every field, so an array field needs an operator<<.
+template<typename U>
+inline std::ostream& operator<<(std::ostream& out, const DafnyArray<U>& arr) {
+  out << "array[" << arr.size() << "]";
+  return out;
+}
 
 /*********************************************************
  *  SEQUENCES                                            *
@@ -443,7 +486,7 @@ std::ostream& operator<<(std::ostream& os, const DafnySequence<T>& s)
 {
   os << "[";
   for (size_t i = 0; i < s.size(); i++) {
-    os << s.select(i);
+    dafny_print_to(os, s.select(i));
     if (i != s.size() - 1) {
       os << ", ";
     }
@@ -611,10 +654,14 @@ bool operator!=(const DafnySet<U> &s0, const DafnySet<U> &s1) {
 
 template <typename U>
 inline std::ostream& operator<<(std::ostream& out, const DafnySet<U>& val){
+    out << "{";
+    bool first = true;
     for (auto const& c:val.set) {
-        out << c;
+        if (!first) { out << ", "; }
+        first = false;
+        dafny_print_to(out, c);
     }
-    return out;
+    return out << "}";
 }
 
 template <typename U>
@@ -643,8 +690,9 @@ struct DafnyMap {
     }
 
     DafnyMap(std::initializer_list<std::pair<const K,V>> il) {
-        std::unordered_map<K,V> a_map(il);
-        map = a_map;
+        for (const auto& kv : il) {
+            map.insert_or_assign(kv.first, kv.second);
+        }
     }
 
     static DafnyMap<K,V> Create(std::initializer_list<std::pair<const K,V>> il) {
@@ -747,10 +795,16 @@ bool operator!=(const DafnyMap<T,U> &s0, const DafnyMap<T,U> &s1) {
 
 template <typename T, typename U>
 inline std::ostream& operator<<(std::ostream& out, const DafnyMap<T,U>& val){
+    out << "map[";
+    bool first = true;
     for (auto const& kv:val.map) {
-        out << "(" << kv.first << " -> " << kv.second << ")";
+        if (!first) { out << ", "; }
+        first = false;
+        dafny_print_to(out, kv.first);
+        out << " := ";
+        dafny_print_to(out, kv.second);
     }
-    return out;
+    return out << "]";
 }
 
 template <typename T, typename U>

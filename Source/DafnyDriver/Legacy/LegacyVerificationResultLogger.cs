@@ -29,7 +29,7 @@ namespace Microsoft.Dafny {
       var loggerConfigs = options.Get(CommonOptionBag.VerificationLogFormat);
 
       var events = new LocalTestLoggerEvents();
-      var verificationResults = ((DafnyConsolePrinter)options.Printer).VerificationResults.ToList();
+      var verificationResults = ((DafnyConsolePrinter)options.Printer).OrderedVerificationResults.ToList();
       List<IDisposable> disposables = new();
       foreach (var loggerConfig in loggerConfigs) {
         VerificationResultLogger.ParseParametersAndLoggerName(loggerConfig, out var parameters, out var loggerName);

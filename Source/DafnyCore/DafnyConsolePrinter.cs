@@ -62,6 +62,12 @@ public class DafnyConsolePrinter : ConsolePrinter {
 
   public ConcurrentBag<ConsoleLogEntry> VerificationResults { get; } = [];
 
+  /// A ConcurrentBag has no order of its own, and a method's well-formedness and body
+  /// implementations are both given GetToken(m), so the name is what breaks that tie.
+  public IEnumerable<ConsoleLogEntry> OrderedVerificationResults =>
+    VerificationResults.OrderBy(entry => (entry.Implementation.Tok.filename,
+      entry.Implementation.Tok.line, entry.Implementation.Tok.col, entry.Implementation.Name));
+
   public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
     if (output == Console.Out) {
       int foregroundColor = (int)Console.ForegroundColor;
