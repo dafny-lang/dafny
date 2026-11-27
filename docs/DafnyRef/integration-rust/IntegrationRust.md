@@ -71,7 +71,7 @@ For guaranteed stability, code interfacting with Dafny structures should use typ
 | `newtype T = u: U | range`    | `struct T([[U]])`           | Native           |
 | `newtype T = u: int | <range>`| `u8` ... `i128`             | Native           |
 | `ORDINAL`                     | N/A                         | TODO             |
-| `real`                        | Partially supported         | TODO             |
+| `real`                        | `BigRational`               | Runtime (`num::BigRational`, not in `small-int` mode) |
 | `seq<T>`                      | `Sequence<[[T]]>           `| Runtime |
 | `set<T>`, `iset<T>`           | `Set<[[T]]>`                | Runtime |
 | `multiset<T>`                 | `Multiset<[[T]]>`           | Runtime |
