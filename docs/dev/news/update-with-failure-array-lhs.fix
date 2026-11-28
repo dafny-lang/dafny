@@ -1,0 +1,1 @@
+Fix crash in `:-` statements that assign the extracted value to an array element

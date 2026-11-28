@@ -969,7 +969,7 @@ namespace Microsoft.Dafny {
           Expression id = resolver.makeTemp("recv", s, resolutionContext, lseq.Seq);
           Expression id0 = id0 = resolver.makeTemp("idx", s, resolutionContext, lseq.E0);
           lhsExtract = new SeqSelectExpr(lseq.Origin, lseq.SelectOne, id, id0, null, lseq.CloseParen);
-          lhsExtract.Type = lseq.Type;
+          lhsExtract.PreType = lseq.PreType;
         } else if (lhsResolved is MultiSelectExpr lmulti) {
           Expression id = resolver.makeTemp("recv", s, resolutionContext, lmulti.Array);
           var idxs = new List<Expression>();
@@ -978,7 +978,7 @@ namespace Microsoft.Dafny {
             idxs.Add(idx);
           }
           lhsExtract = new MultiSelectExpr(lmulti.Origin, id, idxs);
-          lhsExtract.Type = lmulti.Type;
+          lhsExtract.PreType = lmulti.PreType;
         } else if (lhsResolved is IdentifierExpr) {
           // do nothing
         } else if (lhsResolved == null) {

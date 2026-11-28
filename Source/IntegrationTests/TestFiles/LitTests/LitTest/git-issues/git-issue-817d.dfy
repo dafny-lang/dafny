@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %verify --type-system-refresh=false --general-newtypes=false "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 module M {
   datatype Result<T> = Failure(msg: string) | Success(value: T) {
@@ -18,5 +18,10 @@ module M {
     a[ ..2], k :- r, 0; // ERROR
     a[ .. ], k :- r, 0; // ERROR
     a[1.. ], k :- r, 0; // ERROR
+    var m := new int[10, 10];
+    a[true], k :- r, 0; // ERROR, reported once
+    m[true, 1], k :- r, 0; // ERROR, reported once
+    a[1], k :- expect Success(true), 0; // ERROR, the extracted value is not an int
+    m[1, 1], k :- expect Success(true), 0; // ERROR, the extracted value is not an int
   }
 }

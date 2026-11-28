@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment --type-system-refresh=false --general-newtypes=false "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --relax-definite-assignment
+
 
 datatype Result<T> = Failure(msg: string) | Success(value: T) {
   predicate IsFailure() { Failure? }
