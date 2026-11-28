@@ -1,0 +1,1 @@
+Fix crash of the legacy CLI on a solver exception, which now counts as a verification failure

@@ -25,7 +25,7 @@ public class LegacyTextVerificationLogger : IDisposable, IAsyncDisposable {
     foreach (var (implementation, result) in verificationResults) {
       var taskResults = result.VCResults.Select(LegacyJsonVerificationLogger.VCResultLogEntryToPartialVerificationRunResult).ToList();
       var scopeResult = new VerificationScopeResult(new VerificationScope(implementation.Name, implementation.Tok), taskResults);
-      TextVerificationLogger.LogResults(depManager, tw, scopeResult);
+      TextVerificationLogger.LogResults(depManager, tw, scopeResult, outcomeWithoutResults: result.Outcome);
     }
     tw.Flush();
   }
