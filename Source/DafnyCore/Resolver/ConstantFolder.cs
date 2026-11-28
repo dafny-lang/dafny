@@ -233,7 +233,7 @@ namespace Microsoft.Dafny {
             // use Euclidean modulo
             var a = BigInteger.Abs(e1);
             var d = e0 % a;
-            return 0 <= e0 ? d : d + a;
+            return d < 0 ? d + a : d;
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:

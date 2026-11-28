@@ -191,6 +191,9 @@ class EuclideanTest {
     assertEquals(Integer.MAX_VALUE - 1,
         DafnyEuclidean.EuclideanModulus(Integer.MIN_VALUE, Integer.MAX_VALUE));
     assertEquals(0, DafnyEuclidean.EuclideanModulus(Integer.MIN_VALUE, Integer.MIN_VALUE));
+    assertEquals(0, DafnyEuclidean.EuclideanModulus(Integer.MIN_VALUE, 2));
+    assertEquals(0, DafnyEuclidean.EuclideanModulus(Integer.MIN_VALUE, -1));
+    assertEquals(Integer.MAX_VALUE, DafnyEuclidean.EuclideanModulus(-1, Integer.MIN_VALUE));
   }
 
   @Test
@@ -216,6 +219,9 @@ class EuclideanTest {
     assertEquals(Long.MAX_VALUE - 1,
         DafnyEuclidean.EuclideanModulus(Long.MIN_VALUE, Long.MAX_VALUE));
     assertEquals(0L, DafnyEuclidean.EuclideanModulus(Long.MIN_VALUE, Long.MIN_VALUE));
+    assertEquals(Long.MAX_VALUE, DafnyEuclidean.EuclideanModulus(-1L, Long.MIN_VALUE));
+    assertEquals(0L, DafnyEuclidean.EuclideanModulus(Long.MIN_VALUE, 2L));
+    assertEquals(0L, DafnyEuclidean.EuclideanModulus(Long.MIN_VALUE, -1L));
   }
 
   @Test
