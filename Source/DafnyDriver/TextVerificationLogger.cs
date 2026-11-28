@@ -26,19 +26,20 @@ public class TextVerificationLogger : IVerificationResultFormatLogger {
     LogResults(depManager, output, scopeResult);
   }
 
-  public static void LogResults(ProofDependencyManager proofDependencyManager, TextWriter textWriter, VerificationScopeResult scopeResult) {
+  public static void LogResults(ProofDependencyManager proofDependencyManager, TextWriter textWriter, VerificationScopeResult scopeResult,
+    VcOutcome outcomeWithoutResults = VcOutcome.Correct) {
     var verificationScope = scopeResult.Scope;
     var results = scopeResult.Results.Select(t => t.Result).ToList();
-    var outcome = results.Aggregate(VcOutcome.Correct, (o, r) => JsonVerificationLogger.MergeOutcomes(o, r.Outcome));
+    var outcome = results.Count == 0 ? outcomeWithoutResults
+      : results.Aggregate(VcOutcome.Correct, (o, r) => JsonVerificationLogger.MergeOutcomes(o, r.Outcome));
     var runtime = results.Aggregate(TimeSpan.Zero, (a, r) => a + r.RunTime);
     textWriter.WriteLine("");
     textWriter.WriteLine($"Results for {verificationScope.Name}");
     textWriter.WriteLine($"  Overall outcome: {outcome}");
     textWriter.WriteLine($"  Overall time: {runtime}");
     textWriter.WriteLine($"  Overall resource count: {results.Sum(r => r.ResourceCount)}");
-    // It doesn't seem possible to get a result with zero VCResults, but being careful with nulls just in case :)
-    var maximumTime = results.MaxBy(r => r.RunTime).RunTime.ToString() ?? "N/A";
-    var maximumResourceCount = results.MaxBy(r => r.ResourceCount).ResourceCount.ToString() ?? "N/A";
+    var maximumTime = results.MaxBy(r => r.RunTime)?.RunTime.ToString() ?? "N/A";
+    var maximumResourceCount = results.MaxBy(r => r.ResourceCount)?.ResourceCount.ToString() ?? "N/A";
     textWriter.WriteLine($"  Maximum assertion batch time: {maximumTime}");
     textWriter.WriteLine($"  Maximum assertion batch resource count: {maximumResourceCount}");
     foreach (var taskResult in scopeResult.Results.OrderBy(r => r.Result.VcNum)) {

@@ -117,6 +117,9 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   public override void ReportEndVerifyImplementation(Implementation implementation, ImplementationRunResult result) {
+    // Boogie leaves RunResults null for a check that threw, until boogie-org/boogie#1192,
+    // and its /xml writer reads this same result afterwards.
+    result.RunResults ??= [];
     var impl = new ImplementationLogEntry(implementation.VerboseName, implementation.tok);
     VerificationResults.Add(new ConsoleLogEntry(impl, DistillVerificationResult(result)));
   }

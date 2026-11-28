@@ -138,7 +138,8 @@ namespace Microsoft.Dafny {
              && statistics.InconclusiveCount == 0
              && statistics.TimeoutCount == 0
              && statistics.OutOfResourceCount == 0
-             && statistics.OutOfMemoryCount == 0;
+             && statistics.OutOfMemoryCount == 0
+             && statistics.SolverExceptionCount == 0;
     }
 
     /// <summary>
