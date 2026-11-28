@@ -18,5 +18,8 @@ module M {
     a[ ..2], k :- r, 0; // ERROR
     a[ .. ], k :- r, 0; // ERROR
     a[1.. ], k :- r, 0; // ERROR
+    var m := new int[10, 10];
+    a[true], k :- r, 0; // ERROR, reported once
+    m[true, 1], k :- r, 0; // ERROR, reported once
   }
 }
