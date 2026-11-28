@@ -1,0 +1,1 @@
+The DafnyRuntime, DafnyCore and DafnyPipeline NuGet packages now contain Release builds instead of Debug builds

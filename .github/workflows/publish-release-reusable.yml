@@ -68,10 +68,6 @@ jobs:
       uses: actions/setup-python@v7
       with: 
        python-version: '3.11'
-    - name: Build Dafny
-      run: |
-        dotnet build dafny/Source/Dafny.sln
-        rm dafny/Binaries/*.nupkg
     - name: Create release NuGet package (for uploading)
       if: ${{ !inputs.prerelease }}
       run: dotnet pack dafny/Source/Dafny.sln

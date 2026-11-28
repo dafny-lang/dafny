@@ -3,7 +3,6 @@
   <PropertyGroup>
       <OutputType>Library</OutputType>
       <AssemblyName>DafnyRuntime</AssemblyName>
-      <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
       <TargetFramework></TargetFramework>
