@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 module M {
   datatype Result<T> = Failure(msg: string) | Success(value: T) {
