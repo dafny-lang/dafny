@@ -4,4 +4,6 @@ git-issue-817d.dfy(19,15): Error: Element ranges not allowed as l-values
 git-issue-817d.dfy(20,15): Error: Element ranges not allowed as l-values
 git-issue-817d.dfy(22,6): Error: index expression must have an integer or bitvector type (got bool)
 git-issue-817d.dfy(23,6): Error: array selection requires integer- or bitvector-based numeric indices (got bool for index 0)
-6 resolution/type errors detected in git-issue-817d.dfy
+git-issue-817d.dfy(24,30): Error: boolean literal used as if it had type int
+git-issue-817d.dfy(25,33): Error: boolean literal used as if it had type int
+8 resolution/type errors detected in git-issue-817d.dfy

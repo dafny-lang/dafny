@@ -21,5 +21,7 @@ module M {
     var m := new int[10, 10];
     a[true], k :- r, 0; // ERROR, reported once
     m[true, 1], k :- r, 0; // ERROR, reported once
+    a[1], k :- expect Success(true), 0; // ERROR, the extracted value is not an int
+    m[1, 1], k :- expect Success(true), 0; // ERROR, the extracted value is not an int
   }
 }

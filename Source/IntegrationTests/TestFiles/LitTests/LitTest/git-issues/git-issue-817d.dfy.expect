@@ -8,4 +8,6 @@ git-issue-817d.dfy(20,5): Error: cannot assign to a range of array elements (try
 git-issue-817d.dfy(20,15): Error: Element ranges not allowed as l-values
 git-issue-817d.dfy(22,6): Error: incorrect type for selection into array<int> (got bool)
 git-issue-817d.dfy(23,6): Error: array selection requires integer- or bitvector-based numeric indices (got bool for index 0)
-10 resolution/type errors detected in git-issue-817d.dfy
+git-issue-817d.dfy(25,15): Error: RHS (of type bool) not assignable to LHS (of type int)
+git-issue-817d.dfy(24,12): Error: RHS (of type bool) not assignable to LHS (of type int)
+12 resolution/type errors detected in git-issue-817d.dfy
